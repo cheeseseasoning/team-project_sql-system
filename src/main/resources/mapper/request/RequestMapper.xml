@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.request.mapper.RequestMapper">
+
+    <!-- 요청 ID를 먼저 발급 -->
+    <select id="selectNextRequestId" resultType="java.lang.Long">
+        SELECT SEQ_QUERY_REQUEST.NEXTVAL
+        FROM DUAL
+    </select>
+
+    <!-- 요청서 저장 -->
+    <insert id="insertRequest"
+            parameterType="com.sqlflow.request.domain.QueryRequest">
+        INSERT INTO QUERY_REQUEST (
+            REQUEST_ID,
+            REQUEST_NO,
+            DRAFTER_ID,
+            DEPT_ID,
+            TITLE,
+            PURPOSE
+        ) VALUES (
+            #{requestId},
+            #{requestNo},
+            #{drafterId},
+            #{deptId},
+            #{title},
+            #{purpose, jdbcType=CLOB}
+        )
+    </insert>
+
+    <!-- SQL 항목 저장 -->
+    <insert id="insertItem"
+            parameterType="com.sqlflow.request.domain.QueryItem">
+
+        <selectKey keyProperty="queryId"
+                   resultType="java.lang.Long"
+                   order="BEFORE">
+            SELECT SEQ_QUERY_ITEM.NEXTVAL
+            FROM DUAL
+        </selectKey>
+
+        INSERT INTO QUERY_ITEM (
+            QUERY_ID,
+            REQUEST_ID,
+            QUERY_ORDER,
+            QUERY_TITLE,
+            SQL_TEXT,
+            AUTHORING_TYPE
+        ) VALUES (
+            #{queryId},
+            #{requestId},
+            #{queryOrder},
+            #{queryTitle},
+            #{sqlText, jdbcType=CLOB},
+            #{authoringType}
+        )
+    </insert>
+
+</mapper>
