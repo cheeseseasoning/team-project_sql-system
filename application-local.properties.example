@@ -1,0 +1,11 @@
+# 사용 방법
+# 1. 이 파일을 같은 폴더에 복사합니다.
+# 2. 복사한 파일 이름을 application-local.properties로 변경합니다.
+# 3. 아래 DB 주소와 비밀번호를 채웁니다.
+# 4. STS에서 애플리케이션을 실행합니다.
+
+# DB가 자신의 PC에 있으면 localhost,
+# 공용 DB라면 Oracle이 설치된 PC의 IP를 입력합니다.
+spring.datasource.url=jdbc:oracle:thin:@//192.168.3.131:1521/XEPDB1
+spring.datasource.username=SQLFLOW
+spring.datasource.password=
