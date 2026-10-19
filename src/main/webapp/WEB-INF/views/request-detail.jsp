@@ -27,6 +27,12 @@
 				            class="button">
 				        초안 삭제
 				    </button>
+					
+					<button id="request-submit-open"
+					        type="button"
+					        class="button primary">
+					    제출
+					</button>
 				</span>
 			</div>
 		</div>
@@ -76,6 +82,80 @@
 			<div id="detail-items">불러오는 중입니다.</div>
 		</section>
 
+		<style>
+		    #approval-dialog {
+		        width: min(520px, calc(100% - 32px));
+		        max-height: 85vh;
+		        overflow: auto;
+		        border: 1px solid var(--line);
+		        border-radius: 9px;
+		        padding: 24px;
+		    }
+
+		    #approval-dialog::backdrop {
+		        background: rgba(0, 0, 0, 0.35);
+		    }
+
+		    #approval-dialog label {
+		        margin-top: 18px;
+		    }
+
+		    #approval-fields {
+		        border: 0;
+		        padding: 0;
+		        margin: 0;
+		        min-width: 0;
+		    }
+
+		    #approval-dialog-message {
+		        margin: 16px 0;
+		    }
+		</style>
+
+		<dialog id="approval-dialog"
+		        aria-labelledby="approval-dialog-title">
+		    <h2 id="approval-dialog-title">결재선 확인 및 제출</h2>
+
+		    <p id="approval-dialog-message" role="status"></p>
+
+		    <form id="approval-form">
+		        <fieldset id="approval-fields" disabled>
+		            <label for="department-approver">
+		                1. 소속 부서장
+		            </label>
+
+		            <input id="department-approver" readonly>
+
+		            <label for="db-approver">
+		                2. DB팀 결재자
+		                <span class="required">*</span>
+		            </label>
+
+		            <select id="db-approver" required>
+		                <option value="">DB팀 결재자를 선택하세요.</option>
+		            </select>
+
+		            <p class="caption section-gap">
+		                제출 후에는 요청 내용과 SQL을 수정할 수 없습니다.
+		            </p>
+
+		            <div class="form-footer">
+		                <button id="request-submit-confirm"
+		                        type="submit"
+		                        class="button primary">
+		                    제출 확정
+		                </button>
+		            </div>
+		        </fieldset>
+		    </form>
+
+		    <button id="approval-cancel"
+		            type="button"
+		            class="button section-gap">
+		        취소
+		    </button>
+		</dialog>
+		
 		<script>
 			const requestId = $('#detail-config').dataset.requestId;
 
@@ -245,6 +325,161 @@
 			    });
 			});
 
+			const approvalDialog = $('#approval-dialog');
+
+			let approvalLoadVersion = 0;
+			let approvalReady = false;
+			let requestSubmitting = false;
+
+			function showApprovalMessage(message, error = false) {
+			    const element = $('#approval-dialog-message');
+			    element.textContent = message;
+			    element.classList.toggle('error-text', error);
+			    element.setAttribute('role', error ? 'alert' : 'status');
+			}
+
+			$('#request-submit-open').addEventListener('click', async function () {
+			    if (approvalDialog.open) {
+			        return;
+			    }
+
+			    const loadVersion = ++approvalLoadVersion;
+
+			    approvalReady = false;
+			    $('#approval-fields').disabled = true;
+			    $('#department-approver').value = '';
+			    $('#db-approver').replaceChildren(
+			        new Option('DB팀 결재자를 선택하세요.', '')
+			    );
+
+			    showApprovalMessage('결재자 정보를 불러오는 중입니다.');
+			    approvalDialog.showModal();
+
+			    try {
+			        // 준오와 공유한 후보 조회 API 기준안
+			        const candidates = await api(
+			            '/requests/'
+			                + encodeURIComponent(requestId)
+			                + '/approval-candidates'
+			        );
+
+			        // 모달을 닫았거나 새 조회가 시작됐다면 이전 응답은 무시
+			        if (!approvalDialog.open
+			                || loadVersion !== approvalLoadVersion) {
+			            return;
+			        }
+
+			        const departmentApprover = candidates?.departmentApprover;
+			        const dbApprovers = candidates?.dbApprovers;
+
+			        if (!departmentApprover?.userId) {
+			            throw Error('소속 부서장이 지정되어 있지 않습니다.');
+			        }
+
+			        if (!Array.isArray(dbApprovers) || dbApprovers.length === 0) {
+			            throw Error('선택 가능한 DB팀 결재자가 없습니다.');
+			        }
+
+			        $('#department-approver').value =
+			            departmentApprover.userName
+			            + ' · '
+			            + departmentApprover.deptName;
+
+			        dbApprovers.forEach(function (user) {
+			            const option = new Option(
+			                user.userName + ' · ' + user.deptName,
+			                String(user.userId)
+			            );
+
+			            $('#db-approver').add(option);
+			        });
+
+			        // 후보가 한 명이면 자동 선택
+			        if (dbApprovers.length === 1) {
+			            $('#db-approver').value = String(dbApprovers[0].userId);
+			        }
+
+			        approvalReady = true;
+			        $('#approval-fields').disabled = false;
+
+			        showApprovalMessage(
+			            '부서장 → DB팀 순서로 결재가 진행됩니다.'
+			        );
+			    } catch (error) {
+			        if (approvalDialog.open
+			                && loadVersion === approvalLoadVersion) {
+			            showApprovalMessage(
+			                '결재자 정보를 불러오지 못했습니다. '
+			                    + error.message,
+			                true
+			            );
+			        }
+			    }
+			});
+
+			$('#approval-cancel').addEventListener('click', function () {
+			    if (!requestSubmitting) {
+			        approvalDialog.close();
+			    }
+			});
+
+			// 제출 처리 중에는 Esc로 모달을 닫지 않음
+			approvalDialog.addEventListener('cancel', function (event) {
+			    if (requestSubmitting) {
+			        event.preventDefault();
+			    }
+			});
+
+			approvalDialog.addEventListener('close', function () {
+			    approvalLoadVersion++;
+			    approvalReady = false;
+			});
+
+			$('#approval-form').addEventListener('submit', function (event) {
+			    event.preventDefault();
+
+			    if (!approvalReady || requestSubmitting) {
+			        return;
+			    }
+
+			    const dbApproverId = Number($('#db-approver').value);
+
+			    if (!Number.isSafeInteger(dbApproverId) || dbApproverId <= 0) {
+			        showApprovalMessage('DB팀 결재자를 선택하세요.', true);
+			        return;
+			    }
+
+			    if (!window.confirm('선택한 결재선으로 요청을 제출하시겠습니까?')) {
+			        return;
+			    }
+
+			    busy($('#request-submit-confirm'), async function () {
+			        requestSubmitting = true;
+			        $('#approval-fields').disabled = true;
+			        $('#approval-cancel').disabled = true;
+
+			        showApprovalMessage('요청을 제출하는 중입니다.');
+
+			        try {
+			            await post(
+			                '/requests/'
+			                    + encodeURIComponent(requestId)
+			                    + '/submit',
+			                { dbApproverId }
+			            );
+
+			            // 상세 정보를 새로 조회하여 제출 상태 표시
+			            location.reload();
+			        } catch (error) {
+			            showApprovalMessage(error.message, true);
+			        } finally {
+			            requestSubmitting = false;
+			            $('#approval-fields').disabled = false;
+			            $('#approval-cancel').disabled = false;
+			        }
+			    });
+			});
+			
 			loadDetail();
 		</script>
 
