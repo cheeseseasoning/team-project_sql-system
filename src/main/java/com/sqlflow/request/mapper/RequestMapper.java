@@ -20,7 +20,10 @@ public interface RequestMapper {
 
     int insertItem(QueryItem item);
     
-    List<RequestListResponse> selectMyRequests(@Param("drafterId") Long drafterId);
+    List<RequestListResponse> selectMyRequests(
+            @Param("drafterId") Long drafterId,
+            @Param("keyword") String keyword,
+            @Param("status") String status);
     
     RequestDetailResponse selectMyRequestDetail(
             @Param("requestId") Long requestId,
