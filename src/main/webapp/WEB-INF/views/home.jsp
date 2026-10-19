@@ -87,12 +87,13 @@
 							<th>처리 상태</th>
 							<th>SQL 수</th>
 							<th>작성일</th>
+							<th>요청일</th>
 						</tr>
 					</thead>
 
 					<tbody id="dashboard-recent">
 						<tr>
-							<td colspan="4" class="empty">
+							<td colspan="5" class="empty">
 								불러오는 중입니다.
 							</td>
 						</tr>
@@ -167,7 +168,7 @@
 
 			function renderDashboardRecent(requests) {
 				if (requests.length === 0) {
-					return '<tr><td colspan="4" class="empty">'
+					return '<tr><td colspan="5" class="empty">'
 						+ '아직 작성한 요청이 없습니다.'
 						+ '</td></tr>';
 				}
@@ -180,8 +181,15 @@
 						? request.createdAt.substring(0, 10)
 						: '-';
 
+					const desiredDate = request.desiredDate
+						? request.desiredDate.substring(0, 10)
+						: '미지정';
+
 					return '<tr>'
 						+ '<td>'
+						+ (request.isUrgent === 'Y'
+							? '<span class="badge urgent-badge">긴급</span> '
+							: '')
 						+ '<a class="table-title" href="' + href + '">'
 						+ esc(request.title)
 						+ '</a>'
@@ -193,6 +201,7 @@
 						+ badge(dashboardStatusName(request.requestStatus))
 						+ '</td>'
 						+ '<td>' + esc(request.sqlCount) + '개</td>'
+						+ '<td>' + esc(desiredDate) + '</td>'
 						+ '<td>' + esc(createdDate) + '</td>'
 						+ '</tr>';
 				}).join('');
@@ -225,7 +234,7 @@
 						'요청 현황을 불러오지 못했습니다.';
 
 					$('#dashboard-recent').innerHTML =
-						'<tr><td colspan="4" class="empty">'
+						'<tr><td colspan="5" class="empty">'
 						+ '최근 요청을 불러오지 못했습니다.'
 						+ '</td></tr>';
 
