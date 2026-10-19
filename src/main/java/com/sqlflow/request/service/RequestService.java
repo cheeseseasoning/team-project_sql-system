@@ -18,6 +18,7 @@ import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestDraftUpdateRequest;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestListResponse;
+import com.sqlflow.request.dto.RequestPageResponse;
 import com.sqlflow.request.dto.RequestSubmitRequest;
 import com.sqlflow.request.mapper.RequestMapper;
 
@@ -96,26 +97,12 @@ public class RequestService {
             String keyword,
             String status) {
 
-        // 로그인 연동 전 개발용 사용자
         Long drafterId = 1L;
 
         String searchKeyword = keyword == null ? "" : keyword.strip();
         String searchStatus = status == null ? "" : status.strip();
 
-        if (searchKeyword.length() > 120) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "검색어는 120자 이하여야 합니다."
-            );
-        }
-
-        if (!searchStatus.isEmpty()
-                && !SEARCHABLE_STATUSES.contains(searchStatus)) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "올바르지 않은 요청 상태입니다."
-            );
-        }
+        validateSearchConditions(searchKeyword, searchStatus);
 
         return requestMapper.selectMyRequests(
                 drafterId,
@@ -367,6 +354,87 @@ public class RequestService {
 	         throw new ResponseStatusException(
 	                 HttpStatus.CONFLICT,
 	                 "요청 상태가 변경되어 제출할 수 없습니다."
+	         );
+	     }
+	 }
+	 
+	 @Transactional(readOnly = true)
+	 public RequestPageResponse getMyRequestsPage(
+	         String keyword,
+	         String status,
+	         int page,
+	         int size) {
+
+	     // 로그인 연동 전 개발용 사용자
+	     Long drafterId = 1L;
+
+	     String searchKeyword = keyword == null ? "" : keyword.strip();
+	     String searchStatus = status == null ? "" : status.strip();
+
+	     validateSearchConditions(searchKeyword, searchStatus);
+
+	     if (page < 1) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.BAD_REQUEST,
+	                 "페이지 번호는 1 이상이어야 합니다."
+	         );
+	     }
+
+	     if (size < 1 || size > 50) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.BAD_REQUEST,
+	                 "페이지 크기는 1 이상, 50 이하여야 합니다."
+	         );
+	     }
+
+	     long totalCount = requestMapper.countMyRequests(
+	             drafterId, searchKeyword, searchStatus);
+
+	     long totalPages = totalCount == 0
+	             ? 0
+	             : (totalCount - 1) / size + 1;
+
+	     // 범위를 넘는 페이지를 요청하면 마지막 페이지로 보정
+	     int actualPage = totalPages == 0
+	             ? 1
+	             : (int) Math.min(page, totalPages);
+
+	     long offset = (long) (actualPage - 1) * size;
+
+	     List<RequestListResponse> items = totalCount == 0
+	             ? List.of()
+	             : requestMapper.selectMyRequestsPage(
+	                     drafterId,
+	                     searchKeyword,
+	                     searchStatus,
+	                     offset,
+	                     size
+	             );
+
+	     return new RequestPageResponse(
+	             items,
+	             actualPage,
+	             size,
+	             totalCount,
+	             totalPages
+	     );
+	 }
+
+	 private void validateSearchConditions(
+	         String keyword,
+	         String status) {
+
+	     if (keyword.length() > 120) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.BAD_REQUEST,
+	                 "검색어는 120자 이하여야 합니다."
+	         );
+	     }
+
+	     if (!status.isEmpty() && !SEARCHABLE_STATUSES.contains(status)) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.BAD_REQUEST,
+	                 "올바르지 않은 요청 상태입니다."
 	         );
 	     }
 	 }

@@ -51,9 +51,36 @@
 					<tbody id="request-rows"></tbody>
 				</table>
 			</div>
+			
+			<nav class="form-footer" aria-label="조회 요청 페이지 이동">
+			    <button id="previous-page"
+			            type="button"
+			            class="button"
+			            disabled>
+			        이전
+			    </button>
+
+			    <span id="page-info" class="caption" aria-live="polite"></span>
+
+			    <button id="next-page"
+			            type="button"
+			            class="button"
+			            disabled>
+			        다음
+			    </button>
+			</nav>
 		</section>
 		<script>
 			let listSequence = 0;
+			
+			let currentPage = 1;
+
+			const pageSize = 10;
+
+			let activeFilters = {
+			    keyword: '',
+			    status: ''
+			};
 
 			function renderDbRequestRows(rows) {
 				const classNames = {
@@ -113,68 +140,88 @@
 				}).join('');
 			}
 
-			async function loadRequests() {
-				const sequence = ++listSequence;
+			async function loadRequests(page = 1) {
+			    const sequence = ++listSequence;
 
-				$('#request-rows').innerHTML =
-					'<tr><td colspan="4" class="empty">'
-					+ '불러오는 중입니다.'
-					+ '</td></tr>';
+			    $('#previous-page').disabled = true;
+			    $('#next-page').disabled = true;
+			    $('#page-info').textContent = '조회 중입니다.';
+			    $('#result-count').textContent = '';
 
-				$('#result-count').textContent = '';
+			    $('#request-rows').innerHTML =
+			        '<tr><td colspan="4" class="empty">'
+			        + '불러오는 중입니다.'
+			        + '</td></tr>';
 
-				try {
-					const params = new URLSearchParams();
+			    try {
+			        const params = new URLSearchParams({
+			            page: String(page),
+			            size: String(pageSize)
+			        });
 
-					const keyword = $('#keyword').value.trim();
-					const status = $('#status').value;
+			        if (activeFilters.keyword) {
+			            params.set('keyword', activeFilters.keyword);
+			        }
 
-					if (keyword) {
-					    params.set('keyword', keyword);
-					}
+			        if (activeFilters.status) {
+			            params.set('status', activeFilters.status);
+			        }
 
-					if (status) {
-					    params.set('status', status);
-					}
+			        const data = await api(
+			            '/requests/mine/page?' + params.toString()
+			        );
 
-					const queryString = params.toString();
+			        if (sequence !== listSequence) {
+			            return;
+			        }
 
-					const rows = await api(
-					    '/requests/mine' + (queryString ? '?' + queryString : '')
-					);
+			        currentPage = data.page;
 
-					if (sequence !== listSequence) {
-						return;
-					}
+			        $('#request-rows').innerHTML = data.items.length
+			            ? renderDbRequestRows(data.items)
+			            : '<tr><td colspan="4" class="empty">'
+			                + '검색 조건에 맞는 요청이 없습니다.'
+			                + '</td></tr>';
 
-					$('#request-rows').innerHTML = rows.length
-						? renderDbRequestRows(rows)
-						: '<tr><td colspan="4" class="empty">'
-						+ '검색 조건에 맞는 요청이 없습니다.'
-						+ '</td></tr>';
+			        $('#result-count').textContent =
+			            '총 ' + data.totalCount + '건';
 
-					$('#result-count').textContent = '총 ' + rows.length + '건';
+			        $('#page-info').textContent = data.totalPages === 0
+			            ? '페이지 없음'
+			            : data.page + ' / ' + data.totalPages + ' 페이지';
 
-				} catch (error) {
-					if (sequence !== listSequence) {
-						return;
-					}
+			        $('#previous-page').disabled =
+			            data.totalPages === 0 || data.page <= 1;
 
-					$('#request-rows').innerHTML =
-						'<tr><td colspan="4" class="empty">'
-						+ '목록을 불러오지 못했습니다.'
-						+ '</td></tr>';
+			        $('#next-page').disabled =
+			            data.totalPages === 0 || data.page >= data.totalPages;
+			    } catch (error) {
+			        if (sequence !== listSequence) {
+			            return;
+			        }
 
-					notify(error.message, true);
-				}
+			        $('#request-rows').innerHTML =
+			            '<tr><td colspan="4" class="empty">'
+			            + '목록을 불러오지 못했습니다.'
+			            + '</td></tr>';
+
+			        $('#page-info').textContent = '';
+			        notify(error.message, true);
+			    }
 			}
 
 			$('#filter-form').addEventListener('submit', function (event) {
 			    event.preventDefault();
 
+			    activeFilters = {
+			        keyword: $('#keyword').value.trim(),
+			        status: $('#status').value
+			    };
+
+			    // 검색 조건을 변경하면 첫 페이지부터 조회
 			    busy(
 			        $('#filter-form button[type="submit"]'),
-			        loadRequests
+			        () => loadRequests(1)
 			    );
 			});
 
@@ -182,10 +229,25 @@
 			    $('#keyword').value = '';
 			    $('#status').value = '';
 
-			    busy(this, loadRequests);
+			    activeFilters = {
+			        keyword: '',
+			        status: ''
+			    };
+
+			    busy(this, () => loadRequests(1));
 			});
 
-			// 상단 공통 검색창에서 넘어온 검색어도 반영
+			$('#previous-page').addEventListener('click', function () {
+			    if (currentPage > 1) {
+			        loadRequests(currentPage - 1);
+			    }
+			});
+
+			$('#next-page').addEventListener('click', function () {
+			    loadRequests(currentPage + 1);
+			});
+
+			// 공통 검색창에서 넘어온 조건 반영
 			const initialParams = new URLSearchParams(location.search);
 
 			$('#keyword').value = initialParams.get('keyword') || '';
@@ -197,6 +259,11 @@
 			    $('#status').value = initialStatus;
 			}
 
-			loadRequests();
+			activeFilters = {
+			    keyword: $('#keyword').value.trim(),
+			    status: $('#status').value
+			};
+
+			loadRequests(1);
 		</script>
 		<%@ include file="fragments/bottom.jspf" %>

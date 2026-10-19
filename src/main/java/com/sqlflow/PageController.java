@@ -2,7 +2,10 @@ package com.sqlflow;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class PageController {
@@ -17,14 +20,18 @@ public class PageController {
 	}
 
 	@GetMapping("/requests/new")
-	public String create(Model model, @RequestParam(defaultValue = "ai") String mode) {
-		model.addAttribute("mode", "direct".equals(mode) ? "direct" : "ai");
-		return view(model, "request-form", "조회 요청 작성");
+	public String create(
+	        Model model,
+	        @RequestParam(name = "mode", defaultValue = "direct") String mode) {
+
+	    model.addAttribute("mode", "ai".equals(mode) ? "ai" : "direct");
+
+	    return view(model, "request-form", "조회 요청 작성");
 	}
 
 	@GetMapping("/requests/review")
-	public String review(Model model) {
-		return view(model, "request-review", "SQL 확인 및 제출");
+	public String review() {
+	    return "redirect:/requests/new";
 	}
 
 	@GetMapping("/requests")
@@ -62,4 +69,5 @@ public class PageController {
 
 	    return view(model, "request-edit", "조회 요청 초안 수정");
 	}
+	
 }

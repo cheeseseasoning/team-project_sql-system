@@ -18,6 +18,7 @@ import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestDraftUpdateRequest;
 import com.sqlflow.request.dto.RequestListResponse;
+import com.sqlflow.request.dto.RequestPageResponse;
 import com.sqlflow.request.dto.RequestSubmitRequest;
 import com.sqlflow.request.service.RequestService;
 
@@ -87,5 +88,16 @@ public class RequestController {
         requestService.submitRequest(requestId, input);
 
         return ResponseEntity.noContent().build();
+    }
+    
+    @GetMapping("/mine/page")
+    public RequestPageResponse getMyRequestsPage(
+            @RequestParam(name = "keyword", defaultValue = "") String keyword,
+            @RequestParam(name = "status", defaultValue = "") String status,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+
+        return requestService.getMyRequestsPage(
+                keyword, status, page, size);
     }
 }

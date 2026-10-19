@@ -192,5 +192,53 @@
 	      AND DRAFTER_ID = #{drafterId}
 	      AND REQUEST_STATUS = 'DRAFT'
 	</update>
+	
+	<!-- 페이지 건수와 목록 조회에 동일한 검색 조건 적용 -->
+	<sql id="myRequestPageConditions">
+	    WHERE R.DRAFTER_ID = #{drafterId}
+	
+	    <if test="keyword != null and keyword != ''">
+	        AND (
+	            INSTR(UPPER(R.REQUEST_NO), UPPER(#{keyword})) > 0
+	            OR INSTR(UPPER(R.TITLE), UPPER(#{keyword})) > 0
+	        )
+	    </if>
+	
+	    <if test="status != null and status != ''">
+	        AND R.REQUEST_STATUS = #{status}
+	    </if>
+	</sql>
+	
+	<!-- 검색 조건에 해당하는 전체 요청 수 -->
+	<select id="countMyRequests" resultType="java.lang.Long">
+	    SELECT COUNT(*)
+	    FROM QUERY_REQUEST R
+	    <include refid="myRequestPageConditions"/>
+	</select>
+	
+	<!-- 현재 페이지의 요청 목록 -->
+	<select id="selectMyRequestsPage"
+	        resultType="com.sqlflow.request.dto.RequestListResponse">
+	    SELECT
+	        R.REQUEST_ID,
+	        R.REQUEST_NO,
+	        R.TITLE,
+	        R.REQUEST_CLASS,
+	        R.REQUEST_STATUS,
+	        R.APPROVAL_STATUS,
+	        R.CREATED_AT,
+	        (
+	            SELECT COUNT(*)
+	            FROM QUERY_ITEM I
+	            WHERE I.REQUEST_ID = R.REQUEST_ID
+	        ) AS SQL_COUNT
+	    FROM QUERY_REQUEST R
+	
+	    <include refid="myRequestPageConditions"/>
+	
+	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
+	    OFFSET #{offset} ROWS
+	    FETCH NEXT #{size} ROWS ONLY
+	</select>
 
 </mapper>
