@@ -170,5 +170,15 @@
 	      AND DRAFTER_ID = #{drafterId}
 	      AND REQUEST_STATUS = 'DRAFT'
 	</delete>
+	
+	<!-- 본인의 초안을 결재 대기 상태로 변경 -->
+	<update id="submitDraft">
+	    UPDATE QUERY_REQUEST
+	    SET REQUEST_STATUS = 'PENDING_APPROVAL',
+	        SUBMITTED_AT = SYSTIMESTAMP
+	    WHERE REQUEST_ID = #{requestId}
+	      AND DRAFTER_ID = #{drafterId}
+	      AND REQUEST_STATUS = 'DRAFT'
+	</update>
 
 </mapper>

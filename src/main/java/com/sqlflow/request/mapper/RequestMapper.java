@@ -48,4 +48,9 @@ public interface RequestMapper {
             @Param("requestId") Long requestId,
             @Param("drafterId") Long drafterId);
     
+    // 본인의 초안을 제출 상태로 변경
+    int submitDraft(
+            @Param("requestId") Long requestId,
+            @Param("drafterId") Long drafterId);
+    
 }

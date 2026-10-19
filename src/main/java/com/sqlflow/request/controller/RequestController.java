@@ -17,6 +17,7 @@ import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestDraftUpdateRequest;
 import com.sqlflow.request.dto.RequestListResponse;
+import com.sqlflow.request.dto.RequestSubmitRequest;
 import com.sqlflow.request.service.RequestService;
 
 import jakarta.validation.Valid;
@@ -70,6 +71,16 @@ public class RequestController {
             @PathVariable("requestId") Long requestId) {
 
         requestService.deleteDraft(requestId);
+
+        return ResponseEntity.noContent().build();
+    }
+    
+    @PostMapping("/{requestId}/submit")
+    public ResponseEntity<Void> submitRequest(
+            @PathVariable("requestId") Long requestId,
+            @Valid @RequestBody RequestSubmitRequest input) {
+
+        requestService.submitRequest(requestId, input);
 
         return ResponseEntity.noContent().build();
     }
