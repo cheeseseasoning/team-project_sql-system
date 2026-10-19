@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.execution.mapper.QueryExecutionMapper">
+
+    <!-- 실행할 SQL마다 별도의 이력을 생성한다. -->
+    <insert id="insertExecution"
+            parameterType="com.sqlflow.execution.domain.QueryExecution">
+
+        <selectKey keyProperty="executionId"
+                   resultType="java.lang.Long"
+                   order="BEFORE">
+            SELECT SEQ_QUERY_EXECUTION.NEXTVAL
+            FROM DUAL
+        </selectKey>
+
+        INSERT INTO QUERY_EXECUTION (
+            EXECUTION_ID,
+            BATCH_ID,
+            QUERY_ID,
+            RETRY_OF_EXECUTION_ID,
+            ATTEMPT_NO,
+            STATUS
+        ) VALUES (
+            #{executionId},
+            #{batchId},
+            #{queryId},
+            #{retryOfExecutionId, jdbcType=NUMERIC},
+            #{attemptNo},
+            'PENDING'
+        )
+    </insert>
+
+    <!-- PENDING인 기록만 시작 처리하여 동일 이력의 중복 실행을 방지한다. -->
+    <update id="markRunning">
+        UPDATE QUERY_EXECUTION
+        SET STATUS = 'RUNNING',
+            STARTED_AT = SYSTIMESTAMP
+        WHERE EXECUTION_ID = #{executionId}
+          AND STATUS = 'PENDING'
+    </update>
+
+    <!-- 성공 시 오류 값은 null, 실패 시 오류 코드와 메시지를 저장한다. -->
+    <update id="finishExecution"
+            parameterType="com.sqlflow.execution.domain.QueryExecution">
+        UPDATE QUERY_EXECUTION
+        SET STATUS = #{status},
+            FINISHED_AT = SYSTIMESTAMP,
+            DURATION_MS = #{durationMs, jdbcType=NUMERIC},
+            ERROR_CODE = #{errorCode, jdbcType=VARCHAR},
+            ERROR_MESSAGE = #{errorMessage, jdbcType=CLOB}
+        WHERE EXECUTION_ID = #{executionId}
+          AND STATUS = 'RUNNING'
+          AND #{status} IN ('SUCCESS', 'FAILED')
+    </update>
+
+</mapper>
