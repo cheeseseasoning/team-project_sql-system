@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.request.mapper.RequestMapper">
+
+    <!-- 요청 ID를 먼저 발급 -->
+    <select id="selectNextRequestId" resultType="java.lang.Long">
+        SELECT SEQ_QUERY_REQUEST.NEXTVAL
+        FROM DUAL
+    </select>
+
+    <!-- 요청서 저장 -->
+    <insert id="insertRequest"
+            parameterType="com.sqlflow.request.domain.QueryRequest">
+        INSERT INTO QUERY_REQUEST (
+            REQUEST_ID,
+            REQUEST_NO,
+            DRAFTER_ID,
+            DEPT_ID,
+            TITLE,
+            PURPOSE
+        ) VALUES (
+            #{requestId},
+            #{requestNo},
+            #{drafterId},
+            #{deptId},
+            #{title},
+            #{purpose, jdbcType=CLOB}
+        )
+    </insert>
+
+    <!-- SQL 항목 저장 -->
+    <insert id="insertItem"
+            parameterType="com.sqlflow.request.domain.QueryItem">
+
+        <selectKey keyProperty="queryId"
+                   resultType="java.lang.Long"
+                   order="BEFORE">
+            SELECT SEQ_QUERY_ITEM.NEXTVAL
+            FROM DUAL
+        </selectKey>
+
+        INSERT INTO QUERY_ITEM (
+            QUERY_ID,
+            REQUEST_ID,
+            QUERY_ORDER,
+            QUERY_TITLE,
+            SQL_TEXT,
+            AUTHORING_TYPE
+        ) VALUES (
+            #{queryId},
+            #{requestId},
+            #{queryOrder},
+            #{queryTitle},
+            #{sqlText, jdbcType=CLOB},
+            #{authoringType}
+        )
+    </insert>
+    
+    <!-- 작성자의 요청 목록 -->
+	<select id="selectMyRequests"
+	        resultType="com.sqlflow.request.dto.RequestListResponse">
+	
+	    SELECT
+	        R.REQUEST_ID,
+	        R.REQUEST_NO,
+	        R.TITLE,
+	        R.REQUEST_CLASS,
+	        R.REQUEST_STATUS,
+	        R.APPROVAL_STATUS,
+	        R.CREATED_AT,
+	        (
+	            SELECT COUNT(*)
+	            FROM QUERY_ITEM I
+	            WHERE I.REQUEST_ID = R.REQUEST_ID
+	        ) AS SQL_COUNT
+	    FROM QUERY_REQUEST R
+	    WHERE R.DRAFTER_ID = #{drafterId}
+	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
+	
+	</select>
+	
+	<!-- 본인 요청의 상세 정보 -->
+	<select id="selectMyRequestDetail"
+	        resultType="com.sqlflow.request.dto.RequestDetailResponse">
+	
+	    SELECT
+	        R.REQUEST_ID,
+	        R.REQUEST_NO,
+	        R.TITLE,
+	        R.PURPOSE,
+	        U.USER_NAME AS DRAFTER_NAME,
+	        D.DEPT_NAME,
+	        R.REQUEST_CLASS,
+	        R.REQUEST_STATUS,
+	        R.APPROVAL_STATUS,
+	        R.CREATED_AT,
+	        R.SUBMITTED_AT
+	    FROM QUERY_REQUEST R
+	    JOIN USERS U
+	        ON U.USER_ID = R.DRAFTER_ID
+	    JOIN DEPARTMENT D
+	        ON D.DEPT_ID = R.DEPT_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND R.DRAFTER_ID = #{drafterId}
+	
+	</select>
+	
+	<!-- 본인 요청에 등록된 SQL 목록 -->
+	<select id="selectMyRequestItems"
+	        resultType="com.sqlflow.request.dto.RequestItemResponse">
+	
+	    SELECT
+	        I.QUERY_ID,
+	        I.QUERY_ORDER,
+	        I.QUERY_TITLE,
+	        I.SQL_TEXT,
+	        I.AUTHORING_TYPE,
+	        I.VALIDATION_STATUS,
+	        I.ITEM_CLASS
+	    FROM QUERY_ITEM I
+	    JOIN QUERY_REQUEST R
+	        ON R.REQUEST_ID = I.REQUEST_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND R.DRAFTER_ID = #{drafterId}
+	    ORDER BY I.QUERY_ORDER
+	
+	</select>
+	
+	<!-- 본인 요청의 상태 확인 및 행 잠금 -->
+	<select id="selectMyRequestStatusForUpdate"
+	        resultType="java.lang.String">
+	    SELECT REQUEST_STATUS
+	    FROM QUERY_REQUEST
+	    WHERE REQUEST_ID = #{requestId}
+	      AND DRAFTER_ID = #{drafterId}
+	    FOR UPDATE
+	</select>
+	
+	<!-- 본인의 초안만 제목·목적 수정 -->
+	<update id="updateDraft"
+	        parameterType="com.sqlflow.request.domain.QueryRequest">
+	    UPDATE QUERY_REQUEST
+	    SET TITLE = #{title},
+	        PURPOSE = #{purpose, jdbcType=CLOB}
+	    WHERE REQUEST_ID = #{requestId}
+	      AND DRAFTER_ID = #{drafterId}
+	      AND REQUEST_STATUS = 'DRAFT'
+	</update>
+	
+	<!-- 본인의 초안에 속한 기존 SQL 항목 삭제 -->
+	<delete id="deleteDraftItems">
+	    DELETE FROM QUERY_ITEM
+	    WHERE REQUEST_ID = #{requestId}
+	      AND EXISTS (
+	          SELECT 1
+	          FROM QUERY_REQUEST R
+	          WHERE R.REQUEST_ID = #{requestId}
+	            AND R.DRAFTER_ID = #{drafterId}
+	            AND R.REQUEST_STATUS = 'DRAFT'
+	      )
+	</delete>
+	
+	<!-- 본인의 초안 요청서만 삭제 -->
+	<delete id="deleteDraftRequest">
+	    DELETE FROM QUERY_REQUEST
+	    WHERE REQUEST_ID = #{requestId}
+	      AND DRAFTER_ID = #{drafterId}
+	      AND REQUEST_STATUS = 'DRAFT'
+	</delete>
+
+</mapper>
