@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.request.domain.QueryItem;
 import com.sqlflow.request.domain.QueryRequest;
+import com.sqlflow.request.dto.RequestDashboardResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestDraftUpdateRequest;
@@ -20,6 +21,7 @@ import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.dto.RequestPageResponse;
 import com.sqlflow.request.dto.RequestSubmitRequest;
+import com.sqlflow.request.dto.RequestSummaryResponse;
 import com.sqlflow.request.mapper.RequestMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -437,5 +439,29 @@ public class RequestService {
 	                 "올바르지 않은 요청 상태입니다."
 	         );
 	     }
+	 }
+	 
+	 @Transactional(readOnly = true)
+	 public RequestDashboardResponse getMyDashboard() {
+
+	     // 로그인 연동 전 개발용 사용자
+	     Long drafterId = 1L;
+
+	     RequestSummaryResponse summary =
+	             requestMapper.selectMyRequestSummary(drafterId);
+
+	     List<RequestListResponse> recentRequests =
+	             requestMapper.selectMyRequestsPage(
+	                     drafterId,
+	                     "",
+	                     "",
+	                     0L,
+	                     5
+	             );
+
+	     return new RequestDashboardResponse(
+	             summary,
+	             recentRequests
+	     );
 	 }
 }
