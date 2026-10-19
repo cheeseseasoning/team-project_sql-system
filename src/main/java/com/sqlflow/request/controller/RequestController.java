@@ -5,11 +5,13 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.service.RequestService;
@@ -41,5 +43,12 @@ public class RequestController {
     @GetMapping("/mine")
     public List<RequestListResponse> getMyRequests() {
         return requestService.getMyRequests();
+    }
+    
+    @GetMapping("/mine/{requestId}")
+    public RequestDetailResponse getMyRequestDetail(
+            @PathVariable Long requestId) {
+
+        return requestService.getMyRequestDetail(requestId);
     }
 }

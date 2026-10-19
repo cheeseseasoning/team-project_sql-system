@@ -4,11 +4,14 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.request.domain.QueryItem;
 import com.sqlflow.request.domain.QueryRequest;
+import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.mapper.RequestMapper;
@@ -75,5 +78,28 @@ public class RequestService {
         Long drafterId = 1L;
 
         return requestMapper.selectMyRequests(drafterId);
+    }
+    
+    @Transactional(readOnly = true)
+    public RequestDetailResponse getMyRequestDetail(Long requestId) {
+
+        // 로그인 연동 전 개발용 사용자
+        Long drafterId = 1L;
+
+        RequestDetailResponse detail =
+                requestMapper.selectMyRequestDetail(requestId, drafterId);
+
+        if (detail == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "조회 요청을 찾을 수 없습니다."
+            );
+        }
+
+        detail.setItems(
+                requestMapper.selectMyRequestItems(requestId, drafterId)
+        );
+
+        return detail;
     }
 }

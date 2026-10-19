@@ -81,5 +81,52 @@
 	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
 	
 	</select>
+	
+	<!-- 본인 요청의 상세 정보 -->
+	<select id="selectMyRequestDetail"
+	        resultType="com.sqlflow.request.dto.RequestDetailResponse">
+	
+	    SELECT
+	        R.REQUEST_ID,
+	        R.REQUEST_NO,
+	        R.TITLE,
+	        R.PURPOSE,
+	        U.USER_NAME AS DRAFTER_NAME,
+	        D.DEPT_NAME,
+	        R.REQUEST_CLASS,
+	        R.REQUEST_STATUS,
+	        R.APPROVAL_STATUS,
+	        R.CREATED_AT,
+	        R.SUBMITTED_AT
+	    FROM QUERY_REQUEST R
+	    JOIN USERS U
+	        ON U.USER_ID = R.DRAFTER_ID
+	    JOIN DEPARTMENT D
+	        ON D.DEPT_ID = R.DEPT_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND R.DRAFTER_ID = #{drafterId}
+	
+	</select>
+	
+	<!-- 본인 요청에 등록된 SQL 목록 -->
+	<select id="selectMyRequestItems"
+	        resultType="com.sqlflow.request.dto.RequestItemResponse">
+	
+	    SELECT
+	        I.QUERY_ID,
+	        I.QUERY_ORDER,
+	        I.QUERY_TITLE,
+	        I.SQL_TEXT,
+	        I.AUTHORING_TYPE,
+	        I.VALIDATION_STATUS,
+	        I.ITEM_CLASS
+	    FROM QUERY_ITEM I
+	    JOIN QUERY_REQUEST R
+	        ON R.REQUEST_ID = I.REQUEST_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND R.DRAFTER_ID = #{drafterId}
+	    ORDER BY I.QUERY_ORDER
+	
+	</select>
 
 </mapper>

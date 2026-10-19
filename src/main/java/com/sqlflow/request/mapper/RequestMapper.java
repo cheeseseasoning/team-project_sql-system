@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Param;
 
 import com.sqlflow.request.domain.QueryItem;
 import com.sqlflow.request.domain.QueryRequest;
+import com.sqlflow.request.dto.RequestDetailResponse;
+import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestListResponse;
 
 @Mapper
@@ -19,4 +21,12 @@ public interface RequestMapper {
     int insertItem(QueryItem item);
     
     List<RequestListResponse> selectMyRequests(@Param("drafterId") Long drafterId);
+    
+    RequestDetailResponse selectMyRequestDetail(
+            @Param("requestId") Long requestId,
+            @Param("drafterId") Long drafterId);
+
+    List<RequestItemResponse> selectMyRequestItems(
+            @Param("requestId") Long requestId,
+            @Param("drafterId") Long drafterId);
 }
