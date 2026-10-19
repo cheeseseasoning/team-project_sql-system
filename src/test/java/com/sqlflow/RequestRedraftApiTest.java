@@ -91,6 +91,8 @@ class RequestRedraftApiTest {
                         .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sourceRequestId").value(sourceId))
+                .andExpect(jsonPath("$.sourceRequestNo").value(originalRequestNo))
                 .andExpect(jsonPath("$.title").value("재기안 원본"))
                 .andExpect(jsonPath("$.purpose").value("매출 확인"))
                 .andExpect(jsonPath("$.detailContent").value("국내 지점만 조회"))

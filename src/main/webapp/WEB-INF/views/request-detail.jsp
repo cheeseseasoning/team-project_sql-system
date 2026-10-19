@@ -44,6 +44,12 @@
 			<h2>요청 정보</h2>
 
 			<dl class="key-values">
+				<div id="source-request-row" hidden>
+				    <dt>원본 요청</dt>
+				    <dd>
+				        <a id="source-request-link"></a>
+				    </dd>
+				</div>
 				<div>
 					<dt>작성자</dt>
 					<dd id="drafter-name"></dd>
@@ -255,6 +261,24 @@
 
 					$('#request-number').textContent = request.requestNo;
 					$('#detail-title').textContent = request.title;
+					
+					const hasSource =
+					    request.sourceRequestId != null
+					    && Boolean(request.sourceRequestNo);
+
+					$('#source-request-row').hidden = !hasSource;
+
+					const sourceLink = $('#source-request-link');
+
+					if (hasSource) {
+					    sourceLink.textContent = request.sourceRequestNo;
+					    sourceLink.href =
+					        BASE + '/requests/'
+					        + encodeURIComponent(request.sourceRequestId);
+					} else {
+					    sourceLink.textContent = '';
+					    sourceLink.removeAttribute('href');
+					}
 
 					// 초안 수정 화면으로 이동할 주소
 					$('#draft-edit-link').href =
@@ -326,6 +350,7 @@
 
 					$('#draft-edit-action').hidden = true;
 					$('#request-redraft').hidden = true;
+					$('#source-request-row').hidden = true;
 
 					notify(error.message, true);
 				}
