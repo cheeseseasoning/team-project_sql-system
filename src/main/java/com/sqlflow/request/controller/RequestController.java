@@ -123,4 +123,19 @@ public class RequestController {
 		return ResponseEntity.status(exception.getStatusCode()).body(Map.of(
 				"message", Objects.requireNonNullElse(exception.getReason(), "요청을 처리할 수 없습니다.")));
 	}
+	
+	@PostMapping("/{requestId}/redraft")
+	public ResponseEntity<DraftCreateResponse> redraftRequest(
+	        @PathVariable Long requestId,
+	        @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+	    Long newRequestId = requestService.redraftRequest(
+	            requestId,
+	            user.getUserId(),
+	            user.getDeptId());
+
+	    return ResponseEntity
+	            .created(URI.create("/api/requests/mine/" + newRequestId))
+	            .body(new DraftCreateResponse(newRequestId));
+	}
 }

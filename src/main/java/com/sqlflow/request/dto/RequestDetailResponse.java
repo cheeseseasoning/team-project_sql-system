@@ -14,6 +14,9 @@ public class RequestDetailResponse {
 
     private Long requestId;
     private String requestNo;
+    
+    private Long sourceRequestId;
+    private String sourceRequestNo;
 
     private String title;
     private String purpose;

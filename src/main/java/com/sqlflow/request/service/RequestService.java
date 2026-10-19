@@ -379,4 +379,68 @@ public class RequestService {
 	            ? null
 	            : value.strip();
 	}
+	
+	@Transactional
+	public Long redraftRequest(
+	        Long sourceRequestId,
+	        Long actorId,
+	        Long deptId) {
+
+	    // 1. 본인 요청 확인 및 동시 처리 방지를 위한 잠금
+	    String status = requestMapper.selectMyRequestStatusForUpdate(
+	            sourceRequestId, actorId);
+
+	    if (status == null) {
+	        throw new ResponseStatusException(
+	                HttpStatus.NOT_FOUND,
+	                "조회 요청을 찾을 수 없습니다.");
+	    }
+
+	    // 2. 반려된 요청만 재기안 가능
+	    if (!"REJECTED".equals(status)) {
+	        throw new ResponseStatusException(
+	                HttpStatus.CONFLICT,
+	                "반려된 요청만 재기안할 수 있습니다.");
+	    }
+
+	    // 3. 원본 요청과 SQL 조회
+	    RequestDetailResponse source =
+	            getMyRequestDetail(sourceRequestId, actorId);
+
+	    // 4. 새 요청 ID와 요청번호 발급
+	    Long newRequestId = requestMapper.selectNextRequestId();
+
+	    QueryRequest draft = new QueryRequest();
+	    draft.setRequestId(newRequestId);
+	    draft.setRequestNo(createRequestNo(newRequestId));
+	    draft.setSourceRequestId(sourceRequestId);
+
+	    // 새 초안의 작성자·부서는 현재 로그인 사용자 기준
+	    draft.setDrafterId(actorId);
+	    draft.setDeptId(deptId);
+
+	    draft.setTitle(source.getTitle());
+	    draft.setPurpose(source.getPurpose());
+	    draft.setDetailContent(source.getDetailContent());
+	    draft.setIsUrgent(source.getIsUrgent());
+	    draft.setDesiredDate(source.getDesiredDate());
+
+	    // 요청·결재 상태는 DB 기본값인 DRAFT / NOT_REQUIRED 사용
+	    if (requestMapper.insertRequest(draft) != 1) {
+	        throw new IllegalStateException("재기안 초안 생성에 실패했습니다.");
+	    }
+
+	    // 5. SQL 내용과 제목만 복사하여 새로운 SQL 항목 생성
+	    List<String> sqls = source.getItems().stream()
+	            .map(RequestItemResponse::getSqlText)
+	            .toList();
+
+	    List<String> sqlTitles = source.getItems().stream()
+	            .map(RequestItemResponse::getQueryTitle)
+	            .toList();
+
+	    saveDraftItems(newRequestId, sqls, sqlTitles);
+
+	    return newRequestId;
+	}
 }

@@ -10,13 +10,14 @@
         SELECT SEQ_QUERY_REQUEST.NEXTVAL
         FROM DUAL
     </select>
-
-    <!-- 요청서 저장 -->
+	
+	<!-- 요청서 저장 -->
 	<insert id="insertRequest"
 	        parameterType="com.sqlflow.request.domain.QueryRequest">
 	    INSERT INTO QUERY_REQUEST (
 	        REQUEST_ID,
 	        REQUEST_NO,
+	        SOURCE_REQUEST_ID,
 	        DRAFTER_ID,
 	        DEPT_ID,
 	        TITLE,
@@ -27,6 +28,7 @@
 	    ) VALUES (
 	        #{requestId},
 	        #{requestNo},
+	        #{sourceRequestId, jdbcType=NUMERIC},
 	        #{drafterId},
 	        #{deptId},
 	        #{title},
@@ -109,12 +111,14 @@
 	    SELECT
 	        R.REQUEST_ID,
 	        R.REQUEST_NO,
+	        R.SOURCE_REQUEST_ID,
+	        S.REQUEST_NO AS SOURCE_REQUEST_NO,
 	        R.TITLE,
-			R.PURPOSE,
-			R.DETAIL_CONTENT,
-			R.IS_URGENT,
-			R.DESIRED_DATE,
-			U.USER_NAME AS DRAFTER_NAME,
+	        R.PURPOSE,
+	        R.DETAIL_CONTENT,
+	        R.IS_URGENT,
+	        R.DESIRED_DATE,
+	        U.USER_NAME AS DRAFTER_NAME,
 	        D.DEPT_NAME,
 	        R.REQUEST_CLASS,
 	        R.REQUEST_STATUS,
@@ -126,6 +130,9 @@
 	        ON U.USER_ID = R.DRAFTER_ID
 	    JOIN DEPARTMENT D
 	        ON D.DEPT_ID = R.DEPT_ID
+	    LEFT JOIN QUERY_REQUEST S
+	        ON S.REQUEST_ID = R.SOURCE_REQUEST_ID
+	       AND S.DRAFTER_ID = R.DRAFTER_ID
 	    WHERE R.REQUEST_ID = #{requestId}
 	      AND R.DRAFTER_ID = #{drafterId}
 	

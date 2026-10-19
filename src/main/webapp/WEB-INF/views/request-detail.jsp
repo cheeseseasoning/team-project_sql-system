@@ -30,6 +30,13 @@
 						제출
 					</button>
 				</span>
+				
+				<button id="request-redraft"
+				        type="button"
+				        class="button primary"
+				        hidden>
+				    재기안
+				</button>
 			</div>
 		</div>
 
@@ -37,6 +44,12 @@
 			<h2>요청 정보</h2>
 
 			<dl class="key-values">
+				<div id="source-request-row" hidden>
+				    <dt>원본 요청</dt>
+				    <dd>
+				        <a id="source-request-link"></a>
+				    </dd>
+				</div>
 				<div>
 					<dt>작성자</dt>
 					<dd id="drafter-name"></dd>
@@ -248,6 +261,24 @@
 
 					$('#request-number').textContent = request.requestNo;
 					$('#detail-title').textContent = request.title;
+					
+					const hasSource =
+					    request.sourceRequestId != null
+					    && Boolean(request.sourceRequestNo);
+
+					$('#source-request-row').hidden = !hasSource;
+
+					const sourceLink = $('#source-request-link');
+
+					if (hasSource) {
+					    sourceLink.textContent = request.sourceRequestNo;
+					    sourceLink.href =
+					        BASE + '/requests/'
+					        + encodeURIComponent(request.sourceRequestId);
+					} else {
+					    sourceLink.textContent = '';
+					    sourceLink.removeAttribute('href');
+					}
 
 					// 초안 수정 화면으로 이동할 주소
 					$('#draft-edit-link').href =
@@ -258,6 +289,10 @@
 					// 초안 상태에서만 수정 버튼 표시
 					$('#draft-edit-action').hidden =
 						request.requestStatus !== 'DRAFT';
+						
+					// 반려된 본인 요청에서만 재기안 버튼 표시
+					$('#request-redraft').hidden =
+					    request.requestStatus !== 'REJECTED';
 
 					$('#detail-state').innerHTML = badge(
 						detailStatusNames[request.requestStatus]
@@ -314,6 +349,8 @@
 						'요청을 불러오지 못했습니다. 내 요청 목록으로 돌아가 확인하세요.';
 
 					$('#draft-edit-action').hidden = true;
+					$('#request-redraft').hidden = true;
+					$('#source-request-row').hidden = true;
 
 					notify(error.message, true);
 				}
@@ -496,6 +533,49 @@
 				});
 			});
 
+			let redraftCreating = false;
+
+			$('#request-redraft').addEventListener('click', function () {
+			    if (redraftCreating) {
+			        return;
+			    }
+
+			    const confirmed = window.confirm(
+			        '이 요청을 복사하여 새 초안을 작성하시겠습니까?\n'
+			        + '기존 요청과 결재 이력은 유지됩니다.'
+			    );
+
+			    if (!confirmed) {
+			        return;
+			    }
+
+			    redraftCreating = true;
+
+			    busy(this, async function () {
+			        try {
+			            const result = await api(
+			                '/requests/'
+			                + encodeURIComponent(requestId)
+			                + '/redraft',
+			                {method: 'POST'}
+			            );
+
+			            if (!result?.requestId) {
+			                throw Error('생성된 초안 정보를 확인할 수 없습니다.');
+			            }
+
+			            location.href =
+			                BASE + '/requests/'
+			                + encodeURIComponent(result.requestId)
+			                + '/edit';
+
+			        } catch (error) {
+			            redraftCreating = false;
+			            throw error;
+			        }
+			    });
+			});
+			
 			loadDetail();
 		</script>
 
