@@ -30,113 +30,116 @@
 		</section>
 		<script>
 			let listSequence = 0;
-	
+
 			function renderDbRequestRows(rows) {
-			    const classNames = {
-			        GENERAL: '일반 조회',
-			        SENSITIVE: '민감 조회'
-			    };
-	
-			    const statusNames = {
-			        DRAFT: '초안',
-			        PENDING_APPROVAL: '결재 대기',
-			        READY: '실행 대기',
-			        RUNNING: '실행 중',
-			        COMPLETED: '실행 완료',
-			        PARTIAL_FAILED: '일부 실패',
-			        FAILED: '실패',
-			        REJECTED: '반려',
-			        WITHDRAWN: '회수'
-			    };
-	
-			    return rows.map(function (request) {
-			        const classLabel =
-			            classNames[request.requestClass]
-			            || request.requestClass
-			            || '미분류';
-	
-			        const statusLabel =
-			            statusNames[request.requestStatus]
-			            || request.requestStatus;
-	
-			        // 시간대 정보 없는 DB 날짜는 날짜 부분만 표시
-			        const createdDate = request.createdAt
-			            ? request.createdAt.substring(0, 10)
-			            : '-';
-	
-			        return '<tr>'
-			            + '<td>'
-			            +     '<strong class="table-title">'
-			            +         esc(request.title)
-			            +     '</strong>'
-			            +     '<span class="secondary">'
-			            +         esc(request.requestNo)
-			            +     '</span>'
-			            + '</td>'
-			            + '<td>' + esc(classLabel) + '</td>'
-			            + '<td>'
-			            +     badge(statusLabel)
-			            +     '<span class="secondary">'
-			            +         'SQL ' + esc(request.sqlCount) + '개'
-			            +     '</span>'
-			            + '</td>'
-			            + '<td>' + esc(createdDate) + '</td>'
-			            + '</tr>';
-			    }).join('');
+				const classNames = {
+					GENERAL: '일반 조회',
+					SENSITIVE: '민감 조회'
+				};
+
+				const statusNames = {
+					DRAFT: '초안',
+					PENDING_APPROVAL: '결재 대기',
+					READY: '실행 대기',
+					RUNNING: '실행 중',
+					COMPLETED: '실행 완료',
+					PARTIAL_FAILED: '일부 실패',
+					FAILED: '실패',
+					REJECTED: '반려',
+					WITHDRAWN: '회수'
+				};
+
+				return rows.map(function (request) {
+					const classLabel =
+						classNames[request.requestClass]
+						|| request.requestClass
+						|| '미분류';
+
+					const statusLabel =
+						statusNames[request.requestStatus]
+						|| request.requestStatus;
+
+					// 시간대 정보 없는 DB 날짜는 날짜 부분만 표시
+					const createdDate = request.createdAt
+						? request.createdAt.substring(0, 10)
+						: '-';
+
+					return '<tr>'
+						+ '<td>'
+						+ '<a class="table-title" href="'
+						+ BASE + '/requests/'
+						+ encodeURIComponent(request.requestId)
+						+ '">'
+						+ esc(request.title)
+						+ '</a>'
+						+ '<span class="secondary">'
+						+ esc(request.requestNo)
+						+ '</span>'
+						+ '</td>'
+						+ '<td>' + esc(classLabel) + '</td>'
+						+ '<td>'
+						+ badge(statusLabel)
+						+ '<span class="secondary">'
+						+ 'SQL ' + esc(request.sqlCount) + '개'
+						+ '</span>'
+						+ '</td>'
+						+ '<td>' + esc(createdDate) + '</td>'
+						+ '</tr>';
+				}).join('');
 			}
-	
+
 			async function loadRequests() {
-			    const sequence = ++listSequence;
-	
-			    $('#request-rows').innerHTML =
-			        '<tr><td colspan="4" class="empty">'
-			        + '불러오는 중입니다.'
-			        + '</td></tr>';
-	
-			    $('#result-count').textContent = '';
-	
-			    try {
-			        // 실제 Oracle 기반 목록 API
-			        const rows = await api('/requests/mine');
-	
-			        if (sequence !== listSequence) {
-			            return;
-			        }
-	
-			        $('#request-rows').innerHTML = rows.length
-			            ? renderDbRequestRows(rows)
-			            : '<tr><td colspan="4" class="empty">'
-			                + '저장된 요청이 없습니다.'
-			                + '</td></tr>';
-	
-			        $('#result-count').textContent = '총 ' + rows.length + '건';
-	
-			    } catch (error) {
-			        if (sequence !== listSequence) {
-			            return;
-			        }
-	
-			        $('#request-rows').innerHTML =
-			            '<tr><td colspan="4" class="empty">'
-			            + '목록을 불러오지 못했습니다.'
-			            + '</td></tr>';
-	
-			        notify(error.message, true);
-			    }
+				const sequence = ++listSequence;
+
+				$('#request-rows').innerHTML =
+					'<tr><td colspan="4" class="empty">'
+					+ '불러오는 중입니다.'
+					+ '</td></tr>';
+
+				$('#result-count').textContent = '';
+
+				try {
+					// 실제 Oracle 기반 목록 API
+					const rows = await api('/requests/mine');
+
+					if (sequence !== listSequence) {
+						return;
+					}
+
+					$('#request-rows').innerHTML = rows.length
+						? renderDbRequestRows(rows)
+						: '<tr><td colspan="4" class="empty">'
+						+ '저장된 요청이 없습니다.'
+						+ '</td></tr>';
+
+					$('#result-count').textContent = '총 ' + rows.length + '건';
+
+				} catch (error) {
+					if (sequence !== listSequence) {
+						return;
+					}
+
+					$('#request-rows').innerHTML =
+						'<tr><td colspan="4" class="empty">'
+						+ '목록을 불러오지 못했습니다.'
+						+ '</td></tr>';
+
+					notify(error.message, true);
+				}
 			}
-	
+
 			// 검색 API를 구현하기 전까지 입력 비활성화
 			$('#keyword').disabled = true;
 			$('#status').disabled = true;
-	
+
 			// 현재 조회 버튼은 목록 새로고침 용도
 			$('#filter-form button[type="submit"]').textContent = '새로고침';
-	
+
 			$('#filter-form').addEventListener('submit', function (event) {
-			    event.preventDefault();
-			    busy(event.submitter, loadRequests);
+				event.preventDefault();
+				busy(event.submitter, loadRequests);
 			});
-	
+
 			loadRequests();
 		</script>
 		<%@ include file="fragments/bottom.jspf" %>

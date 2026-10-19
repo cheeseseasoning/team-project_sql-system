@@ -33,7 +33,7 @@ public class RequestController {
         Long requestId = requestService.createDraft(input);
 
         return ResponseEntity
-                .created(URI.create("/api/requests/" + requestId))
+        		.created(URI.create("/api/requests/mine/" + requestId))
                 .body(new DraftCreateResponse(requestId));
     }
 

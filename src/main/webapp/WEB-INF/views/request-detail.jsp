@@ -1,16 +1,203 @@
 <%@ page pageEncoding="UTF-8" %>
-<%@ include file="fragments/top.jspf" %>
-<div id="detail-config" data-request-id="<c:out value='${requestId}'/>" hidden></div><a class="back-link" href="${pageContext.request.contextPath}/requests">← 내 요청 목록</a>
-<div class="page-heading"><div><span id="request-number" class="caption"></span><h1 id="detail-title">조회 요청 상세</h1></div><span id="detail-state"></span></div>
-<section class="panel"><div id="detail-meta" class="detail-meta"></div><div id="summary" class="status-grid"></div><div id="approval-track" hidden><h2>결재 진행</h2><div id="approval-steps"></div><p class="caption">최종 승인 후 현재 VIEW 권한을 재검증하고 자동 실행합니다. 시연 환경에서는 결재를 실제로 처리하지 않습니다.</p></div></section>
-<section class="panel section-gap"><div class="panel-heading"><h2>SQL별 실행 및 결과</h2><span class="caption">제출된 SQL · 수정 불가</span></div><div id="detail-items">불러오는 중입니다.</div></section>
-<section id="result-panel" class="panel section-gap" hidden><div class="panel-heading"><div><h2>결과 미리보기</h2><p id="preview-count" class="caption"></p></div><button id="download-csv" class="button primary">전체 CSV 다운로드</button></div><div class="table-scroll"><table><thead><tr><th>부서</th><th class="numeric">매출 합계</th></tr></thead><tbody id="result-rows"></tbody></table></div><div id="file-meta" class="file-meta"></div></section>
-<div id="failure-actions" class="section-gap" hidden><div class="message">실패한 SQL의 오류 내용은 보존됩니다. 수정이 필요하면 신규 요청을 작성하세요. 기술적 장애 재실행은 DBA 허가가 필요합니다.</div><button id="rewrite" class="button">이 요청을 바탕으로 신규 요청 작성</button></div>
-<script>
-const requestId=$('#detail-config').dataset.requestId;let currentQuery=null,currentItem=1;
-async function showResult(number){currentItem=number;$('#result-panel').hidden=true;try{const r=await api('/requests/'+encodeURIComponent(requestId)+'/results/'+number);$('#preview-count').textContent='SQL '+number+' · '+r.rows.length+' / '+r.total+'행 · 화면 최대 '+r.limit+'행';$('#result-rows').innerHTML=r.rows.length?r.rows.map(row=>'<tr><td>'+esc(row.department)+'</td><td class="numeric">'+esc(new Intl.NumberFormat('ko-KR').format(row.amount))+'원</td></tr>').join(''):'<tr><td colspan="2" class="empty">조회 결과가 없습니다.</td></tr>';$('#file-meta').textContent='생성 '+date(currentQuery.createdAt)+' · 만료 '+date(currentQuery.expiresAt)+' · 예시 데이터';$('#result-panel').hidden=false;}catch(e){notify(e.message,true);}}
-async function loadDetail(){try{const q=await api('/requests/'+encodeURIComponent(requestId));currentQuery=q;$('#request-number').textContent=q.id;$('#detail-title').textContent=q.title;$('#detail-state').innerHTML=requestStatus(q);$('#detail-meta').innerHTML='<span>요청자 <strong>김업무 · 영업팀</strong></span><span>조회 유형 <strong>'+esc(typeName(q.type))+'</strong></span><span>조회 목적 <strong>'+esc(q.purpose)+'</strong></span>';const pending=q.state==='APPROVAL_PENDING';$('#summary').innerHTML='<div><span>요청 진행</span><strong>'+esc(stateName(q.state))+'</strong></div><div><span>결재 진행</span><strong>'+(pending?'부서장 결재 대기':'결재 불필요')+'</strong></div><div><span>SQL 실행</span><strong>'+esc(pending?'미실행':executionSummary(q))+'</strong></div>';$('#approval-track').hidden=!pending;if(pending)$('#approval-steps').innerHTML=progressHtml(true);$('#detail-items').innerHTML=q.items.map(i=>'<article class="result-item"><div class="panel-heading"><h3>SQL '+i.number+'</h3>'+badge(stateName(i.state),i.state==='SUCCESS'?'success':i.state==='FAILED'?'waiting':'neutral')+'</div><details><summary>제출된 SQL 확인</summary><pre><code>'+esc(i.sql)+'</code></pre></details>'+(i.error?'<p class="error-text">'+esc(i.error)+'</p>':'')+(i.state==='SUCCESS'?'<button class="button" data-preview="'+i.number+'">결과 미리보기</button>':'')+'</article>').join('');document.querySelectorAll('[data-preview]').forEach(b=>b.addEventListener('click',()=>busy(b,()=>showResult(Number(b.dataset.preview)))));$('#failure-actions').hidden=!q.items.some(i=>i.state==='FAILED');const successful=q.items.find(i=>i.state==='SUCCESS');if(successful)await showResult(successful.number);}catch(e){notify(e.message,true);$('#detail-items').textContent='조회 요청을 불러오지 못했습니다.';}}
-$('#download-csv').addEventListener('click',function(){busy(this,async()=>{const response=await fetch(BASE+'/api/requests/'+encodeURIComponent(requestId)+'/results/'+currentItem+'/csv');if(!response.ok){let error;try{error=await response.json();}catch(e){}throw Error(error?.message||'파일을 다운로드할 수 없습니다.');}const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=requestId+'-sql'+currentItem+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('전체 CSV 파일을 다운로드했습니다.');});});
-$('#rewrite').addEventListener('click',()=>{if(!currentQuery)return;sessionStorage.setItem('sqlflow-draft-v1',JSON.stringify({title:currentQuery.title+' (재기안)',purpose:currentQuery.purpose,sqls:currentQuery.items.map(i=>i.sql),mode:'direct',originalRequestId:currentQuery.id}));location.href=BASE+'/requests/new?mode=direct';});loadDetail();
-</script>
-<%@ include file="fragments/bottom.jspf" %>
+	<%@ include file="fragments/top.jspf" %>
+
+		<div id="detail-config" data-request-id="<c:out value='${requestId}'/>" hidden>
+		</div>
+
+		<a class="back-link" href="${pageContext.request.contextPath}/requests">
+			← 내 요청 목록
+		</a>
+
+		<div class="page-heading">
+			<div>
+				<span id="request-number" class="caption"></span>
+				<h1 id="detail-title">조회 요청을 불러오는 중입니다.</h1>
+			</div>
+
+			<span id="detail-state"></span>
+		</div>
+
+		<section id="request-info" class="panel" hidden>
+			<h2>요청 정보</h2>
+
+			<dl class="key-values">
+				<div>
+					<dt>작성자</dt>
+					<dd id="drafter-name"></dd>
+				</div>
+				<div>
+					<dt>요청 부서</dt>
+					<dd id="dept-name"></dd>
+				</div>
+				<div>
+					<dt>조회 유형</dt>
+					<dd id="request-class"></dd>
+				</div>
+				<div>
+					<dt>결재 상태</dt>
+					<dd id="approval-status"></dd>
+				</div>
+				<div>
+					<dt>생성 시각</dt>
+					<dd id="created-at"></dd>
+				</div>
+				<div>
+					<dt>제출 시각</dt>
+					<dd id="submitted-at"></dd>
+				</div>
+			</dl>
+
+			<hr>
+
+			<h2>조회 목적</h2>
+			<p id="request-purpose" class="notice-body"></p>
+		</section>
+
+		<section class="panel section-gap">
+			<div class="panel-heading">
+				<h2>등록한 SQL</h2>
+				<span id="sql-count" class="caption"></span>
+			</div>
+
+			<div id="detail-items">불러오는 중입니다.</div>
+		</section>
+
+		<script>
+			const requestId = $('#detail-config').dataset.requestId;
+
+			const detailStatusNames = {
+				DRAFT: '초안',
+				PENDING_APPROVAL: '결재 대기',
+				READY: '실행 대기',
+				RUNNING: '실행 중',
+				COMPLETED: '실행 완료',
+				PARTIAL_FAILED: '일부 실패',
+				FAILED: '실패',
+				REJECTED: '반려',
+				WITHDRAWN: '회수'
+			};
+
+			const detailClassNames = {
+				GENERAL: '일반 조회',
+				SENSITIVE: '민감 조회'
+			};
+
+			const detailApprovalNames = {
+				NOT_REQUIRED: '결재 불필요',
+				PENDING: '결재 대기',
+				APPROVED: '승인',
+				REJECTED: '반려'
+			};
+
+			const validationNames = {
+				PENDING: '검증 전',
+				VALID: '검증 통과',
+				INVALID: '검증 실패'
+			};
+
+			const authoringNames = {
+				MANUAL: '직접 작성',
+				AI: 'AI 작성'
+			};
+
+			function formatDetailDate(value) {
+				return value
+					? value.replace('T', ' ').substring(0, 19)
+					: '-';
+			}
+
+			function renderDetailItems(items) {
+				if (items.length === 0) {
+					return '<p class="empty">등록된 SQL이 없습니다.</p>';
+				}
+
+				return items.map(function (item) {
+					const validationLabel =
+						validationNames[item.validationStatus]
+						|| item.validationStatus
+						|| '-';
+
+					const authoringLabel =
+						authoringNames[item.authoringType]
+						|| item.authoringType
+						|| '-';
+
+					return '<article class="result-item">'
+						+ '<div class="panel-heading">'
+						+ '<h3>'
+						+ esc(item.queryTitle || ('SQL ' + item.queryOrder))
+						+ '</h3>'
+						+ badge(validationLabel)
+						+ '</div>'
+						+ '<p class="caption">'
+						+ '순서 ' + esc(item.queryOrder)
+						+ ' · ' + esc(authoringLabel)
+						+ '</p>'
+						+ '<pre><code>'
+						+ esc(item.sqlText)
+						+ '</code></pre>'
+						+ '</article>';
+				}).join('');
+			}
+
+			async function loadDetail() {
+				try {
+					const request = await api(
+						'/requests/mine/' + encodeURIComponent(requestId)
+					);
+
+					$('#request-number').textContent = request.requestNo;
+					$('#detail-title').textContent = request.title;
+
+					$('#detail-state').innerHTML = badge(
+						detailStatusNames[request.requestStatus]
+						|| request.requestStatus
+					);
+
+					$('#drafter-name').textContent = request.drafterName;
+					$('#dept-name').textContent = request.deptName;
+					$('#request-purpose').textContent = request.purpose;
+
+					$('#request-class').textContent =
+						detailClassNames[request.requestClass]
+						|| request.requestClass
+						|| '미분류';
+
+					// 초안의 NOT_REQUIRED 기본값을 확정된 결재 정책처럼 표시하지 않음
+					$('#approval-status').textContent =
+						request.requestStatus === 'DRAFT'
+							? '제출 전'
+							: (
+								detailApprovalNames[request.approvalStatus]
+								|| request.approvalStatus
+								|| '-'
+							);
+
+					$('#created-at').textContent =
+						formatDetailDate(request.createdAt);
+
+					$('#submitted-at').textContent = request.submittedAt
+						? formatDetailDate(request.submittedAt)
+						: '아직 제출하지 않았습니다.';
+
+					$('#sql-count').textContent =
+						'총 ' + request.items.length + '개';
+
+					$('#detail-items').innerHTML =
+						renderDetailItems(request.items);
+
+					$('#request-info').hidden = false;
+
+				} catch (error) {
+					$('#detail-title').textContent = '조회 요청 상세';
+					$('#detail-items').textContent =
+						'요청을 불러오지 못했습니다. 내 요청 목록으로 돌아가 확인하세요.';
+
+					notify(error.message, true);
+				}
+			}
+
+			loadDetail();
+		</script>
+
+		<%@ include file="fragments/bottom.jspf" %>
