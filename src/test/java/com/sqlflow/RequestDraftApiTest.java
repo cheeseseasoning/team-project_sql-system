@@ -5,6 +5,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -15,9 +17,12 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.jayway.jsonpath.JsonPath;
+import com.sqlflow.auth.domain.UserAccount;
+import com.sqlflow.auth.security.SqlFlowUserDetails;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -47,6 +52,8 @@ class RequestDraftApiTest {
         // 새 API 호출
         String response = mockMvc.perform(
                     post("/api/requests/drafts")
+                        .with(csrf())
+                        .with(authenticatedUser())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body)
                 )
@@ -108,6 +115,8 @@ class RequestDraftApiTest {
         // 기존 초안 수정
         mockMvc.perform(
                     put("/api/requests/drafts/{requestId}", requestId)
+                        .with(csrf())
+                        .with(authenticatedUser())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body)
                 )
@@ -116,6 +125,7 @@ class RequestDraftApiTest {
         // 상세 조회로 수정 결과 확인
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.requestId").value(requestId))
@@ -159,6 +169,8 @@ class RequestDraftApiTest {
         // 제출된 요청은 수정할 수 없어야 함
         mockMvc.perform(
                     put("/api/requests/drafts/{requestId}", requestId)
+                        .with(csrf())
+                        .with(authenticatedUser())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body)
                 )
@@ -167,6 +179,7 @@ class RequestDraftApiTest {
         // 차단 후 기존 제목과 SQL이 유지되는지 확인
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("수정 전 제목"))
@@ -196,6 +209,8 @@ class RequestDraftApiTest {
 
         String response = mockMvc.perform(
                     post("/api/requests/drafts")
+                        .with(csrf())
+                        .with(authenticatedUser())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body)
                 )
@@ -216,6 +231,8 @@ class RequestDraftApiTest {
         // 초안 삭제
         mockMvc.perform(
                     delete("/api/requests/drafts/{requestId}", requestId)
+                        .with(csrf())
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isNoContent());
 
@@ -239,6 +256,7 @@ class RequestDraftApiTest {
         // 삭제한 요청 상세 조회는 404
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isNotFound());
     }
@@ -263,12 +281,15 @@ class RequestDraftApiTest {
         // 제출된 요청은 삭제할 수 없어야 함
         mockMvc.perform(
                     delete("/api/requests/drafts/{requestId}", requestId)
+                        .with(csrf())
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isConflict());
 
         // 요청서와 SQL이 그대로 유지되는지 확인
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("수정 전 제목"))
@@ -279,5 +300,18 @@ class RequestDraftApiTest {
                         .value("SELECT 1 FROM DUAL"))
                 .andExpect(jsonPath("$.items[1].sqlText")
                         .value("SELECT USER FROM DUAL"));
+    }
+
+    private RequestPostProcessor authenticatedUser() {
+        UserAccount account = new UserAccount();
+        account.setUserId(1L);
+        account.setDeptId(1L);
+        account.setLoginId("test-user");
+        account.setPasswordHash("{bcrypt}test");
+        account.setUserName("테스트 사용자");
+        account.setDeptName("테스트팀");
+        account.setPositionName("사원");
+        account.setEnabled("Y");
+        return user(new SqlFlowUserDetails(account, java.util.List.of()));
     }
 }

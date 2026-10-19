@@ -34,8 +34,9 @@ JSP 지원을 위해 실행 가능한 WAR로 구성했습니다. 기본 포트�
 | `/requests` | requests.jsp | 제목·요청번호 및 상태 검색 |
 | `/requests/{id}` | request-detail.jsp | 성공·결재 대기·일부 실패, SQL 원문, 결과와 CSV |
 | `/notices` | notices.jsp | 공지 목록 및 상세 |
+| `/login` | login.jsp | 활성 계정 로그인 및 세션 생성 |
 
-공통 헤더·사이드바는 `WEB-INF/views/fragments/top.jspf`, 하단은 `bottom.jspf`입니다. 선택 메뉴, 작은 4단계 결재 표시, 로딩·빈 결과·실패 표시와 반응형 배치를 포함합니다. 헤더 검색은 목록 화면 검색으로 연결됩니다. 사용자 정보는 고정된 시연 사용자입니다. 화면과 요청 날짜는 한국 시간 기준입니다.
+공통 헤더·사이드바는 `WEB-INF/views/fragments/top.jspf`, 하단은 `bottom.jspf`입니다. 로그인은 Spring Security 폼 인증과 서버 세션으로 처리하며, `USERS.LOGIN_ID`, BCrypt 형식의 `PASSWORD_HASH`, `ENABLED='Y'` 계정을 사용합니다. 요청자 ID와 부서는 로그인 계정에서 가져옵니다. 로그아웃과 변경 요청에 CSRF 토큰을 적용합니다. 화면과 요청 날짜는 한국 시간 기준입니다.
 
 ## 시연 순서
 
@@ -54,12 +55,16 @@ JSP 지원을 위해 실행 가능한 WAR로 구성했습니다. 기본 포트�
 - `POST /api/sql/generate` — 현재 매출/계약 키워드 기반 고정 SQL. 내부 LLM 호출로 교체합니다.
 - `POST /api/sql/validate` — 현재 템플릿 일치 검증. 실제 DBMS용 SQL 파서, 모든 VIEW·컬럼 검증, 조직 정책으로 교체합니다.
 - `POST /api/requests` — 요청 등록과 일반/민감 분류. 관리 DB와 실행·결재 서비스로 분리합니다.
+- `GET /api/requests/{id}/approval-candidates` — 초안 작성자의 부서장과 DB팀 결재 후보 조회.
+- `POST /api/requests/{id}/submit` — 본인 초안을 검증하고 부서장 → DB팀 순서로 결재선을 생성합니다.
 - `GET /api/requests/{id}/results/{number}`, `GET /api/requests/{id}/results/{number}/csv`
 - `GET /api/notices`
 
-`DemoService`는 고정 사용자와 메모리 예시 데이터만 사용합니다. 실제 AI·조회 DB·SSO·조직/권한·전자결재·DBA 재실행 승인·감사 로그·실제 파일 저장/정리 기능은 연결되어 있지 않습니다. 화면에 표시하는 처리 상태는 이 시연 데이터의 상태입니다. 민감 요청을 임의로 승인하는 API는 제공하지 않습니다.
+`DemoService`는 고정 사용자와 메모리 예시 데이터만 사용합니다. 시연 API의 요청·결과·상태는 메모리 데이터이며, 실제 AI·조회 DB·SSO·DBA 재실행 승인·감사 로그·결과 파일 저장/정리는 연결되어 있지 않습니다. 초안 CRUD와 결재 후보 조회·제출은 Oracle 연동 API를 사용합니다. 민감 요청을 임의로 승인하는 API는 제공하지 않습니다.
 
-실서비스로 전환할 때는 인증 세션에서 요청자를 식별하고 모든 조회/결과 API에서 현재 권한을 재검증해야 합니다. 제출 SQL 불변성, 읽기 전용 DB 계정, 실행 제한, SQL별 이력, 결과 접근 이력과 30일 보관 정책을 백엔드에서 구현해야 합니다. 쿠키 기반 인증을 붙일 때 CSRF 방어도 함께 구성하세요.
+초안 제출 API는 Oracle `APPROVAL` 테이블을 사용합니다. DB팀 결재 후보를 노출하려면 `ROLE`에 `ROLE_CODE = 'DB_APPROVER'` 역할을 등록하고, 후보가 될 활성 DB팀 사용자에게 `USER_ROLE`로 부여해야 합니다. 부서장 후보는 요청 당시 부서의 활성 `DIRECTOR` 직급 사용자로 판정합니다. ERD상 한 부서에 부장이 여러 명이면 현재 API의 단일 부서장 응답으로 확정할 수 없어 제출을 차단합니다.
+
+시작 전에 `USERS.PASSWORD_HASH`에 BCrypt로 해시한 비밀번호를 저장하고, 사용자 계정을 `ENABLED='Y'`로 설정하세요. 계정 발급·비밀번호 재설정 화면은 구현 범위에 포함하지 않았습니다. 모든 조회/결과 API의 업무별 권한 검사는 후속 구현 범위입니다. 제출 SQL 불변성, 읽기 전용 DB 계정, 실행 제한, SQL별 이력, 결과 접근 이력과 30일 보관 정책을 백엔드에서 구현해야 합니다.
 
 ## 내부망 배포
 

@@ -1,0 +1,9 @@
+<%@ page pageEncoding="UTF-8" %>
+<%@ include file="fragments/top.jspf" %>
+<div class="page-heading"><h1>SQL 확인 및 요청 제출</h1><span class="badge">제출 전 확인</span></div><section class="panel form-panel"><h2 id="review-title">요청을 불러오는 중입니다.</h2><p id="review-purpose" class="muted"></p><div id="review-sqls"></div><div id="validation-result" class="validation" aria-live="polite"></div><div class="form-footer"><a class="button" href="${pageContext.request.contextPath}/requests/new">작성 화면으로</a><div><span class="caption">제출 후 SQL은 수정할 수 없습니다.</span><button id="submit-request" class="button primary" disabled>요청 제출</button></div></div></section>
+<script>
+let reviewDraft=null;
+async function loadReview(){try{reviewDraft=JSON.parse(sessionStorage.getItem('sqlflow-draft-v1')||'null');if(!reviewDraft)throw Error('작성 중인 요청이 없습니다. 조회 요청 작성 메뉴에서 먼저 작성하세요.');$('#review-title').textContent=reviewDraft.title;$('#review-purpose').textContent='조회 목적: '+reviewDraft.purpose;$('#review-sqls').innerHTML=reviewDraft.sqls.map((s,i)=>'<section class="sql-item"><h3>SQL '+(i+1)+' · 제출 전 초안</h3><pre><code>'+esc(s)+'</code></pre></section>').join('');const v=await post('/sql/validate',reviewDraft);$('#validation-result').classList.toggle('error',!v.valid);$('#validation-result').innerHTML='<strong>'+esc(v.valid?'검증 통과 · '+typeName(v.type):'검증 실패')+'</strong><p>'+esc(v.valid?v.message:v.errors.join(' '))+'</p><span class="caption">조회 VIEW: '+esc(v.resources.join(', '))+'</span>';$('#submit-request').disabled=!v.valid;}catch(e){notify(e.message,true);}}
+$('#submit-request').addEventListener('click',function(){busy(this,async()=>{if(!reviewDraft)throw Error('작성 중인 요청이 없습니다.');const q=await post('/requests',reviewDraft);sessionStorage.removeItem('sqlflow-draft-v1');location.href=BASE+'/requests/'+encodeURIComponent(q.id);});});loadReview();
+</script>
+<%@ include file="fragments/bottom.jspf" %>

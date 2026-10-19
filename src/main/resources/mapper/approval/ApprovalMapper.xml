@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.approval.mapper.ApprovalMapper">
+
+    <select id="selectRequestContext"
+            resultType="com.sqlflow.approval.domain.ApprovalRequestContext">
+        SELECT REQUEST_ID, DRAFTER_ID, DEPT_ID, REQUEST_STATUS
+        FROM QUERY_REQUEST
+        WHERE REQUEST_ID = #{requestId}
+    </select>
+
+    <select id="selectDepartmentApprovers"
+            resultType="com.sqlflow.approval.dto.ApprovalCandidateResponse">
+        SELECT U.USER_ID, U.USER_NAME, D.DEPT_NAME
+        FROM USERS U
+        JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+        JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
+        WHERE U.DEPT_ID = #{deptId}
+          AND U.ENABLED = 'Y'
+          AND P.POSITION_CODE = 'DIRECTOR'
+        ORDER BY U.USER_ID
+    </select>
+
+    <select id="selectDbApprovers"
+            resultType="com.sqlflow.approval.dto.ApprovalCandidateResponse">
+        SELECT U.USER_ID, U.USER_NAME, D.DEPT_NAME
+        FROM USERS U
+        JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+        JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
+        JOIN ROLE R ON R.ROLE_ID = UR.ROLE_ID
+        WHERE D.DEPT_NAME = 'DB팀'
+          AND U.ENABLED = 'Y'
+          AND R.ROLE_CODE = 'DB_APPROVER'
+          AND U.USER_ID &lt;&gt; #{departmentApproverId}
+        ORDER BY U.USER_NAME, U.USER_ID
+    </select>
+
+    <insert id="insertApproval">
+        INSERT INTO APPROVAL (
+            APPROVAL_ID,
+            REQUEST_ID,
+            APPROVER_ID,
+            APPROVAL_ORDER,
+            APPROVAL_TYPE,
+            STATUS,
+            CREATED_AT
+        ) VALUES (
+            SEQ_APPROVAL.NEXTVAL,
+            #{requestId},
+            #{approverId},
+            #{approvalOrder},
+            #{approvalType},
+            #{status},
+            SYSTIMESTAMP
+        )
+    </insert>
+</mapper>

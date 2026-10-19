@@ -39,10 +39,11 @@ public class RequestService {
 
 	@Transactional
 	public Long createDraft(RequestDraftCreateRequest input) {
+		return createDraft(input, 1L, 1L);
+	}
 
-		// 로그인 연동 전까지 사용하는 개발용 사용자·부서
-		Long drafterId = 1L;
-		Long deptId = 1L;
+	@Transactional
+	public Long createDraft(RequestDraftCreateRequest input, Long drafterId, Long deptId) {
 
 		// 1. 요청 ID 발급
 		Long requestId = requestMapper.selectNextRequestId();
@@ -55,7 +56,7 @@ public class RequestService {
 		request.setDeptId(deptId);
 		request.setTitle(input.getTitle().strip());
 		request.setPurpose(input.getPurpose().strip());
-		
+
 		request.setDetailContent(
 		        normalizeOptionalText(input.getDetailContent())
 		);
@@ -83,8 +84,11 @@ public class RequestService {
 
 	@Transactional(readOnly = true)
 	public List<RequestListResponse> getMyRequests(String keyword, String status) {
+		return getMyRequests(1L, keyword, status);
+	}
 
-		Long drafterId = 1L;
+	@Transactional(readOnly = true)
+	public List<RequestListResponse> getMyRequests(Long drafterId, String keyword, String status) {
 
 		String searchKeyword = keyword == null ? "" : keyword.strip();
 		String searchStatus = status == null ? "" : status.strip();
@@ -96,9 +100,11 @@ public class RequestService {
 
 	@Transactional(readOnly = true)
 	public RequestDetailResponse getMyRequestDetail(Long requestId) {
+		return getMyRequestDetail(requestId, 1L);
+	}
 
-		// 로그인 연동 전 개발용 사용자
-		Long drafterId = 1L;
+	@Transactional(readOnly = true)
+	public RequestDetailResponse getMyRequestDetail(Long requestId, Long drafterId) {
 
 		RequestDetailResponse detail = requestMapper.selectMyRequestDetail(requestId, drafterId);
 
@@ -113,9 +119,11 @@ public class RequestService {
 
 	@Transactional
 	public void updateDraft(Long requestId, RequestDraftUpdateRequest input) {
+		updateDraft(requestId, input, 1L);
+	}
 
-		// 로그인 연동 전 개발용 사용자
-		Long drafterId = 1L;
+	@Transactional
+	public void updateDraft(Long requestId, RequestDraftUpdateRequest input, Long drafterId) {
 
 		// 1. 본인 요청 확인 및 수정 중 잠금
 		String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
@@ -135,7 +143,7 @@ public class RequestService {
 		request.setDrafterId(drafterId);
 		request.setTitle(input.getTitle().strip());
 		request.setPurpose(input.getPurpose().strip());
-		
+
 		request.setDetailContent(
 		        normalizeOptionalText(input.getDetailContent())
 		);
@@ -161,9 +169,11 @@ public class RequestService {
 
 	@Transactional
 	public void deleteDraft(Long requestId) {
+		deleteDraft(requestId, 1L);
+	}
 
-		// 로그인 연동 전 개발용 사용자
-		Long drafterId = 1L;
+	@Transactional
+	public void deleteDraft(Long requestId, Long drafterId) {
 
 		// 1. 본인 요청 확인 및 행 잠금
 		String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
@@ -244,9 +254,11 @@ public class RequestService {
 
 	@Transactional
 	public void submitRequest(Long requestId, RequestSubmitRequest input) {
+		submitRequest(requestId, input, 1L);
+	}
 
-		// 로그인 연동 전 개발용 사용자
-		Long actorId = 1L;
+	@Transactional
+	public void submitRequest(Long requestId, RequestSubmitRequest input, Long actorId) {
 
 		// 1. 본인 초안 잠금 및 저장된 내용 검사
 		loadDraftForSubmission(requestId, actorId);
@@ -272,9 +284,11 @@ public class RequestService {
 
 	@Transactional(readOnly = true)
 	public RequestPageResponse getMyRequestsPage(String keyword, String status, int page, int size) {
+		return getMyRequestsPage(1L, keyword, status, page, size);
+	}
 
-		// 로그인 연동 전 개발용 사용자
-		Long drafterId = 1L;
+	@Transactional(readOnly = true)
+	public RequestPageResponse getMyRequestsPage(Long drafterId, String keyword, String status, int page, int size) {
 
 		String searchKeyword = keyword == null ? "" : keyword.strip();
 		String searchStatus = status == null ? "" : status.strip();
@@ -317,9 +331,11 @@ public class RequestService {
 
 	@Transactional(readOnly = true)
 	public RequestDashboardResponse getMyDashboard() {
+		return getMyDashboard(1L);
+	}
 
-		// 로그인 연동 전 개발용 사용자
-		Long drafterId = 1L;
+	@Transactional(readOnly = true)
+	public RequestDashboardResponse getMyDashboard(Long drafterId) {
 
 		RequestSummaryResponse summary = requestMapper.selectMyRequestSummary(drafterId);
 

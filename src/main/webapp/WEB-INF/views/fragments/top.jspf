@@ -6,6 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="context-path" content="${pageContext.request.contextPath}">
+    <meta name="csrf-token" content="${_csrf.token}">
+    <meta name="csrf-header" content="${_csrf.headerName}">
 
     <title><c:out value="${pageTitle}"/> | SQLFlow</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/sqlflow.css">
@@ -72,18 +74,22 @@
                     <a class="help-link" href="${pageContext.request.contextPath}/notices?id=guide">도움말</a>
 
                     <div class="header-user">
-                        <span class="avatar small">김</span>
+                        <span class="avatar small"><c:out value="${userName.substring(0, 1)}"/></span>
                         <div>
-                            <strong>김업무 사원</strong>
-                            <span>영업팀</span>
+                            <strong><c:out value="${userName}"/> <c:out value="${positionName}"/></strong>
+                            <span><c:out value="${deptName}"/></span>
                         </div>
                     </div>
+                    <form action="${pageContext.request.contextPath}/logout" method="post">
+                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                        <button class="button" type="submit">로그아웃</button>
+                    </form>
                 </div>
             </header>
 
             <main class="main">
                 <div class="demo-strip">
-                    <span>시연 환경</span>고정 사용자 · 예시 AI · 메모리 데이터 사용
+                    <span>개발 환경</span>로그인 계정 기준으로 요청과 결재 권한을 확인합니다.
                 </div>
 
                 <div id="page-message" class="message" role="status" hidden></div>
@@ -119,6 +125,8 @@
                                 ...options,
                                 headers: {
                                     'Accept': 'application/json',
+                                    [document.querySelector('meta[name="csrf-header"]')?.content || 'X-CSRF-TOKEN']:
+                                        document.querySelector('meta[name="csrf-token"]')?.content || '',
                                     ...(options.body ? {'Content-Type': 'application/json'} : {}),
                                     ...options.headers
                                 },

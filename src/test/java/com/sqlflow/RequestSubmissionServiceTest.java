@@ -61,7 +61,7 @@ class RequestSubmissionServiceTest {
 
         when(requestMapper.submitDraft(2L, 1L)).thenReturn(1);
 
-        requestService.submitRequest(2L, submitInput());
+        requestService.submitRequest(2L, submitInput(), 1L);
 
         InOrder order = inOrder(requestMapper, approvalLineCreator);
 
@@ -80,7 +80,7 @@ class RequestSubmissionServiceTest {
 
         ResponseStatusException error = assertThrows(
                 ResponseStatusException.class,
-                () -> requestService.submitRequest(2L, submitInput())
+                () -> requestService.submitRequest(2L, submitInput(), 1L)
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
@@ -103,7 +103,7 @@ class RequestSubmissionServiceTest {
 
         ResponseStatusException error = assertThrows(
                 ResponseStatusException.class,
-                () -> requestService.submitRequest(2L, submitInput())
+                () -> requestService.submitRequest(2L, submitInput(), 1L)
         );
 
         assertEquals(
