@@ -4,10 +4,6 @@ target/
 work/
 .idea/
 *.iml
-.classpath
-.project
-.settings/
-.factorypath
 
 # 실제 DB 접속 정보
 /application-local.properties
