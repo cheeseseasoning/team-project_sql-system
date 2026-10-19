@@ -35,6 +35,11 @@
                    ${activeMenu == 'requests' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">내 조회 요청</a>
 
+                <a class="nav-item ${activeMenu == 'approvals' ? 'active' : ''}"
+                   href="${pageContext.request.contextPath}/approvals/pending"
+                   ${activeMenu == 'approvals' ? 'aria-current="page"' : ''}>
+                    <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">결재 대기</a>
+
                 <a class="nav-item ${activeMenu == 'notices' ? 'active' : ''}"
                    href="${pageContext.request.contextPath}/notices"
                    ${activeMenu == 'notices' ? 'aria-current="page"' : ''}>

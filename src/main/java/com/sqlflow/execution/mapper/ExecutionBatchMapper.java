@@ -31,4 +31,7 @@ public interface ExecutionBatchMapper {
     
     /** 요청에 등록된 SQL ID를 작성 순서대로 조회한다. */
     List<Long> selectQueryIdsByRequestId(@Param("requestId") Long requestId);
+
+    /** 활성 DB팀 사용자만 수동 실행 대기 묶음을 등록할 수 있는지 확인한다. */
+    boolean isActiveDbTeamMember(@Param("userId") Long userId);
 }

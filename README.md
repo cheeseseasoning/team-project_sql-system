@@ -33,6 +33,8 @@ JSP 지원을 위해 실행 가능한 WAR로 구성했습니다. 기본 포트�
 | `/requests/review` | request-review.jsp | 검증 결과 확인, 제출 |
 | `/requests` | requests.jsp | 제목·요청번호 및 상태 검색 |
 | `/requests/{id}` | request-detail.jsp | 성공·결재 대기·일부 실패, SQL 원문, 결과와 CSV |
+| `/approvals/pending` | approval-pending.jsp | 로그인 사용자에게 배정된 현재 결재 대기 요청 |
+| `/approvals/{id}` | approval-detail.jsp | 배정된 요청과 제출 SQL 검토 및 승인 |
 | `/notices` | notices.jsp | 공지 목록 및 상세 |
 | `/login` | login.jsp | 활성 계정 로그인 및 세션 생성 |
 
@@ -57,14 +59,19 @@ JSP 지원을 위해 실행 가능한 WAR로 구성했습니다. 기본 포트�
 - `POST /api/requests` — 요청 등록과 일반/민감 분류. 관리 DB와 실행·결재 서비스로 분리합니다.
 - `GET /api/requests/{id}/approval-candidates` — 초안 작성자의 부서장과 DB팀 결재 후보 조회.
 - `POST /api/requests/{id}/submit` — 본인 초안을 검증하고 부서장 → DB팀 순서로 결재선을 생성합니다.
+- `GET /api/approvals/pending` — 로그인 사용자의 활성 직급·부서·역할과 현재 결재 배정을 확인해 처리 가능한 요청만 반환합니다.
+- `GET /api/approvals/{requestId}` — 현재 결재자로 배정된 사용자에게 요청과 제출 SQL을 반환합니다.
+- `POST /api/approvals/{id}/approve` — 현재 결재 순서에 배정된 결재자만 승인할 수 있습니다. 부서장은 요청 부서의 활성 DIRECTOR여야 하고, DB팀 최종 결재자는 활성 DB팀 사용자이며 DB_APPROVER 역할이 있어야 합니다. 최종 승인 시 `APPROVAL_STATUS=APPROVED`, `REQUEST_STATUS=READY`로 함께 변경합니다.
 - `GET /api/requests/{id}/results/{number}`, `GET /api/requests/{id}/results/{number}/csv`
 - `GET /api/notices`
 
-`DemoService`는 고정 사용자와 메모리 예시 데이터만 사용합니다. 시연 API의 요청·결과·상태는 메모리 데이터이며, 실제 AI·조회 DB·SSO·DBA 재실행 승인·감사 로그·결과 파일 저장/정리는 연결되어 있지 않습니다. 초안 CRUD와 결재 후보 조회·제출은 Oracle 연동 API를 사용합니다. 민감 요청을 임의로 승인하는 API는 제공하지 않습니다.
+`DemoService`는 고정 사용자와 메모리 예시 데이터만 사용합니다. 시연 API의 요청·결과·상태는 메모리 데이터이며, 실제 AI·조회 DB·SSO·DBA 재실행 승인·감사 로그·결과 파일 저장/정리는 연결되어 있지 않습니다. 초안 CRUD와 결재 후보 조회·제출 및 배정 결재 승인은 Oracle 연동 API를 사용합니다.
 
 초안 제출 API는 Oracle `APPROVAL` 테이블을 사용합니다. DB팀 결재 후보를 노출하려면 `ROLE`에 `ROLE_CODE = 'DB_APPROVER'` 역할을 등록하고, 후보가 될 활성 DB팀 사용자에게 `USER_ROLE`로 부여해야 합니다. 부서장 후보는 요청 당시 부서의 활성 `DIRECTOR` 직급 사용자로 판정합니다. ERD상 한 부서에 부장이 여러 명이면 현재 API의 단일 부서장 응답으로 확정할 수 없어 제출을 차단합니다.
 
-시작 전에 `USERS.PASSWORD_HASH`에 BCrypt로 해시한 비밀번호를 저장하고, 사용자 계정을 `ENABLED='Y'`로 설정하세요. 계정 발급·비밀번호 재설정 화면은 구현 범위에 포함하지 않았습니다. 모든 조회/결과 API의 업무별 권한 검사는 후속 구현 범위입니다. 제출 SQL 불변성, 읽기 전용 DB 계정, 실행 제한, SQL별 이력, 결과 접근 이력과 30일 보관 정책을 백엔드에서 구현해야 합니다.
+현재 확정된 직급·부서 권한은 다음과 같습니다. 일반 사용자는 본인이 작성한 요청만 조회·수정·삭제할 수 있고, 부서장은 요청 부서의 활성 `DIRECTOR` 직급일 때 배정된 1단계 결재를 처리합니다. 최종 결재는 활성 DB팀 `DB_APPROVER`에게만 배정하며, 실행 대기 묶음 등록도 활성 DB팀 사용자로 제한합니다. 결재 승인은 현재 배정된 결재선과 계정 상태를 DB에서 다시 확인합니다. 별도의 부서 단위 요청 열람 권한이나 `DB_ADMIN`의 업무 권한은 정책이 정해지지 않아 부여하지 않습니다.
+
+시작 전에 `USERS.PASSWORD_HASH`에 BCrypt로 해시한 비밀번호를 저장하고, 사용자 계정을 `ENABLED='Y'`로 설정하세요. 계정 발급·비밀번호 재설정 화면은 구현 범위에 포함하지 않았습니다. 요청 CRUD와 결재 후보 조회·제출은 로그인 사용자와 작성자 ID를 대조하고, 결재 대기 목록·상세 및 승인 시 현재 결재 배정·활성 계정·직급·부서를 재검증합니다. 반려·결재 이력, 결과별 업무 권한과 감사 이력, 제출 SQL 불변성, 읽기 전용 DB 계정, 실행 제한과 30일 보관 정책은 추가 구현 범위입니다.
 
 ## 내부망 배포
 
