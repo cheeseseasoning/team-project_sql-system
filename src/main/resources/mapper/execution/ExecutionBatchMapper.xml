@@ -49,9 +49,12 @@
           AND BATCH_STATUS = #{expectedStatus}
     </update>
     
-    <!-- 같은 요청의 실행 묶음 등록을 순서대로 처리하기 위해 요청 행을 잠근다. -->
-	<select id="selectApprovalStatusForUpdate" resultType="java.lang.String">
-	    SELECT APPROVAL_STATUS
+	<!-- 중복 등록을 막기 위해 요청 행을 잠그고 두 상태를 함께 확인한다. -->
+	<select id="selectRequestContextForUpdate"
+	        resultType="com.sqlflow.execution.domain.ExecutionRequestContext">
+	    SELECT REQUEST_ID,
+	           REQUEST_STATUS,
+	           APPROVAL_STATUS
 	    FROM QUERY_REQUEST
 	    WHERE REQUEST_ID = #{requestId}
 	    FOR UPDATE

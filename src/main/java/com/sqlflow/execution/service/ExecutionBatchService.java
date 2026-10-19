@@ -7,8 +7,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.sqlflow.auth.security.SqlFlowUserDetails;
 import com.sqlflow.execution.ExecutionStatus;
 import com.sqlflow.execution.domain.ExecutionBatch;
+import com.sqlflow.execution.domain.ExecutionRequestContext;
 import com.sqlflow.execution.domain.QueryExecution;
 import com.sqlflow.execution.mapper.ExecutionBatchMapper;
 import com.sqlflow.execution.mapper.QueryExecutionMapper;
@@ -16,17 +18,17 @@ import com.sqlflow.execution.mapper.QueryExecutionMapper;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 승인된 요청의 최초 실행 묶음을 등록한다.
- * SQL 실행과 실패 SQL 재실행은 별도 기능으로 처리한다.
+ * 최종 승인된 요청의 실행 묶음과 SQL별 대기 이력을 등록한다.
+ * DB_APPROVER 권한이 있으면 해당 요청의 승인자가 아니어도 등록할 수 있다.
  */
 @Service
 @RequiredArgsConstructor
 public class ExecutionBatchService {
 
-    // 2번 담당자의 결재 기능과 공유할 최종 승인 상태값
+    private static final String EXECUTION_AUTHORITY = "ROLE_DB_APPROVER";
     private static final String FINAL_APPROVAL_STATUS = "APPROVED";
+    private static final String READY_REQUEST_STATUS = "READY";
 
-    // 실행 방식과 최초 실행 구분값. 팀과 합의할 때 이곳에서 변경한다.
     private static final String MANUAL_TRIGGER = "MANUAL";
     private static final String INITIAL_BATCH = "INITIAL";
 
@@ -34,24 +36,28 @@ public class ExecutionBatchService {
     private final QueryExecutionMapper queryExecutionMapper;
 
     /**
-     * 최초 수동 실행을 위한 대기 묶음을 등록하고 발급된 ID를 반환한다.
-     * initiatedBy는 추후 인증 정보에서 가져온 DB팀 실행자의 사용자 ID여야 한다.
+     * 최초 수동 실행을 위한 대기 이력을 등록하고 실행 묶음 ID를 반환한다.
+     * user는 Controller가 서버의 로그인 정보에서 가져와 전달한다.
      */
     @Transactional
-    public Long createInitialBatch(Long requestId, Long initiatedBy) {
+    public Long createInitialBatch(Long requestId, SqlFlowUserDetails user) {
 
-        if (requestId == null || requestId <= 0 || initiatedBy == null || initiatedBy <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청 ID와 실행자 ID가 올바르지 않습니다.");
+        validateExecutor(user);
+
+        if (requestId == null || requestId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청 ID가 올바르지 않습니다.");
         }
 
-        String approvalStatus = executionBatchMapper.selectApprovalStatusForUpdate(requestId);
+        // 같은 요청의 실행 묶음이 동시에 등록되지 않도록 요청 행을 잠근다.
+        ExecutionRequestContext request = executionBatchMapper.selectRequestContextForUpdate(requestId);
 
-        if (approvalStatus == null) {
+        if (request == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
         }
 
-        if (!FINAL_APPROVAL_STATUS.equals(approvalStatus)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "DB팀 최종 승인이 완료된 요청만 실행할 수 있습니다.");
+        if (!FINAL_APPROVAL_STATUS.equals(request.getApprovalStatus())
+                || !READY_REQUEST_STATUS.equals(request.getRequestStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "최종 승인된 실행 대기 요청만 실행 등록할 수 있습니다.");
         }
 
         List<Long> queryIds = executionBatchMapper.selectQueryIdsByRequestId(requestId);
@@ -67,7 +73,9 @@ public class ExecutionBatchService {
 
         ExecutionBatch batch = new ExecutionBatch();
         batch.setRequestId(requestId);
-        batch.setInitiatedBy(initiatedBy);
+
+        // 실행자 ID는 사용자가 입력한 값이 아닌 서버 로그인 정보에서 가져온다.
+        batch.setInitiatedBy(user.getUserId());
         batch.setTriggerType(MANUAL_TRIGGER);
         batch.setBatchType(INITIAL_BATCH);
         batch.setBatchStatus(ExecutionStatus.PENDING.name());
@@ -75,7 +83,7 @@ public class ExecutionBatchService {
         if (executionBatchMapper.insertBatch(batch) != 1) {
             throw new IllegalStateException("실행 묶음 등록에 실패했습니다.");
         }
-        
+
         // 실행 묶음에 속한 SQL마다 최초 실행 대기 이력을 생성한다.
         for (Long queryId : queryIds) {
             QueryExecution execution = new QueryExecution();
@@ -90,5 +98,20 @@ public class ExecutionBatchService {
         }
 
         return batch.getBatchId();
+    }
+
+    /** 로그인 상태와 SQL 실행에 필요한 권한을 확인한다. */
+    private void validateExecutor(SqlFlowUserDetails user) {
+
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        }
+
+        boolean hasExecutionAuthority = user.getAuthorities().stream()
+                .anyMatch(authority -> EXECUTION_AUTHORITY.equals(authority.getAuthority()));
+
+        if (!user.isEnabled() || !hasExecutionAuthority) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "SQL 실행 권한이 없습니다.");
+        }
     }
 }

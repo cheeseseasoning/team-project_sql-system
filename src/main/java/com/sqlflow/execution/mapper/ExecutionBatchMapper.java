@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import com.sqlflow.execution.domain.ExecutionBatch;
+import com.sqlflow.execution.domain.ExecutionRequestContext;
 
 @Mapper
 public interface ExecutionBatchMapper {
@@ -22,8 +23,8 @@ public interface ExecutionBatchMapper {
             @Param("expectedStatus") String expectedStatus,
             @Param("nextStatus") String nextStatus);
     
-    /** 요청 행을 잠그고 최종 결재 상태를 조회한다. */
-    String selectApprovalStatusForUpdate(@Param("requestId") Long requestId);
+    /** 요청 행을 잠그고 실행 판단에 필요한 상태를 함께 조회한다. */
+    ExecutionRequestContext selectRequestContextForUpdate(@Param("requestId") Long requestId);
 
     /** 이미 생성된 실행 묶음이 있는지 확인한다. */
     int countBatchesByRequestId(@Param("requestId") Long requestId);
