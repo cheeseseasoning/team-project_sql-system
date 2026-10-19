@@ -74,4 +74,16 @@
 	    ORDER BY QUERY_ORDER, QUERY_ID
 	</select>	
 
+    <select id="isActiveDbTeamMember" resultType="boolean">
+        SELECT CASE WHEN EXISTS (
+            SELECT 1
+            FROM USERS U
+            JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+            WHERE U.USER_ID = #{userId}
+              AND U.ENABLED = 'Y'
+              AND D.DEPT_NAME = 'DB팀'
+        ) THEN 1 ELSE 0 END
+        FROM DUAL
+    </select>
+
 </mapper>

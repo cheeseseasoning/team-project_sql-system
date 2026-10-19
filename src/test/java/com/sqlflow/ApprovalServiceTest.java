@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.approval.domain.ApprovalRequestContext;
 import com.sqlflow.approval.dto.ApprovalCandidateResponse;
+import com.sqlflow.approval.dto.PendingApprovalResponse;
 import com.sqlflow.approval.mapper.ApprovalMapper;
 import com.sqlflow.approval.service.ApprovalService;
 
@@ -38,7 +39,9 @@ class ApprovalServiceTest {
     @BeforeEach
     void setUp() {
         approvalService = new ApprovalService(approvalMapper);
+    }
 
+    private void stubOwnedDraft() {
         ApprovalRequestContext request = new ApprovalRequestContext();
         request.setRequestId(REQUEST_ID);
         request.setDrafterId(ACTOR_ID);
@@ -53,6 +56,7 @@ class ApprovalServiceTest {
 
     @Test
     void candidateLookupReturnsDepartmentHeadAndFiltersRequester() {
+        stubOwnedDraft();
         stubDbApprovers();
 
         var result = approvalService.getApprovalCandidates(REQUEST_ID, ACTOR_ID);
@@ -66,7 +70,32 @@ class ApprovalServiceTest {
     }
 
     @Test
+    void pendingApprovalListIsScopedToAuthenticatedApprover() {
+        List<PendingApprovalResponse> expected = List.of(
+                new PendingApprovalResponse(
+                        REQUEST_ID, "Q-20261019-100", "매출 조회", "월간 보고",
+                        "요청자", "영업팀", null, 1, "DIRECTOR"));
+        when(approvalMapper.selectPendingApprovals(ACTOR_ID)).thenReturn(expected);
+
+        assertEquals(expected, approvalService.getPendingApprovals(ACTOR_ID));
+        verify(approvalMapper).selectPendingApprovals(ACTOR_ID);
+    }
+
+    @Test
+    void pendingDetailIsNotVisibleToUnassignedUser() {
+        when(approvalMapper.selectPendingApprovalDetail(REQUEST_ID, ACTOR_ID))
+                .thenReturn(null);
+
+        ResponseStatusException error = assertThrows(
+                ResponseStatusException.class,
+                () -> approvalService.getPendingApprovalDetail(REQUEST_ID, ACTOR_ID));
+
+        assertEquals(HttpStatus.NOT_FOUND, error.getStatusCode());
+    }
+
+    @Test
     void submissionRevalidatesAndCreatesOrderedPendingApprovalLine() {
+        stubOwnedDraft();
         stubDbApprovers();
 
         approvalService.createApprovalLine(
@@ -80,6 +109,7 @@ class ApprovalServiceTest {
 
     @Test
     void submissionRejectsDbApproverWhoIsNoLongerEligible() {
+        stubOwnedDraft();
         stubDbApprovers();
 
         ResponseStatusException error = assertThrows(
@@ -98,6 +128,7 @@ class ApprovalServiceTest {
 
     @Test
     void submissionRemainsBlockedWhenDepartmentHeadIsMissing() {
+        stubOwnedDraft();
         when(approvalMapper.selectDepartmentApprovers(DEPARTMENT_ID))
                 .thenReturn(List.of());
 
