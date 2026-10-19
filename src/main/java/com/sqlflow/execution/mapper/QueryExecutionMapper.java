@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import com.sqlflow.execution.domain.QueryExecution;
+import com.sqlflow.execution.domain.QueryExecutionTarget;
 
 /**
  * SQL별 실행 이력의 등록과 상태 변경을 담당한다.
@@ -19,4 +20,7 @@ public interface QueryExecutionMapper {
 
     /** 실행 중인 이력에 성공 또는 실패 결과를 기록한다. */
     int finishExecution(QueryExecution execution);
+    
+    /** 실행 이력 ID로 SQL 원문과 관련 상태를 조회한다. */
+    QueryExecutionTarget selectExecutionTarget(@Param("executionId") Long executionId);
 }
