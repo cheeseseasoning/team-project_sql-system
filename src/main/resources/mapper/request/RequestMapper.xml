@@ -92,7 +92,7 @@
 	
 	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
 	
-</select>
+	</select>
 	
 	<!-- 본인 요청의 상세 정보 -->
 	<select id="selectMyRequestDetail"
@@ -239,6 +239,35 @@
 	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
 	    OFFSET #{offset} ROWS
 	    FETCH NEXT #{size} ROWS ONLY
+	</select>
+	
+	<!-- 본인 요청의 상태별 건수 -->
+	<select id="selectMyRequestSummary"
+	        resultType="com.sqlflow.request.dto.RequestSummaryResponse">
+	    SELECT
+	        COUNT(*) AS TOTAL_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'DRAFT'
+	                   THEN 1 END) AS DRAFT_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'PENDING_APPROVAL'
+	                   THEN 1 END) AS PENDING_APPROVAL_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'READY'
+	                   THEN 1 END) AS READY_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'RUNNING'
+	                   THEN 1 END) AS RUNNING_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'RETRY_REVIEW'
+	                   THEN 1 END) AS RETRY_REVIEW_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'COMPLETED'
+	                   THEN 1 END) AS COMPLETED_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'PARTIAL_FAILED'
+	                   THEN 1 END) AS PARTIAL_FAILED_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'FAILED'
+	                   THEN 1 END) AS FAILED_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'REJECTED'
+	                   THEN 1 END) AS REJECTED_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'WITHDRAWN'
+	                   THEN 1 END) AS WITHDRAWN_COUNT
+	    FROM QUERY_REQUEST
+	    WHERE DRAFTER_ID = #{drafterId}
 	</select>
 
 </mapper>

@@ -10,6 +10,7 @@ import com.sqlflow.request.domain.QueryRequest;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestListResponse;
+import com.sqlflow.request.dto.RequestSummaryResponse;
 
 @Mapper
 public interface RequestMapper {
@@ -67,5 +68,8 @@ public interface RequestMapper {
             @Param("status") String status,
             @Param("offset") long offset,
             @Param("size") int size);
+    
+    RequestSummaryResponse selectMyRequestSummary(
+            @Param("drafterId") Long drafterId);
     
 }

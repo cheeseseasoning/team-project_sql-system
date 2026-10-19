@@ -106,15 +106,21 @@
         ? 'ai'
         : 'direct';
 
-    let sqls = [''];
+	let sqls = [
+	    { title: '', sqlText: '' }
+	];
+	
     let formBusy = false;
     let createdRequestId = null;
 
-    function readSqls() {
-        sqls = Array.from(
-            document.querySelectorAll('.sql-editor')
-        ).map(editor => editor.value);
-    }
+	function readSqls() {
+	    sqls = Array.from(
+	        document.querySelectorAll('#sql-items .sql-item')
+	    ).map(section => ({
+	        title: section.querySelector('.sql-title-input').value,
+	        sqlText: section.querySelector('.sql-editor').value
+	    }));
+	}
 
     function setMode(next) {
         mode = next;
@@ -129,55 +135,66 @@
             });
     }
 
-    function renderSqls() {
-        const box = $('#sql-items');
-        box.replaceChildren();
+	function renderSqls() {
+	    const box = $('#sql-items');
+	    box.replaceChildren();
 
-        sqls.forEach(function (sql, index) {
-            const section = document.createElement('section');
-            section.className = 'sql-item';
+	    sqls.forEach(function (item, index) {
+	        const section = document.createElement('section');
+	        section.className = 'sql-item';
 
-            const head = document.createElement('div');
-            head.className = 'panel-heading';
+	        const head = document.createElement('div');
+	        head.className = 'panel-heading';
 
-            const label = document.createElement('label');
-            label.htmlFor = 'sql-' + index;
-            label.textContent = 'SQL ' + (index + 1);
+	        const label = document.createElement('label');
+	        label.htmlFor = 'sql-' + index;
+	        label.textContent = 'SQL ' + (index + 1);
 
-            head.append(label);
+	        head.append(label);
 
-            if (sqls.length > 1) {
-                const remove = document.createElement('button');
-                remove.type = 'button';
-                remove.className = 'text-button';
-                remove.textContent = '삭제';
+	        if (sqls.length > 1) {
+	            const remove = document.createElement('button');
+	            remove.type = 'button';
+	            remove.className = 'text-button';
+	            remove.textContent = '삭제';
 
-                remove.addEventListener('click', function () {
-                    readSqls();
-                    sqls.splice(index, 1);
-                    renderSqls();
-                });
+	            remove.addEventListener('click', function () {
+	                readSqls();
+	                sqls.splice(index, 1);
+	                renderSqls();
+	            });
 
-                head.append(remove);
-            }
+	            head.append(remove);
+	        }
 
-            const editor = document.createElement('textarea');
-            editor.id = 'sql-' + index;
-            editor.className = 'sql-editor';
-            editor.rows = 8;
-            editor.spellcheck = false;
-            editor.maxLength = 20000;
-            editor.placeholder = '조회할 SQL을 입력하세요.';
-            editor.value = sql;
+	        const titleLabel = document.createElement('label');
+	        titleLabel.textContent = 'SQL 제목';
 
-            // 초안은 SQL이 없어도 저장 가능하므로 required를 지정하지 않음
-            section.append(head, editor);
-            box.append(section);
-        });
+	        const titleInput = document.createElement('input');
+	        titleInput.type = 'text';
+	        titleInput.className = 'sql-title-input';
+	        titleInput.maxLength = 200;
+	        titleInput.placeholder = '예: 부서별 매출 합계 · 생략 가능';
+	        titleInput.value = item.title;
 
-        $('#sql-count').textContent = sqls.length + ' / 5';
-        $('#add-sql').disabled = sqls.length >= 5;
-    }
+	        titleLabel.append(titleInput);
+
+	        const editor = document.createElement('textarea');
+	        editor.id = 'sql-' + index;
+	        editor.className = 'sql-editor';
+	        editor.rows = 8;
+	        editor.spellcheck = false;
+	        editor.maxLength = 20000;
+	        editor.placeholder = '조회할 SQL을 입력하세요.';
+	        editor.value = item.sqlText;
+
+	        section.append(head, titleLabel, editor);
+	        box.append(section);
+	    });
+
+	    $('#sql-count').textContent = sqls.length + ' / 5';
+	    $('#add-sql').disabled = sqls.length >= 5;
+	}
 
     async function runFormTask(button, task) {
         if (formBusy) {
@@ -212,7 +229,7 @@
         readSqls();
 
         if (sqls.length < 5) {
-            sqls.push('');
+            sqls.push({ title: '', sqlText: '' });
             renderSqls();
         }
     });
@@ -233,7 +250,7 @@
             }
 
             readSqls();
-            sqls[0] = data.sql;
+            sqls[0].sqlText = data.sql;
             renderSqls();
 
             $('#explanation').textContent =
@@ -271,11 +288,17 @@
 
             readSqls();
 
-            const payload = {
-                title,
-                purpose,
-                sqls: sqls.filter(sql => sql.trim().length > 0)
-            };
+			// 빈 SQL은 제목과 함께 제외
+			const savedItems = sqls.filter(
+			    item => item.sqlText.trim().length > 0
+			);
+
+			const payload = {
+			    title,
+			    purpose,
+			    sqls: savedItems.map(item => item.sqlText),
+			    sqlTitles: savedItems.map(item => item.title.trim())
+			};
 
             const result = await post('/requests/drafts', payload);
 

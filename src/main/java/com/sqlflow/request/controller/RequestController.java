@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sqlflow.request.dto.RequestDashboardResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestDraftUpdateRequest;
@@ -99,5 +100,10 @@ public class RequestController {
 
         return requestService.getMyRequestsPage(
                 keyword, status, page, size);
+    }
+    
+    @GetMapping("/dashboard")
+    public RequestDashboardResponse getMyDashboard() {
+        return requestService.getMyDashboard();
     }
 }
