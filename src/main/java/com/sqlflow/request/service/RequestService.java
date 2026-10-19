@@ -30,11 +30,10 @@ public class RequestService {
     private final ObjectProvider<ApprovalLineCreator> approvalLineCreatorProvider;
 
     @Transactional
-    public Long createDraft(RequestDraftCreateRequest input) {
-
-        // 로그인 연동 전까지 사용하는 개발용 사용자·부서
-        Long drafterId = 1L;
-        Long deptId = 1L;
+    public Long createDraft(
+            RequestDraftCreateRequest input,
+            Long drafterId,
+            Long deptId) {
 
         // 1. 요청 ID 발급
         Long requestId = requestMapper.selectNextRequestId();
@@ -77,20 +76,14 @@ public class RequestService {
     }
     
     @Transactional(readOnly = true)
-    public List<RequestListResponse> getMyRequests() {
-
-        // 로그인 연동 전 개발용 사용자
-        Long drafterId = 1L;
-
+    public List<RequestListResponse> getMyRequests(Long drafterId) {
         return requestMapper.selectMyRequests(drafterId);
     }
     
     @Transactional(readOnly = true)
-    public RequestDetailResponse getMyRequestDetail(Long requestId) {
-
-        // 로그인 연동 전 개발용 사용자
-        Long drafterId = 1L;
-
+    public RequestDetailResponse getMyRequestDetail(
+            Long requestId,
+            Long drafterId) {
         RequestDetailResponse detail =
                 requestMapper.selectMyRequestDetail(requestId, drafterId);
 
@@ -111,10 +104,8 @@ public class RequestService {
     @Transactional
     public void updateDraft(
             Long requestId,
-            RequestDraftUpdateRequest input) {
-
-        // 로그인 연동 전 개발용 사용자
-        Long drafterId = 1L;
+            RequestDraftUpdateRequest input,
+            Long drafterId) {
 
         // 1. 본인 요청 확인 및 수정 중 잠금
         String status = requestMapper.selectMyRequestStatusForUpdate(
@@ -169,10 +160,7 @@ public class RequestService {
     }
     
     @Transactional
-    public void deleteDraft(Long requestId) {
-
-        // 로그인 연동 전 개발용 사용자
-        Long drafterId = 1L;
+    public void deleteDraft(Long requestId, Long drafterId) {
 
         // 1. 본인 요청 확인 및 행 잠금
         String status = requestMapper.selectMyRequestStatusForUpdate(
@@ -294,10 +282,8 @@ public class RequestService {
 	 @Transactional
 	 public void submitRequest(
 	         Long requestId,
-	         RequestSubmitRequest input) {
-
-	     // 로그인 연동 전 개발용 사용자
-	     Long actorId = 1L;
+	         RequestSubmitRequest input,
+	         Long actorId) {
 
 	     // 1. 본인 초안 잠금 및 저장된 내용 검사
 	     loadDraftForSubmission(requestId, actorId);

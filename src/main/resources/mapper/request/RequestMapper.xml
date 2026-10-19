@@ -175,6 +175,7 @@
 	<update id="submitDraft">
 	    UPDATE QUERY_REQUEST
 	    SET REQUEST_STATUS = 'PENDING_APPROVAL',
+	        APPROVAL_STATUS = 'PENDING',
 	        SUBMITTED_AT = SYSTIMESTAMP
 	    WHERE REQUEST_ID = #{requestId}
 	      AND DRAFTER_ID = #{drafterId}

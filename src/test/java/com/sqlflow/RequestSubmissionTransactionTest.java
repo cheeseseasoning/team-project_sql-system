@@ -15,9 +15,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.sqlflow.approval.service.ApprovalService;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestSubmitRequest;
-import com.sqlflow.request.service.ApprovalLineCreator;
 import com.sqlflow.request.service.RequestService;
 
 @SpringBootTest
@@ -30,7 +30,7 @@ class RequestSubmissionTransactionTest {
     private JdbcTemplate jdbcTemplate;
 
     @MockitoBean
-    private ApprovalLineCreator approvalLineCreator;
+    private ApprovalService approvalService;
 
     private Long requestId;
 
@@ -43,7 +43,7 @@ class RequestSubmissionTransactionTest {
         draft.setPurpose("결재 처리 실패 시 DB 롤백 확인");
         draft.setSqls(List.of("SELECT 1 FROM DUAL"));
 
-        requestId = requestService.createDraft(draft);
+        requestId = requestService.createDraft(draft, 1L, 1L);
 
         // 2. 결재 기능을 테스트용 동작으로 대체
         // DB를 변경한 다음 실패하도록 구성
@@ -60,7 +60,7 @@ class RequestSubmissionTransactionTest {
             );
 
             throw new IllegalStateException("테스트용 결재 처리 실패");
-        }).when(approvalLineCreator)
+        }).when(approvalService)
           .createApprovalLine(requestId, 1L, 20L);
 
         RequestSubmitRequest input = new RequestSubmitRequest();
@@ -69,7 +69,7 @@ class RequestSubmissionTransactionTest {
         // 3. 실제 제출 Service 호출
         IllegalStateException error = assertThrows(
                 IllegalStateException.class,
-                () -> requestService.submitRequest(requestId, input)
+                () -> requestService.submitRequest(requestId, input, 1L)
         );
 
         assertEquals("테스트용 결재 처리 실패", error.getMessage());

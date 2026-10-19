@@ -3,12 +3,34 @@ package com.sqlflow;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+
+import com.sqlflow.auth.security.SqlFlowUserDetails;
 
 @Controller
 public class PageController {
 	@ModelAttribute
-	public void common(Model model) {
-		model.addAttribute("userName", "김업무");
+	public void common(Model model, Authentication authentication) {
+		if (authentication != null
+				&& authentication.isAuthenticated()
+				&& !(authentication instanceof AnonymousAuthenticationToken)
+				&& authentication.getPrincipal() instanceof SqlFlowUserDetails user) {
+			model.addAttribute("userName", user.getDisplayName());
+			model.addAttribute("deptName", user.getDeptName());
+			model.addAttribute("positionName", user.getPositionName());
+			model.addAttribute("authenticated", true);
+		} else {
+			model.addAttribute("userName", "방문자");
+			model.addAttribute("deptName", "");
+			model.addAttribute("positionName", "");
+			model.addAttribute("authenticated", false);
+		}
+	}
+
+	@GetMapping("/login")
+	public String login() {
+		return "login";
 	}
 
 	@GetMapping("/")
