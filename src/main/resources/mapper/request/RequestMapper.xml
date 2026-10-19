@@ -59,7 +59,7 @@
         )
     </insert>
     
-    <!-- 작성자의 요청 목록 -->
+    <!-- 작성자의 요청 목록 및 검색 -->
 	<select id="selectMyRequests"
 	        resultType="com.sqlflow.request.dto.RequestListResponse">
 	
@@ -78,9 +78,21 @@
 	        ) AS SQL_COUNT
 	    FROM QUERY_REQUEST R
 	    WHERE R.DRAFTER_ID = #{drafterId}
+	
+	    <if test="keyword != null and keyword != ''">
+	        AND (
+	            INSTR(UPPER(R.REQUEST_NO), UPPER(#{keyword})) > 0
+	            OR INSTR(UPPER(R.TITLE), UPPER(#{keyword})) > 0
+	        )
+	    </if>
+	
+	    <if test="status != null and status != ''">
+	        AND R.REQUEST_STATUS = #{status}
+	    </if>
+	
 	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
 	
-	</select>
+</select>
 	
 	<!-- 본인 요청의 상세 정보 -->
 	<select id="selectMyRequestDetail"

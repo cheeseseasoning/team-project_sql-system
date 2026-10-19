@@ -3,6 +3,7 @@ package com.sqlflow.request.service;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
@@ -27,7 +28,21 @@ import lombok.RequiredArgsConstructor;
 public class RequestService {
 
     private final RequestMapper requestMapper;
+
     private final ObjectProvider<ApprovalLineCreator> approvalLineCreatorProvider;
+
+    private static final Set<String> SEARCHABLE_STATUSES = Set.of(
+            "DRAFT",
+            "PENDING_APPROVAL",
+            "READY",
+            "RUNNING",
+            "RETRY_REVIEW",
+            "COMPLETED",
+            "PARTIAL_FAILED",
+            "FAILED",
+            "REJECTED",
+            "WITHDRAWN"
+    );
 
     @Transactional
     public Long createDraft(RequestDraftCreateRequest input) {
@@ -77,12 +92,36 @@ public class RequestService {
     }
     
     @Transactional(readOnly = true)
-    public List<RequestListResponse> getMyRequests() {
+    public List<RequestListResponse> getMyRequests(
+            String keyword,
+            String status) {
 
         // 로그인 연동 전 개발용 사용자
         Long drafterId = 1L;
 
-        return requestMapper.selectMyRequests(drafterId);
+        String searchKeyword = keyword == null ? "" : keyword.strip();
+        String searchStatus = status == null ? "" : status.strip();
+
+        if (searchKeyword.length() > 120) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "검색어는 120자 이하여야 합니다."
+            );
+        }
+
+        if (!searchStatus.isEmpty()
+                && !SEARCHABLE_STATUSES.contains(searchStatus)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "올바르지 않은 요청 상태입니다."
+            );
+        }
+
+        return requestMapper.selectMyRequests(
+                drafterId,
+                searchKeyword,
+                searchStatus
+        );
     }
     
     @Transactional(readOnly = true)

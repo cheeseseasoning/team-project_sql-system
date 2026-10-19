@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.sqlflow.request.dto.RequestDetailResponse;
@@ -45,8 +46,11 @@ public class RequestController {
     }
     
     @GetMapping("/mine")
-    public List<RequestListResponse> getMyRequests() {
-        return requestService.getMyRequests();
+    public List<RequestListResponse> getMyRequests(
+            @RequestParam(name = "keyword", defaultValue = "") String keyword,
+            @RequestParam(name = "status", defaultValue = "") String status) {
+
+        return requestService.getMyRequests(keyword, status);
     }
     
     @GetMapping("/mine/{requestId}")
