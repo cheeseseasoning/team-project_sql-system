@@ -1,5 +1,7 @@
 package com.sqlflow.request.domain;
 
+import java.time.LocalDate;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,4 +17,8 @@ public class QueryRequest {
 
     private String title;
     private String purpose;
+    
+    private String detailContent;
+    private String isUrgent;
+    private LocalDate desiredDate;
 }

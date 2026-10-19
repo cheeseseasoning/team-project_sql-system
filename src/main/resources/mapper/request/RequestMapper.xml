@@ -12,24 +12,30 @@
     </select>
 
     <!-- 요청서 저장 -->
-    <insert id="insertRequest"
-            parameterType="com.sqlflow.request.domain.QueryRequest">
-        INSERT INTO QUERY_REQUEST (
-            REQUEST_ID,
-            REQUEST_NO,
-            DRAFTER_ID,
-            DEPT_ID,
-            TITLE,
-            PURPOSE
-        ) VALUES (
-            #{requestId},
-            #{requestNo},
-            #{drafterId},
-            #{deptId},
-            #{title},
-            #{purpose, jdbcType=CLOB}
-        )
-    </insert>
+	<insert id="insertRequest"
+	        parameterType="com.sqlflow.request.domain.QueryRequest">
+	    INSERT INTO QUERY_REQUEST (
+	        REQUEST_ID,
+	        REQUEST_NO,
+	        DRAFTER_ID,
+	        DEPT_ID,
+	        TITLE,
+	        PURPOSE,
+	        DETAIL_CONTENT,
+	        IS_URGENT,
+	        DESIRED_DATE
+	    ) VALUES (
+	        #{requestId},
+	        #{requestNo},
+	        #{drafterId},
+	        #{deptId},
+	        #{title},
+	        #{purpose, jdbcType=CLOB},
+	        #{detailContent, jdbcType=CLOB},
+	        #{isUrgent},
+	        #{desiredDate, jdbcType=DATE}
+	    )
+	</insert>
 
     <!-- SQL 항목 저장 -->
     <insert id="insertItem"
@@ -59,7 +65,7 @@
         )
     </insert>
     
-    <!-- 작성자의 요청 목록 -->
+    <!-- 작성자의 요청 목록 및 검색 -->
 	<select id="selectMyRequests"
 	        resultType="com.sqlflow.request.dto.RequestListResponse">
 	
@@ -67,10 +73,12 @@
 	        R.REQUEST_ID,
 	        R.REQUEST_NO,
 	        R.TITLE,
+	        R.IS_URGENT,
 	        R.REQUEST_CLASS,
 	        R.REQUEST_STATUS,
 	        R.APPROVAL_STATUS,
 	        R.CREATED_AT,
+	        R.DESIRED_DATE,
 	        (
 	            SELECT COUNT(*)
 	            FROM QUERY_ITEM I
@@ -78,6 +86,18 @@
 	        ) AS SQL_COUNT
 	    FROM QUERY_REQUEST R
 	    WHERE R.DRAFTER_ID = #{drafterId}
+	
+	    <if test="keyword != null and keyword != ''">
+	        AND (
+	            INSTR(UPPER(R.REQUEST_NO), UPPER(#{keyword})) > 0
+	            OR INSTR(UPPER(R.TITLE), UPPER(#{keyword})) > 0
+	        )
+	    </if>
+	
+	    <if test="status != null and status != ''">
+	        AND R.REQUEST_STATUS = #{status}
+	    </if>
+	
 	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
 	
 	</select>
@@ -90,8 +110,11 @@
 	        R.REQUEST_ID,
 	        R.REQUEST_NO,
 	        R.TITLE,
-	        R.PURPOSE,
-	        U.USER_NAME AS DRAFTER_NAME,
+			R.PURPOSE,
+			R.DETAIL_CONTENT,
+			R.IS_URGENT,
+			R.DESIRED_DATE,
+			U.USER_NAME AS DRAFTER_NAME,
 	        D.DEPT_NAME,
 	        R.REQUEST_CLASS,
 	        R.REQUEST_STATUS,
@@ -139,12 +162,15 @@
 	    FOR UPDATE
 	</select>
 	
-	<!-- 본인의 초안만 제목·목적 수정 -->
+	<!-- 본인의 초안만 수정 -->
 	<update id="updateDraft"
 	        parameterType="com.sqlflow.request.domain.QueryRequest">
 	    UPDATE QUERY_REQUEST
 	    SET TITLE = #{title},
-	        PURPOSE = #{purpose, jdbcType=CLOB}
+	        PURPOSE = #{purpose, jdbcType=CLOB},
+	        DETAIL_CONTENT = #{detailContent, jdbcType=CLOB},
+	        IS_URGENT = #{isUrgent},
+	        DESIRED_DATE = #{desiredDate, jdbcType=DATE}
 	    WHERE REQUEST_ID = #{requestId}
 	      AND DRAFTER_ID = #{drafterId}
 	      AND REQUEST_STATUS = 'DRAFT'
@@ -181,5 +207,84 @@
 	      AND DRAFTER_ID = #{drafterId}
 	      AND REQUEST_STATUS = 'DRAFT'
 	</update>
+	
+	<!-- 페이지 건수와 목록 조회에 동일한 검색 조건 적용 -->
+	<sql id="myRequestPageConditions">
+	    WHERE R.DRAFTER_ID = #{drafterId}
+	
+	    <if test="keyword != null and keyword != ''">
+	        AND (
+	            INSTR(UPPER(R.REQUEST_NO), UPPER(#{keyword})) > 0
+	            OR INSTR(UPPER(R.TITLE), UPPER(#{keyword})) > 0
+	        )
+	    </if>
+	
+	    <if test="status != null and status != ''">
+	        AND R.REQUEST_STATUS = #{status}
+	    </if>
+	</sql>
+	
+	<!-- 검색 조건에 해당하는 전체 요청 수 -->
+	<select id="countMyRequests" resultType="java.lang.Long">
+	    SELECT COUNT(*)
+	    FROM QUERY_REQUEST R
+	    <include refid="myRequestPageConditions"/>
+	</select>
+	
+	<!-- 현재 페이지의 요청 목록 -->
+	<select id="selectMyRequestsPage"
+	        resultType="com.sqlflow.request.dto.RequestListResponse">
+	    SELECT
+	        R.REQUEST_ID,
+	        R.REQUEST_NO,
+	        R.TITLE,
+	        R.IS_URGENT,
+	        R.REQUEST_CLASS,
+	        R.REQUEST_STATUS,
+	        R.APPROVAL_STATUS,
+	        R.CREATED_AT,
+	        R.DESIRED_DATE,
+	        (
+	            SELECT COUNT(*)
+	            FROM QUERY_ITEM I
+	            WHERE I.REQUEST_ID = R.REQUEST_ID
+	        ) AS SQL_COUNT
+	    FROM QUERY_REQUEST R
+	
+	    <include refid="myRequestPageConditions"/>
+	
+	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
+	    OFFSET #{offset} ROWS
+	    FETCH NEXT #{size} ROWS ONLY
+	</select>
+	
+	<!-- 본인 요청의 상태별 건수 -->
+	<select id="selectMyRequestSummary"
+	        resultType="com.sqlflow.request.dto.RequestSummaryResponse">
+	    SELECT
+	        COUNT(*) AS TOTAL_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'DRAFT'
+	                   THEN 1 END) AS DRAFT_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'PENDING_APPROVAL'
+	                   THEN 1 END) AS PENDING_APPROVAL_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'READY'
+	                   THEN 1 END) AS READY_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'RUNNING'
+	                   THEN 1 END) AS RUNNING_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'RETRY_REVIEW'
+	                   THEN 1 END) AS RETRY_REVIEW_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'COMPLETED'
+	                   THEN 1 END) AS COMPLETED_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'PARTIAL_FAILED'
+	                   THEN 1 END) AS PARTIAL_FAILED_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'FAILED'
+	                   THEN 1 END) AS FAILED_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'REJECTED'
+	                   THEN 1 END) AS REJECTED_COUNT,
+	        COUNT(CASE WHEN REQUEST_STATUS = 'WITHDRAWN'
+	                   THEN 1 END) AS WITHDRAWN_COUNT
+	    FROM QUERY_REQUEST
+	    WHERE DRAFTER_ID = #{drafterId}
+	</select>
 
 </mapper>

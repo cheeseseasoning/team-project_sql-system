@@ -31,7 +31,30 @@
                 <textarea id="edit-purpose" rows="3" required></textarea>
             </label>
         </div>
+		
+		<label for="edit-detail-content">
+		    상세 내용
+		</label>
+		<textarea id="edit-detail-content"
+		          rows="5"
+		          placeholder="요청 배경·조회 범위·주의사항 등을 입력하세요."></textarea>
 
+		<div class="form-grid">
+		    <label class="urgent-option">
+		        <input id="edit-is-urgent" type="checkbox">
+                <span><strong>긴급 요청</strong><small>빠른 처리가 필요한 경우 체크하세요.</small></span>
+		    </label>
+
+		    <label>
+		        희망일
+		        <input id="edit-desired-date" type="date">
+		    </label>
+		</div>
+
+		<p class="caption">
+		    긴급 여부와 희망일은 처리 담당자의 참고 정보입니다.
+		</p>
+		
         <div class="panel-heading section-gap">
             <h2>
                 SQL 항목
@@ -69,60 +92,75 @@
 
     let editSqls = [];
 
-    function readEditSqls() {
-        editSqls = Array.from(
-            document.querySelectorAll('.edit-sql-editor')
-        ).map(editor => editor.value);
-    }
+	function readEditSqls() {
+	    editSqls = Array.from(
+	        document.querySelectorAll('#edit-sql-items .sql-item')
+	    ).map(section => ({
+	        title: section.querySelector('.edit-sql-title-input').value,
+	        sqlText: section.querySelector('.edit-sql-editor').value
+	    }));
+	}
+	
+	function renderEditSqls() {
+	    const box = $('#edit-sql-items');
+	    box.replaceChildren();
 
-    function renderEditSqls() {
-        const box = $('#edit-sql-items');
-        box.replaceChildren();
+	    editSqls.forEach(function (item, index) {
+	        const section = document.createElement('section');
+	        section.className = 'sql-item';
 
-        editSqls.forEach(function (sql, index) {
-            const section = document.createElement('section');
-            section.className = 'sql-item';
+	        const head = document.createElement('div');
+	        head.className = 'panel-heading';
 
-            const head = document.createElement('div');
-            head.className = 'panel-heading';
+	        const label = document.createElement('label');
+	        label.htmlFor = 'edit-sql-' + index;
+	        label.textContent = 'SQL ' + (index + 1);
 
-            const label = document.createElement('label');
-            label.htmlFor = 'edit-sql-' + index;
-            label.textContent = 'SQL ' + (index + 1);
+	        const remove = document.createElement('button');
+	        remove.type = 'button';
+	        remove.className = 'text-button';
+	        remove.textContent = '삭제';
 
-            const remove = document.createElement('button');
-            remove.type = 'button';
-            remove.className = 'text-button';
-            remove.textContent = '삭제';
+	        remove.addEventListener('click', function () {
+	            readEditSqls();
+	            editSqls.splice(index, 1);
+	            renderEditSqls();
+	        });
 
-            remove.addEventListener('click', function () {
-                readEditSqls();
-                editSqls.splice(index, 1);
-                renderEditSqls();
-            });
+	        head.append(label, remove);
 
-            head.append(label, remove);
+	        const titleLabel = document.createElement('label');
+	        titleLabel.textContent = 'SQL 제목';
 
-            const editor = document.createElement('textarea');
-            editor.id = 'edit-sql-' + index;
-            editor.className = 'edit-sql-editor';
-            editor.rows = 8;
-            editor.spellcheck = false;
-            editor.value = sql;
+	        const titleInput = document.createElement('input');
+	        titleInput.type = 'text';
+	        titleInput.className = 'edit-sql-title-input';
+	        titleInput.maxLength = 200;
+	        titleInput.placeholder = 'SQL 제목 · 생략 가능';
+	        titleInput.value = item.title;
 
-            section.append(head, editor);
-            box.append(section);
-        });
+	        titleLabel.append(titleInput);
 
-        $('#edit-sql-count').textContent = editSqls.length + ' / 5';
-        $('#edit-add-sql').disabled = editSqls.length >= 5;
-    }
+	        const editor = document.createElement('textarea');
+	        editor.id = 'edit-sql-' + index;
+	        editor.className = 'edit-sql-editor';
+	        editor.rows = 8;
+	        editor.spellcheck = false;
+	        editor.value = item.sqlText;
+
+	        section.append(head, titleLabel, editor);
+	        box.append(section);
+	    });
+
+	    $('#edit-sql-count').textContent = editSqls.length + ' / 5';
+	    $('#edit-add-sql').disabled = editSqls.length >= 5;
+	}
 
     $('#edit-add-sql').addEventListener('click', function () {
         readEditSqls();
 
         if (editSqls.length < 5) {
-            editSqls.push('');
+            editSqls.push({ title: '', sqlText: '' });
             renderEditSqls();
         }
     });
@@ -143,8 +181,15 @@
             $('#edit-request-number').textContent = request.requestNo;
             $('#edit-title').value = request.title;
             $('#edit-purpose').value = request.purpose;
+			$('#edit-detail-content').value = request.detailContent || '';
+			$('#edit-is-urgent').checked = request.isUrgent === 'Y';
+			$('#edit-desired-date').value = request.desiredDate || '';
 
-            editSqls = request.items.map(item => item.sqlText);
+			editSqls = request.items.map(item => ({
+			    title: item.queryTitle || '',
+			    sqlText: item.sqlText || ''
+			}));
+			
             renderEditSqls();
 
             $('#edit-loading').hidden = true;
@@ -173,11 +218,19 @@
 
             readEditSqls();
 
-            const payload = {
-                title,
-                purpose,
-                sqls: editSqls.filter(sql => sql.trim().length > 0)
-            };
+			const savedItems = editSqls.filter(
+			    item => item.sqlText.trim().length > 0
+			);
+
+			const payload = {
+			    title,
+			    purpose,
+			    detailContent: $('#edit-detail-content').value.trim() || null,
+			    isUrgent: $('#edit-is-urgent').checked ? 'Y' : 'N',
+			    desiredDate: $('#edit-desired-date').value || null,
+			    sqls: savedItems.map(item => item.sqlText),
+			    sqlTitles: savedItems.map(item => item.title.trim())
+			};
 
             // 저장 중에는 입력과 SQL 추가·삭제를 막음
             $('#edit-fields').disabled = true;

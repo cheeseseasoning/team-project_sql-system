@@ -13,10 +13,12 @@ public class RequestListResponse {
     private String requestNo;
 
     private String title;
+    private String isUrgent;
     private String requestClass;
     private String requestStatus;
     private String approvalStatus;
 
     private Integer sqlCount;
     private LocalDateTime createdAt;
+    private LocalDateTime desiredDate;
 }

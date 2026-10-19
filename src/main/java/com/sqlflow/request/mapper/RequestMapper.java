@@ -10,6 +10,7 @@ import com.sqlflow.request.domain.QueryRequest;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestListResponse;
+import com.sqlflow.request.dto.RequestSummaryResponse;
 
 @Mapper
 public interface RequestMapper {
@@ -20,7 +21,10 @@ public interface RequestMapper {
 
     int insertItem(QueryItem item);
     
-    List<RequestListResponse> selectMyRequests(@Param("drafterId") Long drafterId);
+    List<RequestListResponse> selectMyRequests(
+            @Param("drafterId") Long drafterId,
+            @Param("keyword") String keyword,
+            @Param("status") String status);
     
     RequestDetailResponse selectMyRequestDetail(
             @Param("requestId") Long requestId,
@@ -51,6 +55,21 @@ public interface RequestMapper {
     // 본인의 초안을 제출 상태로 변경
     int submitDraft(
             @Param("requestId") Long requestId,
+            @Param("drafterId") Long drafterId);
+    
+    long countMyRequests(
+            @Param("drafterId") Long drafterId,
+            @Param("keyword") String keyword,
+            @Param("status") String status);
+
+    List<RequestListResponse> selectMyRequestsPage(
+            @Param("drafterId") Long drafterId,
+            @Param("keyword") String keyword,
+            @Param("status") String status,
+            @Param("offset") long offset,
+            @Param("size") int size);
+    
+    RequestSummaryResponse selectMyRequestSummary(
             @Param("drafterId") Long drafterId);
     
 }

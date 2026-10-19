@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,106 +15,112 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.sqlflow.approval.dto.ApprovalCandidatesResponse;
+import com.sqlflow.approval.service.ApprovalService;
+import com.sqlflow.auth.security.SqlFlowUserDetails;
+import com.sqlflow.request.dto.RequestDashboardResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestDraftUpdateRequest;
 import com.sqlflow.request.dto.RequestListResponse;
+import com.sqlflow.request.dto.RequestPageResponse;
 import com.sqlflow.request.dto.RequestSubmitRequest;
 import com.sqlflow.request.service.RequestService;
-import com.sqlflow.approval.dto.ApprovalCandidatesResponse;
-import com.sqlflow.approval.service.ApprovalService;
-import com.sqlflow.auth.security.SqlFlowUserDetails;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/api/requests")
 @RequiredArgsConstructor
 public class RequestController {
 
-    private final RequestService requestService;
-    private final ApprovalService approvalService;
+	private final RequestService requestService;
+	private final ApprovalService approvalService;
 
-    @PostMapping("/drafts")
-    public ResponseEntity<DraftCreateResponse> createDraft(
-            @Valid @RequestBody RequestDraftCreateRequest input,
-            @AuthenticationPrincipal SqlFlowUserDetails user) {
+	@PostMapping("/drafts")
+	public ResponseEntity<DraftCreateResponse> createDraft(
+			@Valid @RequestBody RequestDraftCreateRequest input,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		Long requestId = requestService.createDraft(input, user.getUserId(), user.getDeptId());
+		return ResponseEntity.created(URI.create("/api/requests/mine/" + requestId))
+				.body(new DraftCreateResponse(requestId));
+	}
 
-        Long requestId = requestService.createDraft(input, user.getUserId(), user.getDeptId());
+	public record DraftCreateResponse(Long requestId) {
+	}
 
-        return ResponseEntity
-        		.created(URI.create("/api/requests/mine/" + requestId))
-                .body(new DraftCreateResponse(requestId));
-    }
+	@GetMapping("/mine")
+	public List<RequestListResponse> getMyRequests(
+			@RequestParam(name = "keyword", defaultValue = "") String keyword,
+			@RequestParam(name = "status", defaultValue = "") String status,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		return requestService.getMyRequests(user.getUserId(), keyword, status);
+	}
 
-    public record DraftCreateResponse(Long requestId) {
-    }
-    
-    @GetMapping("/mine")
-    public List<RequestListResponse> getMyRequests(
-            @AuthenticationPrincipal SqlFlowUserDetails user) {
-        return requestService.getMyRequests(user.getUserId());
-    }
-    
-    @GetMapping("/mine/{requestId}")
-    public RequestDetailResponse getMyRequestDetail(
-            @PathVariable Long requestId,
-            @AuthenticationPrincipal SqlFlowUserDetails user) {
+	@GetMapping("/mine/page")
+	public RequestPageResponse getMyRequestsPage(
+			@RequestParam(name = "keyword", defaultValue = "") String keyword,
+			@RequestParam(name = "status", defaultValue = "") String status,
+			@RequestParam(name = "page", defaultValue = "1") int page,
+			@RequestParam(name = "size", defaultValue = "10") int size,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		return requestService.getMyRequestsPage(user.getUserId(), keyword, status, page, size);
+	}
 
-        return requestService.getMyRequestDetail(requestId, user.getUserId());
-    }
-    
-    @PutMapping("/drafts/{requestId}")
-    public ResponseEntity<Void> updateDraft(
-            @PathVariable Long requestId,
-            @Valid @RequestBody RequestDraftUpdateRequest input,
-            @AuthenticationPrincipal SqlFlowUserDetails user) {
+	@GetMapping("/dashboard")
+	public RequestDashboardResponse getMyDashboard(
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		return requestService.getMyDashboard(user.getUserId());
+	}
 
-        requestService.updateDraft(requestId, input, user.getUserId());
+	@GetMapping("/mine/{requestId}")
+	public RequestDetailResponse getMyRequestDetail(
+			@PathVariable Long requestId,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		return requestService.getMyRequestDetail(requestId, user.getUserId());
+	}
 
-        return ResponseEntity.noContent().build();
-    }
-    
-    @DeleteMapping("/drafts/{requestId}")
-    public ResponseEntity<Void> deleteDraft(
-            @PathVariable("requestId") Long requestId,
-            @AuthenticationPrincipal SqlFlowUserDetails user) {
+	@PutMapping("/drafts/{requestId}")
+	public ResponseEntity<Void> updateDraft(
+			@PathVariable Long requestId,
+			@Valid @RequestBody RequestDraftUpdateRequest input,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		requestService.updateDraft(requestId, input, user.getUserId());
+		return ResponseEntity.noContent().build();
+	}
 
-        requestService.deleteDraft(requestId, user.getUserId());
+	@DeleteMapping("/drafts/{requestId}")
+	public ResponseEntity<Void> deleteDraft(
+			@PathVariable Long requestId,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		requestService.deleteDraft(requestId, user.getUserId());
+		return ResponseEntity.noContent().build();
+	}
 
-        return ResponseEntity.noContent().build();
-    }
-    
-    @PostMapping("/{requestId}/submit")
-    public ResponseEntity<Void> submitRequest(
-            @PathVariable("requestId") Long requestId,
-            @Valid @RequestBody RequestSubmitRequest input,
-            @AuthenticationPrincipal SqlFlowUserDetails user) {
+	@GetMapping("/{requestId}/approval-candidates")
+	public ApprovalCandidatesResponse getApprovalCandidates(
+			@PathVariable Long requestId,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		return approvalService.getApprovalCandidates(requestId, user.getUserId());
+	}
 
-        requestService.submitRequest(requestId, input, user.getUserId());
+	@PostMapping("/{requestId}/submit")
+	public ResponseEntity<Void> submitRequest(
+			@PathVariable Long requestId,
+			@Valid @RequestBody RequestSubmitRequest input,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		requestService.submitRequest(requestId, input, user.getUserId());
+		return ResponseEntity.noContent().build();
+	}
 
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/{requestId}/approval-candidates")
-    public ApprovalCandidatesResponse getApprovalCandidates(
-            @PathVariable("requestId") Long requestId,
-            @AuthenticationPrincipal SqlFlowUserDetails user) {
-        return approvalService.getApprovalCandidates(requestId, user.getUserId());
-    }
-
-    @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, String>> handleRequestError(
-            ResponseStatusException exception) {
-        return ResponseEntity.status(exception.getStatusCode()).body(Map.of(
-                "message",
-                Objects.requireNonNullElse(
-                        exception.getReason(), "요청을 처리할 수 없습니다.")
-        ));
-    }
+	@ExceptionHandler(ResponseStatusException.class)
+	public ResponseEntity<Map<String, String>> handleRequestError(ResponseStatusException exception) {
+		return ResponseEntity.status(exception.getStatusCode()).body(Map.of(
+				"message", Objects.requireNonNullElse(exception.getReason(), "요청을 처리할 수 없습니다.")));
+	}
 }

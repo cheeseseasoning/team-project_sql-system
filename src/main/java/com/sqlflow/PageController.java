@@ -1,15 +1,19 @@
 package com.sqlflow;
 
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 
 @Controller
 public class PageController {
+
 	@ModelAttribute
 	public void common(Model model, Authentication authentication) {
 		if (authentication != null
@@ -39,14 +43,15 @@ public class PageController {
 	}
 
 	@GetMapping("/requests/new")
-	public String create(Model model, @RequestParam(defaultValue = "ai") String mode) {
-		model.addAttribute("mode", "direct".equals(mode) ? "direct" : "ai");
+	public String create(Model model,
+			@RequestParam(name = "mode", defaultValue = "direct") String mode) {
+		model.addAttribute("mode", "ai".equals(mode) ? "ai" : "direct");
 		return view(model, "request-form", "조회 요청 작성");
 	}
 
 	@GetMapping("/requests/review")
-	public String review(Model model) {
-		return view(model, "request-review", "SQL 확인 및 제출");
+	public String review() {
+		return "redirect:/requests/new";
 	}
 
 	@GetMapping("/requests")
@@ -60,28 +65,25 @@ public class PageController {
 		return view(model, "request-detail", "조회 요청 상세");
 	}
 
+	@GetMapping("/requests/{id}/edit")
+	public String editDraft(Model model, @PathVariable Long id) {
+		model.addAttribute("requestId", id);
+		return view(model, "request-edit", "조회 요청 초안 수정");
+	}
+
 	@GetMapping("/notices")
 	public String notices(Model model) {
 		return view(model, "notices", "공지사항");
 	}
 
-	private String view(Model m, String page, String title) {
-		m.addAttribute("page", page);
-		m.addAttribute("pageTitle", title);
-		m.addAttribute("activeMenu",
+	private String view(Model model, String page, String title) {
+		model.addAttribute("page", page);
+		model.addAttribute("pageTitle", title);
+		model.addAttribute("activeMenu",
 				page.equals("home") ? "home"
 						: page.equals("notices") ? "notices"
-								: page.equals("request-form") || page.equals("request-review") ? "create" : "requests");
+								: page.equals("request-form") || page.equals("request-review")
+										? "create" : "requests");
 		return page;
-	}
-	
-	@GetMapping("/requests/{id}/edit")
-	public String editDraft(
-	        Model model,
-	        @PathVariable("id") Long requestId) {
-
-	    model.addAttribute("requestId", requestId);
-
-	    return view(model, "request-edit", "조회 요청 초안 수정");
 	}
 }

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.execution.mapper.ExecutionBatchMapper">
+
+    <!-- INSERT 전에 시퀀스로 ID를 발급하여 batchId에 저장한다. -->
+    <insert id="insertBatch"
+            parameterType="com.sqlflow.execution.domain.ExecutionBatch">
+
+        <selectKey keyProperty="batchId"
+                   resultType="java.lang.Long"
+                   order="BEFORE">
+            SELECT SEQ_EXECUTION_BATCH.NEXTVAL
+            FROM DUAL
+        </selectKey>
+
+        INSERT INTO EXECUTION_BATCH (
+            BATCH_ID,
+            REQUEST_ID,
+            INITIATED_BY,
+            TRIGGER_TYPE,
+            BATCH_TYPE,
+            BATCH_STATUS,
+            REQUESTED_AT
+        ) VALUES (
+            #{batchId},
+            #{requestId},
+            #{initiatedBy},
+            #{triggerType},
+            #{batchType},
+            #{batchStatus},
+            SYSTIMESTAMP
+        )
+    </insert>
+
+    <!-- 완료 상태로 바뀔 때만 종료 시각을 기록한다. -->
+    <update id="updateStatus">
+        UPDATE EXECUTION_BATCH
+        SET BATCH_STATUS = #{nextStatus},
+            FINISHED_AT = CASE
+                WHEN #{nextStatus} IN (
+                    'SUCCESS', 'FAILED', 'PARTIAL_FAILED'
+                ) THEN SYSTIMESTAMP
+                ELSE NULL
+            END
+        WHERE BATCH_ID = #{batchId}
+          AND BATCH_STATUS = #{expectedStatus}
+    </update>
+    
+    <!-- 같은 요청의 실행 묶음 등록을 순서대로 처리하기 위해 요청 행을 잠근다. -->
+	<select id="selectApprovalStatusForUpdate" resultType="java.lang.String">
+	    SELECT APPROVAL_STATUS
+	    FROM QUERY_REQUEST
+	    WHERE REQUEST_ID = #{requestId}
+	    FOR UPDATE
+	</select>
+	
+	<select id="countBatchesByRequestId" resultType="int">
+	    SELECT COUNT(*)
+	    FROM EXECUTION_BATCH
+	    WHERE REQUEST_ID = #{requestId}
+	</select>
+	
+	<!-- SQL 등록 순서에 맞춰 개별 실행 이력을 생성하기 위한 조회 -->
+	<select id="selectQueryIdsByRequestId" resultType="java.lang.Long">
+	    SELECT QUERY_ID
+	    FROM QUERY_ITEM
+	    WHERE REQUEST_ID = #{requestId}
+	    ORDER BY QUERY_ORDER, QUERY_ID
+	</select>	
+
+</mapper>
