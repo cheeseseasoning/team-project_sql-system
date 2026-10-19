@@ -10,13 +10,14 @@
         SELECT SEQ_QUERY_REQUEST.NEXTVAL
         FROM DUAL
     </select>
-
-    <!-- 요청서 저장 -->
+	
+	<!-- 요청서 저장 -->
 	<insert id="insertRequest"
 	        parameterType="com.sqlflow.request.domain.QueryRequest">
 	    INSERT INTO QUERY_REQUEST (
 	        REQUEST_ID,
 	        REQUEST_NO,
+	        SOURCE_REQUEST_ID,
 	        DRAFTER_ID,
 	        DEPT_ID,
 	        TITLE,
@@ -27,6 +28,7 @@
 	    ) VALUES (
 	        #{requestId},
 	        #{requestNo},
+	        #{sourceRequestId, jdbcType=NUMERIC},
 	        #{drafterId},
 	        #{deptId},
 	        #{title},

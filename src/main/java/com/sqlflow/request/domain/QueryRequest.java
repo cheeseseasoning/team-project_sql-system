@@ -11,6 +11,8 @@ public class QueryRequest {
 
     private Long requestId;
     private String requestNo;
+    
+    private Long sourceRequestId;
 
     private Long drafterId;
     private Long deptId;
