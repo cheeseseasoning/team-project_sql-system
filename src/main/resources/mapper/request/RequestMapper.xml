@@ -22,7 +22,7 @@
 	        TITLE,
 	        PURPOSE,
 	        DETAIL_CONTENT,
-	        PRIORITY,
+	        IS_URGENT,
 	        DESIRED_DATE
 	    ) VALUES (
 	        #{requestId},
@@ -32,7 +32,7 @@
 	        #{title},
 	        #{purpose, jdbcType=CLOB},
 	        #{detailContent, jdbcType=CLOB},
-	        #{priority},
+	        #{isUrgent},
 	        #{desiredDate, jdbcType=DATE}
 	    )
 	</insert>
@@ -73,10 +73,12 @@
 	        R.REQUEST_ID,
 	        R.REQUEST_NO,
 	        R.TITLE,
+	        R.IS_URGENT,
 	        R.REQUEST_CLASS,
 	        R.REQUEST_STATUS,
 	        R.APPROVAL_STATUS,
 	        R.CREATED_AT,
+	        R.DESIRED_DATE,
 	        (
 	            SELECT COUNT(*)
 	            FROM QUERY_ITEM I
@@ -110,7 +112,7 @@
 	        R.TITLE,
 			R.PURPOSE,
 			R.DETAIL_CONTENT,
-			R.PRIORITY,
+			R.IS_URGENT,
 			R.DESIRED_DATE,
 			U.USER_NAME AS DRAFTER_NAME,
 	        D.DEPT_NAME,
@@ -167,7 +169,7 @@
 	    SET TITLE = #{title},
 	        PURPOSE = #{purpose, jdbcType=CLOB},
 	        DETAIL_CONTENT = #{detailContent, jdbcType=CLOB},
-	        PRIORITY = #{priority},
+	        IS_URGENT = #{isUrgent},
 	        DESIRED_DATE = #{desiredDate, jdbcType=DATE}
 	    WHERE REQUEST_ID = #{requestId}
 	      AND DRAFTER_ID = #{drafterId}
@@ -235,10 +237,12 @@
 	        R.REQUEST_ID,
 	        R.REQUEST_NO,
 	        R.TITLE,
+	        R.IS_URGENT,
 	        R.REQUEST_CLASS,
 	        R.REQUEST_STATUS,
 	        R.APPROVAL_STATUS,
 	        R.CREATED_AT,
+	        R.DESIRED_DATE,
 	        (
 	            SELECT COUNT(*)
 	            FROM QUERY_ITEM I

@@ -31,6 +31,6 @@ public class RequestDetailResponse {
     private List<RequestItemResponse> items = new ArrayList<>();
     
     private String detailContent;
-    private String priority;
+    private String isUrgent;
     private LocalDate desiredDate;
 }

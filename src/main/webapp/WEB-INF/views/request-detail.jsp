@@ -63,8 +63,8 @@
 				</div>
 
 				<div>
-					<dt>우선순위</dt>
-					<dd id="request-priority"></dd>
+					<dt>긴급 여부</dt>
+					<dd><span id="request-urgency" class="badge"></span></dd>
 				</div>
 
 				<div>
@@ -268,16 +268,9 @@
 					$('#dept-name').textContent = request.deptName;
 					$('#request-purpose').textContent = request.purpose;
 					
-					const priorityNames = {
-					    LOW: '낮음',
-					    NORMAL: '보통',
-					    HIGH: '높음'
-					};
-
-					$('#request-priority').textContent =
-					    priorityNames[request.priority]
-					    || request.priority
-					    || '보통';
+					const isUrgent = request.isUrgent === 'Y';
+					$('#request-urgency').textContent = isUrgent ? '긴급' : '일반';
+					$('#request-urgency').classList.toggle('urgent-badge', isUrgent);
 
 					$('#request-desired-date').textContent =
 					    request.desiredDate || '미지정';

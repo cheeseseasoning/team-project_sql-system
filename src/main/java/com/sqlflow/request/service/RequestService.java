@@ -59,7 +59,7 @@ public class RequestService {
 		request.setDetailContent(
 		        normalizeOptionalText(input.getDetailContent())
 		);
-		request.setPriority(input.getPriority());
+		request.setIsUrgent(input.getIsUrgent());
 		request.setDesiredDate(input.getDesiredDate());
 
 		// 3. 요청서 저장
@@ -139,7 +139,7 @@ public class RequestService {
 		request.setDetailContent(
 		        normalizeOptionalText(input.getDetailContent())
 		);
-		request.setPriority(input.getPriority());
+		request.setIsUrgent(input.getIsUrgent());
 		request.setDesiredDate(input.getDesiredDate());
 
 		int updatedCount = requestMapper.updateDraft(request);

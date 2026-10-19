@@ -24,12 +24,12 @@ public class RequestDraftCreateRequest {
     
     private String detailContent;
 
-    @NotBlank(message = "우선순위를 선택하세요.")
+    @NotBlank(message = "긴급 여부를 입력하세요.")
     @Pattern(
-            regexp = "LOW|NORMAL|HIGH",
-            message = "올바른 우선순위를 선택하세요."
+            regexp = "Y|N",
+            message = "올바른 긴급 여부를 입력하세요."
     )
-    private String priority = "NORMAL";
+    private String isUrgent = "N";
 
     private LocalDate desiredDate;
 

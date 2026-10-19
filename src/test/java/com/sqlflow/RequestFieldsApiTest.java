@@ -34,7 +34,7 @@ class RequestFieldsApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.detailContent")
                         .value("국내 지점만 조회합니다."))
-                .andExpect(jsonPath("$.priority").value("HIGH"))
+                .andExpect(jsonPath("$.isUrgent").value("Y"))
                 .andExpect(jsonPath("$.desiredDate").value("2026-10-23"))
                 .andExpect(jsonPath("$.items[0].queryTitle")
                         .value("매출 확인"));
@@ -49,7 +49,7 @@ class RequestFieldsApiTest {
                     "title": "요청 항목 수정 테스트",
                     "purpose": "추가 항목 수정 확인",
                     "detailContent": "해외 지점도 포함합니다.",
-                    "priority": "LOW",
+                    "isUrgent": "N",
                     "desiredDate": "2026-11-01",
                     "sqls": ["SELECT 1 FROM DUAL"],
                     "sqlTitles": ["매출 확인"]
@@ -69,7 +69,7 @@ class RequestFieldsApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.detailContent")
                         .value("해외 지점도 포함합니다."))
-                .andExpect(jsonPath("$.priority").value("LOW"))
+                .andExpect(jsonPath("$.isUrgent").value("N"))
                 .andExpect(jsonPath("$.desiredDate").value("2026-11-01"));
 
         String clearBody = """
@@ -77,7 +77,7 @@ class RequestFieldsApiTest {
                     "title": "요청 항목 수정 테스트",
                     "purpose": "선택 항목 비우기 확인",
                     "detailContent": "   ",
-                    "priority": "NORMAL",
+                    "isUrgent": "N",
                     "desiredDate": null,
                     "sqls": ["SELECT 1 FROM DUAL"],
                     "sqlTitles": ["매출 확인"]
@@ -96,7 +96,7 @@ class RequestFieldsApiTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.detailContent").doesNotExist())
-                .andExpect(jsonPath("$.priority").value("NORMAL"))
+                .andExpect(jsonPath("$.isUrgent").value("N"))
                 .andExpect(jsonPath("$.desiredDate").doesNotExist());
     }
 
@@ -117,7 +117,7 @@ class RequestFieldsApiTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.detailContent").doesNotExist())
-                .andExpect(jsonPath("$.priority").value("NORMAL"))
+                .andExpect(jsonPath("$.isUrgent").value("N"))
                 .andExpect(jsonPath("$.desiredDate").doesNotExist());
     }
 
@@ -127,22 +127,22 @@ class RequestFieldsApiTest {
 
         Long requestId = createDraft(fullBody());
 
-        String invalidPriorityBody = fullBody()
-                .replace("\"HIGH\"", "\"URGENT\"");
+        String invalidUrgencyBody = fullBody()
+                .replace("\"Y\"", "\"URGENT\"");
 
-        // 생성 요청의 우선순위 검증
+        // 생성 요청의 긴급 여부 검증
         mockMvc.perform(
                     post("/api/requests/drafts")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidPriorityBody)
+                        .content(invalidUrgencyBody)
                 )
                 .andExpect(status().isBadRequest());
 
-        // 수정 요청의 우선순위 검증
+        // 수정 요청의 긴급 여부 검증
         mockMvc.perform(
                     put("/api/requests/drafts/{requestId}", requestId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidPriorityBody)
+                        .content(invalidUrgencyBody)
                 )
                 .andExpect(status().isBadRequest());
 
@@ -164,7 +164,7 @@ class RequestFieldsApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.detailContent")
                         .value("국내 지점만 조회합니다."))
-                .andExpect(jsonPath("$.priority").value("HIGH"))
+                .andExpect(jsonPath("$.isUrgent").value("Y"))
                 .andExpect(jsonPath("$.desiredDate").value("2026-10-23"));
     }
 
@@ -189,7 +189,7 @@ class RequestFieldsApiTest {
                     "title": "요청 추가 항목 테스트",
                     "purpose": "추가 항목 저장 확인",
                     "detailContent": "  국내 지점만 조회합니다.  ",
-                    "priority": "HIGH",
+                    "isUrgent": "Y",
                     "desiredDate": "2026-10-23",
                     "sqls": ["SELECT 1 FROM DUAL"],
                     "sqlTitles": ["매출 확인"]

@@ -40,13 +40,9 @@
 		          placeholder="요청 배경·조회 범위·주의사항 등을 입력하세요."></textarea>
 
 		<div class="form-grid">
-		    <label>
-		        우선순위
-		        <select id="edit-priority">
-		            <option value="LOW">낮음</option>
-		            <option value="NORMAL" selected>보통</option>
-		            <option value="HIGH">높음</option>
-		        </select>
+		    <label class="urgent-option">
+		        <input id="edit-is-urgent" type="checkbox">
+                <span><strong>긴급 요청</strong><small>빠른 처리가 필요한 경우 체크하세요.</small></span>
 		    </label>
 
 		    <label>
@@ -56,7 +52,7 @@
 		</div>
 
 		<p class="caption">
-		    우선순위와 희망일은 처리 담당자의 참고 정보입니다.
+		    긴급 여부와 희망일은 처리 담당자의 참고 정보입니다.
 		</p>
 		
         <div class="panel-heading section-gap">
@@ -186,7 +182,7 @@
             $('#edit-title').value = request.title;
             $('#edit-purpose').value = request.purpose;
 			$('#edit-detail-content').value = request.detailContent || '';
-			$('#edit-priority').value = request.priority || 'NORMAL';
+			$('#edit-is-urgent').checked = request.isUrgent === 'Y';
 			$('#edit-desired-date').value = request.desiredDate || '';
 
 			editSqls = request.items.map(item => ({
@@ -230,7 +226,7 @@
 			    title,
 			    purpose,
 			    detailContent: $('#edit-detail-content').value.trim() || null,
-			    priority: $('#edit-priority').value,
+			    isUrgent: $('#edit-is-urgent').checked ? 'Y' : 'N',
 			    desiredDate: $('#edit-desired-date').value || null,
 			    sqls: savedItems.map(item => item.sqlText),
 			    sqlTitles: savedItems.map(item => item.title.trim())

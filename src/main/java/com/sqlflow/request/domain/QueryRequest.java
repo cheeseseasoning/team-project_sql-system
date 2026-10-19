@@ -19,6 +19,6 @@ public class QueryRequest {
     private String purpose;
     
     private String detailContent;
-    private String priority;
+    private String isUrgent;
     private LocalDate desiredDate;
 }
