@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +15,9 @@ import com.sqlflow.request.domain.QueryRequest;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestDraftUpdateRequest;
+import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestListResponse;
+import com.sqlflow.request.dto.RequestSubmitRequest;
 import com.sqlflow.request.mapper.RequestMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class RequestService {
 
     private final RequestMapper requestMapper;
+    private final ObjectProvider<ApprovalLineCreator> approvalLineCreatorProvider;
 
     @Transactional
     public Long createDraft(RequestDraftCreateRequest input) {
@@ -203,4 +207,128 @@ public class RequestService {
             );
         }
     }
+    
+	 // 제출할 본인 초안을 조회하고 내용 검사
+	 // 반드시 제출 처리의 @Transactional 메서드 안에서 호출
+	 private RequestDetailResponse loadDraftForSubmission(
+	         Long requestId,
+	         Long drafterId) {
+	
+	     // 수정·삭제·중복 제출과 동시에 처리되지 않도록 행 잠금
+	     String status = requestMapper.selectMyRequestStatusForUpdate(
+	             requestId, drafterId);
+	
+	     if (status == null) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.NOT_FOUND,
+	                 "조회 요청을 찾을 수 없습니다."
+	         );
+	     }
+	
+	     if (!"DRAFT".equals(status)) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.CONFLICT,
+	                 "초안 상태의 요청만 제출할 수 있습니다."
+	         );
+	     }
+	
+	     RequestDetailResponse request =
+	             requestMapper.selectMyRequestDetail(requestId, drafterId);
+	
+	     if (request == null) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.NOT_FOUND,
+	                 "조회 요청을 찾을 수 없습니다."
+	         );
+	     }
+	
+	     String title = request.getTitle();
+	
+	     if (title == null || title.isBlank()) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.BAD_REQUEST,
+	                 "요청 제목을 입력하세요."
+	         );
+	     }
+	
+	     if (title.length() > 200) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.BAD_REQUEST,
+	                 "요청 제목은 200자 이하여야 합니다."
+	         );
+	     }
+	
+	     String purpose = request.getPurpose();
+	
+	     if (purpose == null || purpose.isBlank()) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.BAD_REQUEST,
+	                 "조회 목적을 입력하세요."
+	         );
+	     }
+	
+	     List<RequestItemResponse> items =
+	             requestMapper.selectMyRequestItems(requestId, drafterId);
+	
+	     if (items.isEmpty() || items.size() > 5) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.BAD_REQUEST,
+	                 "제출하려면 SQL을 1개 이상, 5개 이하로 등록하세요."
+	         );
+	     }
+	
+	     for (RequestItemResponse item : items) {
+	         if (item.getSqlText() == null || item.getSqlText().isBlank()) {
+	             throw new ResponseStatusException(
+	                     HttpStatus.BAD_REQUEST,
+	                     "빈 SQL 항목은 제출할 수 없습니다."
+	             );
+	         }
+	     }
+	
+	     request.setItems(items);
+	
+	     return request;
+ 	}
+	 
+	 @Transactional
+	 public void submitRequest(
+	         Long requestId,
+	         RequestSubmitRequest input) {
+
+	     // 로그인 연동 전 개발용 사용자
+	     Long actorId = 1L;
+
+	     // 1. 본인 초안 잠금 및 저장된 내용 검사
+	     loadDraftForSubmission(requestId, actorId);
+
+	     // 2. 결재 기능 연결 확인
+	     ApprovalLineCreator approvalLineCreator =
+	             approvalLineCreatorProvider.getIfAvailable();
+
+	     if (approvalLineCreator == null) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.SERVICE_UNAVAILABLE,
+	                 "결재 기능이 아직 연결되지 않았습니다."
+	         );
+	     }
+
+	     // 3. 결재자 재검증 및 결재선 생성
+	     // 준오 구현에서 APPROVAL_STATUS도 PENDING으로 설정
+	     approvalLineCreator.createApprovalLine(
+	             requestId,
+	             actorId,
+	             input.getDbApproverId()
+	     );
+
+	     // 4. 요청 상태 및 제출 시각 변경
+	     int updatedCount = requestMapper.submitDraft(requestId, actorId);
+
+	     if (updatedCount != 1) {
+	         throw new ResponseStatusException(
+	                 HttpStatus.CONFLICT,
+	                 "요청 상태가 변경되어 제출할 수 없습니다."
+	         );
+	     }
+	 }
 }
