@@ -40,6 +40,29 @@
                           placeholder="데이터가 필요한 목적을 입력하세요."></textarea>
             </label>
         </div>
+		
+		<label for="detail-content">
+		    상세 내용
+		</label>
+		<textarea id="detail-content"
+		          rows="5"
+		          placeholder="요청 배경·조회 범위·주의사항 등을 입력하세요. 선택 항목입니다."></textarea>
+
+		<div class="form-grid">
+		    <label class="urgent-option">
+		        <input id="is-urgent" type="checkbox">
+                <span><strong>긴급 요청</strong><small>빠른 처리가 필요한 경우 체크하세요.</small></span>
+		    </label>
+
+		    <label>
+		        희망일
+		        <input id="desired-date" type="date">
+		    </label>
+		</div>
+
+		<p class="caption">
+		    긴급 여부와 희망일은 처리 담당자의 참고 정보입니다.
+		</p>
 
         <div class="tabs" role="group" aria-label="SQL 작성 방식">
             <button type="button" data-mode="direct">
@@ -296,6 +319,9 @@
 			const payload = {
 			    title,
 			    purpose,
+			    detailContent: $('#detail-content').value.trim() || null,
+			    isUrgent: $('#is-urgent').checked ? 'Y' : 'N',
+			    desiredDate: $('#desired-date').value || null,
 			    sqls: savedItems.map(item => item.sqlText),
 			    sqlTitles: savedItems.map(item => item.title.trim())
 			};

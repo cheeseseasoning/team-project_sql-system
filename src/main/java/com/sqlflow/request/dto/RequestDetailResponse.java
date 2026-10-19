@@ -1,5 +1,6 @@
 package com.sqlflow.request.dto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,4 +29,8 @@ public class RequestDetailResponse {
     private LocalDateTime submittedAt;
 
     private List<RequestItemResponse> items = new ArrayList<>();
+    
+    private String detailContent;
+    private String isUrgent;
+    private LocalDate desiredDate;
 }

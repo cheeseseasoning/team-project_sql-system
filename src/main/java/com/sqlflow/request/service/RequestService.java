@@ -55,6 +55,12 @@ public class RequestService {
 		request.setDeptId(deptId);
 		request.setTitle(input.getTitle().strip());
 		request.setPurpose(input.getPurpose().strip());
+		
+		request.setDetailContent(
+		        normalizeOptionalText(input.getDetailContent())
+		);
+		request.setIsUrgent(input.getIsUrgent());
+		request.setDesiredDate(input.getDesiredDate());
 
 		// 3. 요청서 저장
 		requestMapper.insertRequest(request);
@@ -129,6 +135,12 @@ public class RequestService {
 		request.setDrafterId(drafterId);
 		request.setTitle(input.getTitle().strip());
 		request.setPurpose(input.getPurpose().strip());
+		
+		request.setDetailContent(
+		        normalizeOptionalText(input.getDetailContent())
+		);
+		request.setIsUrgent(input.getIsUrgent());
+		request.setDesiredDate(input.getDesiredDate());
 
 		int updatedCount = requestMapper.updateDraft(request);
 
@@ -344,5 +356,11 @@ public class RequestService {
 
 			requestMapper.insertItem(item);
 		}
+	}
+	
+	private String normalizeOptionalText(String value) {
+	    return value == null || value.isBlank()
+	            ? null
+	            : value.strip();
 	}
 }
