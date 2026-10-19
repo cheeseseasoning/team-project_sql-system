@@ -124,6 +124,11 @@
                                 },
                                 signal: controller.signal
                             });
+                            
+                            // 응답 본문이 없는 정상 처리
+							if (response.status === 204) {
+							    return null;
+							}
 
                             let data;
 

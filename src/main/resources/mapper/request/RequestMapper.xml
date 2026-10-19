@@ -128,5 +128,47 @@
 	    ORDER BY I.QUERY_ORDER
 	
 	</select>
+	
+	<!-- 본인 요청의 상태 확인 및 행 잠금 -->
+	<select id="selectMyRequestStatusForUpdate"
+	        resultType="java.lang.String">
+	    SELECT REQUEST_STATUS
+	    FROM QUERY_REQUEST
+	    WHERE REQUEST_ID = #{requestId}
+	      AND DRAFTER_ID = #{drafterId}
+	    FOR UPDATE
+	</select>
+	
+	<!-- 본인의 초안만 제목·목적 수정 -->
+	<update id="updateDraft"
+	        parameterType="com.sqlflow.request.domain.QueryRequest">
+	    UPDATE QUERY_REQUEST
+	    SET TITLE = #{title},
+	        PURPOSE = #{purpose, jdbcType=CLOB}
+	    WHERE REQUEST_ID = #{requestId}
+	      AND DRAFTER_ID = #{drafterId}
+	      AND REQUEST_STATUS = 'DRAFT'
+	</update>
+	
+	<!-- 본인의 초안에 속한 기존 SQL 항목 삭제 -->
+	<delete id="deleteDraftItems">
+	    DELETE FROM QUERY_ITEM
+	    WHERE REQUEST_ID = #{requestId}
+	      AND EXISTS (
+	          SELECT 1
+	          FROM QUERY_REQUEST R
+	          WHERE R.REQUEST_ID = #{requestId}
+	            AND R.DRAFTER_ID = #{drafterId}
+	            AND R.REQUEST_STATUS = 'DRAFT'
+	      )
+	</delete>
+	
+	<!-- 본인의 초안 요청서만 삭제 -->
+	<delete id="deleteDraftRequest">
+	    DELETE FROM QUERY_REQUEST
+	    WHERE REQUEST_ID = #{requestId}
+	      AND DRAFTER_ID = #{drafterId}
+	      AND REQUEST_STATUS = 'DRAFT'
+	</delete>
 
 </mapper>

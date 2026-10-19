@@ -4,15 +4,18 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
+import com.sqlflow.request.dto.RequestDraftUpdateRequest;
 import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.service.RequestService;
 
@@ -50,5 +53,24 @@ public class RequestController {
             @PathVariable Long requestId) {
 
         return requestService.getMyRequestDetail(requestId);
+    }
+    
+    @PutMapping("/drafts/{requestId}")
+    public ResponseEntity<Void> updateDraft(
+            @PathVariable Long requestId,
+            @Valid @RequestBody RequestDraftUpdateRequest input) {
+
+        requestService.updateDraft(requestId, input);
+
+        return ResponseEntity.noContent().build();
+    }
+    
+    @DeleteMapping("/drafts/{requestId}")
+    public ResponseEntity<Void> deleteDraft(
+            @PathVariable("requestId") Long requestId) {
+
+        requestService.deleteDraft(requestId);
+
+        return ResponseEntity.noContent().build();
     }
 }

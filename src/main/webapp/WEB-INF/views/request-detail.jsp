@@ -14,7 +14,21 @@
 				<h1 id="detail-title">조회 요청을 불러오는 중입니다.</h1>
 			</div>
 
-			<span id="detail-state"></span>
+			<div>
+			    <span id="detail-state"></span>
+
+				<span id="draft-edit-action" hidden>
+				    <a id="draft-edit-link" class="button">
+				        초안 수정
+				    </a>
+
+				    <button id="draft-delete"
+				            type="button"
+				            class="button">
+				        초안 삭제
+				    </button>
+				</span>
+			</div>
 		</div>
 
 		<section id="request-info" class="panel" hidden>
@@ -148,6 +162,16 @@
 
 					$('#request-number').textContent = request.requestNo;
 					$('#detail-title').textContent = request.title;
+					
+					// 초안 수정 화면으로 이동할 주소
+					$('#draft-edit-link').href =
+					    BASE + '/requests/'
+					    + encodeURIComponent(request.requestId)
+					    + '/edit';
+
+					// 초안 상태에서만 수정 버튼 표시
+					$('#draft-edit-action').hidden =
+					    request.requestStatus !== 'DRAFT';
 
 					$('#detail-state').innerHTML = badge(
 						detailStatusNames[request.requestStatus]
@@ -192,10 +216,34 @@
 					$('#detail-title').textContent = '조회 요청 상세';
 					$('#detail-items').textContent =
 						'요청을 불러오지 못했습니다. 내 요청 목록으로 돌아가 확인하세요.';
+						
+					$('#draft-edit-action').hidden = true;
 
 					notify(error.message, true);
 				}
 			}
+			
+			$('#draft-delete').addEventListener('click', function () {
+			    const confirmed = window.confirm(
+			        '이 초안을 삭제하시겠습니까?\n'
+			        + '등록한 SQL도 함께 삭제되며 복구할 수 없습니다.'
+			    );
+
+			    if (!confirmed) {
+			        return;
+			    }
+
+			    busy(this, async function () {
+			        await api(
+			            '/requests/drafts/' + encodeURIComponent(requestId),
+			            {
+			                method: 'DELETE'
+			            }
+			        );
+
+			        location.href = BASE + '/requests';
+			    });
+			});
 
 			loadDetail();
 		</script>
