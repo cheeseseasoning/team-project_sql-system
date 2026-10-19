@@ -31,7 +31,34 @@
                 <textarea id="edit-purpose" rows="3" required></textarea>
             </label>
         </div>
+		
+		<label for="edit-detail-content">
+		    상세 내용
+		</label>
+		<textarea id="edit-detail-content"
+		          rows="5"
+		          placeholder="요청 배경·조회 범위·주의사항 등을 입력하세요."></textarea>
 
+		<div class="form-grid">
+		    <label>
+		        우선순위
+		        <select id="edit-priority">
+		            <option value="LOW">낮음</option>
+		            <option value="NORMAL" selected>보통</option>
+		            <option value="HIGH">높음</option>
+		        </select>
+		    </label>
+
+		    <label>
+		        희망일
+		        <input id="edit-desired-date" type="date">
+		    </label>
+		</div>
+
+		<p class="caption">
+		    우선순위와 희망일은 처리 담당자의 참고 정보입니다.
+		</p>
+		
         <div class="panel-heading section-gap">
             <h2>
                 SQL 항목
@@ -158,6 +185,9 @@
             $('#edit-request-number').textContent = request.requestNo;
             $('#edit-title').value = request.title;
             $('#edit-purpose').value = request.purpose;
+			$('#edit-detail-content').value = request.detailContent || '';
+			$('#edit-priority').value = request.priority || 'NORMAL';
+			$('#edit-desired-date').value = request.desiredDate || '';
 
 			editSqls = request.items.map(item => ({
 			    title: item.queryTitle || '',
@@ -199,6 +229,9 @@
 			const payload = {
 			    title,
 			    purpose,
+			    detailContent: $('#edit-detail-content').value.trim() || null,
+			    priority: $('#edit-priority').value,
+			    desiredDate: $('#edit-desired-date').value || null,
 			    sqls: savedItems.map(item => item.sqlText),
 			    sqlTitles: savedItems.map(item => item.title.trim())
 			};

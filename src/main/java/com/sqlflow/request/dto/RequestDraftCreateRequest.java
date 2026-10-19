@@ -1,10 +1,12 @@
 package com.sqlflow.request.dto;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +21,17 @@ public class RequestDraftCreateRequest {
 
     @NotBlank(message = "조회 목적을 입력하세요.")
     private String purpose;
+    
+    private String detailContent;
+
+    @NotBlank(message = "우선순위를 선택하세요.")
+    @Pattern(
+            regexp = "LOW|NORMAL|HIGH",
+            message = "올바른 우선순위를 선택하세요."
+    )
+    private String priority = "NORMAL";
+
+    private LocalDate desiredDate;
 
     @NotNull(message = "SQL 목록이 필요합니다.")
     @Size(max = 5, message = "SQL은 최대 5개까지 등록할 수 있습니다.")

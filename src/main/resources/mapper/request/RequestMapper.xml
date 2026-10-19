@@ -12,24 +12,30 @@
     </select>
 
     <!-- 요청서 저장 -->
-    <insert id="insertRequest"
-            parameterType="com.sqlflow.request.domain.QueryRequest">
-        INSERT INTO QUERY_REQUEST (
-            REQUEST_ID,
-            REQUEST_NO,
-            DRAFTER_ID,
-            DEPT_ID,
-            TITLE,
-            PURPOSE
-        ) VALUES (
-            #{requestId},
-            #{requestNo},
-            #{drafterId},
-            #{deptId},
-            #{title},
-            #{purpose, jdbcType=CLOB}
-        )
-    </insert>
+	<insert id="insertRequest"
+	        parameterType="com.sqlflow.request.domain.QueryRequest">
+	    INSERT INTO QUERY_REQUEST (
+	        REQUEST_ID,
+	        REQUEST_NO,
+	        DRAFTER_ID,
+	        DEPT_ID,
+	        TITLE,
+	        PURPOSE,
+	        DETAIL_CONTENT,
+	        PRIORITY,
+	        DESIRED_DATE
+	    ) VALUES (
+	        #{requestId},
+	        #{requestNo},
+	        #{drafterId},
+	        #{deptId},
+	        #{title},
+	        #{purpose, jdbcType=CLOB},
+	        #{detailContent, jdbcType=CLOB},
+	        #{priority},
+	        #{desiredDate, jdbcType=DATE}
+	    )
+	</insert>
 
     <!-- SQL 항목 저장 -->
     <insert id="insertItem"
@@ -102,8 +108,11 @@
 	        R.REQUEST_ID,
 	        R.REQUEST_NO,
 	        R.TITLE,
-	        R.PURPOSE,
-	        U.USER_NAME AS DRAFTER_NAME,
+			R.PURPOSE,
+			R.DETAIL_CONTENT,
+			R.PRIORITY,
+			R.DESIRED_DATE,
+			U.USER_NAME AS DRAFTER_NAME,
 	        D.DEPT_NAME,
 	        R.REQUEST_CLASS,
 	        R.REQUEST_STATUS,
@@ -151,12 +160,15 @@
 	    FOR UPDATE
 	</select>
 	
-	<!-- 본인의 초안만 제목·목적 수정 -->
+	<!-- 본인의 초안만 수정 -->
 	<update id="updateDraft"
 	        parameterType="com.sqlflow.request.domain.QueryRequest">
 	    UPDATE QUERY_REQUEST
 	    SET TITLE = #{title},
-	        PURPOSE = #{purpose, jdbcType=CLOB}
+	        PURPOSE = #{purpose, jdbcType=CLOB},
+	        DETAIL_CONTENT = #{detailContent, jdbcType=CLOB},
+	        PRIORITY = #{priority},
+	        DESIRED_DATE = #{desiredDate, jdbcType=DATE}
 	    WHERE REQUEST_ID = #{requestId}
 	      AND DRAFTER_ID = #{drafterId}
 	      AND REQUEST_STATUS = 'DRAFT'
