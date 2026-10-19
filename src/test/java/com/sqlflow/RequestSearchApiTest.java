@@ -1,5 +1,7 @@
 package com.sqlflow;
 
+import static com.sqlflow.RequestTestUsers.authenticatedUser;
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -60,6 +62,7 @@ class RequestSearchApiTest {
         // 제목만 일치하거나 상태만 일치하는 요청은 제외돼야 함
         mockMvc.perform(
                     get("/api/requests/mine")
+                        .with(authenticatedUser())
                         .param("keyword", prefix + " 매출")
                         .param("status", "DRAFT")
                 )
@@ -71,6 +74,7 @@ class RequestSearchApiTest {
         // 상태 조건을 빼면 매출 요청 두 개 조회
         mockMvc.perform(
                     get("/api/requests/mine")
+                        .with(authenticatedUser())
                         .param("keyword", prefix + " 매출")
                 )
                 .andExpect(status().isOk())
@@ -87,6 +91,7 @@ class RequestSearchApiTest {
         // 제목 일부 검색: 영문 대소문자 무시, 앞뒤 공백 제거
         mockMvc.perform(
                     get("/api/requests/mine")
+                        .with(authenticatedUser())
                         .param("keyword", "  " + prefix + " sales  ")
                 )
                 .andExpect(status().isOk())
@@ -106,6 +111,7 @@ class RequestSearchApiTest {
         // 요청번호 검색
         mockMvc.perform(
                     get("/api/requests/mine")
+                        .with(authenticatedUser())
                         .param("keyword", requestNo)
                 )
                 .andExpect(status().isOk())
@@ -143,12 +149,14 @@ class RequestSearchApiTest {
     void invalidSearchConditionsReturnBadRequest() throws Exception {
         mockMvc.perform(
                     get("/api/requests/mine")
+                        .with(authenticatedUser())
                         .param("status", "INVALID_STATUS")
                 )
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(
                     get("/api/requests/mine")
+                        .with(authenticatedUser())
                         .param("keyword", "a".repeat(121))
                 )
                 .andExpect(status().isBadRequest());

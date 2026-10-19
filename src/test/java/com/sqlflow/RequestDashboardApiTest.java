@@ -1,5 +1,7 @@
 package com.sqlflow;
 
+import static com.sqlflow.RequestTestUsers.authenticatedUser;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -47,6 +49,7 @@ class RequestDashboardApiTest {
     void summaryCountsRequestsByStatus() throws Exception {
         String beforeResponse = mockMvc.perform(
                     get("/api/requests/dashboard")
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andReturn()
@@ -83,6 +86,7 @@ class RequestDashboardApiTest {
 
         mockMvc.perform(
                     get("/api/requests/dashboard")
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.summary.totalCount")
@@ -109,6 +113,7 @@ class RequestDashboardApiTest {
 
         String response = mockMvc.perform(
                     get("/api/requests/dashboard")
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recentRequests.length()").value(5))
