@@ -1,5 +1,8 @@
 package com.sqlflow;
 
+import static com.sqlflow.RequestTestUsers.authenticatedUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -30,6 +33,7 @@ class RequestFieldsApiTest {
 
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.detailContent")
@@ -58,6 +62,8 @@ class RequestFieldsApiTest {
 
         mockMvc.perform(
                     put("/api/requests/drafts/{requestId}", requestId)
+                        .with(authenticatedUser())
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updateBody)
                 )
@@ -65,6 +71,7 @@ class RequestFieldsApiTest {
 
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.detailContent")
@@ -86,6 +93,8 @@ class RequestFieldsApiTest {
 
         mockMvc.perform(
                     put("/api/requests/drafts/{requestId}", requestId)
+                        .with(authenticatedUser())
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(clearBody)
                 )
@@ -93,6 +102,7 @@ class RequestFieldsApiTest {
 
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.detailContent").doesNotExist())
@@ -114,6 +124,7 @@ class RequestFieldsApiTest {
 
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.detailContent").doesNotExist())
@@ -133,6 +144,8 @@ class RequestFieldsApiTest {
         // 생성 요청의 긴급 여부 검증
         mockMvc.perform(
                     post("/api/requests/drafts")
+                        .with(authenticatedUser())
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidUrgencyBody)
                 )
@@ -141,6 +154,8 @@ class RequestFieldsApiTest {
         // 수정 요청의 긴급 여부 검증
         mockMvc.perform(
                     put("/api/requests/drafts/{requestId}", requestId)
+                        .with(authenticatedUser())
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidUrgencyBody)
                 )
@@ -152,6 +167,8 @@ class RequestFieldsApiTest {
         // 올바르지 않은 날짜 차단
         mockMvc.perform(
                     put("/api/requests/drafts/{requestId}", requestId)
+                        .with(authenticatedUser())
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidDateBody)
                 )
@@ -160,6 +177,7 @@ class RequestFieldsApiTest {
         // 실패한 수정이 기존 값을 바꾸지 않았는지 확인
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.detailContent")
@@ -171,6 +189,8 @@ class RequestFieldsApiTest {
     private Long createDraft(String body) throws Exception {
         String response = mockMvc.perform(
                     post("/api/requests/drafts")
+                        .with(authenticatedUser())
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body)
                 )

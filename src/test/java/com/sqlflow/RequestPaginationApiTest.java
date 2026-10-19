@@ -1,5 +1,7 @@
 package com.sqlflow;
 
+import static com.sqlflow.RequestTestUsers.authenticatedUser;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -59,6 +61,7 @@ class RequestPaginationApiTest {
 
             String response = mockMvc.perform(
                         get("/api/requests/mine/page")
+                            .with(authenticatedUser())
                             .param("keyword", prefix)
                             .param("page", String.valueOf(page))
                             .param("size", "5")
@@ -109,6 +112,7 @@ class RequestPaginationApiTest {
         // 매출 + 초안 조건에 맞는 요청은 5건
         mockMvc.perform(
                     get("/api/requests/mine/page")
+                        .with(authenticatedUser())
                         .param("keyword", prefix + " 매출")
                         .param("status", "DRAFT")
                         .param("page", "2")
@@ -150,6 +154,7 @@ class RequestPaginationApiTest {
         // 3건을 2건씩 조회 → 마지막은 2페이지
         mockMvc.perform(
                     get("/api/requests/mine/page")
+                        .with(authenticatedUser())
                         .param("keyword", prefix)
                         .param("page", "999")
                         .param("size", "2")
@@ -163,6 +168,7 @@ class RequestPaginationApiTest {
         // 검색 결과가 없으면 빈 목록 반환
         mockMvc.perform(
                     get("/api/requests/mine/page")
+                        .with(authenticatedUser())
                         .param("keyword", prefix + " 없는검색어")
                         .param("page", "999")
                         .param("size", "2")
@@ -178,18 +184,21 @@ class RequestPaginationApiTest {
     void invalidPageOrSizeReturnsBadRequest() throws Exception {
         mockMvc.perform(
                     get("/api/requests/mine/page")
+                        .with(authenticatedUser())
                         .param("page", "0")
                 )
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(
                     get("/api/requests/mine/page")
+                        .with(authenticatedUser())
                         .param("size", "0")
                 )
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(
                     get("/api/requests/mine/page")
+                        .with(authenticatedUser())
                         .param("size", "51")
                 )
                 .andExpect(status().isBadRequest());

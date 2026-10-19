@@ -1,5 +1,8 @@
 package com.sqlflow;
 
+import static com.sqlflow.RequestTestUsers.authenticatedUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -30,6 +33,7 @@ class RequestSqlTitleApiTest {
 
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(2))
@@ -62,6 +66,8 @@ class RequestSqlTitleApiTest {
 
         mockMvc.perform(
                     put("/api/requests/drafts/{requestId}", requestId)
+                        .with(authenticatedUser())
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body)
                 )
@@ -69,6 +75,7 @@ class RequestSqlTitleApiTest {
 
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(1))
@@ -102,6 +109,8 @@ class RequestSqlTitleApiTest {
         // 생성에서도 개수 불일치 차단
         mockMvc.perform(
                     post("/api/requests/drafts")
+                        .with(authenticatedUser())
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body)
                 )
@@ -110,6 +119,8 @@ class RequestSqlTitleApiTest {
         // 수정에서도 개수 불일치 차단
         mockMvc.perform(
                     put("/api/requests/drafts/{requestId}", requestId)
+                        .with(authenticatedUser())
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body)
                 )
@@ -118,6 +129,7 @@ class RequestSqlTitleApiTest {
         // 기존 요청과 SQL이 그대로 남아 있어야 함
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("SQL 제목 테스트"))
@@ -151,6 +163,8 @@ class RequestSqlTitleApiTest {
 
         mockMvc.perform(
                     post("/api/requests/drafts")
+                        .with(authenticatedUser())
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body)
                 )
@@ -175,6 +189,8 @@ class RequestSqlTitleApiTest {
 
         String response = mockMvc.perform(
                     post("/api/requests/drafts")
+                        .with(authenticatedUser())
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body)
                 )
