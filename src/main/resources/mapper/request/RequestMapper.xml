@@ -58,5 +58,28 @@
             #{authoringType}
         )
     </insert>
+    
+    <!-- 작성자의 요청 목록 -->
+	<select id="selectMyRequests"
+	        resultType="com.sqlflow.request.dto.RequestListResponse">
+	
+	    SELECT
+	        R.REQUEST_ID,
+	        R.REQUEST_NO,
+	        R.TITLE,
+	        R.REQUEST_CLASS,
+	        R.REQUEST_STATUS,
+	        R.APPROVAL_STATUS,
+	        R.CREATED_AT,
+	        (
+	            SELECT COUNT(*)
+	            FROM QUERY_ITEM I
+	            WHERE I.REQUEST_ID = R.REQUEST_ID
+	        ) AS SQL_COUNT
+	    FROM QUERY_REQUEST R
+	    WHERE R.DRAFTER_ID = #{drafterId}
+	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
+	
+	</select>
 
 </mapper>

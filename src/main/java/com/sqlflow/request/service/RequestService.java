@@ -2,6 +2,7 @@ package com.sqlflow.request.service;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.sqlflow.request.domain.QueryItem;
 import com.sqlflow.request.domain.QueryRequest;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
+import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.mapper.RequestMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -64,5 +66,14 @@ public class RequestService {
                 + today.toString().replace("-", "")
                 + "-"
                 + requestId;
+    }
+    
+    @Transactional(readOnly = true)
+    public List<RequestListResponse> getMyRequests() {
+
+        // 로그인 연동 전 개발용 사용자
+        Long drafterId = 1L;
+
+        return requestMapper.selectMyRequests(drafterId);
     }
 }

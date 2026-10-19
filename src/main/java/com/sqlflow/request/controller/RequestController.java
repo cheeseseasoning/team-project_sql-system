@@ -1,14 +1,17 @@
 package com.sqlflow.request.controller;
 
 import java.net.URI;
+import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
+import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.service.RequestService;
 
 import jakarta.validation.Valid;
@@ -33,5 +36,10 @@ public class RequestController {
     }
 
     public record DraftCreateResponse(Long requestId) {
+    }
+    
+    @GetMapping("/mine")
+    public List<RequestListResponse> getMyRequests() {
+        return requestService.getMyRequests();
     }
 }
