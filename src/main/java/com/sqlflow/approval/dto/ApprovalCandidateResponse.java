@@ -1,7 +1,17 @@
 package com.sqlflow.approval.dto;
 
-public record ApprovalCandidateResponse(
-        Long userId,
-        String userName,
-        String deptName) {
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApprovalCandidateResponse {
+	
+	private Long userId;
+	private String userName;
+	private String deptName;
 }
