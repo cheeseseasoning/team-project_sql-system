@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.execution.mapper.OracleMetadataMapper">
+
+    <select id="selectCurrentSchema" resultType="java.lang.String">
+        SELECT SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA')
+        FROM DUAL
+    </select>
+
+    <!-- 이름이 같은 시퀀스·프로시저 등은 조회 대상으로 인정하지 않는다. -->
+    <select id="countSelectableObjects" resultType="int">
+        SELECT COUNT(*)
+        FROM ALL_OBJECTS
+        WHERE OWNER = #{owner}
+          AND OBJECT_NAME = #{objectName}
+          AND OBJECT_TYPE IN ('TABLE', 'VIEW', 'MATERIALIZED VIEW')
+    </select>
+
+    <!-- 업무 데이터가 아니라 객체의 컬럼 구조만 조회한다. -->
+    <select id="selectColumns"
+            resultType="com.sqlflow.execution.domain.OracleColumnMetadata">
+        SELECT OWNER,
+               TABLE_NAME,
+               COLUMN_NAME,
+               DATA_TYPE
+        FROM ALL_TAB_COLUMNS
+        WHERE OWNER = #{owner}
+          AND TABLE_NAME = #{objectName}
+        ORDER BY COLUMN_ID
+    </select>
+    
+    <!-- OWNER는 동의어 소유자, TABLE_OWNER·TABLE_NAME은 실제 참조 대상이다. -->
+	<select id="selectSynonym"
+	        resultType="com.sqlflow.execution.domain.OracleSynonymMetadata">
+	    SELECT TABLE_OWNER,
+	           TABLE_NAME,
+	           DB_LINK
+	    FROM ALL_SYNONYMS
+	    WHERE OWNER = #{owner}
+	      AND SYNONYM_NAME = #{synonymName}
+	</select>	
+
+</mapper>
