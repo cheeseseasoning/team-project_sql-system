@@ -11,11 +11,13 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.context.WebApplicationContext;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
@@ -31,7 +33,15 @@ class RequestSearchApiTest {
     private MockMvc mockMvc;
 
     @Autowired
+    private WebApplicationContext webApplicationContext;
+
+    @Autowired
     private RequestService requestService;
+
+    @BeforeEach
+    void configureAuthenticatedMockMvc() {
+        mockMvc = AuthenticatedMockMvc.forRequester(webApplicationContext);
+    }
 
     @Autowired
     private RequestMapper requestMapper;

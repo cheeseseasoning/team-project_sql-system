@@ -15,11 +15,13 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.context.WebApplicationContext;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.jayway.jsonpath.JsonPath;
@@ -37,6 +39,9 @@ class RequestDashboardApiTest {
     private MockMvc mockMvc;
 
     @Autowired
+    private WebApplicationContext webApplicationContext;
+
+    @Autowired
     private RequestService requestService;
 
     @Autowired
@@ -44,6 +49,11 @@ class RequestDashboardApiTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void configureAuthenticatedMockMvc() {
+        mockMvc = AuthenticatedMockMvc.forRequester(webApplicationContext);
+    }
 
     @Test
     void summaryCountsRequestsByStatus() throws Exception {

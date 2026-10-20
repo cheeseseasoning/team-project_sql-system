@@ -8,10 +8,14 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.sqlflow.approval.domain.ApprovalActionContext;
 import com.sqlflow.approval.domain.ApprovalRequestContext;
+import com.sqlflow.approval.domain.PendingApproval;
 import com.sqlflow.approval.dto.ApprovalCandidateResponse;
 import com.sqlflow.approval.dto.ApprovalCandidatesResponse;
+import com.sqlflow.approval.dto.PendingApprovalResponse;
 import com.sqlflow.approval.mapper.ApprovalMapper;
+import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.service.ApprovalLineCreator;
 
 import lombok.RequiredArgsConstructor;
@@ -21,6 +25,73 @@ import lombok.RequiredArgsConstructor;
 public class ApprovalService implements ApprovalLineCreator {
 
     private final ApprovalMapper approvalMapper;
+
+    @Transactional(readOnly = true)
+    public List<PendingApprovalResponse> getPendingApprovals(Long approverId) {
+        return approvalMapper.selectPendingApprovals(approverId);
+    }
+
+    @Transactional(readOnly = true)
+    public RequestDetailResponse getPendingApprovalDetail(Long requestId, Long approverId) {
+        RequestDetailResponse detail =
+                approvalMapper.selectPendingApprovalDetail(requestId, approverId);
+        if (detail == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "결재 대기 중인 요청을 찾을 수 없습니다.");
+        }
+        detail.setItems(approvalMapper.selectPendingApprovalItems(requestId, approverId));
+        return detail;
+    }
+
+    @Transactional
+    public void approve(Long requestId, Long actorId) {
+        ApprovalActionContext request =
+                approvalMapper.selectApprovalRequestForUpdate(requestId);
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
+        }
+        if (!"PENDING_APPROVAL".equals(request.getRequestStatus())
+                || !"PENDING".equals(request.getApprovalStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "결재 대기 중인 요청이 아닙니다.");
+        }
+        if (actorId.equals(request.getDrafterId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "요청자는 본인 요청을 결재할 수 없습니다.");
+        }
+
+        PendingApproval pending = approvalMapper
+                .selectPendingApprovalForUpdate(requestId, actorId);
+        if (pending == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "현재 결재 권한이 없습니다.");
+        }
+
+        boolean departmentApproval = Integer.valueOf(1).equals(pending.getApprovalOrder())
+                && "DIRECTOR".equals(pending.getApprovalType());
+        boolean finalApproval = Integer.valueOf(2).equals(pending.getApprovalOrder())
+                && "INTERMEDIATE".equals(pending.getApprovalType());
+        if (!departmentApproval && !finalApproval) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "지원하지 않는 결재 단계입니다.");
+        }
+
+        if (approvalMapper.approvePendingApproval(pending.getApprovalId(), actorId) != 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "결재 상태가 변경되었습니다. 다시 확인하세요.");
+        }
+
+        if (departmentApproval) {
+            if (approvalMapper.activateNextApproval(requestId) != 1) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "다음 결재 단계를 활성화할 수 없습니다.");
+            }
+            return;
+        }
+
+        if (approvalMapper.markRequestApproved(requestId) != 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "요청 상태를 최종 승인으로 변경할 수 없습니다.");
+        }
+    }
 
     @Transactional(readOnly = true)
     public ApprovalCandidatesResponse getApprovalCandidates(

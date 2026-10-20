@@ -71,6 +71,17 @@ public class PageController {
 		return view(model, "request-edit", "조회 요청 초안 수정");
 	}
 
+	@GetMapping("/approvals/pending")
+	public String pendingApprovals(Model model) {
+		return view(model, "approval-pending", "결재 대기 목록");
+	}
+
+	@GetMapping("/approvals/{id}")
+	public String approvalDetail(Model model, @PathVariable Long id) {
+		model.addAttribute("requestId", id);
+		return view(model, "approval-detail", "결재 요청 상세");
+	}
+
 	@GetMapping("/notices")
 	public String notices(Model model) {
 		return view(model, "notices", "공지사항");
@@ -82,6 +93,7 @@ public class PageController {
 		model.addAttribute("activeMenu",
 				page.equals("home") ? "home"
 						: page.equals("notices") ? "notices"
+							: page.startsWith("approval-") ? "approvals"
 								: page.equals("request-form") || page.equals("request-review")
 										? "create" : "requests");
 		return page;
