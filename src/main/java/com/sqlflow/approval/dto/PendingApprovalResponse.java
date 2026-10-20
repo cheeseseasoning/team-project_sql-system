@@ -2,14 +2,24 @@ package com.sqlflow.approval.dto;
 
 import java.time.LocalDateTime;
 
-public record PendingApprovalResponse(
-        Long requestId,
-        String requestNo,
-        String title,
-        String purpose,
-        String drafterName,
-        String deptName,
-        LocalDateTime submittedAt,
-        Integer approvalOrder,
-        String approvalType) {
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class PendingApprovalResponse {
+	
+	private Long requestId;
+	private String requestNo;
+	private String title;
+	private String purpose;
+	private String drafterName;
+	private String deptName;
+	private LocalDateTime submittedAt;
+	private Integer approvalOrder;
+	private String approvalType;
 }

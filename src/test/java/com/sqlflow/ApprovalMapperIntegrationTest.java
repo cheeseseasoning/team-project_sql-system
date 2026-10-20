@@ -80,7 +80,7 @@ class ApprovalMapperIntegrationTest {
         Long requestId = requestService.createDraft(
                 draft, fixture.requesterId(), fixture.deptId());
         RequestSubmitRequest submit = new RequestSubmitRequest();
-        submit.setDbApproverId(fixture.dbApprover().userId());
+        submit.setDbApproverId(fixture.dbApprover().getUserId());
         requestService.submitRequest(requestId, submit, fixture.requesterId());
 
         assertEquals("PENDING_APPROVAL", jdbcTemplate.queryForObject(
@@ -96,7 +96,7 @@ class ApprovalMapperIntegrationTest {
                 String.class,
                 requestId));
 
-        approvalService.approve(requestId, fixture.director().userId());
+        approvalService.approve(requestId, fixture.director().getUserId());
 
         assertEquals("APPROVED", jdbcTemplate.queryForObject(
                 "SELECT STATUS FROM APPROVAL WHERE REQUEST_ID = ? AND APPROVAL_ORDER = 1",
@@ -107,7 +107,7 @@ class ApprovalMapperIntegrationTest {
                 String.class,
                 requestId));
 
-        approvalService.approve(requestId, fixture.dbApprover().userId());
+        approvalService.approve(requestId, fixture.dbApprover().getUserId());
 
         assertEquals("APPROVED", jdbcTemplate.queryForObject(
                 "SELECT APPROVAL_STATUS FROM QUERY_REQUEST WHERE REQUEST_ID = ?",
@@ -147,14 +147,14 @@ class ApprovalMapperIntegrationTest {
             List<ApprovalCandidateResponse> directors =
                     approvalMapper.selectDepartmentApprovers(submitter.deptId());
             if (directors.size() != 1
-                    || directors.get(0).userId().equals(submitter.userId())) {
+                    || directors.get(0).getUserId().equals(submitter.userId())) {
                 continue;
             }
 
             List<ApprovalCandidateResponse> dbApprovers = approvalMapper
-                    .selectDbApprovers(directors.get(0).userId());
+                    .selectDbApprovers(directors.get(0).getUserId());
             ApprovalCandidateResponse dbApprover = dbApprovers.stream()
-                    .filter(candidate -> !candidate.userId().equals(submitter.userId()))
+                    .filter(candidate -> !candidate.getUserId().equals(submitter.userId()))
                     .findFirst()
                     .orElse(null);
             if (dbApprover != null) {
