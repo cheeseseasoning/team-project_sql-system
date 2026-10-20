@@ -75,6 +75,36 @@ public class SqlColumnResolver {
 
         return new Scope(sources);
     }
+    
+    /**
+     * 이미 조회한 메타데이터를 재사용하면서 ON에서 참조 가능한 대상을 제한한다.
+     * visibleTables에는 FROM부터 현재 JOIN까지 등장한 테이블만 전달한다.
+     */
+    public Scope restrictScope(Scope scope, List<Table> visibleTables) {
+
+        if (scope == null || visibleTables == null || visibleTables.isEmpty()) {
+            throw new IllegalArgumentException("기존 검사 범위와 참조 가능한 테이블이 필요합니다.");
+        }
+
+        Map<String, Binding> visibleSources = new LinkedHashMap<>();
+
+        for (Table table : visibleTables) {
+            String sourceName = normalizeIdentifier(
+                    table.getAlias() == null
+                            ? table.getName()
+                            : table.getAlias().getName());
+
+            Binding binding = scope.sources.get(sourceName);
+
+            if (binding == null) {
+                throw badRequest("등록되지 않은 조회 대상입니다: " + sourceName);
+            }
+
+            visibleSources.put(sourceName, binding);
+        }
+
+        return new Scope(visibleSources);
+    }
 
     /** 컬럼 참조를 실제 대상과 컬럼 이름으로 연결한다. */
     public ResolvedColumn resolveColumn(Column column, Scope scope) {
