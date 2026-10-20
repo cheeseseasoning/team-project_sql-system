@@ -19,7 +19,8 @@
 }
 
 .form-panel {
-	max-width: 1250px;
+	width: 100%;
+	max-width: none;
 }
 
 
@@ -179,8 +180,9 @@
 
 .request-detail-page {
 	width: 100%;
-	max-width: 1200px;
-	margin: 0 auto;
+	min-width: 0;
+	max-width: none;
+	margin: 0;
 }
 
 .request-detail-page .page-heading {

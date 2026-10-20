@@ -2,9 +2,14 @@
    1. 전체 레이아웃
    ================================================== */
 
+/* 페이지별 세로 스크롤바 유무에 따른 가로 이동 방지 */
+html {
+    scrollbar-gutter: stable;
+}
+
 .app-shell {
     display: grid;
-    grid-template-columns: 164px minmax(0, 1fr);
+    grid-template-columns: 210px minmax(0, 1fr);
     min-height: 100vh;
 }
 
@@ -96,26 +101,51 @@
     height: 74px;
     background: var(--bg);
     border-bottom: 1px solid var(--line);
-    padding: 14px 28px;
+    padding: 14px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 20px;
 }
 
+
+/* 경로 표시 */
+
 .breadcrumb {
-    font-size: 12px;
-    color: var(--muted);
     display: flex;
+    flex: 1;
+    min-width: 0;
     align-items: center;
     gap: 12px;
+    font-size: 12px;
+    color: var(--muted);
 }
+
+.breadcrumb > a,
+.breadcrumb > span[aria-hidden="true"] {
+    flex-shrink: 0;
+}
+
+.breadcrumb-current {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* 헤더 도구 영역 */
 
 .header-tools {
     display: flex;
     align-items: center;
     gap: 22px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
+
+
+/* 요청 검색 */
 
 .header-search {
     width: 326px;
@@ -136,6 +166,9 @@
     background: transparent;
     font-size: 12px;
 }
+
+
+/* 알림·도움말 */
 
 .icon-button {
     position: relative;
@@ -159,6 +192,9 @@
     font-size: 12px;
     color: var(--muted);
 }
+
+
+/* 로그인 사용자 */
 
 .header-user {
     display: flex;
@@ -200,10 +236,11 @@
    ================================================== */
 
 .main {
-    padding: 24px;
-    max-width: 1720px;
     width: 100%;
-    margin: 0 auto;
+    max-width: 1320px;
+    min-width: 0;
+    margin: 0;
+    padding: 24px;
 }
 
 .demo-strip {
@@ -239,7 +276,10 @@
     font-size: 12px;
 }
 
-/* 공통 푸터 */
+
+/* ==================================================
+   6. 공통 푸터
+   ================================================== */
 
 .footer {
     display: flex;
@@ -250,8 +290,24 @@
     font-size: 11px;
 }
 
+
 /* ==================================================
-   6. 반응형: 1200px 이하
+   7. 큰 화면: 1400px 이상
+   사이드바를 포함한 좌우 여백 균형
+   ================================================== */
+
+@media (min-width: 1400px) {
+    .main {
+        width: calc(100% - 210px);
+        max-width: none;
+        margin: 0;
+    }
+}
+
+
+/* ==================================================
+   8. 반응형: 1200px 이하
+   헤더 검색창·도구 간격 축소
    ================================================== */
 
 @media (max-width: 1200px) {
@@ -270,7 +326,38 @@
 
 
 /* ==================================================
-   7. 반응형: 850px 이하
+   9. 반응형: 1100px 이하
+   헤더를 두 줄로 배치
+   ================================================== */
+
+@media (max-width: 1100px) {
+    .header {
+        height: auto;
+        min-height: 74px;
+        padding: 14px 24px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .breadcrumb {
+        flex: 0 0 100%;
+    }
+
+    .header-tools {
+        width: 100%;
+    }
+
+    .header-search {
+        width: auto;
+        min-width: 0;
+        flex: 1;
+    }
+}
+
+
+/* ==================================================
+   10. 반응형: 850px 이하
+   사이드바 축소·헤더 정보 간소화
    ================================================== */
 
 @media (max-width: 850px) {
@@ -296,10 +383,6 @@
         display: none;
     }
 
-    .header-search {
-        width: 210px;
-    }
-
     .main {
         padding: 18px;
     }
@@ -311,7 +394,8 @@
 
 
 /* ==================================================
-   8. 반응형: 560px 이하
+   11. 반응형: 560px 이하
+   모바일 메뉴·헤더·본문·푸터
    ================================================== */
 
 @media (max-width: 560px) {
@@ -350,6 +434,7 @@
         height: auto;
         gap: 12px;
         flex-wrap: wrap;
+        padding: 14px 16px;
     }
 
     .header-tools {
@@ -376,13 +461,13 @@
     .page-heading h1 {
         font-size: 20px;
     }
-	
-	.footer {
-	    display: block;
-	    padding: 20px 16px;
-	}
 
-	.footer span {
-	    display: none;
-	}
+    .footer {
+        display: block;
+        padding: 20px 16px;
+    }
+
+    .footer span {
+        display: none;
+    }
 }

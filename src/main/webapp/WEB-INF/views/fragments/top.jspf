@@ -73,10 +73,12 @@
         <div class="workspace">
             <header class="header">
                 <div class="breadcrumb">
-                    <a href="${pageContext.request.contextPath}/">SQLFlow</a>
-                    <span>›</span>
-                    <c:out value="${pageTitle}"/>
-                </div>
+				    <a href="${pageContext.request.contextPath}/">SQLFlow</a>
+				    <span aria-hidden="true">›</span>
+				    <span class="breadcrumb-current">
+				        <c:out value="${pageTitle}"/>
+				    </span>
+				</div>
 
                 <div class="header-tools">
                     <form class="header-search"
