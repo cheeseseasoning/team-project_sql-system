@@ -404,6 +404,384 @@
 	margin: 16px 0;
 }
 
+/* ==================================================
+   결재선 등록 모달
+   ================================================== */
+
+#approval-line-dialog {
+    width: min(660px, calc(100% - 32px));
+    height: min(660px, calc(100dvh - 32px));
+    max-height: none;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+}
+
+#approval-line-dialog[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+#approval-line-dialog::backdrop {
+    background: rgba(20, 30, 40, 0.4);
+}
+
+
+/* 제목 */
+
+.approval-line-dialog-heading {
+    flex-shrink: 0;
+    padding: 18px 24px 14px;
+    border-bottom: 2px solid var(--accent);
+}
+
+.approval-line-dialog-heading h2 {
+    color: var(--accent);
+    font-size: 19px;
+    font-weight: 600;
+}
+
+.approval-line-dialog-heading p {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+
+/* 본문 */
+
+.approval-line-dialog-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+/* 모달 내부 공통 입력·버튼 */
+
+#approval-line-dialog input,
+#approval-line-dialog select {
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+#approval-line-dialog .button {
+    min-height: 34px;
+    padding: 4px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+#approval-line-dialog button:disabled {
+    cursor: not-allowed;
+}
+
+.approval-line-search-fields,
+.approval-line-personal-fields {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+
+/* 검색·추가·개인 결재선 도구 영역 */
+
+.approval-line-search,
+.approval-line-add-toolbar,
+.approval-line-personal-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.approval-line-add-toolbar {
+    flex-wrap: wrap;
+}
+
+.approval-line-add-toolbar,
+.approval-line-personal-toolbar {
+    min-width: 0;
+}
+
+.approval-line-search {
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    background: var(--soft);
+}
+
+.approval-line-search > label,
+.approval-line-add-toolbar > label,
+.approval-line-personal-toolbar > label {
+    flex-shrink: 0;
+    font-size: 13px;
+}
+
+#approval-line-keyword {
+    width: 120px;
+    min-width: 0;
+    margin: 0;
+}
+
+#approval-line-saved {
+    flex: 0 1 120px;
+    width: 120px;
+    min-width: 0;
+    margin: 0;
+}
+
+.approval-line-personal-toolbar {
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+/* 왼쪽: 결재자 추가 / 오른쪽: 내 결재선 */
+.approval-line-tools-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: 20px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    background: var(--soft);
+}
+
+/* 후보 목록: 남은 높이를 사용하고 내부 스크롤 */
+
+.approval-line-candidate-area {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 100px;
+}
+
+.approval-line-table-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    border: 1px solid var(--line);
+}
+
+
+/* 후보·현재 결재선 표 */
+
+#approval-line-dialog table {
+    min-width: 540px;
+    font-size: 13px;
+}
+
+#approval-line-dialog th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--accent);
+    background: var(--tint);
+    color: var(--accent);
+    font-weight: 500;
+    text-align: center;
+}
+
+#approval-line-dialog td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+    text-align: center;
+}
+
+.approval-line-candidate-table th:first-child,
+.approval-line-current-table th:first-child {
+    width: 60px;
+}
+
+/* 현재 결재선: 부서·직급·관리 열 너비 통일 */
+.approval-line-current-table th:nth-child(4),
+.approval-line-current-table th:nth-child(5),
+.approval-line-current-table th:nth-child(6) {
+    width: 120px;
+}
+
+/* 현재 결재선: 테두리와 행 높이 통일 */
+#approval-line-dialog .approval-line-current-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 0;
+}
+
+#approval-line-dialog .approval-line-current-table th {
+    border-top: 0;
+    border-bottom: 1px solid var(--line);
+}
+
+#approval-line-dialog .approval-line-current-table tbody td {
+    height: 44px;
+    padding: 6px 10px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* 실제 화면과 테스트 페이지의 관리 버튼 */
+#approval-line-dialog .approval-line-current-table .button {
+    height: 30px;
+    min-height: 30px;
+    padding: 3px 7px;
+    line-height: 20px;
+}
+
+/* DB팀 담당자 선택 상자 */
+#approval-line-dialog .approval-line-current-table select {
+	display: block;
+	width: 80px;
+	max-width: 100%;
+	height: 30px;
+    min-height: 30px;
+    margin: 0 auto;
+    padding: 3px 8px;
+    font-size: 13px;
+    line-height: 20px;
+}
+
+#approval-line-dialog td.empty {
+    padding: 20px 12px;
+    color: var(--muted);
+	border-bottom: 0;
+}
+
+/* 후보 다중 선택 */
+#approval-line-dialog input.approval-line-candidate-check {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    vertical-align: middle;
+    accent-color: var(--accent);
+}
+
+/* 선택한 후보 행 */
+.approval-line-candidate-table tr.is-selected {
+    background: var(--tint);
+}
+
+/* 중간 결재자 순서 변경·삭제 */
+.approval-line-row-actions {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+}
+
+#approval-line-dialog .approval-line-row-actions .button {
+    min-height: 28px;
+    padding: 3px 7px;
+    font-size: 12px;
+}
+
+/* 안내 문구 유무에 관계없이 한 줄 공간 유지 */
+#approval-line-message {
+    display: block;
+    height: 20px;
+    min-height: 20px;
+    margin: 7px 0 0;
+    font-size: 12px;
+    line-height: 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 현재 결재선 */
+
+.approval-line-current-area {
+    flex-shrink: 0;
+}
+
+/* 결재선명과 개인 결재선 관리 버튼 */
+
+.approval-line-name-row {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+    align-items: center;
+    gap: 20px;
+    padding: 7px 10px;
+    border: 1px solid var(--line);
+    border-bottom: 0;
+}
+
+/* 조회 행 오른쪽: 선택한 결재자 추가·초기화 */
+.approval-line-search > .approval-line-add-toolbar {
+    margin-left: auto;
+}
+
+/* 결재선명 입력·신규·저장 */
+.approval-line-name-editor {
+    display: flex;
+    align-items: center;
+	justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+}
+
+.approval-line-name-row label {
+    flex-shrink: 0;
+    font-size: 13px;
+}
+
+#approval-line-name {
+    flex: 0 1 180px;
+    width: 180px;
+    min-width: 0;
+    margin: 0;
+}
+
+.approval-line-management-buttons {
+    display: flex;
+    flex-shrink: 0;
+    gap: 6px;
+}
+
+/* 제목줄 + 결재자 약 3개 행 */
+.approval-line-current-scroll {
+    height: 170px;
+    min-height: 170px;
+    max-height: 170px;
+    overflow: auto;
+    scrollbar-gutter: stable;
+    border: 1px solid var(--line);
+    border-top: 0;
+}
+
+.approval-line-fixed {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.approval-line-section-help {
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+
+/* 하단 버튼 */
+
+.approval-line-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    gap: 8px;
+    padding: 10px 24px;
+    border-top: 1px solid var(--line);
+}
 
 /* ==================================================
    12. 반응형: 1100px 이하
@@ -451,6 +829,46 @@
 		grid-template-columns: minmax(0, 1fr);
 		gap: 14px;
 	}
+	
+	#approval-line-dialog {
+	    height: auto;
+	    max-height: calc(100dvh - 24px);
+	    overflow: auto;
+	}
+
+	.approval-line-dialog-body {
+	    flex: none;
+	    padding: 12px;
+	}
+
+	.approval-line-search,
+	.approval-line-add-toolbar,
+	.approval-line-personal-toolbar {
+	    flex-wrap: wrap;
+	}
+
+	.approval-line-candidate-area {
+	    flex: none;
+	}
+
+	.approval-line-table-scroll {
+	    flex: none;
+	    height: 150px;
+	}
+	
+	.approval-line-name-row {
+	    grid-template-columns: minmax(0, 1fr);
+	    gap: 10px;
+	}
+
+	.approval-line-name-editor {
+	    flex-wrap: wrap;
+	}
+	
+	.approval-line-tools-row {
+	    grid-template-columns: minmax(0, 1fr);
+	    gap: 12px;
+	}
 }
 
 
@@ -467,4 +885,25 @@
 	.sql-editor {
 		font-size: 16px;
 	}
+}
+
+@media (min-width: 651px) and (max-height: 700px) {
+    #approval-line-dialog {
+        height: auto;
+        max-height: calc(100dvh - 24px);
+        overflow: auto;
+    }
+
+    .approval-line-dialog-body {
+        flex: none;
+    }
+
+    .approval-line-candidate-area {
+        flex: none;
+    }
+
+    .approval-line-table-scroll {
+        flex: none;
+        height: 140px;
+    }
 }
