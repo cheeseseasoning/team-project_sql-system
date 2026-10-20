@@ -117,7 +117,80 @@ public class ApprovalService implements ApprovalLineCreator {
                     "요청 상태를 최종 승인으로 변경할 수 없습니다.");
         }
     }
+    
+    
+    @Transactional
+    public void reject(Long requestId, Long actorId, String commentText) {
+    	if(commentText == null || commentText.isBlank()) {
+    		throw new ResponseStatusException(
+    				HttpStatus.BAD_REQUEST,
+    				"반려 의견을 입력하세요.");
+    	}
+    	
+    	ApprovalActionContext request = 
+    			approvalMapper.selectApprovalRequestForUpdate(requestId);
+    	
+    	if(request == null) {
+    		throw new ResponseStatusException(
+    				HttpStatus.NOT_FOUND,
+    				"조회 요청을 찾을 수 없습니다.");
+    	}
+    	
+    	if(!"PENDING_APPROVAL".equals(request.getRequestStatus())
+    			|| !"PENDING".equals(request.getApprovalStatus())) {
+    		throw new ResponseStatusException(
+    				HttpStatus.CONFLICT,
+    				"결재 대기 중인 요청이 아닙니다.");
+    	}
+    	
+    	if(actorId.equals(request.getDrafterId())) {
+    		throw new ResponseStatusException(
+    				HttpStatus.FORBIDDEN,
+    				"요청자는 본인 요청을 반려할 수 없습니다");
+    	}
+    	
+    	PendingApproval pending = 
+    			approvalMapper.selectPendingApprovalForUpdate(requestId, actorId);
+    	
+    	if(pending == null) {
+    		throw new ResponseStatusException(
+    				HttpStatus.FORBIDDEN,
+    				"현재 결재 권한이 없습니다.");
+    	}
+    	
+    	boolean departmentApproval = 
+    			Integer.valueOf(1).equals(pending.getApprovalOrder())
+    				&& "DIRECTOR".equals(pending.getApprovalType());
+    	boolean finalApproval = 
+    			Integer.valueOf(2).equals(pending.getApprovalOrder())
+    				&& "INTERMEDIATE".equals(pending.getApprovalType());
+    	
+    	if(!departmentApproval && !finalApproval) {
+    		throw new ResponseStatusException(
+    				HttpStatus.CONFLICT,
+    				"지원하지 않는 결재 단계입니다.");
+    	}
+    	
+    	if(approvalMapper.rejectPendingApproval(
+    			pending.getApprovalId(),
+    			actorId,
+    			commentText.strip()) != 1) {
+    		throw new ResponseStatusException(
+    				HttpStatus.CONFLICT,
+    				"결재 상태가 변경되었습니다. 다시 확인하세요.");
+    	}
+    	
+    	// 다음 결재 단계가 WAITING일 때 취소합니다.
+    	approvalMapper.cancelWaitingApprovals(requestId);
+    	
+    	if(approvalMapper.markRequestRejected(requestId) != 1) {
+    		throw new ResponseStatusException(
+    				HttpStatus.CONFLICT,
+    				"요청 상태를 반려로 변경할 수 없습니다.");
+    	}
+    }
 
+    
     @Transactional(readOnly = true)
     public ApprovalCandidatesResponse getApprovalCandidates(
             Long requestId,

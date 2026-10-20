@@ -256,4 +256,42 @@
           AND APPROVAL_STATUS = 'PENDING'
           AND REQUEST_STATUS = 'PENDING_APPROVAL'
     </update>
+    
+    <update id="rejectPendingApproval">
+    	UPDATE APPROVAL
+    	SET STATUS = 'REJECTED',
+    		COMMENT_TEXT = #{commentText},
+    		DECIDED_AT = SYSTIMESTAMP
+    	WHERE APPROVAL_ID = #{approvalId}
+    	  AND APPROVER_ID = #{approverId}
+    	  AND STATUS = 'PENDING'
+    </update>
+    
+    <update id="cancelWaitingApprovals">
+    	UPDATE APPROVAL
+    	SET STATUS = 'CANCELLED' 
+    	WHERE REQUEST_ID = #{requestId}
+    	  AND STATUS = 'WAITING'
+    </update>
+    
+    <update id="markRequestRejected">
+    	UPDATE QUERY_REQUEST 
+    	SET APPROVAL_STATUS = 'REJECTED', 
+    		REQUEST_STATUS = 'REJECTED' 
+    	WHERE REQUEST_ID = #{requestId} 
+    	  AND APPROVAL_STATUS = 'PENDING' 
+    	  AND REQUEST_STATUS = 'PENDING_APPROVAL'
+    </update>
 </mapper>
+
+
+
+
+
+
+
+
+
+
+
+
