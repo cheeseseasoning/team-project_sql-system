@@ -6,15 +6,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>로그인 | SQLFlow</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/sqlflow.css">
-    <style>
-        body { min-height: 100vh; display: grid; place-items: center; background: var(--soft); }
-        .login-panel { width: min(420px, calc(100vw - 32px)); }
-        .login-panel h1 { margin-bottom: 8px; }
-        .login-panel label { margin-top: 18px; }
-        .login-panel .button { width: 100%; margin-top: 24px; }
-        .login-error { color: var(--error); margin-top: 16px; font-size: 13px; }
-    </style>
+	
+	<link rel="stylesheet"
+	      href="${pageContext.request.contextPath}/css/sqlflow.css">
+
+	<link rel="stylesheet"
+	      href="${pageContext.request.contextPath}/css/layout.css">
+
+	<link rel="stylesheet"
+	      href="${pageContext.request.contextPath}/css/pages/login.css">
 </head>
 <body>
     <main class="panel login-panel">

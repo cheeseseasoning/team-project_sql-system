@@ -1,140 +1,167 @@
 <%@ page pageEncoding="UTF-8" %>
 	<%@ include file="fragments/top.jspf" %>
 
-		<div id="detail-config" data-request-id="<c:out value='${requestId}'/>" hidden>
-		</div>
+		<div class="request-detail-page">
 
-		<a class="back-link" href="${pageContext.request.contextPath}/requests">
-			← 내 요청 목록
-		</a>
-
-		<div class="page-heading">
-			<div>
-				<span id="request-number" class="caption"></span>
-				<h1 id="detail-title">조회 요청을 불러오는 중입니다.</h1>
+			<div id="detail-config" data-request-id="<c:out value='${requestId}'/>" hidden>
 			</div>
 
-			<div>
-				<span id="detail-state"></span>
+			<a class="back-link" href="${pageContext.request.contextPath}/requests">
+				← 내 요청 목록
+			</a>
 
-				<span id="draft-edit-action" hidden>
-					<a id="draft-edit-link" class="button">
-						초안 수정
-					</a>
+			<div class="page-heading">
+				<div>
+					<span id="request-number" class="caption"></span>
+					<h1 id="detail-title">조회 요청을 불러오는 중입니다.</h1>
+				</div>
 
-					<button id="draft-delete" type="button" class="button">
-						초안 삭제
+				<div>
+					<span id="detail-state"></span>
+
+					<span id="draft-edit-action" hidden>
+						<a id="draft-edit-link" class="button">
+							초안 수정
+						</a>
+
+						<button id="draft-delete" type="button" class="button">
+							초안 삭제
+						</button>
+
+						<button id="request-submit-open" type="button" class="button primary">
+							제출
+						</button>
+					</span>
+
+					<button id="request-redraft" type="button" class="button primary" hidden>
+						재기안
+					</button>
+				</div>
+			</div>
+
+			<div class="request-detail-layout">
+
+				<!-- 왼쪽: 요청 정보와 본문 -->
+				<section id="request-info" class="panel request-info-panel" hidden>
+					<h2>요청 정보</h2>
+
+					<dl class="key-values request-info-grid">
+						<div id="source-request-row" class="request-source-row" hidden>
+							<dt>원본 요청</dt>
+							<dd>
+								<a id="source-request-link"></a>
+							</dd>
+						</div>
+
+						<div>
+							<dt>작성자</dt>
+							<dd id="drafter-name"></dd>
+						</div>
+
+						<div>
+							<dt>요청 부서</dt>
+							<dd id="dept-name"></dd>
+						</div>
+
+						<div>
+							<dt>조회 유형</dt>
+							<dd id="request-class"></dd>
+						</div>
+
+						<div>
+							<dt>결재 상태</dt>
+							<dd id="approval-status"></dd>
+						</div>
+
+						<div>
+							<dt>생성 시각</dt>
+							<dd id="created-at"></dd>
+						</div>
+
+						<div>
+							<dt>제출 시각</dt>
+							<dd id="submitted-at"></dd>
+						</div>
+
+						<div>
+							<dt>긴급 여부</dt>
+							<dd>
+								<span id="request-urgency" class="badge"></span>
+							</dd>
+						</div>
+
+						<div>
+							<dt>희망일</dt>
+							<dd id="request-desired-date"></dd>
+						</div>
+					</dl>
+
+					<div class="request-content-section">
+						<h2>조회 목적</h2>
+						<p id="request-purpose" class="notice-body"></p>
+					</div>
+
+					<div class="request-content-section">
+						<h2>상세 내용</h2>
+						<p id="request-detail-content" class="notice-body"></p>
+					</div>
+				</section>
+
+				<!-- 오른쪽: 결재선 배치 미리보기 -->
+				<aside class="panel request-approval-panel" aria-labelledby="request-approval-title">
+
+					<div class="panel-heading">
+						<h2 id="request-approval-title">결재선</h2>
+						<span class="badge">배치 미리보기</span>
+					</div>
+
+					<p class="request-approval-description">
+						부서장 → DB팀 결재자 순서로 진행됩니다.
+					</p>
+
+					<ol class="request-approval-list">
+						<li>
+							<span class="request-approval-number" aria-hidden="true">1</span>
+							<div>
+								<strong>소속 부서장</strong>
+								<p>자동 지정 예정</p>
+								<span>등록 기능 연결 후 표시합니다.</span>
+							</div>
+						</li>
+
+						<li>
+							<span class="request-approval-number" aria-hidden="true">2</span>
+							<div>
+								<strong>DB팀 결재자</strong>
+								<p>결재자 선택 예정</p>
+								<span>등록 기능 연결 후 표시합니다.</span>
+							</div>
+						</li>
+					</ol>
+
+					<button type="button" class="button primary request-approval-register" disabled
+						aria-describedby="approval-preview-help">
+						결재선 등록
 					</button>
 
-					<button id="request-submit-open" type="button" class="button primary">
-						제출
-					</button>
-				</span>
-				
-				<button id="request-redraft"
-				        type="button"
-				        class="button primary"
-				        hidden>
-				    재기안
-				</button>
-			</div>
-		</div>
+					<p id="approval-preview-help" class="request-approval-help">
+						현재는 화면 배치 확인용입니다.
+					</p>
+				</aside>
 
-		<section id="request-info" class="panel" hidden>
-			<h2>요청 정보</h2>
-
-			<dl class="key-values">
-				<div id="source-request-row" hidden>
-				    <dt>원본 요청</dt>
-				    <dd>
-				        <a id="source-request-link"></a>
-				    </dd>
-				</div>
-				<div>
-					<dt>작성자</dt>
-					<dd id="drafter-name"></dd>
-				</div>
-				<div>
-					<dt>요청 부서</dt>
-					<dd id="dept-name"></dd>
-				</div>
-				<div>
-					<dt>조회 유형</dt>
-					<dd id="request-class"></dd>
-				</div>
-				<div>
-					<dt>결재 상태</dt>
-					<dd id="approval-status"></dd>
-				</div>
-				<div>
-					<dt>생성 시각</dt>
-					<dd id="created-at"></dd>
-				</div>
-				<div>
-					<dt>제출 시각</dt>
-					<dd id="submitted-at"></dd>
-				</div>
-
-				<div>
-					<dt>긴급 여부</dt>
-					<dd><span id="request-urgency" class="badge"></span></dd>
-				</div>
-
-				<div>
-					<dt>희망일</dt>
-					<dd id="request-desired-date"></dd>
-				</div>
-			</dl>
-
-			<hr>
-
-			<h2>조회 목적</h2>
-			<p id="request-purpose" class="notice-body"></p>
-			
-			<hr>
-
-			<h2>상세 내용</h2>
-			<p id="request-detail-content" class="notice-body"></p>
-		</section>
-
-		<section class="panel section-gap">
-			<div class="panel-heading">
-				<h2>등록한 SQL</h2>
-				<span id="sql-count" class="caption"></span>
 			</div>
 
-			<div id="detail-items">불러오는 중입니다.</div>
-		</section>
+			<!-- 아래: SQL은 전체 너비 사용 -->
+			<section class="panel section-gap request-sql-panel">
+				<div class="panel-heading">
+					<h2>등록한 SQL</h2>
+					<span id="sql-count" class="caption"></span>
+				</div>
 
-		<style>
-			#approval-dialog {
-				width: min(520px, calc(100% - 32px));
-				max-height: 85vh;
-				overflow: auto;
-				border: 1px solid var(--line);
-				border-radius: 9px;
-				padding: 24px;
-			}
+				<div id="detail-items">불러오는 중입니다.</div>
+			</section>
 
-			#approval-dialog::backdrop {
-				background: rgba(0, 0, 0, 0.35);
-			}
-
-			#approval-dialog label {
-				margin-top: 18px;
-			}
-
-			#approval-fields {
-				border: 0;
-				padding: 0;
-				margin: 0;
-				min-width: 0;
-			}
-
-			#approval-dialog-message {
-				margin: 16px 0;
-			}
-		</style>
+		</div><!-- request-detail-page 끝 -->
 
 		<dialog id="approval-dialog" aria-labelledby="approval-dialog-title">
 			<h2 id="approval-dialog-title">결재선 확인 및 제출</h2>
@@ -261,23 +288,23 @@
 
 					$('#request-number').textContent = request.requestNo;
 					$('#detail-title').textContent = request.title;
-					
+
 					const hasSource =
-					    request.sourceRequestId != null
-					    && Boolean(request.sourceRequestNo);
+						request.sourceRequestId != null
+						&& Boolean(request.sourceRequestNo);
 
 					$('#source-request-row').hidden = !hasSource;
 
 					const sourceLink = $('#source-request-link');
 
 					if (hasSource) {
-					    sourceLink.textContent = request.sourceRequestNo;
-					    sourceLink.href =
-					        BASE + '/requests/'
-					        + encodeURIComponent(request.sourceRequestId);
+						sourceLink.textContent = request.sourceRequestNo;
+						sourceLink.href =
+							BASE + '/requests/'
+							+ encodeURIComponent(request.sourceRequestId);
 					} else {
-					    sourceLink.textContent = '';
-					    sourceLink.removeAttribute('href');
+						sourceLink.textContent = '';
+						sourceLink.removeAttribute('href');
 					}
 
 					// 초안 수정 화면으로 이동할 주소
@@ -289,10 +316,10 @@
 					// 초안 상태에서만 수정 버튼 표시
 					$('#draft-edit-action').hidden =
 						request.requestStatus !== 'DRAFT';
-						
+
 					// 반려된 본인 요청에서만 재기안 버튼 표시
 					$('#request-redraft').hidden =
-					    request.requestStatus !== 'REJECTED';
+						request.requestStatus !== 'REJECTED';
 
 					$('#detail-state').innerHTML = badge(
 						detailStatusNames[request.requestStatus]
@@ -302,16 +329,16 @@
 					$('#drafter-name').textContent = request.drafterName;
 					$('#dept-name').textContent = request.deptName;
 					$('#request-purpose').textContent = request.purpose;
-					
+
 					const isUrgent = request.isUrgent === 'Y';
 					$('#request-urgency').textContent = isUrgent ? '긴급' : '일반';
 					$('#request-urgency').classList.toggle('urgent-badge', isUrgent);
 
 					$('#request-desired-date').textContent =
-					    request.desiredDate || '미지정';
+						request.desiredDate || '미지정';
 
 					$('#request-detail-content').textContent =
-					    request.detailContent || '입력된 상세 내용이 없습니다.';
+						request.detailContent || '입력된 상세 내용이 없습니다.';
 
 					$('#request-class').textContent =
 						detailClassNames[request.requestClass]
@@ -536,46 +563,46 @@
 			let redraftCreating = false;
 
 			$('#request-redraft').addEventListener('click', function () {
-			    if (redraftCreating) {
-			        return;
-			    }
+				if (redraftCreating) {
+					return;
+				}
 
-			    const confirmed = window.confirm(
-			        '이 요청을 복사하여 새 초안을 작성하시겠습니까?\n'
-			        + '기존 요청과 결재 이력은 유지됩니다.'
-			    );
+				const confirmed = window.confirm(
+					'이 요청을 복사하여 새 초안을 작성하시겠습니까?\n'
+					+ '기존 요청과 결재 이력은 유지됩니다.'
+				);
 
-			    if (!confirmed) {
-			        return;
-			    }
+				if (!confirmed) {
+					return;
+				}
 
-			    redraftCreating = true;
+				redraftCreating = true;
 
-			    busy(this, async function () {
-			        try {
-			            const result = await api(
-			                '/requests/'
-			                + encodeURIComponent(requestId)
-			                + '/redraft',
-			                {method: 'POST'}
-			            );
+				busy(this, async function () {
+					try {
+						const result = await api(
+							'/requests/'
+							+ encodeURIComponent(requestId)
+							+ '/redraft',
+							{method: 'POST'}
+						);
 
-			            if (!result?.requestId) {
-			                throw Error('생성된 초안 정보를 확인할 수 없습니다.');
-			            }
+						if (!result?.requestId) {
+							throw Error('생성된 초안 정보를 확인할 수 없습니다.');
+						}
 
-			            location.href =
-			                BASE + '/requests/'
-			                + encodeURIComponent(result.requestId)
-			                + '/edit';
+						location.href =
+							BASE + '/requests/'
+							+ encodeURIComponent(result.requestId)
+							+ '/edit';
 
-			        } catch (error) {
-			            redraftCreating = false;
-			            throw error;
-			        }
-			    });
+					} catch (error) {
+						redraftCreating = false;
+						throw error;
+					}
+				});
 			});
-			
+
 			loadDetail();
 		</script>
 

@@ -1,0 +1,468 @@
+/* ==================================================
+   1. 요청 작성·검토: 진행 단계와 폼
+   ================================================== */
+
+.workflow {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 28px;
+	color: var(--muted);
+	font-size: 12px;
+	padding-bottom: 20px;
+	margin-bottom: 24px;
+	border-bottom: 1px solid var(--line);
+}
+
+.workflow strong {
+	color: var(--accent);
+	font-weight: 500;
+}
+
+.form-panel {
+	max-width: 1250px;
+}
+
+
+/* ==================================================
+   2. 요청 작성·수정: 긴급 요청 선택
+   ================================================== */
+
+.form-grid .urgent-option {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	align-self: end;
+	min-height: 70px;
+	padding: 12px 16px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--soft);
+	cursor: pointer;
+}
+
+.urgent-option input[type="checkbox"] {
+	flex-shrink: 0;
+	width: 18px;
+	height: 18px;
+	margin: 0;
+	padding: 0;
+	accent-color: #b42318;
+}
+
+.urgent-option strong {
+	display: block;
+	font-weight: 600;
+}
+
+.urgent-option small {
+	display: block;
+	margin-top: 2px;
+	color: var(--muted);
+	font-size: 12px;
+}
+
+.urgent-option:has(input:checked) {
+	border-color: #e6aaa5;
+	background: #fff1f0;
+}
+
+.urgent-option:has(input:checked) strong {
+	color: #a53434;
+}
+
+
+/* ==================================================
+   3. 요청 작성·검토: SQL 입력
+   ================================================== */
+
+/* SQL 작성 방식 선택 탭 */
+
+.tabs {
+	display: flex;
+	gap: 8px;
+	border-bottom: 1px solid var(--line);
+	padding-bottom: 16px;
+	margin-bottom: 22px;
+}
+
+.tabs button {
+	border: 1px solid var(--line);
+	background: var(--bg);
+	border-radius: 5px;
+	padding: 9px 17px;
+	color: var(--muted);
+}
+
+.tabs button[aria-pressed=true] {
+	background: var(--tint);
+	color: var(--accent);
+	border-color: var(--accent);
+	font-weight: 500;
+}
+
+/* AI 생성 SQL 설명 */
+
+.explanation {
+	font-size: 12px;
+	color: var(--muted);
+	margin-top: 12px;
+}
+
+.sql-item {
+	border-top: 1px solid var(--line);
+	padding-top: 20px;
+	margin-top: 18px;
+}
+
+.sql-editor {
+	font: 13px/1.7 Consolas, 'Malgun Gothic', monospace;
+	tab-size: 2;
+	background: #fbfcfd;
+}
+
+
+/* ==================================================
+   4. 요청 작성·검토: 검증 결과
+   ================================================== */
+
+.validation {
+	padding: 18px;
+	background: var(--good);
+	color: var(--good-text);
+	border-radius: 5px;
+	margin-top: 24px;
+}
+
+.validation strong {
+	font-weight: 600;
+}
+
+.validation p {
+	margin: 8px 0;
+}
+
+.validation.error {
+	background: #fff1f1;
+	color: var(--error);
+}
+
+
+/* ==================================================
+   5. 요청 목록: 검색 조건
+   ================================================== */
+
+.filter-bar {
+	display: flex;
+	gap: 16px;
+	align-items: flex-end;
+	padding-bottom: 25px;
+	margin-bottom: 24px;
+	border-bottom: 1px solid var(--line);
+}
+
+.filter-bar label:first-child {
+	flex: 1;
+}
+
+.filter-bar label:nth-child(2) {
+	width: 200px;
+}
+
+.filter-bar button {
+	min-height: 46px;
+}
+
+
+/* ==================================================
+   6. 요청 상세: 컨테이너·제목
+   ================================================== */
+
+.request-detail-page {
+	width: 100%;
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.request-detail-page .page-heading {
+	flex-wrap: wrap;
+}
+
+.request-detail-page .page-heading>div {
+	min-width: 0;
+}
+
+.request-detail-page #detail-title {
+	overflow-wrap: anywhere;
+}
+
+.request-detail-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 300px;
+	gap: 20px;
+	align-items: start;
+}
+
+.request-detail-page .panel {
+	padding: 22px;
+}
+
+.request-detail-page h2 {
+	font-size: 17px;
+	font-weight: 600;
+}
+
+
+/* ==================================================
+   7. 요청 상세: 요청 정보
+   ================================================== */
+
+.request-detail-page .request-info-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px 24px;
+	margin: 20px 0 0;
+}
+
+.request-detail-page .request-info-grid>div {
+	display: grid;
+	grid-template-columns: 76px minmax(0, 1fr);
+	align-items: baseline;
+	gap: 10px;
+	margin: 0;
+	font-size: 14px;
+}
+
+.request-detail-page .request-info-grid dt {
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.request-detail-page .request-info-grid dd {
+	margin: 0;
+	text-align: left;
+	line-height: 1.6;
+	overflow-wrap: anywhere;
+}
+
+.request-detail-page .request-info-grid .request-source-row {
+	grid-column: 1 / -1;
+}
+
+.request-detail-page .request-info-grid .badge {
+	font-size: 12px;
+}
+
+
+/* ==================================================
+   8. 요청 상세: 조회 목적·상세 내용
+   ================================================== */
+
+.request-detail-page .request-content-section {
+	margin-top: 22px;
+	padding-top: 20px;
+	border-top: 1px solid var(--line);
+}
+
+.request-detail-page .request-content-section .notice-body {
+	margin: 10px 0 0;
+	max-width: none;
+	font-size: 14px;
+	line-height: 1.75;
+	overflow-wrap: anywhere;
+}
+
+
+/* ==================================================
+   9. 요청 상세: 결재선 미리보기
+   ================================================== */
+
+.request-detail-page .request-approval-panel .panel-heading {
+	margin-bottom: 10px;
+	flex-wrap: wrap;
+}
+
+.request-approval-description {
+	font-size: 13px;
+	color: var(--muted);
+	line-height: 1.7;
+}
+
+.request-approval-list {
+	list-style: none;
+	margin: 24px 0;
+	padding: 0;
+}
+
+.request-approval-list li {
+	position: relative;
+	display: flex;
+	gap: 12px;
+	padding-bottom: 28px;
+}
+
+.request-approval-list li:last-child {
+	padding-bottom: 0;
+}
+
+.request-approval-list li:not(:last-child)::after {
+	content: "";
+	position: absolute;
+	left: 15px;
+	top: 34px;
+	bottom: 4px;
+	width: 1px;
+	background: var(--line);
+}
+
+.request-approval-number {
+	display: grid;
+	place-items: center;
+	flex: 0 0 32px;
+	height: 32px;
+	border: 1px solid var(--line);
+	border-radius: 50%;
+	background: var(--tint);
+	color: var(--accent);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.request-approval-list strong {
+	display: block;
+	font-size: 14px;
+}
+
+.request-approval-list p {
+	margin-top: 5px;
+	font-size: 14px;
+	color: var(--muted);
+}
+
+.request-approval-list li div>span {
+	display: block;
+	margin-top: 4px;
+	font-size: 12px;
+	color: var(--muted);
+}
+
+.request-approval-register {
+	width: 100%;
+}
+
+.request-approval-register:disabled {
+	cursor: not-allowed;
+}
+
+.request-approval-help {
+	margin-top: 10px;
+	font-size: 12px;
+	color: var(--muted);
+	text-align: center;
+}
+
+
+/* ==================================================
+   10. 요청 상세: 등록한 SQL 영역
+   ================================================== */
+
+.request-detail-page .request-sql-panel {
+	margin-top: 20px;
+}
+
+
+/* ==================================================
+   11. 요청 상세: 결재선 확인·제출 모달
+   ================================================== */
+
+#approval-dialog {
+	width: min(520px, calc(100% - 32px));
+	max-height: 85vh;
+	overflow: auto;
+	border: 1px solid var(--line);
+	border-radius: 9px;
+	padding: 24px;
+}
+
+#approval-dialog::backdrop {
+	background: rgba(0, 0, 0, 0.35);
+}
+
+#approval-dialog label {
+	margin-top: 18px;
+}
+
+#approval-fields {
+	border: 0;
+	padding: 0;
+	margin: 0;
+	min-width: 0;
+}
+
+#approval-dialog-message {
+	margin: 16px 0;
+}
+
+
+/* ==================================================
+   12. 반응형: 1100px 이하
+   결재선을 본문 아래로 배치
+   ================================================== */
+
+@media (max-width: 1100px) {
+	.request-detail-layout {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+
+/* ==================================================
+   13. 반응형: 850px 이하
+   요청 목록 검색 조건 줄바꿈
+   ================================================== */
+
+@media (max-width: 850px) {
+	.filter-bar {
+		flex-wrap: wrap;
+	}
+
+	.filter-bar label:first-child {
+		flex-basis: 100%;
+	}
+
+	.filter-bar label:nth-child(2) {
+		flex: 1;
+	}
+}
+
+
+/* ==================================================
+   14. 반응형: 650px 이하
+   요청 정보를 한 열로 배치
+   ================================================== */
+
+@media (max-width: 650px) {
+	.request-detail-page .panel {
+		padding: 18px;
+	}
+
+	.request-detail-page .request-info-grid {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 14px;
+	}
+}
+
+
+/* ==================================================
+   15. 반응형: 560px 이하
+   검색 간격·SQL 입력 글자 크기
+   ================================================== */
+
+@media (max-width: 560px) {
+	.filter-bar {
+		gap: 12px;
+	}
+
+	.sql-editor {
+		font-size: 16px;
+	}
+}

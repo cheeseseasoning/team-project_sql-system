@@ -1,0 +1,84 @@
+/* ==================================================
+   1. 요청 현황 카드
+   ================================================== */
+
+#dashboard-counts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+}
+
+#dashboard-counts .request-count-card {
+    display: block;
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--bg);
+}
+
+#dashboard-counts .request-count-card:hover {
+    background: var(--tint);
+    text-decoration: none;
+}
+
+#dashboard-counts strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 28px;
+    color: var(--accent);
+}
+
+
+/* ==================================================
+   2. 업무 바로가기
+   ================================================== */
+
+.shortcuts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.shortcuts > a {
+    padding: 22px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--soft);
+    border-radius: 7px;
+    text-align: center;
+    min-height: 140px;
+}
+
+.shortcuts > a:hover {
+    background: var(--tint);
+    text-decoration: none;
+}
+
+.shortcuts img {
+    width: 24px;
+    height: 24px;
+}
+
+.shortcuts strong {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.shortcuts span {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+
+/* ==================================================
+   3. 반응형: 560px 이하
+   ================================================== */
+
+@media (max-width: 560px) {
+    .shortcuts > a {
+        padding: 18px 8px;
+    }
+}
