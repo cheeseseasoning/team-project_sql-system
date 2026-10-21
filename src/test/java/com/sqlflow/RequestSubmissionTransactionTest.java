@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.sqlflow.access.service.RequestSqlValidationService;
 import com.sqlflow.approval.service.ApprovalService;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestSubmitRequest;
@@ -31,6 +32,11 @@ class RequestSubmissionTransactionTest {
 
     @MockitoBean
     private ApprovalService approvalService;
+    
+	// 이 테스트에서는 결재 처리와 트랜잭션 동작을 검증한다.
+	// SQL·정책 검사는 별도 테스트에서 확인한다.
+	@MockitoBean
+	private RequestSqlValidationService requestSqlValidationService;
 
     private Long requestId;
 
