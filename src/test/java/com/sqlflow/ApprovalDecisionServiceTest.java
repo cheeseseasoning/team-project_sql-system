@@ -155,6 +155,13 @@ class ApprovalDecisionServiceTest {
         public List<PendingApprovalResponse> selectPendingApprovals(Long approverId) {
             return List.of();
         }
+        
+        @Override
+        public List<ApprovalCandidateResponse> searchActiveCandidates(
+        		String keyword,
+        		Long excludedUserId){
+        	return List.of();
+        }
 
         @Override
         public com.sqlflow.request.dto.RequestDetailResponse selectPendingApprovalDetail(

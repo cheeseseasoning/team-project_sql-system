@@ -8,10 +8,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.approval.service.ApprovalService;
+import com.sqlflow.approval.dto.ApprovalCandidateResponse;
 import com.sqlflow.approval.dto.ApprovalRejectRequest;
 import com.sqlflow.approval.dto.PendingApprovalResponse;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
@@ -34,6 +36,15 @@ public class ApprovalController {
     public List<PendingApprovalResponse> getPendingApprovals(
             @AuthenticationPrincipal SqlFlowUserDetails user) {
         return approvalService.getPendingApprovals(user.getUserId());
+    }
+    
+    @GetMapping("/candidates")
+    public List<ApprovalCandidateResponse> searchApprovalCandidates(
+            @RequestParam(name = "keyword", defaultValue = "") String keyword,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+        return approvalService.searchApprovalCandidates(
+                keyword,
+                user.getUserId());
     }
 
     @GetMapping("/{requestId}")
