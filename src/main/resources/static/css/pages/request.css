@@ -638,7 +638,7 @@
 /* DB팀 담당자 선택 상자 */
 #approval-line-dialog .approval-line-current-table select {
 	display: block;
-	width: 80px;
+	width: 160px;
 	max-width: 100%;
 	height: 30px;
     min-height: 30px;

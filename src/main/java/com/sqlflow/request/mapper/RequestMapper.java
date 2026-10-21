@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Param;
 
 import com.sqlflow.request.domain.QueryItem;
 import com.sqlflow.request.domain.QueryRequest;
+import com.sqlflow.request.dto.RequestApprovalResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestListResponse;
@@ -70,6 +71,11 @@ public interface RequestMapper {
             @Param("size") int size);
     
     RequestSummaryResponse selectMyRequestSummary(
+            @Param("drafterId") Long drafterId);
+    
+    // 본인 요청에 저장된 결재선을 순서대로 조회
+    List<RequestApprovalResponse> selectMyRequestApprovals(
+            @Param("requestId") Long requestId,
             @Param("drafterId") Long drafterId);
     
 }

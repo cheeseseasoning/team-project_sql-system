@@ -294,4 +294,25 @@
 	    WHERE DRAFTER_ID = #{drafterId}
 	</select>
 
+	<!-- 본인 요청의 결재선과 현재 단계별 상태 -->
+	<select id="selectMyRequestApprovals"
+	        resultType="com.sqlflow.request.dto.RequestApprovalResponse">
+	    SELECT A.APPROVAL_ID,
+	           A.APPROVAL_ORDER,
+	           A.APPROVAL_TYPE,
+	           A.STATUS,
+	           A.APPROVER_ID,
+	           U.USER_NAME AS APPROVER_NAME,
+	           D.DEPT_NAME,
+	           P.POSITION_NAME
+	    FROM APPROVAL A
+	    JOIN QUERY_REQUEST Q ON Q.REQUEST_ID = A.REQUEST_ID
+	    LEFT JOIN USERS U ON U.USER_ID = A.APPROVER_ID
+	    LEFT JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+	    LEFT JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
+	    WHERE A.REQUEST_ID = #{requestId}
+	      AND Q.DRAFTER_ID = #{drafterId}
+	    ORDER BY A.APPROVAL_ORDER, A.APPROVAL_ID
+	</select>
+
 </mapper>

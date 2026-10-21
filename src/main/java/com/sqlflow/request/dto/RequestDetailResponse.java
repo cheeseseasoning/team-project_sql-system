@@ -32,6 +32,7 @@ public class RequestDetailResponse {
     private LocalDateTime submittedAt;
 
     private List<RequestItemResponse> items = new ArrayList<>();
+    private List<RequestApprovalResponse> approvals = new ArrayList<>();
     
     private String detailContent;
     private String isUrgent;
