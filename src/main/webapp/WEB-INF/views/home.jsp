@@ -1,34 +1,6 @@
 <%@ page pageEncoding="UTF-8" %>
 	<%@ include file="fragments/top.jspf" %>
 
-		<style>
-			#dashboard-counts {
-				display: grid;
-				grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-				gap: 14px;
-			}
-
-			#dashboard-counts .request-count-card {
-				display: block;
-				padding: 18px;
-				border: 1px solid var(--line);
-				border-radius: 6px;
-				background: var(--bg);
-			}
-
-			#dashboard-counts .request-count-card:hover {
-				background: var(--tint);
-				text-decoration: none;
-			}
-
-			#dashboard-counts strong {
-				display: block;
-				margin-top: 8px;
-				font-size: 28px;
-				color: var(--accent);
-			}
-		</style>
-
 		<div class="page-heading">
 			<div>
 				<h1>업무 대시보드</h1>

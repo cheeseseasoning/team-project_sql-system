@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<title>결재선 모달 테스트</title>
+
+	<!-- 실제 프로젝트 CSS 재사용 -->
+	<link rel="stylesheet" href="../../main/resources/static/css/sqlflow.css">
+
+	<link rel="stylesheet" href="../../main/resources/static/css/pages/request.css">
+
+	<style>
+		.approval-test-page {
+			max-width: 1100px;
+			margin: 0 auto;
+			padding: 32px 24px;
+		}
+
+		.approval-test-page h1 {
+			margin-bottom: 12px;
+		}
+
+		.approval-test-page>p {
+			margin-bottom: 20px;
+			color: var(--muted);
+		}
+
+		.approval-test-controls {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 20px;
+		}
+
+		.approval-test-error-option {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.approval-test-error-option input {
+			width: 16px;
+			height: 16px;
+			margin: 0;
+		}
+
+		.approval-test-note {
+			margin-top: 24px;
+			padding: 16px;
+			border: 1px solid var(--line);
+			border-radius: 6px;
+			background: var(--bg);
+			line-height: 1.8;
+		}
+
+		.approval-test-actions {
+			display: flex;
+			justify-content: center;
+			gap: 4px;
+		}
+
+		#approval-line-dialog .approval-test-actions .button {
+			min-height: 28px;
+			padding: 3px 7px;
+			font-size: 12px;
+		}
+	</style>
+</head>
+
+<body>
+	<main class="approval-test-page">
+		<h1>결재선 모달 테스트</h1>
+
+		<p>
+			가상 데이터만 사용합니다.
+			실제 사용자 조회·저장·제출 요청은 보내지 않습니다.
+		</p>
+
+		<div class="approval-test-controls">
+			<button id="test-open" type="button" class="button primary">
+				결재선 모달 열기
+			</button>
+
+			<label class="approval-test-error-option">
+				<input id="test-query-error" type="checkbox">
+				조회 오류 상황 테스트
+			</label>
+		</div>
+
+		<div class="approval-test-note">
+			검색어 없이 조회하면 전체 후보가 표시됩니다.<br>
+			‘검토’를 검색하면 중간 결재 후보 2명이 표시됩니다.<br>
+			중간 결재자는 부서장 앞에 추가됩니다.<br>
+			DB팀 실행 승인 담당자는 하단 마지막 행에서 선택합니다.<br>
+			모달을 다시 열면 기본 구성으로 초기화합니다.
+		</div>
+	</main>
+
+	<dialog id="approval-line-dialog" aria-labelledby="approval-line-dialog-title"
+		aria-describedby="approval-line-dialog-description">
+
+		<header class="approval-line-dialog-heading">
+			<h2 id="approval-line-dialog-title">결재선 등록</h2>
+
+			<p id="approval-line-dialog-description">
+				중간 결재자 → 소속 부서장 → DB팀 실행 승인 순서로 진행됩니다.
+			</p>
+		</header>
+
+		<div class="approval-line-dialog-body">
+
+			<fieldset class="approval-line-search-fields">
+				<legend class="sr-only">결재자 조회</legend>
+
+				<form id="test-search-form" class="approval-line-search">
+					<label for="approval-line-keyword">사용자명</label>
+
+					<input id="approval-line-keyword" type="search" maxlength="100" placeholder="사용자명 입력">
+
+					<button type="submit" class="button">
+						조회
+					</button>
+
+					<div class="approval-line-add-toolbar">
+						<button id="test-add" type="button" class="button" disabled>
+							선택한 결재자 추가
+						</button>
+
+						<button id="test-reset" type="button" class="button" disabled>
+							초기화
+						</button>
+					</div>
+				</form>
+			</fieldset>
+
+			<div class="approval-line-candidate-area">
+				<div class="approval-line-table-scroll">
+					<table class="approval-line-candidate-table">
+						<caption class="sr-only">결재자 후보 목록</caption>
+
+						<thead>
+							<tr>
+								<th scope="col">선택</th>
+								<th scope="col">사용자명</th>
+								<th scope="col">사용자 번호</th>
+								<th scope="col">부서</th>
+								<th scope="col">직급</th>
+							</tr>
+						</thead>
+
+						<tbody id="approval-line-candidates"></tbody>
+					</table>
+				</div>
+			</div>
+
+			<section class="approval-line-current-area" aria-label="현재 결재선">
+
+				<div class="approval-line-name-row">
+					<fieldset class="approval-line-personal-fields" disabled>
+						<legend class="sr-only">개인 결재선 불러오기</legend>
+
+						<div class="approval-line-personal-toolbar">
+							<label for="approval-line-saved">내 결재선</label>
+
+							<select id="approval-line-saved">
+								<option value="">선택</option>
+							</select>
+
+							<button type="button" class="button">
+								불러오기
+							</button>
+						</div>
+					</fieldset>
+
+					<div class="approval-line-name-editor">
+						<label for="approval-line-name">결재선명</label>
+
+						<input id="approval-line-name" type="text" placeholder="개인 결재선 저장 시 입력" disabled>
+
+						<div class="approval-line-management-buttons">
+							<button type="button" class="button" disabled>
+								신규
+							</button>
+
+							<button type="button" class="button" disabled>
+								저장
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="approval-line-current-scroll">
+					<table class="approval-line-current-table">
+						<caption class="sr-only">현재 결재선</caption>
+
+						<thead>
+							<tr>
+								<th scope="col">순번</th>
+								<th scope="col">역할</th>
+								<th scope="col">결재자명</th>
+								<th scope="col">부서</th>
+								<th scope="col">직급</th>
+								<th scope="col">관리</th>
+							</tr>
+						</thead>
+
+						<tbody id="test-selected"></tbody>
+					</table>
+				</div>
+
+				<p class="approval-line-section-help">
+					중간 결재자는 부서장 앞에 추가됩니다.
+					부서장·DB팀 실행 승인은 필수입니다.
+				</p>
+
+				<p id="approval-line-message" class="approval-line-section-help" role="status"></p>
+			</section>
+		</div>
+
+		<footer class="approval-line-dialog-footer">
+			<button type="button" class="button primary" disabled>
+				이 요청에 적용
+			</button>
+
+			<button id="test-cancel" type="button" class="button" autofocus>
+				취소
+			</button>
+		</footer>
+	</dialog>
+
+	<script>
+		'use strict';
+
+		const $ = selector => document.querySelector(selector);
+
+		const esc = value => String(value ?? '').replace(
+			/[&<>"']/g,
+			character => ({
+				'&': '&amp;',
+				'<': '&lt;',
+				'>': '&gt;',
+				'"': '&quot;',
+				"'": '&#39;'
+			}[character])
+		);
+
+		// 가상의 부서장
+		const departmentHead = {
+			userId: 'test-head',
+			userName: '김부장',
+			deptName: '영업팀',
+			positionName: '부장'
+		};
+
+		// 실행 승인 자격이 있는 것으로 가정한 가상 DB팀 후보
+		const dbApprovers = [
+			{
+				userId: 'test-db-1',
+				userName: '이디비',
+				deptName: 'DB팀',
+				positionName: '과장'
+			},
+			{
+				userId: 'test-db-2',
+				userName: '박디비',
+				deptName: 'DB팀',
+				positionName: '대리'
+			}
+		];
+
+		// 본인 계정은 포함하지 않은 가상 검색 대상
+		const testUsers = [
+			{
+				userId: 'test-user-1',
+				userName: '김검토',
+				deptName: '영업팀',
+				positionName: '대리'
+			},
+			{
+				userId: 'test-user-2',
+				userName: '이검토',
+				deptName: '영업팀',
+				positionName: '과장'
+			},
+			{
+				userId: 'test-user-3',
+				userName: '박협의',
+				deptName: '기획팀',
+				positionName: '차장'
+			},
+			departmentHead,
+			...dbApprovers
+		];
+
+		const dialog = $('#approval-line-dialog');
+		const candidateBody = $('#approval-line-candidates');
+		const selectedBody = $('#test-selected');
+
+		let visibleUsers = [];
+		let middleApprovers = [];
+		let selectedDbApprover = null;
+		let loading = false;
+		let queryVersion = 0;
+
+		const checkedIds = new Set();
+
+		function message(text) {
+			$('#approval-line-message').textContent = text;
+		}
+
+		function showCandidateMessage(text) {
+			candidateBody.innerHTML =
+				'<tr><td colspan="5" class="empty" role="status">'
+				+ esc(text)
+				+ '</td></tr>';
+		}
+
+		function isAssigned(user) {
+			return user.userId === departmentHead.userId
+				|| user.userId === selectedDbApprover?.userId
+				|| middleApprovers.some(
+					item => item.userId === user.userId
+				);
+		}
+
+		function syncControls() {
+			$('.approval-line-search-fields').disabled = loading;
+
+			$('#test-add').disabled =
+				loading || checkedIds.size === 0;
+
+			$('#test-reset').disabled =
+				loading
+				|| (
+					middleApprovers.length === 0
+					&& selectedDbApprover === null
+				);
+		}
+
+		function renderCandidates() {
+			if (visibleUsers.length === 0) {
+				showCandidateMessage('조회된 사용자가 없습니다.');
+				return;
+			}
+
+			candidateBody.innerHTML = visibleUsers.map(user => {
+				const assigned = isAssigned(user);
+				const checked =
+					assigned || checkedIds.has(user.userId);
+
+				return '<tr class="'
+					+ (checked ? 'is-selected' : '') + '">'
+					+ '<td><input type="checkbox"'
+					+ ' class="approval-line-candidate-check"'
+					+ ' value="' + esc(user.userId) + '"'
+					+ ' aria-label="' + esc(user.userName) + ' 선택"'
+					+ (checked ? ' checked' : '')
+					+ (assigned ? ' disabled' : '')
+					+ '></td>'
+					+ '<td>' + esc(user.userName) + '</td>'
+					+ '<td>' + esc(user.userId) + '</td>'
+					+ '<td>' + esc(user.deptName) + '</td>'
+					+ '<td>' + esc(user.positionName) + '</td>'
+					+ '</tr>';
+			}).join('');
+		}
+
+		function personCells(user) {
+			return '<td>' + esc(user.userName) + '</td>'
+				+ '<td>' + esc(user.deptName) + '</td>'
+				+ '<td>' + esc(user.positionName) + '</td>';
+		}
+
+		function renderSelected() {
+			let rows = middleApprovers.map((user, index) => {
+				return '<tr>'
+					+ '<td>' + (index + 1) + '</td>'
+					+ '<td>중간 결재자</td>'
+					+ personCells(user)
+					+ '<td><div class="approval-test-actions">'
+
+					+ '<button type="button" class="button"'
+					+ ' data-action="up" data-index="' + index + '"'
+					+ ' aria-label="' + esc(user.userName) + ' 위로 이동"'
+					+ (index === 0 ? ' disabled' : '')
+					+ '>↑</button>'
+
+					+ '<button type="button" class="button"'
+					+ ' data-action="down" data-index="' + index + '"'
+					+ ' aria-label="' + esc(user.userName) + ' 아래로 이동"'
+					+ (
+						index === middleApprovers.length - 1
+							? ' disabled' : ''
+					)
+					+ '>↓</button>'
+
+					+ '<button type="button" class="button"'
+					+ ' data-action="delete" data-index="' + index + '"'
+					+ '>삭제</button>'
+
+					+ '</div></td></tr>';
+			}).join('');
+
+			rows += '<tr>'
+				+ '<td>' + (middleApprovers.length + 1) + '</td>'
+				+ '<td>소속 부서장</td>'
+				+ personCells(departmentHead)
+				+ '<td><span class="approval-line-fixed">필수</span></td>'
+				+ '</tr>';
+
+			const options = dbApprovers.map(user => {
+				const usedAsMiddle = middleApprovers.some(
+					item => item.userId === user.userId
+				);
+
+				return '<option value="' + esc(user.userId) + '"'
+					+ (
+						selectedDbApprover?.userId === user.userId
+							? ' selected' : ''
+					)
+					+ (usedAsMiddle ? ' disabled' : '')
+					+ '>'
+					+ esc(user.userName)
+					+ (usedAsMiddle ? ' · 중간 결재에 지정됨' : '')
+					+ '</option>';
+			}).join('');
+
+			rows += '<tr>'
+				+ '<td>' + (middleApprovers.length + 2) + '</td>'
+				+ '<td>DB팀 실행 승인</td>'
+				+ '<td><select id="test-db-select"'
+				+ ' aria-label="DB팀 실행 승인 담당자">'
+				+ '<option value="">선택</option>'
+				+ options
+				+ '</select></td>'
+				+ '<td>DB팀</td>'
+				+ '<td>'
+				+ esc(selectedDbApprover?.positionName || '—')
+				+ '</td>'
+				+ '<td><span class="approval-line-fixed">'
+				+ '필수·최종</span></td>'
+				+ '</tr>';
+
+			selectedBody.innerHTML = rows;
+			syncControls();
+		}
+
+		// 서버 대신 가상 응답 사용
+		async function searchTestUsers(keyword) {
+			if ($('#test-query-error').checked) {
+				throw Error('테스트용 조회 오류입니다.');
+			}
+
+			const normalized = keyword.trim().toLocaleLowerCase();
+
+			return testUsers.filter(user =>
+				user.userName.toLocaleLowerCase().includes(normalized)
+			);
+		}
+
+		$('#test-search-form').addEventListener('submit', async event => {
+			event.preventDefault();
+
+			if (loading) {
+				return;
+			}
+
+			const version = ++queryVersion;
+			const keyword = $('#approval-line-keyword').value;
+
+			loading = true;
+			visibleUsers = [];
+			checkedIds.clear();
+
+			syncControls();
+			message('');
+			showCandidateMessage('조회 중입니다.');
+			candidateBody.setAttribute('aria-busy', 'true');
+
+			try {
+				const users = await searchTestUsers(keyword);
+
+				if (!dialog.open || version !== queryVersion) {
+					return;
+				}
+
+				visibleUsers = users;
+				renderCandidates();
+
+			} catch (error) {
+				if (dialog.open && version === queryVersion) {
+					showCandidateMessage(error.message);
+				}
+
+			} finally {
+				if (dialog.open && version === queryVersion) {
+					loading = false;
+					candidateBody.setAttribute('aria-busy', 'false');
+					syncControls();
+				}
+			}
+		});
+
+		candidateBody.addEventListener('change', event => {
+			const input = event.target;
+
+			if (!input.matches('.approval-line-candidate-check')
+				|| input.disabled) {
+				return;
+			}
+
+			if (input.checked) {
+				checkedIds.add(input.value);
+			} else {
+				checkedIds.delete(input.value);
+			}
+
+			input.closest('tr').classList.toggle(
+				'is-selected',
+				input.checked
+			);
+
+			syncControls();
+		});
+
+		$('#test-add').addEventListener('click', () => {
+			if (loading) {
+				return;
+			}
+
+			let count = 0;
+
+			visibleUsers.forEach(user => {
+				if (checkedIds.has(user.userId) && !isAssigned(user)) {
+					middleApprovers.push(user);
+					count++;
+				}
+			});
+
+			checkedIds.clear();
+			renderSelected();
+			renderCandidates();
+			message(count + '명을 중간 결재자로 추가했습니다.');
+		});
+
+		selectedBody.addEventListener('click', event => {
+			const button = event.target.closest('[data-action]');
+
+			if (!button || button.disabled) {
+				return;
+			}
+
+			const index = Number(button.dataset.index);
+			const action = button.dataset.action;
+
+			if (!Number.isInteger(index)
+				|| index < 0
+				|| index >= middleApprovers.length) {
+				return;
+			}
+
+			if (action === 'delete') {
+				middleApprovers.splice(index, 1);
+			} else {
+				const next = action === 'up' ? index - 1 : index + 1;
+
+				if (next < 0 || next >= middleApprovers.length) {
+					return;
+				}
+
+				[middleApprovers[index], middleApprovers[next]] =
+					[middleApprovers[next], middleApprovers[index]];
+			}
+
+			renderSelected();
+
+			if (visibleUsers.length > 0) {
+				renderCandidates();
+			}
+
+			message('');
+		});
+
+		selectedBody.addEventListener('change', event => {
+			if (event.target.id !== 'test-db-select') {
+				return;
+			}
+
+			const user = dbApprovers.find(
+				item => item.userId === event.target.value
+			) || null;
+
+			if (user && middleApprovers.some(
+				item => item.userId === user.userId)) {
+				return;
+			}
+
+			selectedDbApprover = user;
+			checkedIds.clear();
+
+			renderSelected();
+
+			if (visibleUsers.length > 0) {
+				renderCandidates();
+			}
+
+			message('');
+		});
+
+		$('#test-reset').addEventListener('click', () => {
+			if (!window.confirm('구성한 결재선을 초기화하시겠습니까?')) {
+				return;
+			}
+
+			middleApprovers = [];
+			selectedDbApprover = null;
+			checkedIds.clear();
+
+			renderSelected();
+
+			if (visibleUsers.length > 0) {
+				renderCandidates();
+			}
+
+			message('기본 구성으로 초기화했습니다.');
+		});
+
+		$('#test-open').addEventListener('click', () => {
+			if (dialog.open) {
+				return;
+			}
+
+			queryVersion++;
+			loading = false;
+			visibleUsers = [];
+			middleApprovers = [];
+			selectedDbApprover = null;
+			checkedIds.clear();
+
+			$('#approval-line-keyword').value = '';
+
+			message('');
+			showCandidateMessage('사용자명을 입력하고 조회하세요.');
+			candidateBody.setAttribute('aria-busy', 'false');
+			renderSelected();
+
+			dialog.showModal();
+		});
+
+		$('#test-cancel').addEventListener('click', () => {
+			dialog.close();
+		});
+
+		dialog.addEventListener('close', () => {
+			queryVersion++;
+			loading = false;
+			checkedIds.clear();
+			candidateBody.setAttribute('aria-busy', 'false');
+		});
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,473 @@
+/* ==================================================
+   1. 전체 레이아웃
+   ================================================== */
+
+/* 페이지별 세로 스크롤바 유무에 따른 가로 이동 방지 */
+html {
+    scrollbar-gutter: stable;
+}
+
+.app-shell {
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.workspace {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* ==================================================
+   2. 좌측 사이드바
+   ================================================== */
+
+.sidebar {
+    padding: 24px 16px;
+    background: var(--rail);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.brand {
+    font-size: 23px;
+    font-weight: 600;
+    letter-spacing: -0.7px;
+    color: var(--accent);
+}
+
+.brand-sub {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.sidebar nav {
+    display: grid;
+    gap: 10px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 10px;
+    border-radius: 5px;
+    font-size: 13px;
+    min-height: 46px;
+}
+
+.nav-item img {
+    width: 18px;
+    height: 18px;
+}
+
+.nav-item.active {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 600;
+}
+
+.nav-item.active img {
+    filter: brightness(0) invert(1);
+}
+
+.nav-item:hover {
+    text-decoration: none;
+    background: var(--tint);
+}
+
+.nav-item.active:hover {
+    background: var(--accent);
+}
+
+.sidebar-foot {
+    margin-top: auto;
+    padding-top: 40px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 2;
+}
+
+
+/* ==================================================
+   3. 상단 헤더
+   ================================================== */
+
+.header {
+    height: 74px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+
+/* 경로 표시 */
+
+.breadcrumb {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.breadcrumb > a,
+.breadcrumb > span[aria-hidden="true"] {
+    flex-shrink: 0;
+}
+
+.breadcrumb-current {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* 헤더 도구 영역 */
+
+.header-tools {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+
+/* 요청 검색 */
+
+.header-search {
+    width: 326px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--soft);
+    border: 1px solid #e1e8f0;
+    border-radius: 7px;
+    padding: 8px 12px;
+}
+
+.header-search input {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 12px;
+}
+
+
+/* 알림·도움말 */
+
+.icon-button {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 30px;
+}
+
+.notification i {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #c74747;
+    right: 1px;
+    top: 2px;
+}
+
+.help-link {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+
+/* 로그인 사용자 */
+
+.header-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 1px solid var(--line);
+    padding-left: 18px;
+    min-width: 150px;
+}
+
+.header-user strong {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.header-user div > span {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.avatar {
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--tint);
+    color: var(--accent);
+}
+
+.avatar.small {
+    width: 34px;
+    height: 34px;
+    font-size: 12px;
+}
+
+
+/* ==================================================
+   4. 공통 본문
+   ================================================== */
+
+.main {
+    width: 100%;
+    max-width: 1320px;
+    min-width: 0;
+    margin: 0;
+    padding: 24px;
+}
+
+.demo-strip {
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.demo-strip > span {
+    background: var(--tint);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+
+/* ==================================================
+   5. 공통 페이지 제목
+   ================================================== */
+
+.page-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.page-heading > .muted {
+    font-size: 12px;
+}
+
+
+/* ==================================================
+   6. 공통 푸터
+   ================================================== */
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 24px;
+    margin-top: auto;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+
+/* ==================================================
+   7. 큰 화면: 1400px 이상
+   사이드바를 포함한 좌우 여백 균형
+   ================================================== */
+
+@media (min-width: 1400px) {
+    .main {
+        width: calc(100% - 210px);
+        max-width: none;
+        margin: 0;
+    }
+}
+
+
+/* ==================================================
+   8. 반응형: 1200px 이하
+   헤더 검색창·도구 간격 축소
+   ================================================== */
+
+@media (max-width: 1200px) {
+    .header-search {
+        width: 240px;
+    }
+
+    .header-tools {
+        gap: 14px;
+    }
+
+    .header-user {
+        min-width: 120px;
+    }
+}
+
+
+/* ==================================================
+   9. 반응형: 1100px 이하
+   헤더를 두 줄로 배치
+   ================================================== */
+
+@media (max-width: 1100px) {
+    .header {
+        height: auto;
+        min-height: 74px;
+        padding: 14px 24px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .breadcrumb {
+        flex: 0 0 100%;
+    }
+
+    .header-tools {
+        width: 100%;
+    }
+
+    .header-search {
+        width: auto;
+        min-width: 0;
+        flex: 1;
+    }
+}
+
+
+/* ==================================================
+   10. 반응형: 850px 이하
+   사이드바 축소·헤더 정보 간소화
+   ================================================== */
+
+@media (max-width: 850px) {
+    .app-shell {
+        grid-template-columns: 145px minmax(0, 1fr);
+    }
+
+    .sidebar {
+        padding: 20px 10px;
+    }
+
+    .nav-item {
+        font-size: 12px;
+        padding: 12px 7px;
+    }
+
+    .header {
+        padding: 14px 18px;
+    }
+
+    .help-link,
+    .header-user {
+        display: none;
+    }
+
+    .main {
+        padding: 18px;
+    }
+
+    .page-heading {
+        flex-wrap: wrap;
+    }
+}
+
+
+/* ==================================================
+   11. 반응형: 560px 이하
+   모바일 메뉴·헤더·본문·푸터
+   ================================================== */
+
+@media (max-width: 560px) {
+    .app-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        gap: 14px;
+        padding: 16px;
+    }
+
+    .brand {
+        font-size: 21px;
+    }
+
+    .brand-sub,
+    .sidebar hr,
+    .sidebar-foot {
+        display: none;
+    }
+
+    .sidebar nav {
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+    }
+
+    .nav-item {
+        font-size: 12px;
+        min-height: 42px;
+    }
+
+    .header {
+        height: auto;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 14px 16px;
+    }
+
+    .header-tools {
+        width: 100%;
+    }
+
+    .header-search {
+        width: auto;
+        flex: 1;
+    }
+
+    .breadcrumb {
+        font-size: 11px;
+    }
+
+    .main {
+        padding: 16px;
+    }
+
+    .demo-strip {
+        flex-wrap: wrap;
+    }
+
+    .page-heading h1 {
+        font-size: 20px;
+    }
+
+    .footer {
+        display: block;
+        padding: 20px 16px;
+    }
+
+    .footer span {
+        display: none;
+    }
+}
