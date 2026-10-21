@@ -7,12 +7,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.auth.security.SqlFlowUserDetails;
+import com.sqlflow.execution.dto.ExecutionResultDetailResponse;
 import com.sqlflow.execution.dto.ExecutionResultPageResponse;
 import com.sqlflow.execution.service.ExecutionResultService;
 
@@ -35,6 +37,16 @@ public class ExecutionResultController {
                 user == null ? null : user.getUserId(),
                 page,
                 size);
+    }
+    
+    @GetMapping("/mine/{executionId}")
+    public ExecutionResultDetailResponse getMyResultDetail(
+            @PathVariable("executionId") Long executionId,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+        return executionResultService.getMyResultDetail(
+                executionId,
+                user == null ? null : user.getUserId());
     }
 
     @ExceptionHandler(ResponseStatusException.class)

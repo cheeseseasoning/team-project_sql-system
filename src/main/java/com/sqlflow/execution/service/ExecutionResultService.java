@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.sqlflow.execution.dto.ExecutionResultDetailResponse;
 import com.sqlflow.execution.dto.ExecutionResultListResponse;
 import com.sqlflow.execution.dto.ExecutionResultPageResponse;
 import com.sqlflow.execution.mapper.ExecutionResultMapper;
@@ -69,4 +70,38 @@ public class ExecutionResultService {
                 totalCount,
                 totalPages);
     }
+    
+    @Transactional(
+    	    transactionManager = "managementTransactionManager",
+    	    readOnly = true
+    	)
+    	public ExecutionResultDetailResponse getMyResultDetail(
+    	        Long executionId,
+    	        Long drafterId) {
+
+    	    if (drafterId == null || drafterId <= 0) {
+    	        throw new ResponseStatusException(
+    	                HttpStatus.UNAUTHORIZED,
+    	                "로그인이 필요합니다.");
+    	    }
+
+    	    if (executionId == null || executionId <= 0) {
+    	        throw new ResponseStatusException(
+    	                HttpStatus.BAD_REQUEST,
+    	                "올바른 실행 ID를 입력하세요.");
+    	    }
+
+    	    ExecutionResultDetailResponse detail =
+    	            executionResultMapper.selectMyResultDetail(
+    	                    executionId,
+    	                    drafterId);
+
+    	    if (detail == null) {
+    	        throw new ResponseStatusException(
+    	                HttpStatus.NOT_FOUND,
+    	                "실행 정보를 찾을 수 없습니다.");
+    	    }
+
+    	    return detail;
+    	}
 }

@@ -81,5 +81,56 @@
         OFFSET #{offset} ROWS
         FETCH NEXT #{size} ROWS ONLY
     </select>
+    
+    <select id="selectMyResultDetail"
+	        resultType="com.sqlflow.execution.dto.ExecutionResultDetailResponse">
+	    SELECT E.EXECUTION_ID,
+	           E.BATCH_ID,
+	           E.QUERY_ID,
+	           R.REQUEST_ID,
+	           R.REQUEST_NO,
+	           R.TITLE AS REQUEST_TITLE,
+	           I.QUERY_TITLE,
+	           I.SQL_TEXT,
+	           E.ATTEMPT_NO,
+	           E.STATUS,
+	           B.REQUESTED_AT,
+	           E.STARTED_AT,
+	           E.FINISHED_AT,
+	           E.DURATION_MS,
+	           E.ERROR_CODE,
+	           E.ERROR_MESSAGE,
+	           F.RESULT_ID,
+	           F.ROW_COUNT,
+	           F.FILE_SIZE,
+	           F.EXPIRES_AT,
+	           F.DELETED_AT
+	    FROM QUERY_EXECUTION E
+	    JOIN EXECUTION_BATCH B
+	      ON B.BATCH_ID = E.BATCH_ID
+	    JOIN QUERY_REQUEST R
+	      ON R.REQUEST_ID = B.REQUEST_ID
+	    JOIN QUERY_ITEM I
+	      ON I.QUERY_ID = E.QUERY_ID
+	     AND I.REQUEST_ID = R.REQUEST_ID
+	    LEFT JOIN (
+	        SELECT RESULT_ID,
+	               EXECUTION_ID,
+	               ROW_COUNT,
+	               FILE_SIZE,
+	               EXPIRES_AT,
+	               DELETED_AT,
+	               ROW_NUMBER() OVER (
+	                   PARTITION BY EXECUTION_ID
+	                   ORDER BY CREATED_AT DESC,
+	                            RESULT_ID DESC
+	               ) AS RESULT_RANK
+	        FROM QUERY_RESULT
+	    ) F
+	      ON F.EXECUTION_ID = E.EXECUTION_ID
+	     AND F.RESULT_RANK = 1
+	    WHERE E.EXECUTION_ID = #{executionId}
+	      AND R.DRAFTER_ID = #{drafterId}
+	</select>
 
 </mapper>

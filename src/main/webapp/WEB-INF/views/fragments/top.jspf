@@ -58,6 +58,14 @@
                    href="${pageContext.request.contextPath}/approvals/pending"
                    ${activeMenu == 'approvals' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">결재 대기</a>
+                    
+                <a class="nav-item ${activeMenu == 'execution-results' ? 'active' : ''}"
+				   href="${pageContext.request.contextPath}/execution-results"
+				   ${activeMenu == 'execution-results' ? 'aria-current="page"' : ''}>
+				    <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg"
+				         alt="">
+				    실행 결과
+				</a>
 
                 <a class="nav-item ${activeMenu == 'notices' ? 'active' : ''}"
                    href="${pageContext.request.contextPath}/notices"

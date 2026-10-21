@@ -81,6 +81,24 @@ public class PageController {
 		model.addAttribute("requestId", id);
 		return view(model, "approval-detail", "결재 요청 상세");
 	}
+	
+	@GetMapping("/execution-results")
+	public String executionResults(Model model) {
+	    return view(model, "execution-results", "실행 결과");
+	}
+	
+	@GetMapping("/execution-results/{executionId}")
+	public String executionResultDetail(
+	        Model model,
+	        @PathVariable("executionId") Long executionId) {
+
+	    model.addAttribute("executionId", executionId);
+
+	    return view(
+	            model,
+	            "execution-result-detail",
+	            "SQL 실행 결과 상세");
+	}
 
 	@GetMapping("/notices")
 	public String notices(Model model) {
@@ -91,11 +109,12 @@ public class PageController {
 		model.addAttribute("page", page);
 		model.addAttribute("pageTitle", title);
 		model.addAttribute("activeMenu",
-				page.equals("home") ? "home"
-						: page.equals("notices") ? "notices"
-							: page.startsWith("approval-") ? "approvals"
-								: page.equals("request-form") || page.equals("request-review")
-										? "create" : "requests");
+		        page.equals("home") ? "home"
+		                : page.equals("notices") ? "notices"
+		                : page.startsWith("execution-result") ? "execution-results"
+		                : page.startsWith("approval-") ? "approvals"
+		                : page.equals("request-form") || page.equals("request-review")
+		                        ? "create" : "requests");
 		return page;
 	}
 }
