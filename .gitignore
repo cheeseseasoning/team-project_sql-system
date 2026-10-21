@@ -1,9 +1,33 @@
-target/
+/bin/
+/target/
 .tools/
 .m2/
 work/
 .idea/
 *.iml
 
+# 로그·임시 파일
+*.log
+*.tmp
+*.bak
+
+# 컴파일 결과
+*.class
+
+# OS 자동 생성 파일
+.DS_Store
+Thumbs.db
+
+# 환경변수 파일
+.env
+.env.*
+!.env.example
+
 # 실제 DB 접속 정보
 /application-local.properties
+
+# Docker 로컬 비밀번호
+/infra/.env
+
+# Docker Compose 구성시 필요
+/infra/compose.yml

@@ -14,4 +14,5 @@ public class ApprovalCandidateResponse {
 	private Long userId;
 	private String userName;
 	private String deptName;
+	private String positionName;
 }

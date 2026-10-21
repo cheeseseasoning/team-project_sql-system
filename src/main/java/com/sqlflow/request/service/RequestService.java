@@ -275,13 +275,20 @@ public class RequestService {
 
 		// 3. 결재자 재검증 및 결재선 생성
 		// 준오 구현에서 APPROVAL_STATUS도 PENDING으로 설정
-		// 저장된 SQL의 구조와 접근 권한을 검사한다.
-		// 하나라도 실패하면 결재선 생성과 제출 처리를 중단한다.
-		requestSqlValidationService.validate(actorId, draft.getItems().stream()
-		                .map(RequestItemResponse::getSqlText)
-		                .toList());
+		//저장된 SQL과 접근 권한을 검사한다.
+		//실패하면 결재선 생성과 제출 처리를 중단한다.
+		requestSqlValidationService.validate(
+		     actorId,
+		     draft.getItems().stream()
+		             .map(RequestItemResponse::getSqlText)
+		             .toList());
 		
-		approvalLineCreator.createApprovalLine(requestId, actorId, input.getDbApproverId());
+		//중간 결재자 목록을 포함해 결재선을 생성한다.
+		approvalLineCreator.createApprovalLine(
+		     requestId,
+		     actorId,
+		     input.getIntermediateApproverIds(),
+		     input.getDbApproverId());
 
 		// 4. 요청 상태 및 제출 시각 변경
 		int updatedCount = requestMapper.submitDraft(requestId, actorId);

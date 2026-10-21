@@ -35,6 +35,10 @@ public interface ApprovalMapper {
 
     List<ApprovalCandidateResponse> selectDbApprovers(
             @Param("departmentApproverId") Long departmentApproverId);
+    
+    List<ApprovalCandidateResponse> searchActiveCandidates(
+    		@Param("keyword") String keyword,
+    		@Param("excludedUserId") Long excludedUserId);
 
     int insertApproval(
             @Param("requestId") Long requestId,

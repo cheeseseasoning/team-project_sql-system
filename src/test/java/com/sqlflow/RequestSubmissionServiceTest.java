@@ -80,7 +80,7 @@ class RequestSubmissionServiceTest {
         order.verify(requestSqlValidationService).validate(1L, List.of("SELECT 1 FROM DUAL"));
 
         order.verify(approvalLineCreator)
-                .createApprovalLine(2L, 1L, 20L);
+                .createApprovalLine(2L, 1L, List.of(), 20L);
 
         order.verify(requestMapper).submitDraft(2L, 1L);
     }
@@ -97,7 +97,7 @@ class RequestSubmissionServiceTest {
         assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
 
         verify(approvalLineCreator, never())
-                .createApprovalLine(any(), any(), any());
+                .createApprovalLine(any(), any(), any(), any());
 
         verify(requestMapper, never()).submitDraft(any(), any());
     }

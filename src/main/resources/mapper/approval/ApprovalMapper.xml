@@ -5,36 +5,37 @@
 
 <mapper namespace="com.sqlflow.approval.mapper.ApprovalMapper">
 
-    <!-- 현재 결재 대기 항목과 사용자 조직 자격을 매 요청마다 재검증 -->
+    <!-- 현재 결재 대기 항목과 사용자 자격을 매 요청마다 재검증 -->
     <sql id="pendingApprovalEligibility">
         AND A.APPROVER_ID = #{approverId}
         AND A.STATUS = 'PENDING'
+        AND U.ENABLED = 'Y'
         AND EXISTS (
             SELECT 1
             FROM QUERY_REQUEST Q
             WHERE Q.REQUEST_ID = A.REQUEST_ID
               AND Q.REQUEST_STATUS = 'PENDING_APPROVAL'
               AND Q.APPROVAL_STATUS = 'PENDING'
+              AND (
+                  A.APPROVAL_TYPE = 'DIRECTOR'
+                  OR Q.DRAFTER_ID &lt;&gt; U.USER_ID
+              )
         )
-        AND U.ENABLED = 'Y'
         AND (
-            (
-                A.APPROVAL_ORDER = 1
-                AND A.APPROVAL_TYPE = 'DIRECTOR'
+            A.APPROVAL_TYPE = 'INTERMEDIATE'
+            OR (
+                A.APPROVAL_TYPE = 'DIRECTOR'
                 AND EXISTS (
                     SELECT 1
                     FROM QUERY_REQUEST Q
                     JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
                     WHERE Q.REQUEST_ID = A.REQUEST_ID
-                      AND Q.DRAFTER_ID &lt;&gt; #{approverId}
                       AND Q.DEPT_ID = U.DEPT_ID
                       AND P.POSITION_CODE = 'DIRECTOR'
                 )
             )
-            OR
-            (
-                A.APPROVAL_ORDER = 2
-                AND A.APPROVAL_TYPE = 'INTERMEDIATE'
+            OR (
+                A.APPROVAL_TYPE = 'DB_EXECUTION'
                 AND EXISTS (
                     SELECT 1
                     FROM DEPARTMENT D
@@ -125,14 +126,20 @@
 
     <select id="selectRequestContext"
             resultType="com.sqlflow.approval.domain.ApprovalRequestContext">
-        SELECT REQUEST_ID, DRAFTER_ID, DEPT_ID, REQUEST_STATUS
+        SELECT REQUEST_ID,
+               DRAFTER_ID,
+               DEPT_ID,
+               REQUEST_STATUS
         FROM QUERY_REQUEST
         WHERE REQUEST_ID = #{requestId}
     </select>
 
     <select id="selectDepartmentApprovers"
             resultType="com.sqlflow.approval.dto.ApprovalCandidateResponse">
-        SELECT U.USER_ID, U.USER_NAME, D.DEPT_NAME
+        SELECT U.USER_ID,
+               U.USER_NAME,
+               D.DEPT_NAME,
+               P.POSITION_NAME
         FROM USERS U
         JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
         JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
@@ -144,15 +151,37 @@
 
     <select id="selectDbApprovers"
             resultType="com.sqlflow.approval.dto.ApprovalCandidateResponse">
-        SELECT U.USER_ID, U.USER_NAME, D.DEPT_NAME
+        SELECT U.USER_ID,
+               U.USER_NAME,
+               D.DEPT_NAME,
+               P.POSITION_NAME
         FROM USERS U
         JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+        JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
         JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
         JOIN ROLE R ON R.ROLE_ID = UR.ROLE_ID
         WHERE D.DEPT_NAME = 'DB팀'
           AND U.ENABLED = 'Y'
           AND R.ROLE_CODE = 'DB_APPROVER'
           AND U.USER_ID &lt;&gt; #{departmentApproverId}
+        ORDER BY U.USER_NAME, U.USER_ID
+    </select>
+
+    <select id="searchActiveCandidates"
+            resultType="com.sqlflow.approval.dto.ApprovalCandidateResponse">
+        SELECT U.USER_ID,
+               U.USER_NAME,
+               D.DEPT_NAME,
+               P.POSITION_NAME
+        FROM USERS U
+        JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+        JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
+        WHERE U.ENABLED = 'Y'
+          AND U.USER_ID &lt;&gt; #{excludedUserId}
+        <if test="keyword != null and keyword != ''">
+            AND LOWER(U.USER_NAME)
+                LIKE '%' || LOWER(#{keyword}) || '%'
+        </if>
         ORDER BY U.USER_NAME, U.USER_ID
     </select>
 
@@ -179,40 +208,53 @@
     <!-- 요청 행을 먼저 잠가 같은 요청의 결재 처리를 직렬화 -->
     <select id="selectApprovalRequestForUpdate"
             resultType="com.sqlflow.approval.domain.ApprovalActionContext">
-        SELECT REQUEST_ID, DRAFTER_ID, REQUEST_STATUS, APPROVAL_STATUS
+        SELECT REQUEST_ID,
+               DRAFTER_ID,
+               REQUEST_STATUS,
+               APPROVAL_STATUS
         FROM QUERY_REQUEST
         WHERE REQUEST_ID = #{requestId}
         FOR UPDATE
     </select>
 
-    <!-- 로그인 사용자가 현재 처리할 수 있는 결재 단계만 조회 -->
+    <!-- 현재 로그인 사용자가 처리할 수 있는 결재 단계만 잠금 조회 -->
     <select id="selectPendingApprovalForUpdate"
             resultType="com.sqlflow.approval.domain.PendingApproval">
-        SELECT A.APPROVAL_ID, A.APPROVAL_ORDER, A.APPROVAL_TYPE
+        SELECT A.APPROVAL_ID,
+               A.APPROVAL_ORDER,
+               A.APPROVAL_TYPE
         FROM APPROVAL A
         JOIN USERS U ON U.USER_ID = A.APPROVER_ID
         WHERE A.REQUEST_ID = #{requestId}
           AND A.APPROVER_ID = #{approverId}
           AND A.STATUS = 'PENDING'
           AND U.ENABLED = 'Y'
+          AND EXISTS (
+              SELECT 1
+              FROM QUERY_REQUEST Q
+              WHERE Q.REQUEST_ID = A.REQUEST_ID
+                AND Q.REQUEST_STATUS = 'PENDING_APPROVAL'
+                AND Q.APPROVAL_STATUS = 'PENDING'
+                AND (
+                    A.APPROVAL_TYPE = 'DIRECTOR'
+                    OR Q.DRAFTER_ID &lt;&gt; U.USER_ID
+                )
+          )
           AND (
-              (
-                  A.APPROVAL_ORDER = 1
-                  AND A.APPROVAL_TYPE = 'DIRECTOR'
+              A.APPROVAL_TYPE = 'INTERMEDIATE'
+              OR (
+                  A.APPROVAL_TYPE = 'DIRECTOR'
                   AND EXISTS (
                       SELECT 1
                       FROM QUERY_REQUEST Q
                       JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
                       WHERE Q.REQUEST_ID = A.REQUEST_ID
-                        AND Q.DRAFTER_ID &lt;&gt; #{approverId}
                         AND Q.DEPT_ID = U.DEPT_ID
                         AND P.POSITION_CODE = 'DIRECTOR'
                   )
               )
-              OR
-              (
-                  A.APPROVAL_ORDER = 2
-                  AND A.APPROVAL_TYPE = 'INTERMEDIATE'
+              OR (
+                  A.APPROVAL_TYPE = 'DB_EXECUTION'
                   AND EXISTS (
                       SELECT 1
                       FROM DEPARTMENT D
@@ -233,19 +275,28 @@
 
     <update id="approvePendingApproval">
         UPDATE APPROVAL
-        SET STATUS = 'APPROVED'
+        SET STATUS = 'APPROVED',
+            DECIDED_AT = SYSTIMESTAMP
         WHERE APPROVAL_ID = #{approvalId}
           AND APPROVER_ID = #{approverId}
           AND STATUS = 'PENDING'
     </update>
 
+    <!-- 현재 순서상 가장 빠른 대기 결재자 한 명만 활성화 -->
     <update id="activateNextApproval">
         UPDATE APPROVAL
         SET STATUS = 'PENDING'
-        WHERE REQUEST_ID = #{requestId}
-          AND APPROVAL_ORDER = 2
-          AND APPROVAL_TYPE = 'INTERMEDIATE'
-          AND STATUS = 'WAITING'
+        WHERE APPROVAL_ID = (
+            SELECT APPROVAL_ID
+            FROM (
+                SELECT APPROVAL_ID
+                FROM APPROVAL
+                WHERE REQUEST_ID = #{requestId}
+                  AND STATUS = 'WAITING'
+                ORDER BY APPROVAL_ORDER
+            )
+            WHERE ROWNUM = 1
+        )
     </update>
 
     <update id="markRequestApproved">
@@ -256,42 +307,31 @@
           AND APPROVAL_STATUS = 'PENDING'
           AND REQUEST_STATUS = 'PENDING_APPROVAL'
     </update>
-    
+
     <update id="rejectPendingApproval">
-    	UPDATE APPROVAL
-    	SET STATUS = 'REJECTED',
-    		COMMENT_TEXT = #{commentText},
-    		DECIDED_AT = SYSTIMESTAMP
-    	WHERE APPROVAL_ID = #{approvalId}
-    	  AND APPROVER_ID = #{approverId}
-    	  AND STATUS = 'PENDING'
+        UPDATE APPROVAL
+        SET STATUS = 'REJECTED',
+            COMMENT_TEXT = #{commentText},
+            DECIDED_AT = SYSTIMESTAMP
+        WHERE APPROVAL_ID = #{approvalId}
+          AND APPROVER_ID = #{approverId}
+          AND STATUS = 'PENDING'
     </update>
-    
+
     <update id="cancelWaitingApprovals">
-    	UPDATE APPROVAL
-    	SET STATUS = 'CANCELLED' 
-    	WHERE REQUEST_ID = #{requestId}
-    	  AND STATUS = 'WAITING'
+        UPDATE APPROVAL
+        SET STATUS = 'CANCELLED'
+        WHERE REQUEST_ID = #{requestId}
+          AND STATUS = 'WAITING'
     </update>
-    
+
     <update id="markRequestRejected">
-    	UPDATE QUERY_REQUEST 
-    	SET APPROVAL_STATUS = 'REJECTED', 
-    		REQUEST_STATUS = 'REJECTED' 
-    	WHERE REQUEST_ID = #{requestId} 
-    	  AND APPROVAL_STATUS = 'PENDING' 
-    	  AND REQUEST_STATUS = 'PENDING_APPROVAL'
+        UPDATE QUERY_REQUEST
+        SET APPROVAL_STATUS = 'REJECTED',
+            REQUEST_STATUS = 'REJECTED'
+        WHERE REQUEST_ID = #{requestId}
+          AND APPROVAL_STATUS = 'PENDING'
+          AND REQUEST_STATUS = 'PENDING_APPROVAL'
     </update>
+
 </mapper>
-
-
-
-
-
-
-
-
-
-
-
-

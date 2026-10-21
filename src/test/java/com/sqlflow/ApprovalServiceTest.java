@@ -51,7 +51,7 @@ class ApprovalServiceTest {
         when(approvalMapper.selectRequestContext(REQUEST_ID)).thenReturn(request);
         when(approvalMapper.selectDepartmentApprovers(DEPARTMENT_ID))
                 .thenReturn(List.of(candidate(
-                        DEPARTMENT_APPROVER_ID, "부서장", "영업팀")));
+                        DEPARTMENT_APPROVER_ID, "부서장", "영업팀", "부장")));
     }
 
     @Test
@@ -99,12 +99,12 @@ class ApprovalServiceTest {
         stubDbApprovers();
 
         approvalService.createApprovalLine(
-                REQUEST_ID, ACTOR_ID, DB_APPROVER_ID);
+                REQUEST_ID, ACTOR_ID, List.of(), DB_APPROVER_ID);
 
         verify(approvalMapper).insertApproval(
                 REQUEST_ID, DEPARTMENT_APPROVER_ID, 1, "DIRECTOR", "PENDING");
         verify(approvalMapper).insertApproval(
-                REQUEST_ID, DB_APPROVER_ID, 2, "INTERMEDIATE", "WAITING");
+                REQUEST_ID, DB_APPROVER_ID, 2, "DB_EXECUTION", "WAITING");
     }
 
     @Test
@@ -115,7 +115,7 @@ class ApprovalServiceTest {
         ResponseStatusException error = assertThrows(
                 ResponseStatusException.class,
                 () -> approvalService.createApprovalLine(
-                        REQUEST_ID, ACTOR_ID, 30L));
+                        REQUEST_ID, ACTOR_ID, List.of(), 30L));
 
         assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
         verify(approvalMapper, never()).insertApproval(
@@ -135,7 +135,7 @@ class ApprovalServiceTest {
         ResponseStatusException error = assertThrows(
                 ResponseStatusException.class,
                 () -> approvalService.createApprovalLine(
-                        REQUEST_ID, ACTOR_ID, DB_APPROVER_ID));
+                        REQUEST_ID, ACTOR_ID, List.of(), DB_APPROVER_ID));
 
         assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
         verify(approvalMapper, never()).insertApproval(
@@ -147,14 +147,14 @@ class ApprovalServiceTest {
     }
 
     private ApprovalCandidateResponse candidate(
-            Long userId, String userName, String deptName) {
-        return new ApprovalCandidateResponse(userId, userName, deptName);
+            Long userId, String userName, String deptName, String positionName) {
+        return new ApprovalCandidateResponse(userId, userName, deptName, positionName);
     }
 
     private void stubDbApprovers() {
         when(approvalMapper.selectDbApprovers(DEPARTMENT_APPROVER_ID))
                 .thenReturn(List.of(
-                        candidate(ACTOR_ID, "요청자", "DB팀"),
-                        candidate(DB_APPROVER_ID, "DB 결재자", "DB팀")));
+                        candidate(ACTOR_ID, "요청자", "DB팀", "사원"),
+                        candidate(DB_APPROVER_ID, "DB 결재자", "DB팀", "팀장")));
     }
 }
