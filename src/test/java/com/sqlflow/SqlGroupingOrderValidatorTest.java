@@ -19,11 +19,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.sqlflow.execution.domain.OracleColumnMetadata;
-import com.sqlflow.execution.domain.OracleObjectName;
-import com.sqlflow.execution.mapper.OracleMetadataMapper;
-import com.sqlflow.execution.service.SqlColumnResolver;
-import com.sqlflow.execution.service.SqlColumnResolver.ResolvedColumn;
+import com.sqlflow.mysql.domain.MySqlColumnMetadata;
+import com.sqlflow.execution.domain.QueryObjectName;
+import com.sqlflow.mysql.mapper.MySqlMetadataMapper;
+import com.sqlflow.execution.service.MySqlColumnResolver;
+import com.sqlflow.execution.service.MySqlColumnResolver.ResolvedColumn;
 import com.sqlflow.execution.service.SqlGroupingOrderValidator;
 import com.sqlflow.execution.service.SqlGroupingOrderValidator.Result;
 import com.sqlflow.execution.service.SqlParserValidator;
@@ -34,23 +34,23 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 
 /**
  * SELECT·GROUP BY·ORDER BY의 관계를 실제 SQL 파싱 결과로 검증한다.
- * ON·WHERE 조건과 실제 Oracle 실행은 이 테스트 범위에서 제외한다.
+ * ON·WHERE 조건과 실제 DB 실행은 이 테스트 범위에서 제외한다.
  */
 @ExtendWith(MockitoExtension.class)
 class SqlGroupingOrderValidatorTest {
 
-    private static final OracleObjectName USERS =
-            new OracleObjectName("SQLFLOW", "USERS");
+    private static final QueryObjectName USERS =
+            new QueryObjectName("SQLFLOW", "USERS");
 
-    private static final OracleObjectName DEPARTMENT =
-            new OracleObjectName("SQLFLOW", "DEPARTMENT");
+    private static final QueryObjectName DEPARTMENT =
+            new QueryObjectName("SQLFLOW", "DEPARTMENT");
 
     @Mock
-    private OracleMetadataMapper metadataMapper;
+    private MySqlMetadataMapper metadataMapper;
 
     private final SqlParserValidator parser = new SqlParserValidator();
 
-    private SqlColumnResolver resolver;
+    private MySqlColumnResolver resolver;
     private SqlGroupingOrderValidator validator;
 
     @BeforeEach
@@ -75,7 +75,7 @@ class SqlGroupingOrderValidatorTest {
                     };
                 });
 
-        resolver = new SqlColumnResolver(metadataMapper);
+        resolver = new MySqlColumnResolver(metadataMapper);
 
         validator = new SqlGroupingOrderValidator(
                 resolver, new SqlSelectExpressionAnalyzer(resolver));
@@ -135,18 +135,11 @@ class SqlGroupingOrderValidatorTest {
     }
 
     @Test
-    void quotedOrderAliasPreservesCase() {
+    void backtickOrderAliasIsCaseInsensitive() {
         assertDoesNotThrow(() -> validate(
-                "SELECT SUM(U.AMOUNT) AS \"Total\" "
-                + "FROM USERS U ORDER BY \"Total\" DESC"));
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> validate(
-                        "SELECT SUM(U.AMOUNT) AS \"Total\" "
-                        + "FROM USERS U ORDER BY \"TOTAL\" DESC"));
-
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+                "SELECT SUM(U.AMOUNT) AS `Total` FROM USERS U ORDER BY `Total` DESC"));
+        assertDoesNotThrow(() -> validate(
+                "SELECT SUM(U.AMOUNT) AS `Total` FROM USERS U ORDER BY `TOTAL` DESC"));
     }
 
     @ParameterizedTest
@@ -199,7 +192,7 @@ class SqlGroupingOrderValidatorTest {
     }
 
     /** SQL마다 실제 FROM·JOIN 대상만 검사 범위에 등록한다. */
-    private SqlColumnResolver.Scope createScope(PlainSelect select) {
+    private MySqlColumnResolver.Scope createScope(PlainSelect select) {
         List<Table> tables = new ArrayList<>();
         tables.add(assertInstanceOf(Table.class, select.getFromItem()));
 
@@ -218,17 +211,17 @@ class SqlGroupingOrderValidatorTest {
         return assertInstanceOf(PlainSelect.class, parser.parseSelect(sql));
     }
 
-    private List<OracleColumnMetadata> columns(
-            OracleObjectName target, String... names) {
+    private List<MySqlColumnMetadata> columns(
+            QueryObjectName target, String... names) {
 
-        List<OracleColumnMetadata> result = new ArrayList<>();
+        List<MySqlColumnMetadata> result = new ArrayList<>();
 
         for (String name : names) {
-            OracleColumnMetadata column = new OracleColumnMetadata();
-            column.setOwner(target.owner());
+            MySqlColumnMetadata column = new MySqlColumnMetadata();
+            column.setDatabaseName(target.owner());
             column.setTableName(target.objectName());
             column.setColumnName(name);
-            column.setDataType("DEPT_NAME".equals(name) ? "VARCHAR2" : "NUMBER");
+            column.setDataType("DEPT_NAME".equals(name) ? "varchar" : "bigint");
             result.add(column);
         }
 

@@ -7,8 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.sqlflow.execution.service.SqlColumnResolver.ResolvedColumn;
-import com.sqlflow.execution.service.SqlColumnResolver.Scope;
+import com.sqlflow.execution.service.MySqlColumnResolver.ResolvedColumn;
+import com.sqlflow.execution.service.MySqlColumnResolver.Scope;
 
 import lombok.RequiredArgsConstructor;
 import net.sf.jsqlparser.expression.BinaryExpression;
@@ -50,7 +50,7 @@ public class SqlConditionValidator {
             MinorThan.class,
             MinorThanEquals.class);
 
-    private final SqlColumnResolver columnResolver;
+    private final MySqlColumnResolver columnResolver;
 
     /**
      * 조건에 사용된 실제 컬럼을 반환한다.

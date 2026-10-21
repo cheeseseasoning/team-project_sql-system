@@ -8,8 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.sqlflow.execution.service.SqlColumnResolver.ResolvedColumn;
-import com.sqlflow.execution.service.SqlColumnResolver.Scope;
+import com.sqlflow.execution.service.MySqlColumnResolver.ResolvedColumn;
+import com.sqlflow.execution.service.MySqlColumnResolver.Scope;
 
 import lombok.RequiredArgsConstructor;
 import net.sf.jsqlparser.expression.Expression;
@@ -29,7 +29,7 @@ public class SqlSelectExpressionAnalyzer {
     private static final Set<String> AGGREGATES =
             Set.of("COUNT", "SUM", "AVG", "MIN", "MAX");
 
-    private final SqlColumnResolver columnResolver;
+    private final MySqlColumnResolver columnResolver;
 
     /** SELECT 항목 하나를 분석하여 참조 컬럼과 집계 여부를 반환한다. */
     public Analysis analyze(Expression expression, Scope scope) {

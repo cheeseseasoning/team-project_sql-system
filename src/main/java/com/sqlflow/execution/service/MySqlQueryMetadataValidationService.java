@@ -11,33 +11,37 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.sqlflow.execution.domain.OracleObjectName;
-import com.sqlflow.execution.service.SqlColumnResolver.ResolvedColumn;
-import com.sqlflow.execution.service.SqlColumnResolver.Scope;
+import com.sqlflow.execution.domain.QueryObjectName;
+import com.sqlflow.execution.service.MySqlColumnResolver.ResolvedColumn;
+import com.sqlflow.execution.service.MySqlColumnResolver.Scope;
+import com.sqlflow.mysql.service.MySqlTableValidationService;
 
 import lombok.RequiredArgsConstructor;
+import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.schema.Table;
 
 /**
- * 지원하는 SELECT의 객체·컬럼·조건·그룹·정렬 검사를 연결한다.
- * 사용자 접근 정책, 자료형 적합성, 실행 제한은 별도로 확인해야 한다.
+ * 지원하는 SELECT의 구조와 MySQL 객체·컬럼·조건·그룹·정렬을 검사한다.
+ * 직원별 접근 정책, 자료형 적합성, 실행 제한은 별도로 확인한다.
  */
 @Service
 @RequiredArgsConstructor
-public class SqlQueryMetadataValidationService {
+public class MySqlQueryMetadataValidationService {
 
     private final SqlParserValidator sqlParserValidator;
-    private final OracleTableValidationService tableValidationService;
-    private final SqlColumnResolver columnResolver;
+    private final MySqlTableValidationService tableValidationService;
+    private final MySqlColumnResolver columnResolver;
     private final SqlConditionValidator conditionValidator;
     private final SqlGroupingOrderValidator groupingOrderValidator;
 
-    /** 원본 SQL을 변경하거나 실행하지 않고 검증 결과를 반환한다. */
-    @Transactional(readOnly = true)
+    /**
+     * 원본 SQL을 변경하거나 실행하지 않고 검증 결과를 반환한다.
+     * 메타데이터 조회에는 업무용 MySQL 연결을 사용한다.
+     */
+    @Transactional(transactionManager = "queryTransactionManager", readOnly = true)
     public ValidationResult validate(String sqlText) {
 
         Select parsed = sqlParserValidator.parseSelect(sqlText);
@@ -51,26 +55,26 @@ public class SqlQueryMetadataValidationService {
         // DB 조회 전에 FROM·JOIN의 지원 구조를 확인한다.
         List<Table> tables = collectTables(select);
 
-        Map<String, OracleObjectName> resolvedObjects = tableValidationService.validateTables(select);
-
+        Map<String, QueryObjectName> resolvedObjects = tableValidationService.validateTables(select);
         Scope scope = columnResolver.createScope(tables, resolvedObjects);
+
         Set<ResolvedColumn> references = new LinkedHashSet<>();
 
-        // ON은 현재 JOIN까지 등장한 대상만 참조할 수 있다.
+        // ON에서는 현재 JOIN까지 등장한 대상만 참조할 수 있다.
         validateJoinConditions(select, tables, scope, references);
 
-        // WHERE는 전체 FROM·JOIN 대상을 참조할 수 있다.
+        // WHERE에서는 전체 FROM·JOIN 대상을 참조할 수 있다.
         references.addAll(conditionValidator.validate(select.getWhere(), scope));
 
-        // SELECT·GROUP BY·ORDER BY의 참조와 집계 규칙을 함께 검사한다.
+        // SELECT·GROUP BY·ORDER BY의 컬럼 참조와 집계 규칙을 검사한다.
         var grouping = groupingOrderValidator.validate(select, scope);
         references.addAll(grouping.referencedColumns());
 
-        // COUNT(*)처럼 참조 컬럼이 없어도 조회 대상은 결과에 포함한다.
-        Set<OracleObjectName> resources = new LinkedHashSet<>();
+        // COUNT(*)처럼 참조 컬럼이 없어도 정책 검사 대상은 유지한다.
+        Set<QueryObjectName> resources = new LinkedHashSet<>();
 
         for (Table table : tables) {
-            OracleObjectName target = resolvedObjects.get(table.getFullyQualifiedName());
+            QueryObjectName target = resolvedObjects.get(table.getFullyQualifiedName());
 
             if (target == null) {
                 throw badRequest("실제 조회 대상 정보를 확인할 수 없습니다.");
@@ -82,7 +86,7 @@ public class SqlQueryMetadataValidationService {
         return new ValidationResult(resources, references, grouping.grouped());
     }
 
-    /** FROM과 JOIN의 직접 참조 테이블을 SQL에 등장한 순서대로 수집한다. */
+    /** FROM과 JOIN의 직접 참조 대상을 SQL에 등장한 순서대로 수집한다. */
     private List<Table> collectTables(PlainSelect select) {
 
         List<Table> tables = new ArrayList<>();
@@ -127,7 +131,7 @@ public class SqlQueryMetadataValidationService {
         }
     }
 
-    /** 서브쿼리·PIVOT 등 별도 컬럼 해석이 필요한 FROM 구조는 차단한다. */
+    /** 별도 해석이 필요한 서브쿼리·PIVOT 등의 FROM 구조는 차단한다. */
     private Table requireTable(FromItem item) {
 
         if (!(item instanceof Table table)) {
@@ -142,13 +146,16 @@ public class SqlQueryMetadataValidationService {
             throw badRequest("조회 대상의 확장 옵션은 지원하지 않습니다.");
         }
 
-        // 원격 DB 링크 형식과 동의어의 DB 링크는 기존 객체 검증에서 차단한다.
+        // 대상 이름 형식과 실제 존재 여부는 MySQL 객체 검사에서 확인한다.
         return table;
     }
 
-    /** 이미 구성한 메타데이터에서 각 ON의 참조 범위만 좁힌다. */
-    private void validateJoinConditions(PlainSelect select, List<Table> tables,
-            Scope scope, Set<ResolvedColumn> references) {
+    /** 기존 메타데이터를 재사용하면서 각 ON의 참조 범위만 제한한다. */
+    private void validateJoinConditions(
+            PlainSelect select,
+            List<Table> tables,
+            Scope scope,
+            Set<ResolvedColumn> references) {
 
         if (select.getJoins() == null) {
             return;
@@ -157,16 +164,15 @@ public class SqlQueryMetadataValidationService {
         for (int index = 0; index < select.getJoins().size(); index++) {
             Join join = select.getJoins().get(index);
 
-            // FROM 한 개 + 현재 JOIN까지 포함한다.
+            // FROM 한 개와 현재 JOIN까지의 대상만 포함한다.
             Scope visibleScope = columnResolver.restrictScope(scope, tables.subList(0, index + 2));
 
             var condition = join.getOnExpressions().iterator().next();
-
             references.addAll(conditionValidator.validate(condition, visibleScope));
         }
     }
 
-    /** 현재 지원하지 않는 SELECT 확장 절을 명시적으로 차단한다. */
+    /** 지원하지 않는 SELECT 확장 절은 검사 없이 통과시키지 않는다. */
     private void validateQueryOptions(PlainSelect select) {
 
         if (select.getWithItemsList() != null && !select.getWithItemsList().isEmpty()) {
@@ -233,12 +239,12 @@ public class SqlQueryMetadataValidationService {
     }
 
     /**
-     * resources: 실제 조회 대상. 사용자 접근 정책 검사에 사용한다.
-     * referencedColumns: SELECT·ON·WHERE·GROUP BY·ORDER BY의 참조 컬럼.
-     * grouped: 그룹 또는 집계 조회인지 여부.
+     * resources: 정책 검사에 사용할 실제 조회 대상.
+     * referencedColumns: SELECT·ON·WHERE·GROUP BY·ORDER BY의 실제 참조 컬럼.
+     * grouped: 그룹 또는 집계 조회 여부.
      */
     public record ValidationResult(
-            Set<OracleObjectName> resources,
+            Set<QueryObjectName> resources,
             Set<ResolvedColumn> referencedColumns,
             boolean grouped) {
 

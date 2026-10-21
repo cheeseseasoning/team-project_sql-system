@@ -11,8 +11,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.sqlflow.access.service.RequestSqlValidationService;
 import com.sqlflow.approval.dto.ApprovalCandidateResponse;
 import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.approval.mapper.ApprovalMapper;
@@ -36,6 +38,10 @@ class ApprovalMapperIntegrationTest {
 
     @Autowired
     private RequestService requestService;
+    
+    // 결재 DB 연동에 집중하고 SQL·접근 검사는 별도 테스트에서 확인한다.
+    @MockitoBean
+    private RequestSqlValidationService requestSqlValidationService;
 
     @Test
     void candidateQueriesExecuteAgainstOracleSchema() {

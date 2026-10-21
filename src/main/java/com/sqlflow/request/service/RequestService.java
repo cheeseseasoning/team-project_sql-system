@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.sqlflow.access.service.RequestSqlValidationService;
 import com.sqlflow.request.domain.QueryItem;
 import com.sqlflow.request.domain.QueryRequest;
 import com.sqlflow.request.dto.RequestDashboardResponse;
@@ -36,6 +37,8 @@ public class RequestService {
 
 	private static final Set<String> SEARCHABLE_STATUSES = Set.of("DRAFT", "PENDING_APPROVAL", "READY", "RUNNING",
 			"RETRY_REVIEW", "COMPLETED", "PARTIAL_FAILED", "FAILED", "REJECTED", "WITHDRAWN");
+	
+	private final RequestSqlValidationService requestSqlValidationService;
 
 	@Transactional
 	public Long createDraft(RequestDraftCreateRequest input) {
@@ -267,7 +270,7 @@ public class RequestService {
 	public void submitRequest(Long requestId, RequestSubmitRequest input, Long actorId) {
 
 		// 1. 본인 초안 잠금 및 저장된 내용 검사
-		loadDraftForSubmission(requestId, actorId);
+		RequestDetailResponse draft = loadDraftForSubmission(requestId, actorId);
 
 		// 2. 결재 기능 연결 확인
 		ApprovalLineCreator approvalLineCreator = approvalLineCreatorProvider.getIfAvailable();
@@ -278,7 +281,20 @@ public class RequestService {
 
 		// 3. 결재자 재검증 및 결재선 생성
 		// 준오 구현에서 APPROVAL_STATUS도 PENDING으로 설정
-		approvalLineCreator.createApprovalLine(requestId, actorId, input.getIntermediateApproverIds(), input.getDbApproverId());
+		//저장된 SQL과 접근 권한을 검사한다.
+		//실패하면 결재선 생성과 제출 처리를 중단한다.
+		requestSqlValidationService.validate(
+		     actorId,
+		     draft.getItems().stream()
+		             .map(RequestItemResponse::getSqlText)
+		             .toList());
+		
+		//중간 결재자 목록을 포함해 결재선을 생성한다.
+		approvalLineCreator.createApprovalLine(
+		     requestId,
+		     actorId,
+		     input.getIntermediateApproverIds(),
+		     input.getDbApproverId());
 
 		// 4. 요청 상태 및 제출 시각 변경
 		int updatedCount = requestMapper.submitDraft(requestId, actorId);

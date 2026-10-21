@@ -18,54 +18,51 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.sqlflow.execution.domain.OracleColumnMetadata;
-import com.sqlflow.execution.domain.OracleObjectName;
-import com.sqlflow.execution.mapper.OracleMetadataMapper;
-import com.sqlflow.execution.service.OracleObjectNameResolver;
-import com.sqlflow.execution.service.OracleTableValidationService;
-import com.sqlflow.execution.service.SqlColumnResolver;
-import com.sqlflow.execution.service.SqlColumnResolver.ResolvedColumn;
+import com.sqlflow.mysql.domain.MySqlColumnMetadata;
+import com.sqlflow.execution.domain.QueryObjectName;
+import com.sqlflow.mysql.mapper.MySqlMetadataMapper;
+import com.sqlflow.execution.service.MySqlColumnResolver;
+import com.sqlflow.execution.service.MySqlColumnResolver.ResolvedColumn;
 import com.sqlflow.execution.service.SqlConditionValidator;
 import com.sqlflow.execution.service.SqlGroupingOrderValidator;
 import com.sqlflow.execution.service.SqlParserValidator;
-import com.sqlflow.execution.service.SqlQueryMetadataValidationService;
+import com.sqlflow.execution.service.MySqlQueryMetadataValidationService;
 import com.sqlflow.execution.service.SqlSelectExpressionAnalyzer;
 import com.sqlflow.execution.service.SqlTableExtractor;
+import com.sqlflow.mysql.domain.MySqlObjectMetadata;
+import com.sqlflow.mysql.service.MySqlTableValidationService;
 
 /**
  * 파싱·객체 확인·컬럼 연결·조건·집계 검사를 함께 검증한다.
- * Oracle 조회만 Mock으로 대체하며 SQL을 실행하지 않는다.
+ * MySQL 메타데이터 조회만 Mock으로 대체하며 SQL을 실행하지 않는다.
  */
 @ExtendWith(MockitoExtension.class)
-class SqlQueryMetadataValidationServiceTest {
+class MySqlQueryMetadataValidationServiceTest {
 
-    private static final OracleObjectName USERS =
-            new OracleObjectName("SQLFLOW", "USERS");
+    private static final QueryObjectName USERS =
+            new QueryObjectName("SQLFLOW", "USERS");
 
-    private static final OracleObjectName DEPARTMENT =
-            new OracleObjectName("SQLFLOW", "DEPARTMENT");
+    private static final QueryObjectName DEPARTMENT =
+            new QueryObjectName("SQLFLOW", "DEPARTMENT");
 
     @Mock
-    private OracleMetadataMapper metadataMapper;
+    private MySqlMetadataMapper metadataMapper;
 
-    private SqlQueryMetadataValidationService service;
+    private MySqlQueryMetadataValidationService service;
 
     @BeforeEach
     void setUp() {
-        SqlColumnResolver resolver = new SqlColumnResolver(metadataMapper);
+        MySqlColumnResolver resolver = new MySqlColumnResolver(metadataMapper);
 
-        OracleTableValidationService tableService =
-                new OracleTableValidationService(
-                        new SqlTableExtractor(),
-                        new OracleObjectNameResolver(),
-                        metadataMapper);
+        MySqlTableValidationService tableService =
+                new MySqlTableValidationService(new SqlTableExtractor(), metadataMapper);
 
         SqlGroupingOrderValidator groupingValidator =
                 new SqlGroupingOrderValidator(
                         resolver,
                         new SqlSelectExpressionAnalyzer(resolver));
 
-        service = new SqlQueryMetadataValidationService(
+        service = new MySqlQueryMetadataValidationService(
                 new SqlParserValidator(),
                 tableService,
                 resolver,
@@ -215,22 +212,25 @@ class SqlQueryMetadataValidationServiceTest {
         verifyNoInteractions(metadataMapper);
     }
 
-    /** 지원 구조 검사를 통과한 테스트에서만 Oracle 응답을 준비한다. */
+    /** 지원 구조 검사를 통과한 테스트에서만 MySQL 응답을 준비한다. */
     private void prepareMetadata() {
-        when(metadataMapper.selectCurrentSchema()).thenReturn("SQLFLOW");
+        when(metadataMapper.selectCurrentDatabase()).thenReturn("SQLFLOW");
 
-        when(metadataMapper.countSelectableObjects(anyString(), anyString()))
+        when(metadataMapper.selectObject(anyString(), anyString()))
                 .thenAnswer(invocation -> {
                     String owner = invocation.getArgument(0);
                     String name = invocation.getArgument(1);
 
                     if (!"SQLFLOW".equals(owner)
                             || !Set.of("USERS", "DEPARTMENT", "COMPANY").contains(name)) {
-                        throw new AssertionError(
-                                "예상하지 않은 객체 조회: " + owner + "." + name);
+                        throw new AssertionError("예상하지 않은 객체 조회: " + owner + "." + name);
                     }
 
-                    return 1;
+                    MySqlObjectMetadata object = new MySqlObjectMetadata();
+                    object.setDatabaseName(owner);
+                    object.setObjectName(name);
+                    object.setObjectType("BASE TABLE");
+                    return object;
                 });
 
         when(metadataMapper.selectColumns(anyString(), anyString()))
@@ -239,34 +239,29 @@ class SqlQueryMetadataValidationServiceTest {
                     String name = invocation.getArgument(1);
 
                     if (!"SQLFLOW".equals(owner)) {
-                        throw new AssertionError("예상하지 않은 스키마: " + owner);
+                        throw new AssertionError("예상하지 않은 DB: " + owner);
                     }
 
                     return switch (name) {
-                        case "USERS" -> columns(
-                                name, "USER_ID", "DEPT_ID", "AMOUNT",
-                                "ENABLED", "MANAGER_ID");
-                        case "DEPARTMENT" -> columns(
-                                name, "DEPT_ID", "DEPT_NAME", "COMPANY_ID");
-                        case "COMPANY" -> columns(
-                                name, "COMPANY_ID", "COMPANY_NAME");
-                        default -> throw new AssertionError(
-                                "예상하지 않은 테이블: " + name);
+                        case "USERS" -> columns(name, "USER_ID", "DEPT_ID", "AMOUNT", "ENABLED", "MANAGER_ID");
+                        case "DEPARTMENT" -> columns(name, "DEPT_ID", "DEPT_NAME", "COMPANY_ID");
+                        case "COMPANY" -> columns(name, "COMPANY_ID", "COMPANY_NAME");
+                        default -> throw new AssertionError("예상하지 않은 테이블: " + name);
                     };
                 });
     }
 
-    private List<OracleColumnMetadata> columns(String tableName, String... names) {
-        List<OracleColumnMetadata> result = new ArrayList<>();
+    private List<MySqlColumnMetadata> columns(String tableName, String... names) {
+        List<MySqlColumnMetadata> result = new ArrayList<>();
 
         for (String name : names) {
-            OracleColumnMetadata column = new OracleColumnMetadata();
-            column.setOwner("SQLFLOW");
+            MySqlColumnMetadata column = new MySqlColumnMetadata();
+            column.setDatabaseName("SQLFLOW");
             column.setTableName(tableName);
             column.setColumnName(name);
             column.setDataType(
                     name.endsWith("_NAME") || "ENABLED".equals(name)
-                            ? "VARCHAR2" : "NUMBER");
+                            ? "varchar" : "bigint");
             result.add(column);
         }
 
