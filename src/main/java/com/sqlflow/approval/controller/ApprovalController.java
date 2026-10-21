@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.approval.service.ApprovalService;
 import com.sqlflow.approval.dto.ApprovalCandidateResponse;
+import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.approval.dto.ApprovalRejectRequest;
 import com.sqlflow.approval.dto.PendingApprovalResponse;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
@@ -52,6 +53,15 @@ public class ApprovalController {
             @PathVariable Long requestId,
             @AuthenticationPrincipal SqlFlowUserDetails user) {
         return approvalService.getPendingApprovalDetail(requestId, user.getUserId());
+    }
+    
+    @GetMapping("/{requestId}/history")
+    public List<ApprovalHistoryResponse> getApprovalHistory(
+            @PathVariable Long requestId,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+        return approvalService.getApprovalHistory(
+                requestId,
+                user.getUserId());
     }
 
     @PostMapping("/{requestId}/approve")

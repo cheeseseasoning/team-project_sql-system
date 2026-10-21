@@ -60,7 +60,6 @@
     <factorypathentry kind="VARJAR" id="M2_REPO/org/mybatis/mybatis/3.5.19/mybatis-3.5.19.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/mybatis/mybatis-spring/4.0.0/mybatis-spring-4.0.0.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/com/oracle/database/jdbc/ojdbc11/23.26.3.0.0/ojdbc11-23.26.3.0.0.jar" enabled="true" runInBatchMode="false"/>
-    <factorypathentry kind="VARJAR" id="M2_REPO/com/mysql/mysql-connector-j/9.7.0/mysql-connector-j-9.7.0.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/boot/spring-boot-starter-validation/4.1.1/spring-boot-starter-validation-4.1.1.jar" enabled="true" runInBatchMode="false"/>
     <factorypathentry kind="VARJAR" id="M2_REPO/org/springframework/boot/spring-boot-validation/4.1.1/spring-boot-validation-4.1.1.jar" enabled="true" runInBatchMode="false"/>
