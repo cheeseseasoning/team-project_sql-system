@@ -17,12 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.sqlflow.execution.domain.OracleColumnMetadata;
-import com.sqlflow.execution.domain.OracleObjectName;
-import com.sqlflow.execution.mapper.OracleMetadataMapper;
-import com.sqlflow.execution.service.SqlColumnResolver;
-import com.sqlflow.execution.service.SqlColumnResolver.ResolvedColumn;
-import com.sqlflow.execution.service.SqlColumnResolver.Scope;
+import com.sqlflow.mysql.domain.MySqlColumnMetadata;
+import com.sqlflow.execution.domain.QueryObjectName;
+import com.sqlflow.mysql.mapper.MySqlMetadataMapper;
+import com.sqlflow.execution.service.MySqlColumnResolver;
+import com.sqlflow.execution.service.MySqlColumnResolver.ResolvedColumn;
+import com.sqlflow.execution.service.MySqlColumnResolver.Scope;
 import com.sqlflow.execution.service.SqlParserValidator;
 
 import net.sf.jsqlparser.schema.Column;
@@ -31,27 +31,27 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 
 /**
  * 여러 테이블의 컬럼 연결과 별표 확장을 검증한다.
- * SQL은 실제 파싱하고, Oracle 컬럼 조회만 Mock으로 대체한다.
+ * SQL은 실제 파싱하고, MySQL 컬럼 조회만 Mock으로 대체한다.
  */
 @ExtendWith(MockitoExtension.class)
-class SqlColumnResolverTest {
+class MySqlColumnResolverTest {
 
-    private static final OracleObjectName USERS =
-            new OracleObjectName("SQLFLOW", "USERS");
+    private static final QueryObjectName USERS =
+            new QueryObjectName("SQLFLOW", "USERS");
 
-    private static final OracleObjectName DEPARTMENT =
-            new OracleObjectName("SQLFLOW", "DEPARTMENT");
+    private static final QueryObjectName DEPARTMENT =
+            new QueryObjectName("SQLFLOW", "DEPARTMENT");
 
     @Mock
-    private OracleMetadataMapper metadataMapper;
+    private MySqlMetadataMapper metadataMapper;
 
-    private SqlColumnResolver resolver;
+    private MySqlColumnResolver resolver;
 
     private final SqlParserValidator parser = new SqlParserValidator();
 
     @BeforeEach
     void setUp() {
-        resolver = new SqlColumnResolver(metadataMapper);
+        resolver = new MySqlColumnResolver(metadataMapper);
     }
 
     @Test
@@ -163,7 +163,7 @@ class SqlColumnResolverTest {
         ResolvedColumn manager = resolver.resolveColumn(
                 new Column(new Table("M"), "USER_ID"), scope);
 
-        // 実際の対象が同じでも、SQL上の参照元は区別する。
+        // 실제 대상이 같아도 SQL의 참조 별칭은 구분한다.
         assertNotEquals(user, manager);
         assertEquals(USERS, user.target());
         assertEquals(USERS, manager.target());
@@ -183,40 +183,46 @@ class SqlColumnResolverTest {
                         Map.of("USERS", USERS, "DEPARTMENT", DEPARTMENT)));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("重複")
-                || exception.getReason().contains("중복"));
+        assertTrue(exception.getReason().contains("중복"));
 
         // 중복 별칭은 두 번째 테이블의 컬럼을 조회하기 전에 차단한다.
         verify(metadataMapper, never()).selectColumns("SQLFLOW", "DEPARTMENT");
     }
 
     @Test
-    void quotedAliasAndColumnPreserveCase() {
+    void backtickColumnUsesCaseInsensitiveLookup() {
         prepareColumns(USERS, "UserName");
+        Scope scope = scope("SELECT `u`.`username` FROM USERS `u`", Map.of("USERS", USERS));
 
-        Scope scope = scope(
-                "SELECT \"u\".\"UserName\" FROM USERS \"u\"",
-                Map.of("USERS", USERS));
+        ResolvedColumn result = resolver.resolveColumn(new Column(new Table("`u`"), "`USERNAME`"), scope);
 
-        ResolvedColumn result = resolver.resolveColumn(
-                new Column(new Table("\"u\""), "\"UserName\""), scope);
-
+        // 비교할 때는 대소문자를 무시하지만 실제 컬럼명은 유지한다.
         assertEquals(new ResolvedColumn("u", USERS, "UserName"), result);
 
-        assertThrows(
-                ResponseStatusException.class,
-                () -> resolver.resolveColumn(
-                        new Column(new Table("\"U\""), "\"UserName\""), scope));
+        // Mock의 기본 caseMode는 0이므로 테이블 별칭의 대소문자는 구분한다.
+        assertThrows(ResponseStatusException.class,
+                () -> resolver.resolveColumn(new Column(new Table("`U`"), "`username`"), scope));
     }
 
     @Test
-    void resolvedSynonymTargetIsUsedForMetadataLookup() {
-        OracleObjectName employees =
-                new OracleObjectName("HR", "EMPLOYEES");
+    void caseInsensitiveServerMatchesTableAliasCase() {
+        when(metadataMapper.selectLowerCaseTableNames()).thenReturn(1);
+        prepareColumns(USERS, "UserName");
+        Scope scope = scope("SELECT u.username FROM USERS u", Map.of("USERS", USERS));
+
+        ResolvedColumn result = resolver.resolveColumn(new Column(new Table("U"), "USERNAME"), scope);
+
+        assertEquals(new ResolvedColumn("U", USERS, "UserName"), result);
+    }
+
+    @Test
+    void resolvedTargetIsUsedForMetadataLookup() {
+        QueryObjectName employees =
+                new QueryObjectName("HR", "EMPLOYEES");
 
         prepareColumns(employees, "EMPLOYEE_ID");
 
-        // 동의어 해석은 앞 단계에서 완료됐다고 가정한다.
+        // 앞 단계에서 확인한 실제 대상으로 컬럼을 조회한다.
         Scope scope = scope(
                 "SELECT S.EMPLOYEE_ID FROM STAFF S",
                 Map.of("STAFF", employees));
@@ -244,7 +250,7 @@ class SqlColumnResolverTest {
 
     /** 실제 SQL에서 FROM·JOIN 테이블을 꺼내 검사 범위를 만든다. */
     private Scope scope(String sql,
-            Map<String, OracleObjectName> resolvedObjects) {
+            Map<String, QueryObjectName> resolvedObjects) {
 
         PlainSelect select = assertInstanceOf(
                 PlainSelect.class, parser.parseSelect(sql));
@@ -261,15 +267,15 @@ class SqlColumnResolverTest {
         return resolver.createScope(tables, resolvedObjects);
     }
 
-    /** Oracle에서 반환할 컬럼 이름과 순서를 구성한다. */
-    private void prepareColumns(OracleObjectName target, String... names) {
-        List<OracleColumnMetadata> columns = List.of(names).stream()
+    /** MySQL에서 반환할 컬럼 이름과 순서를 구성한다. */
+    private void prepareColumns(QueryObjectName target, String... names) {
+        List<MySqlColumnMetadata> columns = List.of(names).stream()
                 .map(name -> {
-                    OracleColumnMetadata column = new OracleColumnMetadata();
-                    column.setOwner(target.owner());
+                    MySqlColumnMetadata column = new MySqlColumnMetadata();
+                    column.setDatabaseName(target.owner());
                     column.setTableName(target.objectName());
                     column.setColumnName(name);
-                    column.setDataType("VARCHAR2");
+                    column.setDataType("varchar");
                     return column;
                 })
                 .collect(Collectors.toList());

@@ -17,12 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.sqlflow.execution.domain.OracleColumnMetadata;
-import com.sqlflow.execution.domain.OracleObjectName;
-import com.sqlflow.execution.mapper.OracleMetadataMapper;
-import com.sqlflow.execution.service.SqlColumnResolver;
-import com.sqlflow.execution.service.SqlColumnResolver.ResolvedColumn;
-import com.sqlflow.execution.service.SqlColumnResolver.Scope;
+import com.sqlflow.mysql.domain.MySqlColumnMetadata;
+import com.sqlflow.execution.domain.QueryObjectName;
+import com.sqlflow.mysql.mapper.MySqlMetadataMapper;
+import com.sqlflow.execution.service.MySqlColumnResolver;
+import com.sqlflow.execution.service.MySqlColumnResolver.ResolvedColumn;
+import com.sqlflow.execution.service.MySqlColumnResolver.Scope;
 import com.sqlflow.execution.service.SqlConditionValidator;
 import com.sqlflow.execution.service.SqlParserValidator;
 
@@ -32,23 +32,23 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 
 /**
  * 실제 ON·WHERE 구문으로 조건 구조와 참조 컬럼 검사를 확인한다.
- * SQL 실행이나 Oracle 접속은 하지 않는다.
+ * SQL 실행이나 실제 DB 접속은 하지 않는다.
  */
 @ExtendWith(MockitoExtension.class)
 class SqlConditionValidatorTest {
 
-    private static final OracleObjectName USERS =
-            new OracleObjectName("SQLFLOW", "USERS");
+    private static final QueryObjectName USERS =
+            new QueryObjectName("SQLFLOW", "USERS");
 
-    private static final OracleObjectName DEPARTMENT =
-            new OracleObjectName("SQLFLOW", "DEPARTMENT");
+    private static final QueryObjectName DEPARTMENT =
+            new QueryObjectName("SQLFLOW", "DEPARTMENT");
 
     private static final String QUERY =
             "SELECT U.USER_ID FROM USERS U "
             + "JOIN DEPARTMENT D ON U.DEPT_ID = D.DEPT_ID";
 
     @Mock
-    private OracleMetadataMapper metadataMapper;
+    private MySqlMetadataMapper metadataMapper;
 
     private final SqlParserValidator parser = new SqlParserValidator();
 
@@ -69,7 +69,7 @@ class SqlConditionValidatorTest {
                         column(DEPARTMENT, "DEPT_ID"),
                         column(DEPARTMENT, "DEPT_NAME")));
 
-        SqlColumnResolver resolver = new SqlColumnResolver(metadataMapper);
+        MySqlColumnResolver resolver = new MySqlColumnResolver(metadataMapper);
         validator = new SqlConditionValidator(resolver);
 
         PlainSelect select = parse(QUERY);
@@ -172,13 +172,13 @@ class SqlConditionValidatorTest {
         return assertInstanceOf(PlainSelect.class, parser.parseSelect(sql));
     }
 
-    private OracleColumnMetadata column(OracleObjectName target, String name) {
-        OracleColumnMetadata column = new OracleColumnMetadata();
-        column.setOwner(target.owner());
+    private MySqlColumnMetadata column(QueryObjectName target, String name) {
+        MySqlColumnMetadata column = new MySqlColumnMetadata();
+        column.setDatabaseName(target.owner());
         column.setTableName(target.objectName());
         column.setColumnName(name);
         column.setDataType("ENABLED".equals(name) || "DEPT_NAME".equals(name)
-                ? "VARCHAR2" : "NUMBER");
+                ? "varchar" : "bigint");
         return column;
     }
 }

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -12,8 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.sqlflow.execution.service.SqlColumnResolver.ResolvedColumn;
-import com.sqlflow.execution.service.SqlColumnResolver.Scope;
+import com.sqlflow.execution.service.MySqlColumnResolver.ResolvedColumn;
+import com.sqlflow.execution.service.MySqlColumnResolver.Scope;
 import com.sqlflow.execution.service.SqlSelectExpressionAnalyzer.Analysis;
 
 import lombok.RequiredArgsConstructor;
@@ -31,7 +30,7 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 @RequiredArgsConstructor
 public class SqlGroupingOrderValidator {
 
-    private final SqlColumnResolver columnResolver;
+    private final MySqlColumnResolver columnResolver;
     private final SqlSelectExpressionAnalyzer expressionAnalyzer;
 
     /** SELECT 분석 결과를 재사용해 그룹·정렬 규칙을 검사한다. */
@@ -194,16 +193,9 @@ public class SqlGroupingOrderValidator {
                 || column.getTable().getFullyQualifiedName().isBlank();
     }
 
+    /** 출력 별칭도 MySQL 컬럼명과 같은 비교 규칙을 사용한다. */
     private String normalizeIdentifier(String name) {
-        if (name == null || name.isBlank()) {
-            throw badRequest("출력 별칭을 확인할 수 없습니다.");
-        }
-
-        if (name.length() >= 2 && name.startsWith("\"") && name.endsWith("\"")) {
-            return name.substring(1, name.length() - 1).replace("\"\"", "\"");
-        }
-
-        return name.toUpperCase(Locale.ROOT);
+        return columnResolver.normalizeColumnName(name);
     }
 
     private ResponseStatusException badRequest(String message) {

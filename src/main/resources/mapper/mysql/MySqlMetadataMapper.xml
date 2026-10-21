@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.mysql.mapper.MySqlMetadataMapper">
+
+    <select id="selectCurrentDatabase"
+            resultType="java.lang.String">
+        SELECT DATABASE()
+    </select>
+
+    <select id="selectLowerCaseTableNames" resultType="int">
+        SELECT @@lower_case_table_names
+    </select>
+
+    <!--
+        메타데이터의 문자열 비교가 대소문자를 무시해
+        다른 이름을 같은 객체로 인정하지 않도록 정확히 비교한다.
+    -->
+    <select id="countSelectableObjects" resultType="int">
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE CAST(TABLE_SCHEMA AS BINARY)
+                  = CAST(#{databaseName} AS BINARY)
+          AND CAST(TABLE_NAME AS BINARY)
+                  = CAST(#{objectName} AS BINARY)
+          AND TABLE_TYPE IN ('BASE TABLE', 'VIEW')
+    </select>
+
+    <!-- 컬럼은 실제 선언 순서로 반환한다. -->
+    <select id="selectColumns"
+            resultType="com.sqlflow.mysql.domain.MySqlColumnMetadata">
+        SELECT TABLE_SCHEMA AS DATABASE_NAME,
+               TABLE_NAME,
+               COLUMN_NAME,
+               DATA_TYPE,
+               ORDINAL_POSITION
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE CAST(TABLE_SCHEMA AS BINARY)
+                  = CAST(#{databaseName} AS BINARY)
+          AND CAST(TABLE_NAME AS BINARY)
+                  = CAST(#{objectName} AS BINARY)
+        ORDER BY ORDINAL_POSITION
+    </select>
+    
+    <!-- 서버 설정에 따라 이름을 비교하고, 실제 등록된 이름을 반환한다. -->
+	<select id="selectObject"
+	        resultType="com.sqlflow.mysql.domain.MySqlObjectMetadata">
+	    SELECT TABLE_SCHEMA AS DATABASE_NAME,
+	           TABLE_NAME AS OBJECT_NAME,
+	           TABLE_TYPE AS OBJECT_TYPE
+	    FROM INFORMATION_SCHEMA.TABLES
+	    WHERE TABLE_TYPE IN ('BASE TABLE', 'VIEW')
+	      AND (
+	          (
+	              @@lower_case_table_names = 0
+	              AND CAST(TABLE_SCHEMA AS BINARY)
+	                  = CAST(#{databaseName} AS BINARY)
+	              AND CAST(TABLE_NAME AS BINARY)
+	                  = CAST(#{objectName} AS BINARY)
+	          )
+	          OR
+	          (
+	              @@lower_case_table_names IN (1, 2)
+	              AND CAST(LOWER(TABLE_SCHEMA) AS BINARY)
+	                  = CAST(LOWER(#{databaseName}) AS BINARY)
+	              AND CAST(LOWER(TABLE_NAME) AS BINARY)
+	                  = CAST(LOWER(#{objectName}) AS BINARY)
+	          )
+	      )
+	</select>
+
+</mapper>

@@ -19,8 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.access.service.DataAccessValidationService;
 import com.sqlflow.access.service.RequestSqlValidationService;
-import com.sqlflow.execution.domain.OracleObjectName;
-import com.sqlflow.execution.service.SqlQueryMetadataValidationService;
+import com.sqlflow.execution.domain.QueryObjectName;
+import com.sqlflow.execution.service.MySqlQueryMetadataValidationService;
 
 @ExtendWith(MockitoExtension.class)
 class RequestSqlValidationServiceTest {
@@ -33,14 +33,14 @@ class RequestSqlValidationServiceTest {
     private static final String CUSTOMER_SQL =
             "SELECT * FROM BIZ_DATA.CUSTOMERS";
 
-    private static final OracleObjectName SALES =
-            new OracleObjectName("BIZ_DATA", "SALES");
+    private static final QueryObjectName SALES =
+            new QueryObjectName("BIZ_DATA", "SALES");
 
-    private static final OracleObjectName CUSTOMERS =
-            new OracleObjectName("BIZ_DATA", "CUSTOMERS");
+    private static final QueryObjectName CUSTOMERS =
+            new QueryObjectName("BIZ_DATA", "CUSTOMERS");
 
     @Mock
-    private SqlQueryMetadataValidationService metadataValidationService;
+    private MySqlQueryMetadataValidationService metadataValidationService;
 
     @Mock
     private DataAccessValidationService dataAccessValidationService;
@@ -86,7 +86,7 @@ class RequestSqlValidationServiceTest {
     void secondSqlAccessFailureRejectsTheWholeValidation() {
         prepareMetadata(SALES_SQL, SALES);
         prepareMetadata(CUSTOMER_SQL, CUSTOMERS);
-        
+
         // 첫 번째 SQL은 접근 검사를 통과하고, 두 번째 SQL에서 차단되도록 한다.
         when(dataAccessValidationService.validate(USER_ID, Set.of(SALES)))
                 .thenReturn(new DataAccessValidationService.ValidationResult("GENERAL", Set.of(1L)));
@@ -132,11 +132,11 @@ class RequestSqlValidationServiceTest {
 
     private void prepareMetadata(
             String sql,
-            OracleObjectName target) {
+            QueryObjectName target) {
 
         when(metadataValidationService.validate(sql))
                 .thenReturn(
-                        new SqlQueryMetadataValidationService.ValidationResult(
+                        new MySqlQueryMetadataValidationService.ValidationResult(
                                 Set.of(target),
                                 Set.of(),
                                 false));

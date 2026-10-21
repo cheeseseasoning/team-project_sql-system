@@ -11,12 +11,13 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.sqlflow.access.mapper.DataAccessPolicyMapper;
-import com.sqlflow.execution.domain.OracleObjectName;
+import com.sqlflow.execution.domain.QueryObjectName;
 
 /**
  * 실제 관리 DB에서 접근 정책 조회 SQL과 결과 매핑을 확인한다.
@@ -25,14 +26,18 @@ import com.sqlflow.execution.domain.OracleObjectName;
  * 업무 DB 접속이나 실제 업무 테이블 생성은 하지 않는다.
  */
 @SpringBootTest
-@Transactional
+@Transactional(transactionManager = "managementTransactionManager")
 class DataAccessPolicyMapperIntegrationTest {
 
     @Autowired
     private DataAccessPolicyMapper policyMapper;
 
-    @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    void configureManagementJdbc(@Qualifier("managementDataSource") javax.sql.DataSource dataSource) {
+        jdbcTemplate = new JdbcTemplate(dataSource);
+    }
 
     private Long deptId;
     private Long otherDeptId;
@@ -40,8 +45,8 @@ class DataAccessPolicyMapperIntegrationTest {
     private Long salesResourceId;
     private Long customersResourceId;
 
-    private OracleObjectName sales;
-    private OracleObjectName customers;
+    private QueryObjectName sales;
+    private QueryObjectName customers;
 
     @BeforeEach
     void setUp() {
@@ -55,8 +60,8 @@ class DataAccessPolicyMapperIntegrationTest {
         String owner = "TEST_" + UUID.randomUUID()
                 .toString().replace("-", "").toUpperCase();
 
-        sales = new OracleObjectName(owner, "SALES");
-        customers = new OracleObjectName(owner, "CUSTOMERS");
+        sales = new QueryObjectName(owner, "SALES");
+        customers = new QueryObjectName(owner, "CUSTOMERS");
 
         salesResourceId = insertResource(sales, "Y");
         customersResourceId = insertResource(customers, "Y");
@@ -127,7 +132,7 @@ class DataAccessPolicyMapperIntegrationTest {
 
     @Test
     void sameObjectNameInAnotherSchemaDoesNotMatch() {
-        OracleObjectName anotherSchema = new OracleObjectName(
+        QueryObjectName anotherSchema = new QueryObjectName(
                 sales.owner() + "_OTHER", sales.objectName());
 
         var policies = policyMapper.selectPolicies(
@@ -138,7 +143,7 @@ class DataAccessPolicyMapperIntegrationTest {
 
     @Test
     void unregisteredObjectDoesNotMatch() {
-        OracleObjectName missing = new OracleObjectName(
+        QueryObjectName missing = new QueryObjectName(
                 sales.owner(), "NOT_REGISTERED");
 
         var policies = policyMapper.selectPolicies(
@@ -165,7 +170,7 @@ class DataAccessPolicyMapperIntegrationTest {
     }
 
     private Long insertResource(
-            OracleObjectName target,
+            QueryObjectName target,
             String enabled) {
 
         Long resourceId = nextTestId();

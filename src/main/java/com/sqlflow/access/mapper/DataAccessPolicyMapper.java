@@ -8,7 +8,7 @@ import org.apache.ibatis.annotations.Param;
 
 import com.sqlflow.access.domain.DataAccessPolicy;
 import com.sqlflow.auth.domain.UserAccount;
-import com.sqlflow.execution.domain.OracleObjectName;
+import com.sqlflow.execution.domain.QueryObjectName;
 
 /**
  * 관리 DB에서 요청자의 현재 상태와 부서별 데이터 정책을 조회한다.
@@ -21,5 +21,5 @@ public interface DataAccessPolicyMapper {
 
     List<DataAccessPolicy> selectPolicies(
             @Param("deptId") Long deptId,
-            @Param("targets") Set<OracleObjectName> targets);
+            @Param("targets") Set<QueryObjectName> targets);
 }

@@ -14,7 +14,7 @@ import com.sqlflow.access.domain.DataAccessPolicy;
 import com.sqlflow.access.mapper.DataAccessPolicyMapper;
 import com.sqlflow.auth.domain.UserAccount;
 import com.sqlflow.auth.mapper.UserAccountMapper;
-import com.sqlflow.execution.domain.OracleObjectName;
+import com.sqlflow.execution.domain.QueryObjectName;
 
 import lombok.RequiredArgsConstructor;
 
@@ -40,7 +40,7 @@ public class DataAccessValidationService {
      * @param targets SQL 메타데이터 검증이 반환한 실제 조회 대상
      * @return 일반·민감 분류와 검증된 리소스 ID
      */
-    public ValidationResult validate(Long requesterId, Set<OracleObjectName> targets) {
+    public ValidationResult validate(Long requesterId, Set<QueryObjectName> targets) {
 
         if (requesterId == null || requesterId <= 0) {
             throw new IllegalArgumentException("올바른 요청자 ID가 필요합니다.");
@@ -58,12 +58,12 @@ public class DataAccessValidationService {
 
         List<DataAccessPolicy> policies = policyMapper.selectPolicies(requester.getDeptId(), targets);
 
-        Map<OracleObjectName, DataAccessPolicy> policiesByTarget = indexPolicies(policies);
+        Map<QueryObjectName, DataAccessPolicy> policiesByTarget = indexPolicies(policies);
 
         boolean sensitive = false;
         Set<Long> resourceIds = new LinkedHashSet<>();
 
-        for (OracleObjectName target : targets) {
+        for (QueryObjectName target : targets) {
             DataAccessPolicy policy = policiesByTarget.get(target);
 
             // 대상 미등록·비활성·부서 정책 없음은 모두 허용하지 않는다.
@@ -93,13 +93,13 @@ public class DataAccessValidationService {
         return new ValidationResult(sensitive ? SENSITIVE : GENERAL, resourceIds);
     }
 
-    private void validateTargets(Set<OracleObjectName> targets) {
+    private void validateTargets(Set<QueryObjectName> targets) {
 
         if (targets == null || targets.isEmpty()) {
             throw new IllegalArgumentException("검증된 조회 대상이 필요합니다.");
         }
 
-        for (OracleObjectName target : targets) {
+        for (QueryObjectName target : targets) {
             if (target == null
                     || target.owner() == null
                     || target.owner().isBlank()
@@ -114,12 +114,12 @@ public class DataAccessValidationService {
      * 같은 대상·부서에 활성 정책이 중복되면 임의로 선택하지 않는다.
      * 정책을 정리한 뒤 다시 요청하도록 차단한다.
      */
-    private Map<OracleObjectName, DataAccessPolicy> indexPolicies(List<DataAccessPolicy> policies) {
+    private Map<QueryObjectName, DataAccessPolicy> indexPolicies(List<DataAccessPolicy> policies) {
 
-        Map<OracleObjectName, DataAccessPolicy> result = new HashMap<>();
+        Map<QueryObjectName, DataAccessPolicy> result = new HashMap<>();
 
         for (DataAccessPolicy policy : policies) {
-            OracleObjectName target = new OracleObjectName(policy.getOwner(), policy.getObjectName());
+        	QueryObjectName target = new QueryObjectName(policy.getOwner(), policy.getObjectName());
 
             if (policy.getResourceId() == null || policy.getPolicyId() == null) {
                 throw invalidPolicy("리소스 또는 정책 ID가 없습니다.");
@@ -133,7 +133,7 @@ public class DataAccessValidationService {
         return result;
     }
 
-    private String displayName(OracleObjectName target) {
+    private String displayName(QueryObjectName target) {
         return target.owner() + "." + target.objectName();
     }
 

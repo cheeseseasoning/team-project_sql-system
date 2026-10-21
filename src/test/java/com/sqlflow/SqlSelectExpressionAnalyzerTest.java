@@ -16,12 +16,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.sqlflow.execution.domain.OracleColumnMetadata;
-import com.sqlflow.execution.domain.OracleObjectName;
-import com.sqlflow.execution.mapper.OracleMetadataMapper;
-import com.sqlflow.execution.service.SqlColumnResolver;
-import com.sqlflow.execution.service.SqlColumnResolver.ResolvedColumn;
-import com.sqlflow.execution.service.SqlColumnResolver.Scope;
+import com.sqlflow.mysql.domain.MySqlColumnMetadata;
+import com.sqlflow.execution.domain.QueryObjectName;
+import com.sqlflow.mysql.mapper.MySqlMetadataMapper;
+import com.sqlflow.execution.service.MySqlColumnResolver;
+import com.sqlflow.execution.service.MySqlColumnResolver.ResolvedColumn;
+import com.sqlflow.execution.service.MySqlColumnResolver.Scope;
 import com.sqlflow.execution.service.SqlParserValidator;
 import com.sqlflow.execution.service.SqlSelectExpressionAnalyzer;
 import com.sqlflow.execution.service.SqlSelectExpressionAnalyzer.Analysis;
@@ -33,11 +33,11 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 @ExtendWith(MockitoExtension.class)
 class SqlSelectExpressionAnalyzerTest {
 
-    private static final OracleObjectName SALES =
-            new OracleObjectName("SQLFLOW", "SALES");
+    private static final QueryObjectName SALES =
+            new QueryObjectName("SQLFLOW", "SALES");
 
     @Mock
-    private OracleMetadataMapper metadataMapper;
+    private MySqlMetadataMapper metadataMapper;
 
     private final SqlParserValidator parser = new SqlParserValidator();
 
@@ -49,7 +49,7 @@ class SqlSelectExpressionAnalyzerTest {
         when(metadataMapper.selectColumns("SQLFLOW", "SALES"))
                 .thenReturn(List.of(column("DEPT_ID"), column("AMOUNT")));
 
-        SqlColumnResolver resolver = new SqlColumnResolver(metadataMapper);
+        MySqlColumnResolver resolver = new MySqlColumnResolver(metadataMapper);
         analyzer = new SqlSelectExpressionAnalyzer(resolver);
 
         PlainSelect select = (PlainSelect) parser.parseSelect(
@@ -150,12 +150,12 @@ class SqlSelectExpressionAnalyzerTest {
                 parser.parseSelect("SELECT " + expression + " FROM SALES S"));
     }
 
-    private OracleColumnMetadata column(String name) {
-        OracleColumnMetadata column = new OracleColumnMetadata();
-        column.setOwner("SQLFLOW");
+    private MySqlColumnMetadata column(String name) {
+        MySqlColumnMetadata column = new MySqlColumnMetadata();
+        column.setDatabaseName("SQLFLOW");
         column.setTableName("SALES");
         column.setColumnName(name);
-        column.setDataType("NUMBER");
+        column.setDataType("bigint");
         return column;
     }
 }

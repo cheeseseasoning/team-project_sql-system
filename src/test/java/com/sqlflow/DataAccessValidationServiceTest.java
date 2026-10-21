@@ -21,7 +21,7 @@ import com.sqlflow.access.mapper.DataAccessPolicyMapper;
 import com.sqlflow.access.service.DataAccessValidationService;
 import com.sqlflow.auth.domain.UserAccount;
 import com.sqlflow.auth.mapper.UserAccountMapper;
-import com.sqlflow.execution.domain.OracleObjectName;
+import com.sqlflow.execution.domain.QueryObjectName;
 
 @ExtendWith(MockitoExtension.class)
 class DataAccessValidationServiceTest {
@@ -30,11 +30,11 @@ class DataAccessValidationServiceTest {
     private static final Long DEPT_ID = 20L;
 
     // 실제 DB에 존재할 필요가 없는 단위 테스트용 객체다.
-    private static final OracleObjectName SALES =
-            new OracleObjectName("BIZ_DATA", "SALES");
+    private static final QueryObjectName SALES =
+            new QueryObjectName("BIZ_DATA", "SALES");
 
-    private static final OracleObjectName CUSTOMERS =
-            new OracleObjectName("BIZ_DATA", "CUSTOMERS");
+    private static final QueryObjectName CUSTOMERS =
+            new QueryObjectName("BIZ_DATA", "CUSTOMERS");
 
     @Mock
     private DataAccessPolicyMapper policyMapper;
@@ -101,7 +101,7 @@ class DataAccessValidationServiceTest {
     void joinIsRejectedWhenOneTargetHasNoPolicy() {
         prepareRequester();
 
-        Set<OracleObjectName> targets = Set.of(SALES, CUSTOMERS);
+        Set<QueryObjectName> targets = Set.of(SALES, CUSTOMERS);
         preparePolicies(targets, policy(1L, SALES, "GENERAL"));
 
         assertRejected(HttpStatus.FORBIDDEN, targets);
@@ -111,7 +111,7 @@ class DataAccessValidationServiceTest {
     void mixedTargetsAreClassifiedAsSensitive() {
         prepareRequester();
 
-        Set<OracleObjectName> targets = Set.of(SALES, CUSTOMERS);
+        Set<QueryObjectName> targets = Set.of(SALES, CUSTOMERS);
         preparePolicies(targets,
                 policy(1L, SALES, "GENERAL"),
                 policy(2L, CUSTOMERS, "SENSITIVE"));
@@ -178,7 +178,7 @@ class DataAccessValidationServiceTest {
     }
 
     private void preparePolicies(
-            Set<OracleObjectName> targets,
+            Set<QueryObjectName> targets,
             DataAccessPolicy... policies) {
 
         when(policyMapper.selectPolicies(DEPT_ID, targets))
@@ -187,7 +187,7 @@ class DataAccessValidationServiceTest {
 
     private DataAccessPolicy policy(
             Long resourceId,
-            OracleObjectName target,
+            QueryObjectName target,
             String accessLevel) {
 
         DataAccessPolicy policy = new DataAccessPolicy();
@@ -201,7 +201,7 @@ class DataAccessValidationServiceTest {
 
     private void assertRejected(
             HttpStatus expectedStatus,
-            Set<OracleObjectName> targets) {
+            Set<QueryObjectName> targets) {
 
         ResponseStatusException error = assertThrows(
                 ResponseStatusException.class,
