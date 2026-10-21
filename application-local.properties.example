@@ -9,3 +9,9 @@
 spring.datasource.url=jdbc:oracle:thin:@//192.168.3.131:1521/XEPDB1
 spring.datasource.username=SQLFLOW
 spring.datasource.password=
+
+# 조회용 MySQL
+app.datasource.query.url=jdbc:mysql://192.168.3.131:3306/sqlflow_demo?sslMode=REQUIRED
+app.datasource.query.username=sqlflow_reader
+app.datasource.query.password=
+app.datasource.query.driver-class-name=com.mysql.cj.jdbc.Driver
