@@ -112,14 +112,14 @@
 
 					<div class="panel-heading">
 						<h2 id="request-approval-title">결재선</h2>
-						<span class="badge">배치 미리보기</span>
+						<span id="request-approval-badge" class="badge">미등록</span>
 					</div>
 
 					<p class="request-approval-description">
 						중간 결재자 → 소속 부서장 → DB팀 실행 승인 순서로 진행됩니다.
 					</p>
 
-					<ol class="request-approval-list">
+					<ol id="request-approval-list" class="request-approval-list">
 						<li>
 							<span class="request-approval-number" aria-hidden="true">1</span>
 							<div>
@@ -295,8 +295,12 @@
 								<tr data-line-role="DB_FINAL">
 									<td>2</td>
 									<td>DB팀 실행 승인</td>
-									<td id="approval-line-db-preview">
-										선택해 주세요
+									<td>
+									    <select id="approval-line-db-select"
+									            aria-label="DB팀 실행 승인 담당자"
+									            disabled>
+									        <option value="">선택</option>
+									    </select>
 									</td>
 									<td id="approval-line-db-department">DB팀</td>
 									<td id="approval-line-db-position">—</td>
@@ -786,6 +790,11 @@
 			let approvalLineVisibleCandidates = [];
 			let approvalLineMiddleApprovers = [];
 			let approvalLineDepartmentApprover = null;
+			let approvalLineDbCandidates = [];
+			let approvalLineDbApprover = null;
+			
+			// 적용한 결재선: 모달에서 편집하는 변수들과 별도로 보관
+			let appliedApprovalLine = null;
 
 			const approvalLineCheckedCandidateIds = new Set();
 
@@ -832,21 +841,200 @@
 			}
 
 			function isApprovalLineUserAssigned(user) {
-				const userId = approvalLineUserId(user);
+			    const userId = approvalLineUserId(user);
 
-				const isDepartmentApprover =
-					approvalLineDepartmentApprover
-					&& approvalLineUserId(approvalLineDepartmentApprover) === userId;
+			    const isDepartmentApprover =
+			        approvalLineDepartmentApprover
+			        && approvalLineUserId(approvalLineDepartmentApprover) === userId;
 
-				const isMiddleApprover =
-					approvalLineMiddleApprovers.some(function (item) {
-						return approvalLineUserId(item) === userId;
-					});
+			    const isDbApprover =
+			        approvalLineDbApprover
+			        && approvalLineUserId(approvalLineDbApprover) === userId;
 
-				return Boolean(isDepartmentApprover || isMiddleApprover);
+			    const isMiddleApprover =
+			        approvalLineMiddleApprovers.some(function (item) {
+			            return approvalLineUserId(item) === userId;
+			        });
+
+			    return Boolean(
+			        isDepartmentApprover || isDbApprover || isMiddleApprover
+			    );
+			}
+			
+			function renderApprovalLineDbApprovers() {
+			    const select = $('#approval-line-db-select');
+
+			    const departmentId = approvalLineDepartmentApprover
+			        ? approvalLineUserId(approvalLineDepartmentApprover)
+			        : null;
+
+			    const middleIds = new Set(
+			        approvalLineMiddleApprovers.map(approvalLineUserId)
+			    );
+
+			    // 새로 조회한 후보 목록에서 현재 선택을 다시 확인
+			    const selectedId = approvalLineDbApprover
+			        ? approvalLineUserId(approvalLineDbApprover)
+			        : '';
+
+			    approvalLineDbApprover = approvalLineDbCandidates.find(function (user) {
+			        const userId = approvalLineUserId(user);
+
+			        return userId === selectedId
+			            && userId !== departmentId
+			            && !middleIds.has(userId);
+			    }) || null;
+
+				select.replaceChildren(
+				    new Option('선택', '')
+				);
+
+			    approvalLineDbCandidates.forEach(function (user) {
+			        const userId = approvalLineUserId(user);
+			        const usedAsMiddle = middleIds.has(userId);
+			        const usedAsHead = userId === departmentId;
+
+			        let label = user.userName;
+
+			        if (usedAsMiddle) {
+			            label += ' · 중간 결재에 지정됨';
+			        } else if (usedAsHead) {
+			            label += ' · 소속 부서장에 지정됨';
+			        }
+
+			        const option = new Option(label, userId);
+			        option.disabled = usedAsMiddle || usedAsHead;
+
+			        select.add(option);
+			    });
+
+			    select.value = approvalLineDbApprover
+			        ? approvalLineUserId(approvalLineDbApprover)
+			        : '';
+
+			    const hasAvailableCandidate = approvalLineDbCandidates.some(function (user) {
+			        const userId = approvalLineUserId(user);
+
+			        return userId !== departmentId && !middleIds.has(userId);
+			    });
+
+			    select.disabled =
+			        approvalLineLoading
+			        || !approvalLineDepartmentApprover
+			        || !hasAvailableCandidate;
+
+			    $('#approval-line-db-department').textContent =
+			        approvalLineDbApprover?.deptName || 'DB팀';
+
+			    $('#approval-line-db-position').textContent =
+			        approvalLineDbApprover?.positionName || '—';
 			}
 
+			function getApprovalLineValidationMessage() {
+			    if (!approvalLineDepartmentApprover) {
+			        return '소속 부서장을 확인해 주세요.';
+			    }
+
+			    if (!approvalLineDbApprover) {
+			        return 'DB팀 실행 승인 담당자를 선택해 주세요.';
+			    }
+
+			    const users = [
+			        ...approvalLineMiddleApprovers,
+			        approvalLineDepartmentApprover,
+			        approvalLineDbApprover
+			    ];
+
+			    const ids = users.map(approvalLineUserId);
+
+			    if (ids.some(function (id) {
+			        const value = Number(id);
+			        return !Number.isSafeInteger(value) || value <= 0;
+			    })) {
+			        return '결재자 정보를 다시 확인해 주세요.';
+			    }
+
+			    if (new Set(ids).size !== ids.length) {
+			        return '같은 사람을 결재선에 중복 지정할 수 없습니다.';
+			    }
+
+			    const dbCandidateExists = approvalLineDbCandidates.some(function (user) {
+			        return approvalLineUserId(user)
+			            === approvalLineUserId(approvalLineDbApprover);
+			    });
+
+			    if (!dbCandidateExists) {
+			        return 'DB팀 실행 승인 담당자를 다시 선택해 주세요.';
+			    }
+
+			    return '';
+			}
+
+			function copyApprovalLine(line) {
+			    return {
+			        middleApprovers: line.middleApprovers.map(function (user) {
+			            return { ...user };
+			        }),
+			        departmentApprover: line.departmentApprover
+			            ? { ...line.departmentApprover }
+			            : null,
+			        dbApprover: line.dbApprover
+			            ? { ...line.dbApprover }
+			            : null
+			    };
+			}
+
+			function renderAppliedApprovalLine() {
+			    if (!appliedApprovalLine) {
+			        return;
+			    }
+
+			    const rows = [
+			        ...appliedApprovalLine.middleApprovers.map(function (user) {
+			            return {
+			                role: '중간 결재자',
+			                user: user
+			            };
+			        }),
+			        {
+			            role: '소속 부서장',
+			            user: appliedApprovalLine.departmentApprover
+			        },
+			        {
+			            role: 'DB팀 실행 승인',
+			            user: appliedApprovalLine.dbApprover
+			        }
+			    ];
+
+			    $('#request-approval-list').innerHTML = rows.map(function (row, index) {
+			        const user = row.user;
+
+			        const organization = [
+			            user.deptName,
+			            user.positionName
+			        ].filter(Boolean).join(' · ');
+
+			        return '<li>'
+			            + '<span class="request-approval-number" aria-hidden="true">'
+			            + (index + 1)
+			            + '</span>'
+			            + '<div>'
+			            + '<strong>' + esc(row.role) + '</strong>'
+			            + '<p>' + esc(user.userName) + '</p>'
+			            + '<span>' + esc(organization || '—') + '</span>'
+			            + '</div>'
+			            + '</li>';
+			    }).join('');
+
+			    $('#request-approval-badge').textContent = '화면 적용';
+
+			    $('#approval-preview-help').textContent =
+			        '결재선을 화면에 적용했습니다. 서버 저장은 아직 연결되지 않았습니다.';
+			}
+			
 			function updateApprovalLineControls() {
+				renderApprovalLineDbApprovers();
+				
 				approvalLineSearchFields.disabled = approvalLineLoading;
 
 				$('#approval-line-add').disabled =
@@ -856,10 +1044,14 @@
 
 				$('#approval-line-reset').disabled =
 					approvalLineLoading
-					|| approvalLineMiddleApprovers.length === 0;
+					|| (
+					    approvalLineMiddleApprovers.length === 0
+					    && approvalLineDbApprover === null
+					);
 
-				// 아직 저장·요청 적용은 연결하지 않음
-				$('#approval-line-apply').disabled = true;
+				$('#approval-line-apply').disabled =
+					approvalLineLoading
+					|| getApprovalLineValidationMessage() !== '';
 
 				approvalLineSelectedBody
 					.querySelectorAll('[data-middle-action]')
@@ -1032,12 +1224,22 @@
 					}
 
 					const head = defaults?.departmentApprover;
+					const dbApprovers = defaults?.dbApprovers;
 
 					if (!head?.userId) {
-						throw Error('소속 부서장이 지정되어 있지 않습니다.');
+					    throw Error('소속 부서장이 지정되어 있지 않습니다.');
+					}
+
+					if (!Array.isArray(dbApprovers)) {
+					    throw Error('DB팀 결재 후보 응답을 확인할 수 없습니다.');
 					}
 
 					approvalLineDepartmentApprover = head;
+					approvalLineDbCandidates = dbApprovers;
+
+					if (dbApprovers.length === 0) {
+					    showApprovalLineMessage('선택 가능한 DB팀 결재자가 없습니다.');
+					}
 
 					$('#approval-line-head-preview').textContent =
 						head.userName;
@@ -1103,34 +1305,71 @@
 			// 모달 열기·검색
 			// --------------------------------------------------
 
-			approvalLineOpenButton.addEventListener('click', function () {
-				if (this.disabled || approvalLineDialog.open) {
-					return;
-				}
+			approvalLineOpenButton.addEventListener('click', async function () {
+			    if (this.disabled || approvalLineDialog.open) {
+			        return;
+			    }
 
-				approvalLineDepartmentApprover = null;
-				approvalLineMiddleApprovers = [];
-				approvalLineVisibleCandidates = [];
-				approvalLineCheckedCandidateIds.clear();
+			    const restoredLine = appliedApprovalLine
+			        ? copyApprovalLine(appliedApprovalLine)
+			        : null;
 
-				$('#approval-line-keyword').value = '';
-				$('#approval-line-name').value = '';
+			    approvalLineDepartmentApprover = null;
 
-				$('#approval-line-head-preview').textContent =
-					'확인 중입니다.';
+			    approvalLineMiddleApprovers = restoredLine
+			        ? restoredLine.middleApprovers
+			        : [];
 
-				$('#approval-line-head-department').textContent = '—';
-				$('#approval-line-head-position').textContent = '—';
+			    approvalLineVisibleCandidates = [];
+			    approvalLineCheckedCandidateIds.clear();
 
-				$('#approval-line-db-preview').textContent = '선택해 주세요';
-				$('#approval-line-db-department').textContent = 'DB팀';
-				$('#approval-line-db-position').textContent = '—';
+			    approvalLineDbCandidates = [];
+			    approvalLineDbApprover = null;
+			    approvalLineLoading = true;
 
-				showApprovalLineMessage('');
-				renderApprovalLineMiddleApprovers();
+			    $('#approval-line-keyword').value = '';
+			    $('#approval-line-name').value = '';
 
-				approvalLineDialog.showModal();
-				loadApprovalLineCandidates(false);
+			    $('#approval-line-head-preview').textContent = '확인 중입니다.';
+			    $('#approval-line-head-department').textContent = '—';
+			    $('#approval-line-head-position').textContent = '—';
+
+			    showApprovalLineMessage('');
+			    renderApprovalLineMiddleApprovers();
+
+			    approvalLineDialog.showModal();
+
+			    // 부서장과 DB팀 후보는 서버에서 최신 정보로 다시 확인
+			    const loading = loadApprovalLineCandidates(false);
+			    const version = approvalLineCandidateVersion;
+
+			    await loading;
+
+			    // 조회 도중 닫았거나 다른 조회가 시작됐다면 복원하지 않음
+			    if (
+			        !approvalLineDialog.open
+			        || version !== approvalLineCandidateVersion
+			        || !approvalLineDepartmentApprover
+			    ) {
+			        return;
+			    }
+
+			    if (restoredLine?.dbApprover) {
+			        const previousId = approvalLineUserId(restoredLine.dbApprover);
+
+			        approvalLineDbApprover =
+			            approvalLineDbCandidates.find(function (user) {
+			                return approvalLineUserId(user) === previousId;
+			            }) || null;
+
+			        updateApprovalLineControls();
+
+			        if (!approvalLineDbApprover) {
+			            showApprovalLineMessage(
+			                '기존 DB팀 담당자를 지정할 수 없습니다. 다시 선택해 주세요.'
+			            );
+			        }
+			    }
 			});
 
 			$('#approval-line-search').addEventListener('click', function () {
@@ -1186,7 +1425,49 @@
 				updateApprovalLineControls();
 			});
 
+			// DB팀 실행 승인 담당자 선택
+			$('#approval-line-db-select').addEventListener('change', function () {
+			    if (approvalLineLoading || this.disabled) {
+			        return;
+			    }
 
+			    const selectedId = this.value;
+
+			    const user = approvalLineDbCandidates.find(function (item) {
+			        return approvalLineUserId(item) === selectedId;
+			    }) || null;
+
+			    if (user) {
+			        const userId = approvalLineUserId(user);
+
+			        const usedAsHead =
+			            approvalLineDepartmentApprover
+			            && approvalLineUserId(approvalLineDepartmentApprover) === userId;
+
+			        const usedAsMiddle =
+			            approvalLineMiddleApprovers.some(function (item) {
+			                return approvalLineUserId(item) === userId;
+			            });
+
+			        if (usedAsHead || usedAsMiddle) {
+			            updateApprovalLineControls();
+			            showApprovalLineMessage('이미 결재선에 지정된 사용자입니다.');
+			            return;
+			        }
+			    }
+
+			    approvalLineDbApprover = user;
+			    approvalLineCheckedCandidateIds.clear();
+
+			    updateApprovalLineControls();
+
+			    if (approvalLineVisibleCandidates.length > 0) {
+			        renderApprovalLineCandidates(approvalLineVisibleCandidates);
+			    }
+
+			    showApprovalLineMessage('');
+			});
+			
 			// --------------------------------------------------
 			// 중간 결재자 추가
 			// --------------------------------------------------
@@ -1286,30 +1567,58 @@
 			// --------------------------------------------------
 
 			$('#approval-line-reset').addEventListener('click', function () {
-				if (approvalLineLoading
-					|| approvalLineMiddleApprovers.length === 0) {
-					return;
-				}
+			    if (
+			        approvalLineLoading
+			        || (
+			            approvalLineMiddleApprovers.length === 0
+			            && approvalLineDbApprover === null
+			        )
+			    ) {
+			        return;
+			    }
 
-				if (!window.confirm('추가한 중간 결재자를 모두 제거하시겠습니까?')) {
-					return;
-				}
+			    if (!window.confirm('구성한 결재선을 초기화하시겠습니까?')) {
+			        return;
+			    }
 
-				approvalLineMiddleApprovers = [];
-				approvalLineCheckedCandidateIds.clear();
+			    approvalLineMiddleApprovers = [];
+			    approvalLineDbApprover = null;
+			    approvalLineCheckedCandidateIds.clear();
 
-				renderApprovalLineMiddleApprovers();
+			    renderApprovalLineMiddleApprovers();
 
-				if (approvalLineVisibleCandidates.length > 0) {
-					renderApprovalLineCandidates(approvalLineVisibleCandidates);
-				}
+			    if (approvalLineVisibleCandidates.length > 0) {
+			        renderApprovalLineCandidates(approvalLineVisibleCandidates);
+			    }
 
-				showApprovalLineMessage(
-					'중간 결재자를 제거하고 기본 구성으로 초기화했습니다.'
-				);
+			    showApprovalLineMessage(
+			        '중간 결재자와 DB팀 담당자 선택을 초기화했습니다.'
+			    );
 			});
 
+			// 이 요청에 결재선 적용
+			$('#approval-line-apply').addEventListener('click', function () {
+			    if (approvalLineLoading || this.disabled) {
+			        return;
+			    }
 
+			    const validationMessage = getApprovalLineValidationMessage();
+
+			    if (validationMessage) {
+			        showApprovalLineMessage(validationMessage);
+			        return;
+			    }
+
+			    appliedApprovalLine = copyApprovalLine({
+			        middleApprovers: approvalLineMiddleApprovers,
+			        departmentApprover: approvalLineDepartmentApprover,
+			        dbApprover: approvalLineDbApprover
+			    });
+
+			    renderAppliedApprovalLine();
+			    approvalLineDialog.close();
+			});
+			
 			// --------------------------------------------------
 			// 닫기
 			// --------------------------------------------------
