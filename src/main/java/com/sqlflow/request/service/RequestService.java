@@ -272,7 +272,7 @@ public class RequestService {
 
 		// 3. 결재자 재검증 및 결재선 생성
 		// 준오 구현에서 APPROVAL_STATUS도 PENDING으로 설정
-		approvalLineCreator.createApprovalLine(requestId, actorId, input.getDbApproverId());
+		approvalLineCreator.createApprovalLine(requestId, actorId, input.getIntermediateApproverIds(), input.getDbApproverId());
 
 		// 4. 요청 상태 및 제출 시각 변경
 		int updatedCount = requestMapper.submitDraft(requestId, actorId);
