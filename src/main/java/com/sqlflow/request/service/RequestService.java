@@ -112,7 +112,13 @@ public class RequestService {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
 		}
 
-		detail.setItems(requestMapper.selectMyRequestItems(requestId, drafterId));
+		detail.setItems(
+		        requestMapper.selectMyRequestItems(requestId, drafterId)
+		);
+
+		detail.setApprovals(
+		        requestMapper.selectMyRequestApprovals(requestId, drafterId)
+		);
 
 		return detail;
 	}
