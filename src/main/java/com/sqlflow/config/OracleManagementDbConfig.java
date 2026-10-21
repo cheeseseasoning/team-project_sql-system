@@ -21,7 +21,8 @@ import org.springframework.transaction.PlatformTransactionManager;
         "com.sqlflow.auth.mapper",
         "com.sqlflow.request.mapper",
         "com.sqlflow.approval.mapper",
-        "com.sqlflow.execution.mapper"
+        "com.sqlflow.execution.mapper",
+        "com.sqlflow.access.mapper"
     },
     sqlSessionFactoryRef = "managementSqlSessionFactory"
 )
@@ -66,7 +67,9 @@ public class OracleManagementDbConfig {
                 "classpath*:/mapper/request/**/*.xml",
                 "classpath*:/mapper/approval/**/*.xml",
                 "classpath*:/mapper/execution/**/*.xml",
-                "classpath*:/mapper/metadata/**/*.xml"
+                "classpath*:/mapper/metadata/**/*.xml",
+                "classpath*:/mapper/access/**/*.xml"
+                
         }) {
             java.util.Collections.addAll(
                     locations,
