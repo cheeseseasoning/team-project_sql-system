@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.sqlflow.approval.dto.ApprovalCandidateResponse;
+import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.approval.mapper.ApprovalMapper;
 import com.sqlflow.approval.service.ApprovalService;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
@@ -49,6 +50,10 @@ class ApprovalMapperIntegrationTest {
                 Long.MIN_VALUE, Long.MIN_VALUE));
         assertEquals(List.of(), approvalMapper.selectPendingApprovalItems(
                 Long.MIN_VALUE, Long.MIN_VALUE));
+        assertEquals(0, approvalMapper.canViewApprovalHistory(
+        		Long.MIN_VALUE, Long.MIN_VALUE));
+        assertEquals(List.of(),
+        		approvalMapper.selectApprovalHistory(Long.MIN_VALUE));
     }
 
     @Test
@@ -121,6 +126,21 @@ class ApprovalMapperIntegrationTest {
                 "SELECT STATUS FROM APPROVAL WHERE REQUEST_ID = ? AND APPROVAL_ORDER = 2",
                 String.class,
                 requestId));
+        
+        List<ApprovalHistoryResponse> history =
+                approvalService.getApprovalHistory(requestId, fixture.requesterId());
+
+        assertEquals(2, history.size());
+
+        assertEquals(1, history.get(0).getApprovalOrder());
+        assertEquals("DIRECTOR", history.get(0).getApprovalType());
+        assertEquals("APPROVED", history.get(0).getStatus());
+        assertNotNull(history.get(0).getDecidedAt());
+
+        assertEquals(2, history.get(1).getApprovalOrder());
+        assertEquals("DB_EXECUTION", history.get(1).getApprovalType());
+        assertEquals("APPROVED", history.get(1).getStatus());
+        assertNotNull(history.get(1).getDecidedAt());
     }
 
     private SubmissionFixture findSubmissionFixture() {

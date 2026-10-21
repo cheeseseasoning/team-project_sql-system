@@ -15,6 +15,7 @@ import com.sqlflow.approval.domain.ApprovalRequestContext;
 import com.sqlflow.approval.domain.PendingApproval;
 import com.sqlflow.approval.dto.ApprovalCandidateResponse;
 import com.sqlflow.approval.dto.ApprovalCandidatesResponse;
+import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.approval.dto.PendingApprovalResponse;
 import com.sqlflow.approval.mapper.ApprovalMapper;
 import com.sqlflow.request.dto.RequestDetailResponse;
@@ -49,6 +50,19 @@ public class ApprovalService implements ApprovalLineCreator {
         detail.setItems(
                 approvalMapper.selectPendingApprovalItems(requestId, approverId));
         return detail;
+    }
+    
+    @Transactional(readOnly = true)
+    public List<ApprovalHistoryResponse> getApprovalHistory(
+            Long requestId,
+            Long actorId) {
+        if (approvalMapper.canViewApprovalHistory(requestId, actorId) != 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "조회 요청을 찾을 수 없습니다.");
+        }
+
+        return approvalMapper.selectApprovalHistory(requestId);
     }
 
     @Transactional

@@ -5,6 +5,57 @@
 
 <mapper namespace="com.sqlflow.approval.mapper.ApprovalMapper">
 
+    <resultMap id="approvalHistoryResponseMap"
+               type="com.sqlflow.approval.dto.ApprovalHistoryResponse">
+        <result property="approvalOrder" column="APPROVAL_ORDER"/>
+        <result property="approvalType" column="APPROVAL_TYPE"/>
+        <result property="approverId" column="APPROVER_ID"/>
+        <result property="approverName" column="APPROVER_NAME"/>
+        <result property="deptName" column="DEPT_NAME"/>
+        <result property="positionName" column="POSITION_NAME"/>
+        <result property="status" column="STATUS"/>
+        <result property="commentText" column="COMMENT_TEXT"/>
+        <result property="createdAt" column="CREATED_AT"/>
+        <result property="decidedAt" column="DECIDED_AT"/>
+    </resultMap>
+
+    <!-- 요청 작성자 또는 결재선에 포함된 사용자만 이력을 조회할 수 있습니다. -->
+    <select id="canViewApprovalHistory" resultType="int">
+        SELECT COUNT(*)
+        FROM QUERY_REQUEST Q
+        WHERE Q.REQUEST_ID = #{requestId}
+          AND (
+              Q.DRAFTER_ID = #{actorId}
+              OR EXISTS (
+                  SELECT 1
+                  FROM APPROVAL A
+                  WHERE A.REQUEST_ID = Q.REQUEST_ID
+                    AND A.APPROVER_ID = #{actorId}
+              )
+          )
+    </select>
+
+    <!-- 승인·반려·대기·취소 상태를 포함한 결재선 전체 이력 -->
+    <select id="selectApprovalHistory"
+            resultMap="approvalHistoryResponseMap">
+        SELECT A.APPROVAL_ORDER,
+               A.APPROVAL_TYPE,
+               A.APPROVER_ID,
+               U.USER_NAME AS APPROVER_NAME,
+               D.DEPT_NAME,
+               P.POSITION_NAME,
+               A.STATUS,
+               A.COMMENT_TEXT,
+               A.CREATED_AT,
+               A.DECIDED_AT
+        FROM APPROVAL A
+        JOIN USERS U ON U.USER_ID = A.APPROVER_ID
+        LEFT JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+        LEFT JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
+        WHERE A.REQUEST_ID = #{requestId}
+        ORDER BY A.APPROVAL_ORDER
+    </select>
+
     <!-- 현재 결재 대기 항목과 사용자 자격을 매 요청마다 재검증 -->
     <sql id="pendingApprovalEligibility">
         AND A.APPROVER_ID = #{approverId}

@@ -5,10 +5,11 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import com.sqlflow.approval.domain.ApprovalRequestContext;
 import com.sqlflow.approval.domain.ApprovalActionContext;
+import com.sqlflow.approval.domain.ApprovalRequestContext;
 import com.sqlflow.approval.domain.PendingApproval;
 import com.sqlflow.approval.dto.ApprovalCandidateResponse;
+import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.approval.dto.PendingApprovalResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestItemResponse;
@@ -18,6 +19,13 @@ public interface ApprovalMapper {
 
     List<PendingApprovalResponse> selectPendingApprovals(
             @Param("approverId") Long approverId);
+
+    int canViewApprovalHistory(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId);
+
+    List<ApprovalHistoryResponse> selectApprovalHistory(
+            @Param("requestId") Long requestId);
 
     RequestDetailResponse selectPendingApprovalDetail(
             @Param("requestId") Long requestId,
@@ -35,10 +43,10 @@ public interface ApprovalMapper {
 
     List<ApprovalCandidateResponse> selectDbApprovers(
             @Param("departmentApproverId") Long departmentApproverId);
-    
+
     List<ApprovalCandidateResponse> searchActiveCandidates(
-    		@Param("keyword") String keyword,
-    		@Param("excludedUserId") Long excludedUserId);
+            @Param("keyword") String keyword,
+            @Param("excludedUserId") Long excludedUserId);
 
     int insertApproval(
             @Param("requestId") Long requestId,
@@ -58,28 +66,20 @@ public interface ApprovalMapper {
             @Param("approvalId") Long approvalId,
             @Param("approverId") Long approverId);
 
-    int activateNextApproval(@Param("requestId") Long requestId);
+    int activateNextApproval(
+            @Param("requestId") Long requestId);
 
-    int markRequestApproved(@Param("requestId") Long requestId);
-    
+    int markRequestApproved(
+            @Param("requestId") Long requestId);
+
     int rejectPendingApproval(
-    		@Param("approvalId") Long approvalId,
-    		@Param("approverId") Long approverId,
-    		@Param("commentText") String commentText);
-    
+            @Param("approvalId") Long approvalId,
+            @Param("approverId") Long approverId,
+            @Param("commentText") String commentText);
+
     int cancelWaitingApprovals(
-    		@Param("requestId") Long requestId);
-    
+            @Param("requestId") Long requestId);
+
     int markRequestRejected(
-    		@Param("requestId") Long requestId);
+            @Param("requestId") Long requestId);
 }
-
-
-
-
-
-
-
-
-
-

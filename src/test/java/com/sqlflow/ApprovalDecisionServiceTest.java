@@ -1,6 +1,7 @@
 package com.sqlflow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
@@ -13,6 +14,7 @@ import com.sqlflow.approval.domain.ApprovalActionContext;
 import com.sqlflow.approval.domain.ApprovalRequestContext;
 import com.sqlflow.approval.domain.PendingApproval;
 import com.sqlflow.approval.dto.ApprovalCandidateResponse;
+import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.approval.dto.PendingApprovalResponse;
 import com.sqlflow.approval.mapper.ApprovalMapper;
 import com.sqlflow.approval.service.ApprovalService;
@@ -35,6 +37,28 @@ class ApprovalDecisionServiceTest {
         mapper.currentPending.setApprovalId(200L);
         mapper.currentPending.setApprovalOrder(1);
         mapper.currentPending.setApprovalType("DIRECTOR");
+    }
+    
+    @Test
+    void requestAuthorCanReadApprovalHistory() {
+    	ApprovalHistoryResponse history = new ApprovalHistoryResponse();
+    	history.setApprovalOrder(1);
+    	history.setApprovalType("DIRECTOR");
+    	history.setStatus("APPROVED");
+    	
+    	mapper.approvalHistory = List.of(history);
+    	
+    	List<ApprovalHistoryResponse> result = 
+    			approvalService.getApprovalHistory(REQUEST_ID, 1L);
+    	
+    	assertSame(history, result.get(0));
+    }
+    
+    @Test
+    void unrelatedUserCannotReadApprovalHistory() {
+    	assertThrows(
+    			ResponseStatusException.class,
+    			() -> approvalService.getApprovalHistory(REQUEST_ID, 999L));
     }
 
     @Test
@@ -152,10 +176,28 @@ class ApprovalDecisionServiceTest {
         private String approvalStatus = "PENDING";
         private String nextApprovalStatus = "WAITING";
         private String rejectionComment;
+        private List<ApprovalHistoryResponse> approvalHistory = List.of();
 
         @Override
         public List<PendingApprovalResponse> selectPendingApprovals(Long approverId) {
             return List.of();
+        }
+        
+        @Override
+        public int canViewApprovalHistory(Long requestId, Long actorId) {
+        	if(!REQUEST_ID.equals(requestId)) {
+        		return 0;
+        	}
+        	
+        	return actorId.equals(request.getDrafterId())
+        			|| APPROVER_ID.equals(actorId)
+        			? 1
+        			: 0;
+        }
+        
+        @Override
+        public List<ApprovalHistoryResponse> selectApprovalHistory(Long requestId) {
+        	return approvalHistory;
         }
         
         @Override
