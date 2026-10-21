@@ -135,7 +135,19 @@
 				</aside>
 
 			</div>
-
+			
+			<section id="approval-history-panel"
+			         class="panel section-gap approval-history-panel"
+			         aria-labelledby="approval-history-title"
+			         hidden>
+				<div class="panel-heading">
+					<h2 id="approval-history-title">결재 이력</h2>
+				</div>
+				<ol id="approval-history-list" class="approval-history-list">
+					<li class="empty">결재 이력을 불러오는 중입니다.</li>
+				</ol>
+			</section>
+			
 			<!-- 아래: SQL은 전체 너비 사용 -->
 			<section class="panel section-gap request-sql-panel">
 				<div class="panel-heading">
@@ -395,6 +407,70 @@
 						+ '</article>';
 				}).join('');
 			}
+			
+			function renderApprovalHistory(items) {
+				if (!Array.isArray(items) || items.length === 0) {
+					return '<li class="empty">등록된 결재 이력이 없습니다.</li>';
+				}
+
+				const typeNames = {
+					INTERMEDIATE: '중간 결재',
+					DIRECTOR: '부서장 결재',
+					DB_EXECUTION: 'DB팀 실행 승인'
+				};
+				const statusNames = {
+					WAITING: '대기',
+					PENDING: '결재 대기',
+					APPROVED: '승인',
+					REJECTED: '반려',
+					CANCELLED: '취소'
+				};
+
+				return items.map(function (item) {
+					const typeName =
+						typeNames[item.approvalType] || item.approvalType || '-';
+					const statusName =
+						statusNames[item.status] || item.status || '-';
+					const comment = item.commentText
+						? '<p class="approval-history-comment">'
+							+ esc(item.commentText)
+							+ '</p>'
+						: '';
+
+					return '<li class="approval-history-item">'
+						+ '<div class="panel-heading">'
+						+ '<strong>' + esc(typeName) + '</strong>'
+						+ badge(statusName)
+						+ '</div>'
+						+ '<p>' + esc(item.approverName || '-')
+						+ ' · ' + esc(item.deptName || '-')
+						+ ' · ' + esc(item.positionName || '-') + '</p>'
+						+ comment
+						+ '<p class="caption">처리 시각: '
+						+ esc(item.decidedAt
+							? formatDetailDate(item.decidedAt)
+							: '아직 처리되지 않았습니다.')
+						+ '</p>'
+						+ '</li>';
+				}).join('');
+			}
+
+			async function loadApprovalHistory() {
+				const panel = $('#approval-history-panel');
+				const list = $('#approval-history-list');
+
+				try {
+					const items = await api(
+						'/approvals/' + encodeURIComponent(requestId) + '/history'
+					);
+					list.innerHTML = renderApprovalHistory(items);
+				} catch (error) {
+					list.innerHTML =
+						'<li class="empty">결재 이력을 불러오지 못했습니다.</li>';
+				}
+
+				panel.hidden = false;
+			}
 
 			async function loadDetail() {
 				try {
@@ -495,6 +571,8 @@
 					$('#request-info').hidden = false;	
 					
 					$('#request-info').hidden = false;
+					
+					await loadApprovalHistory();
 
 				} catch (error) {
 					$('#detail-title').textContent = '조회 요청 상세';
