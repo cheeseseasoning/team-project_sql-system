@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.access.mapper.DataAccessPolicyMapper">
+
+    <!-- 세션에 남은 정보 대신 현재 계정 상태와 소속 부서를 확인한다. -->
+    <select id="selectRequester"
+            resultType="com.sqlflow.auth.domain.UserAccount">
+        SELECT USER_ID,
+               DEPT_ID,
+               ENABLED
+        FROM USERS
+        WHERE USER_ID = #{userId}
+    </select>
+
+    <!--
+        등록 대상과 부서 정책이 모두 활성인 경우만 반환한다.
+        여러 테이블·뷰의 정책을 한 번에 조회한다.
+    -->
+    <select id="selectPolicies"
+            resultType="com.sqlflow.access.domain.DataAccessPolicy">
+        SELECT R.RESOURCE_ID,
+               P.POLICY_ID,
+               R.SCHEMA_NAME AS OWNER,
+               R.OBJECT_NAME,
+               P.ACCESS_LEVEL
+        FROM DATA_RESOURCE R
+        JOIN DATA_ACCESS_POLICY P
+          ON P.RESOURCE_ID = R.RESOURCE_ID
+        WHERE R.ENABLED = 'Y'
+          AND P.ENABLED = 'Y'
+          AND P.DEPT_ID = #{deptId}
+
+        <choose>
+            <when test="targets != null and !targets.isEmpty()">
+                AND (
+                    <foreach collection="targets"
+                             item="target"
+                             separator=" OR ">
+                        (
+                            R.SCHEMA_NAME = #{target.owner}
+                            AND R.OBJECT_NAME = #{target.objectName}
+                        )
+                    </foreach>
+                )
+            </when>
+            <otherwise>
+                AND 1 = 0
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>
