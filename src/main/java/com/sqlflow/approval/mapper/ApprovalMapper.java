@@ -57,4 +57,25 @@ public interface ApprovalMapper {
     int activateNextApproval(@Param("requestId") Long requestId);
 
     int markRequestApproved(@Param("requestId") Long requestId);
+    
+    int rejectPendingApproval(
+    		@Param("approvalId") Long approvalId,
+    		@Param("approverId") Long approverId,
+    		@Param("commentText") String commentText);
+    
+    int cancelWaitingApprovals(
+    		@Param("requestId") Long requestId);
+    
+    int markRequestRejected(
+    		@Param("requestId") Long requestId);
 }
+
+
+
+
+
+
+
+
+
+

@@ -61,10 +61,10 @@ class ApprovalServiceTest {
 
         var result = approvalService.getApprovalCandidates(REQUEST_ID, ACTOR_ID);
 
-        assertEquals(DEPARTMENT_APPROVER_ID, result.departmentApprover().userId());
+        assertEquals(DEPARTMENT_APPROVER_ID, result.getDepartmentApprover().getUserId());
         assertEquals(List.of(DB_APPROVER_ID),
-                result.dbApprovers().stream()
-                        .map(ApprovalCandidateResponse::userId)
+                result.getDbApprovers().stream()
+                        .map(ApprovalCandidateResponse::getUserId)
                         .toList());
         verify(approvalMapper).selectDepartmentApprovers(DEPARTMENT_ID);
     }
