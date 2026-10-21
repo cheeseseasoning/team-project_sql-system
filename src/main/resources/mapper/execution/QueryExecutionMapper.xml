@@ -55,5 +55,28 @@
           AND STATUS = 'RUNNING'
           AND #{status} IN ('SUCCESS', 'FAILED')
     </update>
+    
+    <!-- 요청에 저장된 SQL 원문과 실행·요청·결재 상태를 함께 조회한다. -->
+	<select id="selectExecutionTarget"
+	        resultType="com.sqlflow.execution.domain.QueryExecutionTarget">
+	    SELECT E.EXECUTION_ID,
+	           E.BATCH_ID,
+	           B.REQUEST_ID,
+	           E.QUERY_ID,
+	           E.STATUS AS EXECUTION_STATUS,
+	           B.BATCH_STATUS,
+	           R.REQUEST_STATUS,
+	           R.APPROVAL_STATUS,
+	           I.SQL_TEXT
+	    FROM QUERY_EXECUTION E
+	    JOIN EXECUTION_BATCH B
+	        ON B.BATCH_ID = E.BATCH_ID
+	    JOIN QUERY_REQUEST R
+	        ON R.REQUEST_ID = B.REQUEST_ID
+	    JOIN QUERY_ITEM I
+	        ON I.QUERY_ID = E.QUERY_ID
+	       AND I.REQUEST_ID = B.REQUEST_ID
+	    WHERE E.EXECUTION_ID = #{executionId}
+	</select>
 
 </mapper>

@@ -10,7 +10,26 @@
     <meta name="csrf-header" content="${_csrf.headerName}">
 
     <title><c:out value="${pageTitle}"/> | SQLFlow</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/sqlflow.css">
+    
+    <link rel="stylesheet"
+      href="${pageContext.request.contextPath}/css/sqlflow.css">
+      
+	<link rel="stylesheet"
+      href="${pageContext.request.contextPath}/css/layout.css">
+      
+    <c:if test="${page == 'home'}">
+	    <link rel="stylesheet"
+	          href="${pageContext.request.contextPath}/css/pages/dashboard.css">
+	</c:if>
+      
+    <c:if test="${page == 'request-form'
+	           or page == 'request-review'
+	           or page == 'request-edit'
+	           or page == 'request-detail'
+	           or page == 'requests'}">
+	    <link rel="stylesheet"
+	          href="${pageContext.request.contextPath}/css/pages/request.css">
+	</c:if>
 </head>
 <body>
     <div class="app-shell">
@@ -54,10 +73,12 @@
         <div class="workspace">
             <header class="header">
                 <div class="breadcrumb">
-                    <a href="${pageContext.request.contextPath}/">SQLFlow</a>
-                    <span>›</span>
-                    <c:out value="${pageTitle}"/>
-                </div>
+				    <a href="${pageContext.request.contextPath}/">SQLFlow</a>
+				    <span aria-hidden="true">›</span>
+				    <span class="breadcrumb-current">
+				        <c:out value="${pageTitle}"/>
+				    </span>
+				</div>
 
                 <div class="header-tools">
                     <form class="header-search"

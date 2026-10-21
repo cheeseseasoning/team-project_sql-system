@@ -50,7 +50,7 @@ class ApprovalDecisionServiceTest {
     @Test
     void dbFinalApprovalMarksApprovalAndRequestApprovedAndReady() {
         mapper.currentPending.setApprovalOrder(2);
-        mapper.currentPending.setApprovalType("INTERMEDIATE");
+        mapper.currentPending.setApprovalType("DB_EXECUTION");
 
         approvalService.approve(REQUEST_ID, APPROVER_ID);
 
@@ -72,6 +72,7 @@ class ApprovalDecisionServiceTest {
     @Test
     void requesterCannotApproveOwnRequest() {
         mapper.request.setDrafterId(APPROVER_ID);
+        mapper.currentPending.setApprovalType("INTERMEDIATE");
 
         assertThrows(ResponseStatusException.class,
                 () -> approvalService.approve(REQUEST_ID, APPROVER_ID));
@@ -101,7 +102,7 @@ class ApprovalDecisionServiceTest {
     @Test
     void dbApproverCanRejectAtFinalApprovalStage() {
     	mapper.currentPending.setApprovalOrder(2);
-    	mapper.currentPending.setApprovalType("INTERMEDIATE");
+		mapper.currentPending.setApprovalType("DB_EXECUTION");
     	
     	approvalService.reject(REQUEST_ID, APPROVER_ID, "재검토가 필요합니다.");
     	
@@ -113,6 +114,7 @@ class ApprovalDecisionServiceTest {
     @Test
     void requesterCannotRejectOwnRequest() {
     	mapper.request.setDrafterId(APPROVER_ID);
+		mapper.currentPending.setApprovalType("INTERMEDIATE");
     	
     	assertThrows(
     			ResponseStatusException.class,
@@ -204,6 +206,11 @@ class ApprovalDecisionServiceTest {
 
         @Override
         public PendingApproval selectPendingApprovalForUpdate(Long requestId, Long approverId) {
+            if (currentPending != null
+                    && approverId.equals(request.getDrafterId())
+                    && !"DIRECTOR".equals(currentPending.getApprovalType())) {
+                return null;
+            }
             return currentPending;
         }
 
