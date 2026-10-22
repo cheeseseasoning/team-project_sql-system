@@ -77,5 +77,12 @@ public interface RequestMapper {
     List<RequestApprovalResponse> selectMyRequestApprovals(
             @Param("requestId") Long requestId,
             @Param("drafterId") Long drafterId);
+
+    /** Save the validation status for one SQL belonging to the owner's draft. */
+    int updateDraftItemValidationStatus(
+            @Param("requestId") Long requestId,
+            @Param("queryId") Long queryId,
+            @Param("drafterId") Long drafterId,
+            @Param("validationStatus") String validationStatus);
     
 }

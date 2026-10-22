@@ -56,14 +56,16 @@
             QUERY_ORDER,
             QUERY_TITLE,
             SQL_TEXT,
-            AUTHORING_TYPE
+            AUTHORING_TYPE,
+            VALIDATION_STATUS
         ) VALUES (
             #{queryId},
             #{requestId},
             #{queryOrder},
             #{queryTitle},
             #{sqlText, jdbcType=CLOB},
-            #{authoringType}
+            #{authoringType},
+            'PENDING'
         )
     </insert>
     
@@ -103,6 +105,22 @@
 	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
 	
 	</select>
+
+	<!-- 초안 소유자만 자신의 SQL 검증 상태를 갱신할 수 있다. -->
+	<update id="updateDraftItemValidationStatus">
+	    UPDATE QUERY_ITEM
+	    SET VALIDATION_STATUS = #{validationStatus}
+	    WHERE QUERY_ID = #{queryId}
+	      AND REQUEST_ID = #{requestId}
+	      AND #{validationStatus} IN ('PENDING', 'VALID', 'INVALID')
+	      AND EXISTS (
+	          SELECT 1
+	          FROM QUERY_REQUEST R
+	          WHERE R.REQUEST_ID = QUERY_ITEM.REQUEST_ID
+	            AND R.DRAFTER_ID = #{drafterId}
+	            AND R.REQUEST_STATUS = 'DRAFT'
+	      )
+	</update>
 	
 	<!-- 본인 요청의 상세 정보 -->
 	<select id="selectMyRequestDetail"

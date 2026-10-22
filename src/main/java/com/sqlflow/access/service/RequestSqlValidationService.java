@@ -1,12 +1,19 @@
 package com.sqlflow.access.service;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Objects;
 
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.TransactionException;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.sqlflow.execution.service.SqlParserValidator;
 import com.sqlflow.execution.service.MySqlQueryMetadataValidationService;
+import com.sqlflow.request.dto.RequestItemResponse;
+import com.sqlflow.request.dto.RequestSqlValidationResult;
 
 import lombok.RequiredArgsConstructor;
 
@@ -20,6 +27,7 @@ public class RequestSqlValidationService {
 
     private final MySqlQueryMetadataValidationService metadataValidationService;
     private final DataAccessValidationService dataAccessValidationService;
+    private final SqlParserValidator sqlParserValidator;
 
     /**
      * SQL 중 하나라도 검증에 실패하면 예외를 전달하여 제출을 차단한다.
@@ -34,10 +42,54 @@ public class RequestSqlValidationService {
         }
 
         for (String sqlText : sqlTexts) {
-            var metadata = metadataValidationService.validate(sqlText);
-
-            dataAccessValidationService.validate(
-                    requesterId, metadata.resources());
+            validateOne(requesterId, sqlText);
         }
+    }
+
+    /** Validate every saved item independently so the UI can show each result. */
+    public List<RequestSqlValidationResult> validateItems(
+            Long requesterId,
+            List<RequestItemResponse> items) {
+
+        if (items == null || items.isEmpty() || items.size() > 5) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "검증하려면 SQL을 1개 이상, 5개 이하로 등록하세요.");
+        }
+
+        List<RequestSqlValidationResult> results = new ArrayList<>();
+        for (RequestItemResponse item : items) {
+            try {
+                var access = validateOne(requesterId, item.getSqlText());
+                results.add(new RequestSqlValidationResult(
+                        item.getQueryId(), "VALID", "검증을 통과했습니다.",
+                        access.accessLevel(), access.resourceIds().stream().sorted().toList()));
+            } catch (ResponseStatusException exception) {
+                String message = Objects.requireNonNullElse(
+                        exception.getReason(), "SQL 검증에 실패했습니다.");
+                results.add(new RequestSqlValidationResult(
+                        item.getQueryId(), "INVALID", message, null, List.of()));
+            }
+        }
+        return results;
+    }
+
+    private DataAccessValidationService.ValidationResult validateOne(
+            Long requesterId, String sqlText) {
+        // Parse before entering the MySQL-backed metadata transaction so malformed
+        // SQL can still receive a useful validation result while MySQL is unavailable.
+        sqlParserValidator.parseSelect(sqlText);
+
+        MySqlQueryMetadataValidationService.ValidationResult metadata;
+        try {
+            metadata = metadataValidationService.validate(sqlText);
+        } catch (DataAccessException | TransactionException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "SQL 검증에 필요한 MySQL 메타데이터 DB에 연결할 수 없습니다. "
+                            + "DB 연결 상태를 확인한 뒤 다시 검증하세요.",
+                    exception);
+        }
+        return dataAccessValidationService.validate(requesterId, metadata.resources());
     }
 }
