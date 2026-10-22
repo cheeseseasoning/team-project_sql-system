@@ -26,6 +26,7 @@ import com.sqlflow.access.service.RequestSqlValidationService;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestSubmitRequest;
+import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.mapper.RequestMapper;
 import com.sqlflow.request.service.ApprovalLineCreator;
 import com.sqlflow.request.service.RequestService;
@@ -197,5 +198,46 @@ class RequestSubmissionServiceTest {
 
         verifyNoInteractions(approvalLineCreator);
         verify(requestMapper, never()).submitDraft(any(), any());
+    }
+
+    @Test
+    void draftValidationStoresEachSqlStatusAndReturnsResults() {
+        RequestItemResponse first = new RequestItemResponse();
+        first.setQueryId(101L);
+        first.setSqlText("SELECT 1 FROM BIZ_DATA.SALES");
+        RequestItemResponse second = new RequestItemResponse();
+        second.setQueryId(102L);
+        second.setSqlText("SELECT * FROM BIZ_DATA.UNKNOWN_TABLE");
+        when(requestMapper.selectMyRequestStatusForUpdate(2L, 1L))
+                .thenReturn("DRAFT");
+        when(requestMapper.selectMyRequestItems(2L, 1L))
+                .thenReturn(List.of(first, second));
+
+        List<RequestSqlValidationResult> results = List.of(
+                new RequestSqlValidationResult(101L, "VALID", "검증을 통과했습니다.", "GENERAL", List.of(4L)),
+                new RequestSqlValidationResult(102L, "INVALID", "테이블을 찾을 수 없습니다.", null, List.of()));
+        when(requestSqlValidationService.validateItems(1L, List.of(first, second)))
+                .thenReturn(results);
+        when(requestMapper.updateDraftItemValidationStatus(2L, 101L, 1L, "VALID"))
+                .thenReturn(1);
+        when(requestMapper.updateDraftItemValidationStatus(2L, 102L, 1L, "INVALID"))
+                .thenReturn(1);
+
+        assertEquals(results, requestService.validateDraftSql(2L, 1L));
+        verify(requestMapper).updateDraftItemValidationStatus(2L, 101L, 1L, "VALID");
+        verify(requestMapper).updateDraftItemValidationStatus(2L, 102L, 1L, "INVALID");
+    }
+
+    @Test
+    void nonDraftCannotRunManualSqlValidation() {
+        when(requestMapper.selectMyRequestStatusForUpdate(2L, 1L))
+                .thenReturn("PENDING_APPROVAL");
+
+        ResponseStatusException error = assertThrows(
+                ResponseStatusException.class,
+                () -> requestService.validateDraftSql(2L, 1L));
+
+        assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
+        verifyNoInteractions(requestSqlValidationService);
     }
 }

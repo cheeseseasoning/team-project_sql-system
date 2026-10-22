@@ -23,6 +23,7 @@ import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.dto.RequestPageResponse;
 import com.sqlflow.request.dto.RequestSubmitRequest;
 import com.sqlflow.request.dto.RequestSummaryResponse;
+import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.mapper.RequestMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -124,6 +125,30 @@ public class RequestService {
 		);
 
 		return detail;
+	}
+
+	@Transactional
+	public List<RequestSqlValidationResult> validateDraftSql(Long requestId, Long drafterId) {
+		String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
+		if (status == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
+		}
+		if (!"DRAFT".equals(status)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 SQL만 검증할 수 있습니다.");
+		}
+
+		List<RequestItemResponse> items = requestMapper.selectMyRequestItems(requestId, drafterId);
+		List<RequestSqlValidationResult> results =
+				requestSqlValidationService.validateItems(drafterId, items);
+		for (RequestSqlValidationResult result : results) {
+			int updated = requestMapper.updateDraftItemValidationStatus(
+					requestId, result.queryId(), drafterId, result.validationStatus());
+			if (updated != 1) {
+				throw new ResponseStatusException(
+						HttpStatus.CONFLICT, "SQL 검증 상태를 저장하지 못했습니다. 다시 불러와 주세요.");
+			}
+		}
+		return results;
 	}
 
 	@Transactional

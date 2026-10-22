@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.execution.mapper.ExecutionResultMapper">
+
+    <!-- 본인 요청의 SQL별 실행 이력에 최신 순위 부여 -->
+    <sql id="myRankedExecutions">
+        SELECT E.EXECUTION_ID,
+               E.QUERY_ID,
+               E.BATCH_ID,
+               E.STATUS,
+               E.STARTED_AT,
+               E.DURATION_MS,
+               B.REQUESTED_AT,
+               R.REQUEST_ID,
+               R.REQUEST_NO,
+               R.TITLE AS REQUEST_TITLE,
+               I.QUERY_TITLE,
+               ROW_NUMBER() OVER (
+                   PARTITION BY E.QUERY_ID
+                   ORDER BY B.REQUESTED_AT DESC NULLS LAST,
+                            B.BATCH_ID DESC,
+                            E.EXECUTION_ID DESC
+               ) AS LATEST_RANK
+        FROM QUERY_EXECUTION E
+        JOIN EXECUTION_BATCH B
+          ON B.BATCH_ID = E.BATCH_ID
+        JOIN QUERY_REQUEST R
+          ON R.REQUEST_ID = B.REQUEST_ID
+        JOIN QUERY_ITEM I
+          ON I.QUERY_ID = E.QUERY_ID
+         AND I.REQUEST_ID = R.REQUEST_ID
+        WHERE R.DRAFTER_ID = #{drafterId}
+    </sql>
+
+    <!-- SQL item별 최신 실행 건수 -->
+    <select id="countMyLatestResults" resultType="long">
+        SELECT COUNT(*)
+        FROM (
+            <include refid="myRankedExecutions"/>
+        ) E
+        WHERE E.LATEST_RANK = 1
+    </select>
+
+    <!-- 결과 파일이 없어도 실행 이력은 목록에 표시 -->
+    <select id="selectMyLatestResults"
+            resultType="com.sqlflow.execution.dto.ExecutionResultListResponse">
+        SELECT E.EXECUTION_ID,
+               E.QUERY_ID,
+               E.REQUEST_ID,
+               E.REQUEST_NO,
+               E.REQUEST_TITLE,
+               E.QUERY_TITLE,
+               E.BATCH_ID,
+               E.STATUS,
+               F.ROW_COUNT,
+               E.REQUESTED_AT,
+               E.STARTED_AT,
+               E.DURATION_MS
+        FROM (
+            <include refid="myRankedExecutions"/>
+        ) E
+        LEFT JOIN (
+            SELECT EXECUTION_ID,
+                   ROW_COUNT,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY EXECUTION_ID
+                       ORDER BY CREATED_AT DESC,
+                                RESULT_ID DESC
+                   ) AS RESULT_RANK
+            FROM QUERY_RESULT
+        ) F
+          ON F.EXECUTION_ID = E.EXECUTION_ID
+         AND F.RESULT_RANK = 1
+        WHERE E.LATEST_RANK = 1
+        ORDER BY E.REQUESTED_AT DESC NULLS LAST,
+                 E.BATCH_ID DESC,
+                 E.EXECUTION_ID DESC
+        OFFSET #{offset} ROWS
+        FETCH NEXT #{size} ROWS ONLY
+    </select>
+    
+    <select id="selectMyResultDetail"
+	        resultType="com.sqlflow.execution.dto.ExecutionResultDetailResponse">
+	    SELECT E.EXECUTION_ID,
+	           E.BATCH_ID,
+	           E.QUERY_ID,
+	           R.REQUEST_ID,
+	           R.REQUEST_NO,
+	           R.TITLE AS REQUEST_TITLE,
+	           I.QUERY_TITLE,
+	           I.SQL_TEXT,
+	           E.ATTEMPT_NO,
+	           E.STATUS,
+	           B.REQUESTED_AT,
+	           E.STARTED_AT,
+	           E.FINISHED_AT,
+	           E.DURATION_MS,
+	           E.ERROR_CODE,
+	           E.ERROR_MESSAGE,
+	           F.RESULT_ID,
+	           F.ROW_COUNT,
+	           F.FILE_SIZE,
+	           F.EXPIRES_AT,
+	           F.DELETED_AT
+	    FROM QUERY_EXECUTION E
+	    JOIN EXECUTION_BATCH B
+	      ON B.BATCH_ID = E.BATCH_ID
+	    JOIN QUERY_REQUEST R
+	      ON R.REQUEST_ID = B.REQUEST_ID
+	    JOIN QUERY_ITEM I
+	      ON I.QUERY_ID = E.QUERY_ID
+	     AND I.REQUEST_ID = R.REQUEST_ID
+	    LEFT JOIN (
+	        SELECT RESULT_ID,
+	               EXECUTION_ID,
+	               ROW_COUNT,
+	               FILE_SIZE,
+	               EXPIRES_AT,
+	               DELETED_AT,
+	               ROW_NUMBER() OVER (
+	                   PARTITION BY EXECUTION_ID
+	                   ORDER BY CREATED_AT DESC,
+	                            RESULT_ID DESC
+	               ) AS RESULT_RANK
+	        FROM QUERY_RESULT
+	    ) F
+	      ON F.EXECUTION_ID = E.EXECUTION_ID
+	     AND F.RESULT_RANK = 1
+	    WHERE E.EXECUTION_ID = #{executionId}
+	      AND R.DRAFTER_ID = #{drafterId}
+	</select>
+
+</mapper>

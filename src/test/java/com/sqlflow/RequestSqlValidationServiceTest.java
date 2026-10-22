@@ -2,6 +2,7 @@ package com.sqlflow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -13,14 +14,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.access.service.DataAccessValidationService;
 import com.sqlflow.access.service.RequestSqlValidationService;
 import com.sqlflow.execution.domain.QueryObjectName;
 import com.sqlflow.execution.service.MySqlQueryMetadataValidationService;
+import com.sqlflow.execution.service.SqlParserValidator;
+import com.sqlflow.request.dto.RequestItemResponse;
 
 @ExtendWith(MockitoExtension.class)
 class RequestSqlValidationServiceTest {
@@ -44,6 +49,9 @@ class RequestSqlValidationServiceTest {
 
     @Mock
     private DataAccessValidationService dataAccessValidationService;
+
+    @Spy
+    private SqlParserValidator sqlParserValidator = new SqlParserValidator();
 
     @InjectMocks
     private RequestSqlValidationService service;
@@ -128,6 +136,62 @@ class RequestSqlValidationServiceTest {
         verifyNoInteractions(
                 metadataValidationService,
                 dataAccessValidationService);
+    }
+
+    @Test
+    void validateItemsReturnsOneResultPerSqlAndKeepsFailureReason() {
+        RequestItemResponse validItem = new RequestItemResponse();
+        validItem.setQueryId(101L);
+        validItem.setSqlText(SALES_SQL);
+        RequestItemResponse invalidItem = new RequestItemResponse();
+        invalidItem.setQueryId(102L);
+        invalidItem.setSqlText(CUSTOMER_SQL);
+
+        prepareMetadata(SALES_SQL, SALES);
+        prepareMetadata(CUSTOMER_SQL, CUSTOMERS);
+        when(dataAccessValidationService.validate(USER_ID, Set.of(SALES)))
+                .thenReturn(new DataAccessValidationService.ValidationResult("GENERAL", Set.of(1L)));
+        when(dataAccessValidationService.validate(USER_ID, Set.of(CUSTOMERS)))
+                .thenThrow(new ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "민감 데이터 조회 권한이 없습니다."));
+
+        var results = service.validateItems(USER_ID, List.of(validItem, invalidItem));
+
+        assertEquals(2, results.size());
+        assertEquals("VALID", results.get(0).validationStatus());
+        assertEquals("GENERAL", results.get(0).accessLevel());
+        assertEquals(List.of(1L), results.get(0).resourceIds());
+        assertEquals("INVALID", results.get(1).validationStatus());
+        assertEquals("민감 데이터 조회 권한이 없습니다.", results.get(1).message());
+        assertTrue(results.get(1).resourceIds().isEmpty());
+    }
+
+    @Test
+    void invalidSyntaxIsReportedBeforeOpeningMySqlMetadataConnection() {
+        RequestItemResponse item = new RequestItemResponse();
+        item.setQueryId(103L);
+        item.setSqlText("sql");
+
+        var results = service.validateItems(USER_ID, List.of(item));
+
+        assertEquals("INVALID", results.get(0).validationStatus());
+        assertEquals("SQL 구문을 분석할 수 없습니다. 문법 또는 지원 여부를 확인하세요.",
+                results.get(0).message());
+        verifyNoInteractions(metadataValidationService, dataAccessValidationService);
+    }
+
+    @Test
+    void metadataConnectionFailureReturnsAnActionableValidationFailure() {
+        when(metadataValidationService.validate(SALES_SQL))
+                .thenThrow(new CannotCreateTransactionException("connection timeout"));
+
+        var error = assertThrows(
+                ResponseStatusException.class,
+                () -> service.validate(USER_ID, List.of(SALES_SQL)));
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, error.getStatusCode());
+        assertTrue(error.getReason().contains("MySQL 메타데이터 DB에 연결할 수 없습니다"));
+        verifyNoInteractions(dataAccessValidationService);
     }
 
     private void prepareMetadata(

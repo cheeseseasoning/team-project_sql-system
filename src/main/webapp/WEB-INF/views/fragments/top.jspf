@@ -58,6 +58,14 @@
                    href="${pageContext.request.contextPath}/approvals/pending"
                    ${activeMenu == 'approvals' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">결재 대기</a>
+                    
+                <a class="nav-item ${activeMenu == 'execution-results' ? 'active' : ''}"
+				   href="${pageContext.request.contextPath}/execution-results"
+				   ${activeMenu == 'execution-results' ? 'aria-current="page"' : ''}>
+				    <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg"
+				         alt="">
+				    실행 결과
+				</a>
 
                 <a class="nav-item ${activeMenu == 'notices' ? 'active' : ''}"
                    href="${pageContext.request.contextPath}/notices"
@@ -143,12 +151,13 @@
                     }
 
                     async function api(path, options = {}) {
+                        const { timeoutMs = 15000, ...fetchOptions } = options;
                         const controller = new AbortController(),
-                            timer = setTimeout(() => controller.abort(), 15000);
+                            timer = setTimeout(() => controller.abort(), timeoutMs);
 
                         try {
                             const response = await fetch(BASE + '/api' + path, {
-                                ...options,
+                                ...fetchOptions,
                                 headers: {
                                     'Accept': 'application/json',
                                     [document.querySelector('meta[name="csrf-header"]')?.content || 'X-CSRF-TOKEN']:
@@ -172,7 +181,14 @@
                                 throw Error('서버 응답을 확인할 수 없습니다.');
                             }
 
-                            if (!response.ok) throw Error(data.message || '요청 처리 중 오류가 발생했습니다.');
+                            if (!response.ok) {
+                                throw Error(
+                                    data.message
+                                    || data.detail
+                                    || data.title
+                                    || '요청 처리 중 오류가 발생했습니다.'
+                                );
+                            }
 
                             return data;
                         } catch (e) {

@@ -154,6 +154,12 @@
 					<h2>등록한 SQL</h2>
 					<span id="sql-count" class="caption"></span>
 				</div>
+				<div id="sql-validation-controls" class="sql-validation-controls" hidden>
+					<p class="caption">제출 전에 등록한 SQL 전체를 검증해 주세요.</p>
+					<button id="validate-sqls" type="button" class="button primary">
+						전체 SQL 검증
+					</button>
+				</div>
 
 				<div id="detail-items">불러오는 중입니다.</div>
 			</section>
@@ -332,6 +338,9 @@
 
 		<script>
 			const requestId = $('#detail-config').dataset.requestId;
+			let detailItems = [];
+			let validationMessages = new Map();
+			let sqlValidationInProgress = false;
 
 			const detailStatusNames = {
 				DRAFT: '초안',
@@ -359,9 +368,32 @@
 
 			const validationNames = {
 				PENDING: '검증 전',
-				VALID: '검증 통과',
+				VALID: '검증 완료',
 				INVALID: '검증 실패'
 			};
+
+			function validationMessageStorageKey(queryId) {
+				return 'sqlflow-validation-message:' + requestId + ':' + queryId;
+			}
+
+			function restoreValidationMessages(items) {
+				const messages = new Map();
+				items.forEach(function (item) {
+					if (item.validationStatus !== 'INVALID') {
+						return;
+					}
+					try {
+						const message = sessionStorage.getItem(
+							validationMessageStorageKey(item.queryId));
+						if (message) {
+							messages.set(item.queryId, message);
+						}
+					} catch (error) {
+						// The persisted status still renders when browser storage is unavailable.
+					}
+				});
+				return messages;
+			}
 
 			const authoringNames = {
 				MANUAL: '직접 작성',
@@ -389,6 +421,13 @@
 						authoringNames[item.authoringType]
 						|| item.authoringType
 						|| '-';
+					const validationMessage = validationMessages.get(item.queryId);
+					const validationDetail = item.validationStatus === 'INVALID'
+						? '<p class="sql-validation-message" role="alert">'
+							+ '<strong>검증 실패 원인:</strong> '
+							+ esc(validationMessage || '전체 SQL 검증을 다시 실행해 원인을 확인하세요.')
+							+ '</p>'
+						: '';
 
 					return '<article class="result-item">'
 						+ '<div class="panel-heading">'
@@ -404,6 +443,7 @@
 						+ '<pre><code>'
 						+ esc(item.sqlText)
 						+ '</code></pre>'
+						+ validationDetail
 						+ '</article>';
 				}).join('');
 			}
@@ -559,12 +599,18 @@
 
 					$('#sql-count').textContent =
 						'총 ' + request.items.length + '개';
+					detailItems = (request.items || []).map(function (item) {
+						return {
+							...item,
+							validationStatus: item.validationStatus || 'PENDING'
+						};
+					});
+					validationMessages = restoreValidationMessages(detailItems);
+					$('#sql-validation-controls').hidden =
+						request.requestStatus !== 'DRAFT';
 
 					$('#detail-items').innerHTML =
-						renderDetailItems(request.items);
-
-					$('#detail-items').innerHTML =
-					    renderDetailItems(request.items);
+						renderDetailItems(detailItems);
 
 					renderRequestApprovalLine(request);
 
@@ -607,6 +653,67 @@
 
 					location.href = BASE + '/requests';
 				});
+			});
+
+			async function validateSavedSqls() {
+				if (sqlValidationInProgress) {
+					return;
+				}
+
+				sqlValidationInProgress = true;
+				try {
+					const results = await api(
+						'/requests/' + encodeURIComponent(requestId) + '/validate',
+						{ method: 'POST', timeoutMs: 120000 }
+					);
+
+					const byQueryId = new Map(
+						(results || []).map(function (result) {
+							return [String(result.queryId), result];
+						})
+					);
+					validationMessages = new Map();
+					detailItems = detailItems.map(function (item) {
+						const result = byQueryId.get(String(item.queryId));
+						if (!result) {
+							return item;
+						}
+						if (result.validationStatus === 'INVALID') {
+							validationMessages.set(item.queryId, result.message);
+							try {
+								sessionStorage.setItem(
+									validationMessageStorageKey(item.queryId),
+									result.message || '검증에 실패했습니다.');
+							} catch (error) {
+								// The failure reason remains visible until the page is closed.
+							}
+						} else {
+							try {
+								sessionStorage.removeItem(
+									validationMessageStorageKey(item.queryId));
+							} catch (error) {
+								// Ignore unavailable browser storage.
+							}
+						}
+						return { ...item, validationStatus: result.validationStatus };
+					});
+
+					$('#detail-items').innerHTML = renderDetailItems(detailItems);
+					const failedCount = detailItems.filter(
+						item => item.validationStatus !== 'VALID'
+					).length;
+					if (failedCount === 0 && detailItems.length > 0) {
+						notify('등록한 SQL ' + detailItems.length + '개가 모두 검증 완료되었습니다.');
+					} else {
+						notify(failedCount + '개 SQL의 검증이 실패했습니다. 각 SQL 아래 원인을 확인해 수정한 뒤 다시 검증하세요.', true);
+					}
+				} finally {
+					sqlValidationInProgress = false;
+				}
+			}
+
+			$('#validate-sqls').addEventListener('click', function () {
+				busy(this, validateSavedSqls);
 			});
 
 			let requestSubmitting = false;
@@ -1643,6 +1750,26 @@
 					return;
 				}
 
+				if (sqlValidationInProgress) {
+					window.alert('SQL 검증이 끝난 뒤 제출해 주세요.');
+					return;
+				}
+
+				if (detailItems.some(item => item.validationStatus !== 'VALID')) {
+					if (detailItems.some(item => item.validationStatus === 'INVALID')) {
+						window.alert('검증 실패한 SQL이 있습니다. 실패 원인을 수정한 뒤 전체 SQL을 다시 검증해 주세요.');
+					} else {
+						window.alert('제출 전에 전체 SQL 검증을 먼저 진행해 주세요.');
+					}
+					$('#validate-sqls').focus();
+					return;
+				}
+
+				if (!detailItems.length) {
+					window.alert('검증할 SQL을 먼저 등록해 주세요.');
+					return;
+				}
+
 				if (!appliedApprovalLine) {
 					showApprovalLineMessage('먼저 결재선을 등록해 주세요.');
 					approvalLineOpenButton.click();
@@ -1695,6 +1822,13 @@
 						location.reload();
 					} catch (error) {
 						requestSubmitting = false;
+						// Server-side resubmission checks may catch policy or metadata changes
+						// made after the manual validation. Refresh per-SQL status and reasons.
+						try {
+							await validateSavedSqls();
+						} catch (validationRefreshError) {
+							// Keep the original submission error visible below.
+						}
 						notify(error.message, true);
 					}
 				});
