@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 public class ExecutionBatchRecordService {
 
     private final ExecutionBatchMapper batchMapper;
+    private final com.sqlflow.execution.mapper.QueryExecutionMapper queryExecutionMapper;
 
     /**
      * 실행자 자격과 최종 승인 상태를 확인하고 묶음을 시작한다.
@@ -80,23 +81,87 @@ public class ExecutionBatchRecordService {
                 batchId, batch.getRequestId(), executionIds);
     }
 
+    /** Lock and reserve one pending SQL while the request remains READY. */
+    @Transactional(transactionManager = "managementTransactionManager")
+    public SingleStartResult startSingle(Long batchId, Long executionId, Long actorId) {
+        if (batchId == null || batchId <= 0 || executionId == null || executionId <= 0)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "실행 대상 ID가 올바르지 않습니다.");
+        if (actorId == null || actorId <= 0)
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        if (!batchMapper.isActiveDbApprover(actorId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "SQL 실행 권한이 없습니다.");
+        ExecutionBatch batch = requireBatch(batchId);
+        var request = batchMapper.selectRequestContextForUpdate(batch.getRequestId());
+        if (request == null || !"APPROVED".equals(request.getApprovalStatus())
+                || !("READY".equals(request.getRequestStatus()) || "RUNNING".equals(request.getRequestStatus())))
+            throw conflict("최종 승인된 실행 대기 요청의 SQL만 개별 실행할 수 있습니다.");
+        if (!"INITIAL".equals(batch.getBatchType()) || !"PENDING".equals(batch.getBatchStatus()))
+            throw conflict("전체 실행이 시작된 묶음에서는 개별 실행할 수 없습니다.");
+        var target = queryExecutionMapper.selectExecutionTarget(executionId);
+        if (target == null || !batchId.equals(target.getBatchId()) || !batch.getRequestId().equals(target.getRequestId()))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청에 속한 실행 대상을 찾을 수 없습니다.");
+        if (!"PENDING".equals(target.getExecutionStatus()))
+            throw conflict("대기 상태의 SQL만 실행할 수 있습니다.");
+        if (queryExecutionMapper.markRunning(executionId) != 1)
+            throw conflict("다른 실행 작업이 먼저 시작했습니다.");
+        if ("READY".equals(request.getRequestStatus())
+                && batchMapper.updateRequestStatus(batch.getRequestId(), "READY", "RUNNING") != 1)
+            throw conflict("요청을 실행 중 상태로 변경할 수 없습니다.");
+        return new SingleStartResult(batchId, batch.getRequestId(), executionId);
+    }
+
+    /** Release a rejected single-run task and restore READY only when no other item started. */
+    @Transactional(transactionManager = "managementTransactionManager")
+    public void cancelRejectedSingleStart(Long batchId, Long executionId) {
+        ExecutionBatch batch = requireBatch(batchId);
+        var request = batchMapper.selectRequestContextForUpdate(batch.getRequestId());
+        if (request == null || !"APPROVED".equals(request.getApprovalStatus())
+                || !"RUNNING".equals(request.getRequestStatus())
+                || !"PENDING".equals(batch.getBatchStatus()))
+            throw conflict("접수 실패한 SQL 상태를 복원할 수 없습니다.");
+        if (queryExecutionMapper.resetRejectedReservation(executionId) != 1)
+            throw conflict("접수되지 않은 SQL 예약을 해제할 수 없습니다.");
+        List<QueryExecution> executions = batchMapper.selectExecutions(batchId);
+        if (!executions.isEmpty() && executions.stream().allMatch(e -> "PENDING".equals(e.getStatus()))) {
+            if (batchMapper.updateRequestStatus(batch.getRequestId(), "RUNNING", "READY") != 1)
+                throw conflict("요청의 실행 대기 상태를 복원할 수 없습니다.");
+        }
+    }
+
     /**
      * 메모리의 성공 개수 대신 DB에 저장된 SQL별 최종 상태를 집계한다.
      * 미처리 SQL이 있으면 완료 상태로 변경하지 않는다.
      */
     @Transactional(transactionManager = "managementTransactionManager")
     public BatchExecutionResult finish(Long batchId) {
+        return finishWhenComplete(batchId, true);
+    }
+
+    /** Finalize a batch after individual runs only when every SQL reached a terminal state. */
+    @Transactional(transactionManager = "managementTransactionManager")
+    public BatchExecutionResult finishIfComplete(Long batchId) {
+        return finishWhenComplete(batchId, false);
+    }
+
+    private BatchExecutionResult finishWhenComplete(Long batchId, boolean requireWholeBatchRun) {
 
         ExecutionBatch batch = requireBatch(batchId);
 
         var request = batchMapper.selectRequestContextForUpdate(
                 batch.getRequestId());
 
-        if (request == null
-                || !"RUNNING".equals(request.getRequestStatus())
-                || !"APPROVED".equals(request.getApprovalStatus())) {
+        if (request == null || !"APPROVED".equals(request.getApprovalStatus())
+                || !("RUNNING".equals(request.getRequestStatus()) || "READY".equals(request.getRequestStatus()))) {
             throw conflict("실행 중인 승인 요청만 완료할 수 있습니다.");
         }
+        String expectedBatchStatus = batch.getBatchStatus();
+        String expectedRequestStatus = request.getRequestStatus();
+        boolean wholeBatchRun = "RUNNING".equals(expectedBatchStatus) && "RUNNING".equals(expectedRequestStatus);
+        boolean individualRun = "PENDING".equals(expectedBatchStatus) && "RUNNING".equals(expectedRequestStatus);
+        if (requireWholeBatchRun && !wholeBatchRun)
+            throw conflict("실행 중인 묶음만 완료할 수 있습니다.");
+        if (!requireWholeBatchRun && !wholeBatchRun && !individualRun)
+            throw conflict("실행 중인 SQL이 있는 요청만 완료할 수 있습니다.");
 
         List<QueryExecution> executions = batchMapper.selectExecutions(batchId);
 
@@ -113,6 +178,7 @@ public class ExecutionBatchRecordService {
             } else if ("FAILED".equals(execution.getStatus())) {
                 failureCount++;
             } else {
+                if (!requireWholeBatchRun) return null;
                 throw conflict("아직 완료되지 않은 SQL이 있습니다.");
             }
         }
@@ -132,12 +198,12 @@ public class ExecutionBatchRecordService {
         }
 
         if (batchMapper.updateStatus(
-                batchId, "RUNNING", batchStatus) != 1) {
+                batchId, expectedBatchStatus, batchStatus) != 1) {
             throw conflict("실행 묶음 상태가 변경되어 완료할 수 없습니다.");
         }
 
         if (batchMapper.updateRequestStatus(
-                batch.getRequestId(), "RUNNING", requestStatus) != 1) {
+                batch.getRequestId(), expectedRequestStatus, requestStatus) != 1) {
             throw conflict("요청 상태가 변경되어 완료할 수 없습니다.");
         }
 
@@ -245,4 +311,6 @@ public class ExecutionBatchRecordService {
             int successCount,
             int failureCount) {
     }
+
+    public record SingleStartResult(Long batchId, Long requestId, Long executionId) { }
 }

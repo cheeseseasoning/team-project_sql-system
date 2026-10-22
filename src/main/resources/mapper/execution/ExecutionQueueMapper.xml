@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sqlflow.execution.mapper.ExecutionQueueMapper">
+  <select id="isActiveDbApprover" resultType="boolean">
+    SELECT CASE WHEN EXISTS (
+      SELECT 1 FROM USERS U JOIN USER_ROLE UR ON UR.USER_ID=U.USER_ID
+      JOIN ROLE R ON R.ROLE_ID=UR.ROLE_ID
+      WHERE U.USER_ID=#{userId} AND U.ENABLED='Y' AND R.ROLE_CODE='DB_APPROVER'
+    ) THEN 1 ELSE 0 END FROM DUAL
+  </select>
+  <sql id="readyWhere">
+    WHERE R.APPROVAL_STATUS='APPROVED' AND R.REQUEST_STATUS IN ('READY','RUNNING')
+    <if test="keyword != null and keyword != ''">
+      AND (INSTR(UPPER(R.REQUEST_NO), UPPER(#{keyword})) &gt; 0
+        OR INSTR(UPPER(R.TITLE), UPPER(#{keyword})) &gt; 0
+        OR INSTR(UPPER(U.USER_NAME), UPPER(#{keyword})) &gt; 0)
+    </if>
+  </sql>
+  <select id="countReadyRequests" resultType="long">
+    SELECT COUNT(*) FROM QUERY_REQUEST R JOIN USERS U ON U.USER_ID=R.DRAFTER_ID
+    <include refid="readyWhere"/>
+  </select>
+  <select id="selectReadyRequests" resultType="com.sqlflow.execution.dto.ExecutionQueueItemResponse">
+    SELECT R.REQUEST_ID, R.REQUEST_NO, R.TITLE, U.USER_NAME AS DRAFTER_NAME,
+      D.DEPT_NAME, R.REQUEST_STATUS, R.SUBMITTED_AT,
+      (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID=R.REQUEST_ID) AS QUERY_COUNT,
+      B.BATCH_ID, B.BATCH_STATUS
+    FROM QUERY_REQUEST R JOIN USERS U ON U.USER_ID=R.DRAFTER_ID
+    LEFT JOIN DEPARTMENT D ON D.DEPT_ID=R.DEPT_ID
+    LEFT JOIN EXECUTION_BATCH B ON B.REQUEST_ID=R.REQUEST_ID AND B.BATCH_TYPE='INITIAL'
+    <include refid="readyWhere"/>
+    ORDER BY R.SUBMITTED_AT DESC NULLS LAST, R.REQUEST_ID DESC
+    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+  </select>
+  <select id="selectRequestDetail" resultType="com.sqlflow.execution.dto.ExecutionQueueDetailResponse">
+    SELECT R.REQUEST_ID, R.REQUEST_NO, R.TITLE, R.PURPOSE, R.DETAIL_CONTENT,
+      U.USER_NAME AS DRAFTER_NAME, D.DEPT_NAME, R.REQUEST_STATUS,
+      R.APPROVAL_STATUS, R.SUBMITTED_AT, B.BATCH_ID, B.BATCH_STATUS
+    FROM QUERY_REQUEST R JOIN USERS U ON U.USER_ID=R.DRAFTER_ID
+    LEFT JOIN DEPARTMENT D ON D.DEPT_ID=R.DEPT_ID
+    LEFT JOIN EXECUTION_BATCH B ON B.REQUEST_ID=R.REQUEST_ID AND B.BATCH_TYPE='INITIAL'
+    WHERE R.REQUEST_ID=#{requestId} AND R.APPROVAL_STATUS='APPROVED'
+  </select>
+  <select id="selectRequestSqlItems" resultType="com.sqlflow.execution.dto.ExecutionQueueSqlResponse">
+    SELECT I.QUERY_ID, I.QUERY_ORDER, I.QUERY_TITLE, I.SQL_TEXT,
+      E.EXECUTION_ID, E.STATUS AS EXECUTION_STATUS, E.STARTED_AT, E.FINISHED_AT,
+      E.ERROR_MESSAGE
+    FROM QUERY_ITEM I
+    LEFT JOIN EXECUTION_BATCH B ON B.REQUEST_ID=I.REQUEST_ID AND B.BATCH_TYPE='INITIAL'
+    LEFT JOIN QUERY_EXECUTION E ON E.BATCH_ID=B.BATCH_ID AND E.QUERY_ID=I.QUERY_ID
+    WHERE I.REQUEST_ID=#{requestId}
+    ORDER BY I.QUERY_ORDER, I.QUERY_ID
+  </select>
+</mapper>
