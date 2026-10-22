@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Param;
 import com.sqlflow.execution.domain.ExecutionBatch;
 import com.sqlflow.execution.domain.ExecutionRequestContext;
 import com.sqlflow.execution.domain.QueryExecution;
+import com.sqlflow.execution.dto.ExecutionBatchStatusResponseDTO;
 
 @Mapper
 public interface ExecutionBatchMapper {
@@ -55,4 +56,9 @@ public interface ExecutionBatchMapper {
             @Param("requestId") Long requestId,
             @Param("expectedStatus") String expectedStatus,
             @Param("nextStatus") String nextStatus);
+    
+    /** 요청자 본인 또는 현재 DB_APPROVER에게 실행 상태를 반환한다. */
+    ExecutionBatchStatusResponseDTO selectVisibleBatchStatus(
+            @Param("batchId") Long batchId,
+            @Param("actorId") Long actorId);
 }

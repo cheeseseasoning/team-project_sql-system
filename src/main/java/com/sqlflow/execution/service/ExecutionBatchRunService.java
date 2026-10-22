@@ -8,6 +8,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 import com.sqlflow.execution.service.ExecutionBatchRecordService.BatchExecutionResult;
+import com.sqlflow.execution.service.ExecutionBatchRecordService.BatchStartResult;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,14 +37,23 @@ public class ExecutionBatchRunService {
         // 활성 계정과 현재 DB_APPROVER 역할은 start()에서 DB로 재확인한다.
         var started = batchRecordService.start(batchId, user.getUserId());
 
+        return executeStarted(started);
+    }
+    
+    /**
+     * Dispatch에서 시작 처리를 마친 묶음을 백그라운드로 실행한다.
+     * 시작 처리를 다시 하지 않고 SQL 실행과 최종 집계만 수행한다.
+     */
+    @Transactional(
+            transactionManager = "managementTransactionManager",
+            propagation = Propagation.NEVER)
+    public BatchExecutionResult executeStarted(BatchStartResult started) {
+
         for (Long executionId : started.executionIds()) {
-            /*
-             * 일반 SQL·검증·파일 오류는 실패 결과로 반환되므로 계속 진행한다.
-             * DB 기록 장애나 저장 상태 불명확 오류는 예외가 전달되어 중단된다.
-             */
+            // 일반 SQL 실패는 기록 후 계속 진행하고, 기록 장애는 예외로 중단한다.
             queryExecutionService.execute(executionId);
         }
 
-        return batchRecordService.finish(batchId);
+        return batchRecordService.finish(started.batchId());
     }
 }

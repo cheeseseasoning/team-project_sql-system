@@ -35,7 +35,7 @@ public class MySqlQueryExecutionService {
 
     public MySqlQueryExecutionService(
             @Qualifier("queryDataSource") DataSource queryDataSource,
-            @Value("${app.execution.result-directory}") String resultDirectory,
+            @Value("${sqlflow.result.storage-root}") String resultDirectory,
             @Value("${app.execution.query-timeout-seconds}") int queryTimeoutSeconds,
             @Value("${app.execution.max-file-bytes}") long maxFileBytes) {
 

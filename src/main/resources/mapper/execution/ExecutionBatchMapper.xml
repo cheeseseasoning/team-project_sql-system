@@ -143,5 +143,52 @@
 	      AND REQUEST_STATUS = #{expectedStatus}
 	      AND APPROVAL_STATUS = 'APPROVED'
 	</update>
+	
+	<!-- 파일 경로나 SQL 원문 없이 실행 상태와 처리 개수만 제공한다. -->
+	<select id="selectVisibleBatchStatus"
+	        resultType="com.sqlflow.execution.dto.ExecutionBatchStatusResponseDTO">
+	
+	    SELECT B.BATCH_ID,
+	           B.REQUEST_ID,
+	           B.BATCH_STATUS,
+	           Q.REQUEST_STATUS,
+	           B.FINISHED_AT,
+	           COUNT(E.EXECUTION_ID) AS TOTAL_COUNT,
+	           SUM(CASE WHEN E.STATUS = 'PENDING' THEN 1 ELSE 0 END)
+	               AS PENDING_COUNT,
+	           SUM(CASE WHEN E.STATUS = 'RUNNING' THEN 1 ELSE 0 END)
+	               AS RUNNING_COUNT,
+	           SUM(CASE WHEN E.STATUS = 'SUCCESS' THEN 1 ELSE 0 END)
+	               AS SUCCESS_COUNT,
+	           SUM(CASE WHEN E.STATUS = 'FAILED' THEN 1 ELSE 0 END)
+	               AS FAILURE_COUNT
+	    FROM EXECUTION_BATCH B
+	    JOIN QUERY_REQUEST Q
+	      ON Q.REQUEST_ID = B.REQUEST_ID
+	    LEFT JOIN QUERY_EXECUTION E
+	      ON E.BATCH_ID = B.BATCH_ID
+	    WHERE B.BATCH_ID = #{batchId}
+	      AND EXISTS (
+	          SELECT 1
+	          FROM USERS U
+	          WHERE U.USER_ID = #{actorId}
+	            AND U.ENABLED = 'Y'
+	            AND (
+	                Q.DRAFTER_ID = U.USER_ID
+	                OR EXISTS (
+	                    SELECT 1
+	                    FROM USER_ROLE UR
+	                    JOIN ROLE R ON R.ROLE_ID = UR.ROLE_ID
+	                    WHERE UR.USER_ID = U.USER_ID
+	                      AND R.ROLE_CODE = 'DB_APPROVER'
+	                )
+	            )
+	      )
+	    GROUP BY B.BATCH_ID,
+	             B.REQUEST_ID,
+	             B.BATCH_STATUS,
+	             Q.REQUEST_STATUS,
+	             B.FINISHED_AT
+	</select>
 
 </mapper>

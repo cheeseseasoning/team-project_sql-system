@@ -22,7 +22,7 @@ import com.sqlflow.execution.service.MySqlQueryExecutionService;
  * 업무 데이터는 수정하지 않고 결과 파일은 임시 폴더에 저장한다.
  */
 @SpringBootTest(properties = {
-        "app.execution.result-directory=${java.io.tmpdir}/sqlflow-test-results",
+		"sqlflow.result.storage-root=${java.io.tmpdir}/sqlflow-test-results",
         "app.execution.query-timeout-seconds=60",
         "app.execution.max-file-bytes=104857600"
 })

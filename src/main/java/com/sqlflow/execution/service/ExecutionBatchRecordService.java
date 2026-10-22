@@ -149,6 +149,42 @@ public class ExecutionBatchRecordService {
                 successCount,
                 failureCount);
     }
+    
+    /**
+     * 백그라운드 작업 접수 자체가 거절된 경우에만 시작 상태를 되돌린다.
+     * 이미 SQL 처리가 시작된 묶음에는 사용할 수 없다.
+     */
+    @Transactional(transactionManager = "managementTransactionManager")
+    public void cancelRejectedStart(Long batchId) {
+
+        ExecutionBatch batch = requireBatch(batchId);
+
+        var request = batchMapper.selectRequestContextForUpdate(
+                batch.getRequestId());
+
+        if (request == null
+                || !"RUNNING".equals(request.getRequestStatus())
+                || !"APPROVED".equals(request.getApprovalStatus())) {
+            throw conflict("접수 실패한 요청의 상태를 복원할 수 없습니다.");
+        }
+
+        List<QueryExecution> executions = batchMapper.selectExecutions(batchId);
+
+        if (executions.isEmpty()
+                || executions.stream().anyMatch(
+                        execution -> !"PENDING".equals(execution.getStatus()))) {
+            throw conflict("SQL 처리가 시작된 묶음은 접수 취소할 수 없습니다.");
+        }
+
+        if (batchMapper.updateStatus(batchId, "RUNNING", "PENDING") != 1) {
+            throw conflict("실행 묶음의 대기 상태를 복원할 수 없습니다.");
+        }
+
+        if (batchMapper.updateRequestStatus(
+                batch.getRequestId(), "RUNNING", "READY") != 1) {
+            throw conflict("요청의 실행 대기 상태를 복원할 수 없습니다.");
+        }
+    }
 
     private ExecutionBatch requireBatch(Long batchId) {
         ExecutionBatch batch = batchMapper.selectBatch(batchId);

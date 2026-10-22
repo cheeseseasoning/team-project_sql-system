@@ -26,7 +26,7 @@ import com.sqlflow.execution.service.QueryExecutionRecordService;
  * 테스트용 데이터는 각 테스트 종료 후 외래키 역순으로 삭제한다.
  */
 @SpringBootTest(properties = {
-        "app.execution.result-directory=${java.io.tmpdir}/sqlflow-test-results",
+		"sqlflow.result.storage-root=${java.io.tmpdir}/sqlflow-test-results",
         "app.execution.query-timeout-seconds=60",
         "app.execution.max-file-bytes=104857600"
 })

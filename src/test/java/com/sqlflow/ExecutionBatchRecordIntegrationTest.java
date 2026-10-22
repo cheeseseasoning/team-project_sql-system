@@ -31,7 +31,7 @@ import com.sqlflow.execution.service.ExecutionBatchRecordService;
  * 상태 변경 실패를 재현하는 부분만 Spy로 대체하고 나머지는 실제 SQL을 수행한다.
  */
 @SpringBootTest(properties = {
-        "app.execution.result-directory=${java.io.tmpdir}/sqlflow-test-results",
+		"sqlflow.result.storage-root=${java.io.tmpdir}/sqlflow-test-results",
         "app.execution.query-timeout-seconds=60",
         "app.execution.max-file-bytes=104857600"
 })
