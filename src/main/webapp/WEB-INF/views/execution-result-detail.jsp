@@ -110,6 +110,42 @@
         </div>
     </section>
 </div>
+<c:if test="${csvPreviewEnabled}">
+	<section class="panel section-gap">
+	    <div class="panel-heading">
+	        <h2>샘플 CSV 미리보기</h2>
+	        <span id="csv-preview-count" class="caption"></span>
+	    </div>
+	
+	    <p class="caption">
+	        아래로 스크롤하면 25행씩 추가됩니다. 최대 100행까지 표시합니다.
+	    </p>
+	
+	    <div id="csv-preview-scroll"
+	         class="table-scroll"
+	         style="height: 360px; overflow: auto;"
+	         tabindex="0"
+	         aria-label="CSV 미리보기 스크롤 영역">
+	
+	        <table>
+	            <caption class="sr-only">샘플 CSV 조회 결과</caption>
+	            <thead>
+	                <tr id="csv-preview-columns"></tr>
+	            </thead>
+	            <tbody id="csv-preview-rows"></tbody>
+	        </table>
+	    </div>
+	
+	    <p id="csv-preview-message" role="status"></p>
+	
+	    <button id="csv-preview-retry"
+	            type="button"
+	            class="button"
+	            hidden>
+	        다시 불러오기
+	    </button>
+	</section>
+</c:if>
 
 <script>
     const executionId =
@@ -276,5 +312,175 @@
 
     loadExecutionDetail();
 </script>
+
+<c:if test="${csvPreviewEnabled}">
+	<script>
+	(() => {
+	    const scrollBox = document.getElementById('csv-preview-scroll');
+	    const headerRow = document.getElementById('csv-preview-columns');
+	    const tableBody = document.getElementById('csv-preview-rows');
+	    const countLabel = document.getElementById('csv-preview-count');
+	    const message = document.getElementById('csv-preview-message');
+	    const retryButton = document.getElementById('csv-preview-retry');
+	
+	    const pageSize = 25;
+	
+	    let columns = null;
+	    let nextOffset = 0;
+	    let loadedRows = 0;
+	    let hasMore = true;
+	    let loading = false;
+	    let failed = false;
+	
+	    function createHeader(names) {
+	        const fragment = document.createDocumentFragment();
+	
+	        names.forEach(function (name) {
+	            const th = document.createElement('th');
+	
+	            th.scope = 'col';
+	            th.textContent = name;
+	            th.style.whiteSpace = 'nowrap';
+	
+	            fragment.appendChild(th);
+	        });
+	
+	        headerRow.appendChild(fragment);
+	    }
+	
+	    function appendRows(rows) {
+	        const fragment = document.createDocumentFragment();
+	
+	        rows.forEach(function (values) {
+	            const tr = document.createElement('tr');
+	
+	            values.forEach(function (value) {
+	                const td = document.createElement('td');
+	
+	                // CSV 값을 HTML로 해석하지 않고 문자 그대로 표시한다.
+	                td.textContent = value == null ? '' : String(value);
+	
+	                // 값 내부의 줄바꿈을 유지한다.
+	                td.style.whiteSpace = 'pre-wrap';
+	                td.style.minWidth = '100px';
+	                td.style.verticalAlign = 'top';
+	
+	                tr.appendChild(td);
+	            });
+	
+	            fragment.appendChild(tr);
+	        });
+	
+	        // 기존 행을 유지하고 새 행만 뒤에 붙인다.
+	        tableBody.appendChild(fragment);
+	    }
+	
+	    function validateResponse(data) {
+	        if (!Array.isArray(data.columns)
+	                || !Array.isArray(data.rows)
+	                || typeof data.hasMore !== 'boolean'
+	                || !Number.isSafeInteger(data.nextOffset)) {
+	            throw new Error('미리보기 응답 형식이 올바르지 않습니다.');
+	        }
+	
+	        if (data.rows.some(function (row) {
+	            return !Array.isArray(row)
+	                || row.length !== data.columns.length;
+	        })) {
+	            throw new Error('미리보기 컬럼 수가 일치하지 않습니다.');
+	        }
+	
+	        if (data.nextOffset !== nextOffset + data.rows.length
+	                || (data.hasMore && data.rows.length === 0)) {
+	            throw new Error('다음 데이터 위치가 올바르지 않습니다.');
+	        }
+	
+	        if (columns !== null
+	                && JSON.stringify(columns) !== JSON.stringify(data.columns)) {
+	            throw new Error('조회 중 CSV 컬럼이 변경되었습니다.');
+	        }
+	    }
+	
+	    async function loadNextRows() {
+	        if (loading || !hasMore || failed) {
+	            return;
+	        }
+	
+	        loading = true;
+	        retryButton.hidden = true;
+	        scrollBox.setAttribute('aria-busy', 'true');
+	        message.textContent = '데이터를 불러오는 중입니다.';
+	
+	        try {
+	            const params = new URLSearchParams({
+	                offset: String(nextOffset),
+	                limit: String(pageSize)
+	            });
+	
+	            // 기존 JSP에서 사용하는 공통 api() 함수를 이용한다.
+	            const data = await api(
+	                '/execution-results/sample/preview?' + params.toString()
+	            );
+	
+	            validateResponse(data);
+	
+	            if (columns === null) {
+	                columns = data.columns.slice();
+	                createHeader(columns);
+	            }
+	
+	            appendRows(data.rows);
+	
+	            nextOffset = data.nextOffset;
+	            loadedRows += data.rows.length;
+	            hasMore = data.hasMore;
+	
+	            countLabel.textContent = loadedRows + '행 표시';
+	
+	            if (loadedRows === 0) {
+	                message.textContent = '조회 결과가 없습니다.';
+	            } else if (hasMore) {
+	                message.textContent =
+	                    '아래로 스크롤하면 다음 데이터를 불러옵니다.';
+	            } else {
+	                message.textContent =
+	                    '미리보기 끝입니다. 전체 결과는 CSV 다운로드로 확인할 수 있습니다.';
+	            }
+	
+	        } catch (error) {
+	            failed = true;
+	
+	            message.textContent =
+	                error.message || '미리보기를 불러오지 못했습니다.';
+	
+	            retryButton.hidden = false;
+	
+	        } finally {
+	            loading = false;
+	            scrollBox.setAttribute('aria-busy', 'false');
+	        }
+	    }
+	
+	    scrollBox.addEventListener('scroll', function () {
+	        const remaining =
+	            scrollBox.scrollHeight
+	            - scrollBox.scrollTop
+	            - scrollBox.clientHeight;
+	
+	        // 표의 맨 아래에서 60px 이내로 접근하면 추가 조회한다.
+	        if (remaining <= 60) {
+	            loadNextRows();
+	        }
+	    }, { passive: true });
+	
+	    retryButton.addEventListener('click', function () {
+	        failed = false;
+	        loadNextRows();
+	    });
+	
+	    loadNextRows();
+	})();
+	</script>
+</c:if>
 
 <%@ include file="fragments/bottom.jspf" %>

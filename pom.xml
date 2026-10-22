@@ -90,6 +90,12 @@
 		    <artifactId>jsqlparser</artifactId>
 		    <version>5.3</version>
 		</dependency>
+		<!-- CSV 읽기: 쉼표·큰따옴표·값 내부 줄바꿈 처리 -->
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-csv</artifactId>
+		    <version>1.14.1</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>

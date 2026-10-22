@@ -1,5 +1,6 @@
 package com.sqlflow;
 
+import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -14,6 +15,12 @@ import com.sqlflow.auth.security.SqlFlowUserDetails;
 @Controller
 public class PageController {
 
+	private final Environment environment;
+
+    public PageController(Environment environment) {
+        this.environment = environment;
+    }
+	
 	@ModelAttribute
 	public void common(Model model, Authentication authentication) {
 		if (authentication != null
@@ -94,10 +101,16 @@ public class PageController {
 
 	    model.addAttribute("executionId", executionId);
 
+	    model.addAttribute(
+	            "csvPreviewEnabled",
+	            environment.matchesProfiles("csv-preview")
+	    );
+
 	    return view(
 	            model,
 	            "execution-result-detail",
-	            "SQL 실행 결과 상세");
+	            "SQL 실행 결과 상세"
+	    );
 	}
 
 	@GetMapping("/notices")
