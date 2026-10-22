@@ -286,47 +286,118 @@ public class RequestService {
 		return request;
 	}
 
-	@Transactional
+	@Transactional(
+	        transactionManager = "managementTransactionManager",
+	        rollbackFor = Exception.class
+	)
 	public void submitRequest(Long requestId, RequestSubmitRequest input) {
-		submitRequest(requestId, input, 1L);
+	    submitRequest(requestId, input, 1L);
 	}
 
-	@Transactional
-	public void submitRequest(Long requestId, RequestSubmitRequest input, Long actorId) {
+	@Transactional(
+	        transactionManager = "managementTransactionManager",
+	        rollbackFor = Exception.class
+	)
+	public void submitRequest(
+	        Long requestId,
+	        RequestSubmitRequest input,
+	        Long actorId) {
 
-		// 1. 본인 초안 잠금 및 저장된 내용 검사
-		RequestDetailResponse draft = loadDraftForSubmission(requestId, actorId);
+	    // 1. 본인 초안 잠금 및 저장된 내용 확인
+	    RequestDetailResponse draft =
+	            loadDraftForSubmission(requestId, actorId);
 
-		// 2. 결재 기능 연결 확인
-		ApprovalLineCreator approvalLineCreator = approvalLineCreatorProvider.getIfAvailable();
+	    ApprovalLineCreator approvalLineCreator =
+	            approvalLineCreatorProvider.getIfAvailable();
 
-		if (approvalLineCreator == null) {
-			throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "결재 기능이 아직 연결되지 않았습니다.");
-		}
+	    if (approvalLineCreator == null) {
+	        throw new ResponseStatusException(
+	                HttpStatus.SERVICE_UNAVAILABLE,
+	                "결재 기능이 아직 연결되지 않았습니다."
+	        );
+	    }
 
-		// 3. 결재자 재검증 및 결재선 생성
-		// 준오 구현에서 APPROVAL_STATUS도 PENDING으로 설정
-		//저장된 SQL과 접근 권한을 검사한다.
-		//실패하면 결재선 생성과 제출 처리를 중단한다.
-		requestSqlValidationService.validate(
-		     actorId,
-		     draft.getItems().stream()
-		             .map(RequestItemResponse::getSqlText)
-		             .toList());
-		
-		//중간 결재자 목록을 포함해 결재선을 생성한다.
-		approvalLineCreator.createApprovalLine(
-		     requestId,
-		     actorId,
-		     input.getIntermediateApproverIds(),
-		     input.getDbApproverId());
+	    // 2. 저장된 모든 SQL 재검증
+	    // 하나라도 실패하면 아래 저장 단계로 진행하지 않는다.
+	    List<RequestSqlValidationResult> results =
+	            requestSqlValidationService.validateForSubmission(
+	                    actorId,
+	                    draft.getItems()
+	            );
 
-		// 4. 요청 상태 및 제출 시각 변경
-		int updatedCount = requestMapper.submitDraft(requestId, actorId);
+	    boolean requestSensitive = false;
 
-		if (updatedCount != 1) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 제출할 수 없습니다.");
-		}
+	    // 3. SQL별 검증 결과와 조회 대상 저장
+	    for (RequestSqlValidationResult result : results) {
+	        String itemClass = result.accessLevel();
+
+	        if (!"GENERAL".equals(itemClass)
+	                && !"SENSITIVE".equals(itemClass)) {
+	            throw new IllegalStateException(
+	                    "검증 결과의 SQL 분류가 올바르지 않습니다."
+	            );
+	        }
+
+	        int updated = requestMapper.updateSubmittedItemValidation(
+	                requestId,
+	                result.queryId(),
+	                itemClass
+	        );
+
+	        if (updated != 1) {
+	            throw new IllegalStateException(
+	                    "SQL 검증 결과 저장에 실패했습니다."
+	            );
+	        }
+
+	        requestMapper.deleteQueryResourceUsage(result.queryId());
+
+	        for (Long resourceId : result.resourceIds()) {
+	            int inserted = requestMapper.insertQueryResourceUsage(
+	                    result.queryId(),
+	                    resourceId
+	            );
+
+	            if (inserted != 1) {
+	                throw new IllegalStateException(
+	                        "SQL 조회 대상 저장에 실패했습니다."
+	                );
+	            }
+	        }
+
+	        requestSensitive |= "SENSITIVE".equals(itemClass);
+	    }
+
+	    // 4. 하나라도 민감하면 전체 요청도 민감으로 분류
+	    int classified = requestMapper.updateRequestClass(
+	            requestId,
+	            actorId,
+	            requestSensitive ? "SENSITIVE" : "GENERAL"
+	    );
+
+	    if (classified != 1) {
+	        throw new IllegalStateException(
+	                "요청 분류 저장에 실패했습니다."
+	        );
+	    }
+
+	    // 5. 기존 결재자 전달·결재선 생성 방식 유지
+	    approvalLineCreator.createApprovalLine(
+	            requestId,
+	            actorId,
+	            input.getIntermediateApproverIds(),
+	            input.getDbApproverId()
+	    );
+
+	    // 6. 제출 상태와 제출 시각 변경
+	    int submitted = requestMapper.submitDraft(requestId, actorId);
+
+	    if (submitted != 1) {
+	        throw new ResponseStatusException(
+	                HttpStatus.CONFLICT,
+	                "요청 상태가 변경되어 제출할 수 없습니다."
+	        );
+	    }
 	}
 
 	@Transactional(readOnly = true)
