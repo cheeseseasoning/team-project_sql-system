@@ -15,3 +15,14 @@ app.datasource.query.url=jdbc:mysql://192.168.3.131:3306/sqlflow_demo?sslMode=RE
 app.datasource.query.username=sqlflow_reader
 app.datasource.query.password=
 app.datasource.query.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# SQL 실행 결과 CSV 공용 저장 폴더
+# 공유 PC의 IP와 공유 이름에 맞게 변경
+# 예: //192.168.0.10/sqlflow-data/results
+# 실행하는 Windows 계정에 공유 폴더 접근 권한과 인증이 필요함
+# 자신의 PC에 공유 폴더가 존재하는 것이라면 //<공유-PC-IP> 대신에 C:를 입력한다.
+sqlflow.result.storage-root=//<공유-PC-IP>/<공유이름>/results
+
+# 샘플 CSV 미리보기 개발 시 아래 주석 해제
+# 공유 저장 폴더에 sample.csv가 있어야 함
+# spring.profiles.include=csv-preview
