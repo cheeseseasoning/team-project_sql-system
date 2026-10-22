@@ -42,6 +42,13 @@
           AND STATUS = 'PENDING'
     </update>
 
+    <update id="resetRejectedReservation">
+        UPDATE QUERY_EXECUTION
+        SET STATUS='PENDING', STARTED_AT=NULL, FINISHED_AT=NULL, DURATION_MS=NULL,
+            ERROR_CODE=NULL, ERROR_MESSAGE=NULL
+        WHERE EXECUTION_ID=#{executionId} AND STATUS='RUNNING'
+    </update>
+
     <!-- 성공 시 오류 값은 null, 실패 시 오류 코드와 메시지를 저장한다. -->
     <update id="finishExecution"
             parameterType="com.sqlflow.execution.domain.QueryExecution">

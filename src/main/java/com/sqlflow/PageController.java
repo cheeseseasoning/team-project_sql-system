@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 
@@ -90,8 +92,29 @@ public class PageController {
 	}
 	
 	@GetMapping("/execution-results")
-	public String executionResults(Model model) {
+	public String executionResults(Model model, @RequestParam(name="view", required=false) String view) {
+	    if ("queue".equals(view)) return "redirect:/execution-queue";
 	    return view(model, "execution-results", "실행 결과");
+	}
+
+	@GetMapping("/execution-queue")
+	public String executionQueue(Model model, Authentication authentication) {
+	    requireDbApprover(authentication);
+	    return view(model, "execution-queue", "실행 목록");
+	}
+
+	@GetMapping("/execution-queue/{requestId}")
+	public String executionQueueDetail(Model model, @PathVariable Long requestId, Authentication authentication) {
+	    requireDbApprover(authentication);
+	    model.addAttribute("requestId", requestId);
+	    return view(model, "execution-queue-detail", "실행 요청 상세");
+	}
+
+	private void requireDbApprover(Authentication authentication) {
+	    if (authentication == null || !(authentication.getPrincipal() instanceof SqlFlowUserDetails user)
+	            || !user.isEnabled() || user.getAuthorities().stream().noneMatch(a -> "ROLE_DB_APPROVER".equals(a.getAuthority()))) {
+	        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "DB팀 실행 권한이 필요합니다.");
+	    }
 	}
 	
 	@GetMapping("/execution-results/{executionId}")
@@ -124,6 +147,7 @@ public class PageController {
 		model.addAttribute("activeMenu",
 		        page.equals("home") ? "home"
 		                : page.equals("notices") ? "notices"
+		                : page.startsWith("execution-queue") ? "execution-queue"
 		                : page.startsWith("execution-result") ? "execution-results"
 		                : page.startsWith("approval-") ? "approvals"
 		                : page.equals("request-form") || page.equals("request-review")

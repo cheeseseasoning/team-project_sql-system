@@ -243,6 +243,22 @@ class QueryExecutionServiceTest {
     }
 
     @Test
+    void executesAnItemReservedBySingleSqlRunWithoutStartingItTwice() throws Exception {
+        prepareTarget();
+        target.setExecutionStatus("RUNNING");
+        target.setBatchStatus("PENDING");
+        target.setRequestStatus("RUNNING");
+        when(mySqlService.execute(SQL)).thenReturn(fileResult);
+
+        var outcome = service.executeStarted(EXECUTION_ID);
+
+        assertTrue(outcome.success());
+        verify(recordService, never()).start(EXECUTION_ID);
+        verify(validationService).validate(DRAFTER_ID, List.of(SQL));
+        verify(recordService).complete(EXECUTION_ID, fileResult);
+    }
+
+    @Test
     void unexpectedExecutionFailureIsRecordedAndRethrown() throws Exception {
         prepareTarget();
 

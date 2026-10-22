@@ -56,4 +56,13 @@ public class ExecutionBatchRunService {
 
         return batchRecordService.finish(started.batchId());
     }
+
+    @Transactional(transactionManager = "managementTransactionManager", propagation = Propagation.NEVER)
+    public void executeSingleStarted(ExecutionBatchRecordService.SingleStartResult started) {
+        try {
+            queryExecutionService.executeStarted(started.executionId());
+        } finally {
+            batchRecordService.finishIfComplete(started.batchId());
+        }
+    }
 }

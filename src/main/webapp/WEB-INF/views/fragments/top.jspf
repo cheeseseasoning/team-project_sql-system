@@ -30,6 +30,11 @@
 	    <link rel="stylesheet"
 	          href="${pageContext.request.contextPath}/css/pages/request.css">
 	</c:if>
+
+    <c:if test="${page == 'execution-queue' or page == 'execution-queue-detail'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/execution-queue.css">
+    </c:if>
 </head>
 <body>
     <div class="app-shell">
@@ -58,6 +63,13 @@
                    href="${pageContext.request.contextPath}/approvals/pending"
                    ${activeMenu == 'approvals' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">결재 대기</a>
+
+                <c:if test="${pageContext.request.isUserInRole('DB_APPROVER')}">
+                    <a class="nav-item ${activeMenu == 'execution-queue' ? 'active' : ''}"
+                       href="${pageContext.request.contextPath}/execution-queue"
+                       ${activeMenu == 'execution-queue' ? 'aria-current="page"' : ''}>
+                        <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg" alt="">실행 목록</a>
+                </c:if>
                     
                 <a class="nav-item ${activeMenu == 'execution-results' ? 'active' : ''}"
 				   href="${pageContext.request.contextPath}/execution-results"
@@ -83,7 +95,7 @@
                 <div class="breadcrumb">
 				    <a href="${pageContext.request.contextPath}/">SQLFlow</a>
 				    <span aria-hidden="true">›</span>
-				    <span class="breadcrumb-current">
+			            <span class="breadcrumb-current">
 				        <c:out value="${pageTitle}"/>
 				    </span>
 				</div>

@@ -18,6 +18,9 @@ public interface QueryExecutionMapper {
     /** 대기 상태의 실행을 시작한다. 반환값이 1일 때만 SQL을 실행한다. */
     int markRunning(@Param("executionId") Long executionId);
 
+    /** Release a reservation only when the background executor rejected it. */
+    int resetRejectedReservation(@Param("executionId") Long executionId);
+
     /** 실행 중인 이력에 성공 또는 실패 결과를 기록한다. */
     int finishExecution(QueryExecution execution);
     

@@ -21,6 +21,7 @@ import com.sqlflow.execution.domain.ExecutionBatch;
 import com.sqlflow.execution.domain.ExecutionRequestContext;
 import com.sqlflow.execution.domain.QueryExecution;
 import com.sqlflow.execution.mapper.ExecutionBatchMapper;
+import com.sqlflow.execution.mapper.QueryExecutionMapper;
 import com.sqlflow.execution.service.ExecutionBatchRecordService;
 
 /**
@@ -36,6 +37,9 @@ class ExecutionBatchRecordServiceTest {
 
     @Mock
     private ExecutionBatchMapper mapper;
+
+    @Mock
+    private QueryExecutionMapper queryExecutionMapper;
 
     @InjectMocks
     private ExecutionBatchRecordService service;
@@ -95,6 +99,38 @@ class ExecutionBatchRecordServiceTest {
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         verify(mapper, never()).selectBatch(anyLong());
         verify(mapper, never()).markBatchRunning(anyLong(), anyLong());
+    }
+
+    @Test
+    void reservesOnePendingSqlWithoutStartingWholeBatch() {
+        when(mapper.isActiveDbApprover(ACTOR_ID)).thenReturn(true);
+        when(mapper.selectBatch(BATCH_ID)).thenReturn(batch);
+        when(mapper.selectRequestContextForUpdate(REQUEST_ID)).thenReturn(request);
+        var target = new com.sqlflow.execution.domain.QueryExecutionTarget();
+        target.setBatchId(BATCH_ID); target.setRequestId(REQUEST_ID); target.setExecutionStatus("PENDING");
+        when(queryExecutionMapper.selectExecutionTarget(501L)).thenReturn(target);
+        when(queryExecutionMapper.markRunning(501L)).thenReturn(1);
+        when(mapper.updateRequestStatus(REQUEST_ID, "READY", "RUNNING")).thenReturn(1);
+
+        var result = service.startSingle(BATCH_ID, 501L, ACTOR_ID);
+
+        assertEquals(501L, result.executionId());
+        verify(queryExecutionMapper).markRunning(501L);
+        verify(mapper, never()).markBatchRunning(anyLong(), anyLong());
+        verify(mapper, never()).updateRequestStatus(anyLong(), anyString(), anyString());
+    }
+
+    @Test
+    void singleSqlCompletionWaitsUntilAllSqlAreTerminal() {
+        batch.setBatchStatus("PENDING");
+        request.setRequestStatus("RUNNING");
+        when(mapper.selectBatch(BATCH_ID)).thenReturn(batch);
+        when(mapper.selectRequestContextForUpdate(REQUEST_ID)).thenReturn(request);
+        when(mapper.selectExecutions(BATCH_ID)).thenReturn(List.of(
+                execution(501L, 301L, "SUCCESS"), execution(502L, 302L, "PENDING")));
+
+        assertNull(service.finishIfComplete(BATCH_ID));
+        verify(mapper, never()).updateStatus(anyLong(), anyString(), anyString());
     }
 
     @Test

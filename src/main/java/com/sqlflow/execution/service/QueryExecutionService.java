@@ -44,9 +44,37 @@ public class QueryExecutionService {
 
         QueryExecutionTarget target = requireExecutionTarget(executionId);
 
+        if (!"PENDING".equals(target.getExecutionStatus())
+                || !"RUNNING".equals(target.getRequestStatus())
+                || !"RUNNING".equals(target.getBatchStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "최종 승인 후 시작된 실행 묶음이 필요합니다.");
+        }
+
         // 시작에 성공한 호출만 실제 실행을 진행한다.
         // 시작 실패 시 다른 작업의 실행 이력을 실패 처리하면 안 된다.
         recordService.start(executionId);
+
+        return executeReserved(target);
+    }
+
+    /** Execute an item previously atomically reserved by the DB-team single-run endpoint. */
+    @Transactional(transactionManager = "managementTransactionManager", propagation = Propagation.NEVER)
+    public ExecutionOutcome executeStarted(Long executionId) {
+        QueryExecutionTarget target = requireExecutionTarget(executionId);
+        if (!"RUNNING".equals(target.getExecutionStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "예약된 실행 대상이 아닙니다.");
+        }
+        boolean singleRun = "PENDING".equals(target.getBatchStatus()) && "RUNNING".equals(target.getRequestStatus());
+        boolean batchRun = "RUNNING".equals(target.getBatchStatus()) && "RUNNING".equals(target.getRequestStatus());
+        if (!singleRun && !batchRun) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "실행 가능한 승인 상태가 아닙니다.");
+        }
+        return executeReserved(target);
+    }
+
+    private ExecutionOutcome executeReserved(QueryExecutionTarget target) {
+        Long executionId = target.getExecutionId();
 
         long startedNanos = System.nanoTime();
         ExecutionResult result;
@@ -136,18 +164,16 @@ public class QueryExecutionService {
                     "실행 대상을 찾을 수 없습니다.");
         }
 
-        if (!"PENDING".equals(target.getExecutionStatus())) {
+        if (!"PENDING".equals(target.getExecutionStatus()) && !"RUNNING".equals(target.getExecutionStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "대기 상태의 SQL만 실행할 수 있습니다.");
         }
 
-        if (!"APPROVED".equals(target.getApprovalStatus())
-                || !"RUNNING".equals(target.getRequestStatus())
-                || !"RUNNING".equals(target.getBatchStatus())) {
+        if (!"APPROVED".equals(target.getApprovalStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "최종 승인 후 시작된 실행 묶음이 필요합니다.");
+                    "최종 승인된 요청이 필요합니다.");
         }
 
         if (target.getDrafterId() == null

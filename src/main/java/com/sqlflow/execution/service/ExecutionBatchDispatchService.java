@@ -93,4 +93,27 @@ public class ExecutionBatchDispatchService {
                     exception);
         }
     }
+
+    @Transactional(transactionManager = "managementTransactionManager", propagation = Propagation.NEVER)
+    public void submitSingle(Long batchId, Long executionId, SqlFlowUserDetails user) {
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        var started = recordService.startSingle(batchId, executionId, user.getUserId());
+        try {
+            executor.execute(() -> {
+                try { runService.executeSingleStarted(started); }
+                catch (RuntimeException exception) {
+                    log.error("개별 SQL 처리가 중단되었습니다. batchId={}, executionId={}", batchId, executionId, exception);
+                }
+            });
+        } catch (RejectedExecutionException exception) {
+            try { recordService.cancelRejectedSingleStart(batchId, executionId); }
+            catch (RuntimeException restoreException) {
+                exception.addSuppressed(restoreException);
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                        "개별 실행 접수 실패 후 상태를 복원하지 못했습니다.", exception);
+            }
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "현재 실행기가 바쁩니다. 잠시 후 다시 시도하세요.", exception);
+        }
+    }
 }
