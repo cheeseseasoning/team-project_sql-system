@@ -85,4 +85,20 @@ public interface RequestMapper {
             @Param("drafterId") Long drafterId,
             @Param("validationStatus") String validationStatus);
     
+    int updateSubmittedItemValidation(
+            @Param("requestId") Long requestId,
+            @Param("queryId") Long queryId,
+            @Param("itemClass") String itemClass);
+
+    int deleteQueryResourceUsage(@Param("queryId") Long queryId);
+
+    int insertQueryResourceUsage(
+            @Param("queryId") Long queryId,
+            @Param("resourceId") Long resourceId);
+
+    int updateRequestClass(
+            @Param("requestId") Long requestId,
+            @Param("drafterId") Long drafterId,
+            @Param("requestClass") String requestClass);
+    
 }

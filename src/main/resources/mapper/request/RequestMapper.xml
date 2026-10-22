@@ -332,5 +332,42 @@
 	      AND Q.DRAFTER_ID = #{drafterId}
 	    ORDER BY A.APPROVAL_ORDER, A.APPROVAL_ID
 	</select>
+	
+	<!-- 제출 시 검증을 통과한 SQL의 상태·분류·시각 저장 -->
+	<update id="updateSubmittedItemValidation">
+	    UPDATE QUERY_ITEM
+	    SET VALIDATION_STATUS = 'VALID',
+	        ITEM_CLASS = #{itemClass},
+	        VALIDATED_AT = SYSTIMESTAMP
+	    WHERE REQUEST_ID = #{requestId}
+	      AND QUERY_ID = #{queryId}
+	</update>
+	
+	<!-- 해당 SQL의 조회 대상 목록 교체 -->
+	<delete id="deleteQueryResourceUsage">
+	    DELETE FROM QUERY_RESOURCE_USAGE
+	    WHERE QUERY_ID = #{queryId}
+	</delete>
+	
+	<insert id="insertQueryResourceUsage">
+	    INSERT INTO QUERY_RESOURCE_USAGE (
+	        QUERY_ID,
+	        RESOURCE_ID,
+	        CREATED_AT
+	    ) VALUES (
+	        #{queryId},
+	        #{resourceId},
+	        SYSTIMESTAMP
+	    )
+	</insert>
+	
+	<!-- 제출 상태로 변경하기 전에 전체 요청 분류 저장 -->
+	<update id="updateRequestClass">
+	    UPDATE QUERY_REQUEST
+	    SET REQUEST_CLASS = #{requestClass}
+	    WHERE REQUEST_ID = #{requestId}
+	      AND DRAFTER_ID = #{drafterId}
+	      AND REQUEST_STATUS = 'DRAFT'
+	</update>
 
 </mapper>

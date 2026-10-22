@@ -92,4 +92,36 @@ public class RequestSqlValidationService {
         }
         return dataAccessValidationService.validate(requesterId, metadata.resources());
     }
+    
+    /**
+     * 제출용 검증.
+     * 하나라도 실패하면 예외를 전달하며 결과를 저장하지 않는다.
+     */
+    public List<RequestSqlValidationResult> validateForSubmission(
+            Long requesterId,
+            List<RequestItemResponse> items) {
+
+        if (items == null || items.isEmpty() || items.size() > 5) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "제출하려면 SQL을 1개 이상, 5개 이하로 등록하세요."
+            );
+        }
+
+        List<RequestSqlValidationResult> results = new ArrayList<>();
+
+        for (RequestItemResponse item : items) {
+            var access = validateOne(requesterId, item.getSqlText());
+
+            results.add(new RequestSqlValidationResult(
+                    item.getQueryId(),
+                    "VALID",
+                    "검증을 통과했습니다.",
+                    access.accessLevel(),
+                    access.resourceIds().stream().sorted().toList()
+            ));
+        }
+
+        return results;
+    }
 }
