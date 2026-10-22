@@ -62,6 +62,7 @@
 	    SELECT E.EXECUTION_ID,
 	           E.BATCH_ID,
 	           B.REQUEST_ID,
+	           R.DRAFTER_ID,
 	           E.QUERY_ID,
 	           E.STATUS AS EXECUTION_STATUS,
 	           B.BATCH_STATUS,

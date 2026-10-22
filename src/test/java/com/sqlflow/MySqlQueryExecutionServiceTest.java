@@ -173,6 +173,38 @@ class MySqlQueryExecutionServiceTest {
         assertNoResultFiles();
     }
 
+    @Test
+    void zeroLimitsAllowExecutionAndFileCreation() throws Exception {
+        service = new MySqlQueryExecutionService(
+                dataSource, resultDirectory.toString(), 0, 0);
+
+        prepareResult("name");
+        when(resultSet.next()).thenReturn(true, false);
+        when(resultSet.getString(1)).thenReturn("a".repeat(100));
+
+        var result = service.execute(SQL);
+
+        assertEquals(1L, result.rowCount());
+        assertTrue(result.fileSize() > 100);
+        assertTrue(Files.exists(resultDirectory.resolve(result.relativePath())));
+
+        // JDBC에도 제한 없음 값이 전달되는지 확인한다.
+        verify(statement).setQueryTimeout(0);
+    }
+
+    @Test
+    void negativeLimitsAreRejected() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new MySqlQueryExecutionService(
+                        dataSource, resultDirectory.toString(), -1, 0));
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new MySqlQueryExecutionService(
+                        dataSource, resultDirectory.toString(), 0, -1));
+    }
+
     private MySqlQueryExecutionService createService(long maxFileBytes) {
         return new MySqlQueryExecutionService(
                 dataSource,
