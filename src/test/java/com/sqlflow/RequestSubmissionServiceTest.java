@@ -59,26 +59,62 @@ class RequestSubmissionServiceTest {
     @Test
     void submissionCreatesApprovalLineBeforeChangingRequestStatus() {
         RequestItemResponse item = new RequestItemResponse();
-        item.setSqlText("SELECT 1 FROM DUAL");
+        item.setQueryId(101L);
+        item.setSqlText("SELECT * FROM sqlflow_demo.demo_product");
 
         prepareDraft(List.of(item));
 
         when(approvalLineCreatorProvider.getIfAvailable())
                 .thenReturn(approvalLineCreator);
 
+        when(requestSqlValidationService.validateForSubmission(
+                1L, List.of(item)))
+                .thenReturn(List.of(
+                        new RequestSqlValidationResult(
+                                101L,
+                                "VALID",
+                                "검증 통과",
+                                "GENERAL",
+                                List.of(1L)
+                        )
+                ));
+
+        when(requestMapper.updateSubmittedItemValidation(
+                2L, 101L, "GENERAL")).thenReturn(1);
+
+        when(requestMapper.insertQueryResourceUsage(
+                101L, 1L)).thenReturn(1);
+
+        when(requestMapper.updateRequestClass(
+                2L, 1L, "GENERAL")).thenReturn(1);
+
         when(requestMapper.submitDraft(2L, 1L)).thenReturn(1);
 
         requestService.submitRequest(2L, submitInput(), 1L);
 
-     // SQL·권한 검사까지 통과해야 결재선과 제출 상태를 생성한다.
         InOrder order = inOrder(
                 requestMapper,
                 requestSqlValidationService,
-                approvalLineCreator);
+                approvalLineCreator
+        );
 
-        order.verify(requestMapper).selectMyRequestStatusForUpdate(2L, 1L);
+        order.verify(requestMapper)
+                .selectMyRequestStatusForUpdate(2L, 1L);
 
-        order.verify(requestSqlValidationService).validate(1L, List.of("SELECT 1 FROM DUAL"));
+        order.verify(requestSqlValidationService)
+                .validateForSubmission(1L, List.of(item));
+
+        order.verify(requestMapper)
+                .updateSubmittedItemValidation(2L, 101L, "GENERAL");
+
+        order.verify(requestMapper)
+                .deleteQueryResourceUsage(101L);
+
+        order.verify(requestMapper)
+                .insertQueryResourceUsage(101L, 1L);
+
+        order.verify(requestMapper)
+                .updateRequestClass(2L, 1L, "GENERAL");
 
         order.verify(approvalLineCreator)
                 .createApprovalLine(2L, 1L, List.of(), 20L);
@@ -160,8 +196,8 @@ class RequestSubmissionServiceTest {
         doThrow(new ResponseStatusException(
                 HttpStatus.FORBIDDEN,
                 "조회 권한이 없는 테이블이 포함되어 있습니다."))
-                .when(requestSqlValidationService)
-                .validate(1L, List.of(item.getSqlText()));
+		        .when(requestSqlValidationService)
+		        .validateForSubmission(1L, List.of(item));
 
         ResponseStatusException error = assertThrows(
                 ResponseStatusException.class,
@@ -187,8 +223,8 @@ class RequestSubmissionServiceTest {
         doThrow(new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
                 "SELECT만 제출할 수 있습니다."))
-                .when(requestSqlValidationService)
-                .validate(1L, List.of(item.getSqlText()));
+		        .when(requestSqlValidationService)
+		        .validateForSubmission(1L, List.of(item));
 
         ResponseStatusException error = assertThrows(
                 ResponseStatusException.class,

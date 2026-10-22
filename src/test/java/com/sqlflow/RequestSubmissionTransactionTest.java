@@ -3,7 +3,10 @@ package com.sqlflow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -18,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.sqlflow.access.service.RequestSqlValidationService;
 import com.sqlflow.approval.service.ApprovalService;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
+import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.dto.RequestSubmitRequest;
 import com.sqlflow.request.service.RequestService;
 
@@ -50,6 +54,25 @@ class RequestSubmissionTransactionTest {
         draft.setSqls(List.of("SELECT 1 FROM DUAL"));
 
         requestId = requestService.createDraft(draft, 1L, 1L);
+        
+        Long queryId = jdbcTemplate.queryForObject("""
+                SELECT QUERY_ID
+                FROM QUERY_ITEM
+                WHERE REQUEST_ID = ?
+                """, Long.class, requestId);
+
+        // 새 제출 메서드가 저장할 검증 결과를 반환하도록 설정
+        when(requestSqlValidationService.validateForSubmission(
+                eq(1L), anyList()))
+                .thenReturn(List.of(
+                        new RequestSqlValidationResult(
+                                queryId,
+                                "VALID",
+                                "테스트 검증 통과",
+                                "GENERAL",
+                                List.of(1L)
+                        )
+                ));
 
         // 2. 결재 기능을 테스트용 동작으로 대체
         // DB를 변경한 다음 실패하도록 구성
