@@ -29,6 +29,7 @@ import com.sqlflow.request.dto.RequestDraftUpdateRequest;
 import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.dto.RequestPageResponse;
 import com.sqlflow.request.dto.RequestSubmitRequest;
+import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.service.RequestService;
 
 import jakarta.validation.Valid;
@@ -116,6 +117,13 @@ public class RequestController {
 			@AuthenticationPrincipal SqlFlowUserDetails user) {
 		requestService.submitRequest(requestId, input, user.getUserId());
 		return ResponseEntity.noContent().build();
+	}
+
+	@PostMapping("/{requestId}/validate")
+	public List<RequestSqlValidationResult> validateDraftSql(
+			@PathVariable Long requestId,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		return requestService.validateDraftSql(requestId, user.getUserId());
 	}
 
 	@ExceptionHandler(ResponseStatusException.class)

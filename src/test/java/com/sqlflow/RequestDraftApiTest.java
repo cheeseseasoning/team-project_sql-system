@@ -90,6 +90,49 @@ class RequestDraftApiTest {
         assertEquals("DRAFT", requestStatus);
         assertEquals(Integer.valueOf(2), itemCount);
     }
+
+    @Test
+    void validateDraftPersistsPerItemFailureAndReason() throws Exception {
+
+        String body = """
+                {
+                    "title": "SQL 검증 상태 테스트",
+                    "purpose": "잘못된 SQL의 검증 상태 확인",
+                    "sqls": ["sql"]
+                }
+                """;
+
+        String response = mockMvc.perform(
+                    post("/api/requests/drafts")
+                        .with(csrf())
+                        .with(authenticatedUser())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body)
+                )
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Number id = JsonPath.read(response, "$.requestId");
+        Long requestId = id.longValue();
+
+        mockMvc.perform(
+                    post("/api/requests/{requestId}/validate", requestId)
+                        .with(csrf())
+                        .with(authenticatedUser())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].validationStatus").value("INVALID"))
+                .andExpect(jsonPath("$[0].message").isNotEmpty());
+
+        mockMvc.perform(
+                    get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].validationStatus").value("INVALID"));
+    }
     
     @Test
     void updateDraftChangesRequestAndSqlItems() throws Exception {
