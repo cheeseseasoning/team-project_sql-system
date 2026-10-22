@@ -15,6 +15,9 @@ public class QueryExecutionTarget {
     private Long batchId;
     private Long requestId;
     private Long queryId;
+    
+    // 실행자의 ID가 아닌, 조회 요청을 작성한 사용자의 ID.
+    private Long drafterId;
 
     private String executionStatus;
     private String batchStatus;

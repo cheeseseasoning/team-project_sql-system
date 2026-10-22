@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.execution.mapper.QueryResultMapper">
+
+    <!-- 생성 시각을 기준으로 30일 후 만료되도록 기록한다. -->
+    <insert id="insertResult"
+            parameterType="com.sqlflow.execution.domain.QueryResult">
+
+        <selectKey keyProperty="resultId"
+                   resultType="java.lang.Long"
+                   order="BEFORE">
+            SELECT SEQ_QUERY_RESULT.NEXTVAL
+            FROM DUAL
+        </selectKey>
+
+        INSERT INTO QUERY_RESULT (
+            RESULT_ID,
+            EXECUTION_ID,
+            FILE_PATH,
+            ROW_COUNT,
+            FILE_SIZE,
+            CREATED_AT,
+            EXPIRES_AT
+        ) VALUES (
+            #{resultId},
+            #{executionId},
+            #{filePath},
+            #{rowCount},
+            #{fileSize},
+            SYSTIMESTAMP,
+            SYSTIMESTAMP + INTERVAL '30' DAY
+        )
+    </insert>
+
+</mapper>

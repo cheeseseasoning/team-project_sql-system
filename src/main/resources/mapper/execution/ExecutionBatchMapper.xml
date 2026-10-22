@@ -85,5 +85,110 @@
         ) THEN 1 ELSE 0 END
         FROM DUAL
     </select>
+    
+    <select id="selectBatch"
+        resultType="com.sqlflow.execution.domain.ExecutionBatch">
+	    SELECT BATCH_ID,
+	           REQUEST_ID,
+	           INITIATED_BY,
+	           BATCH_TYPE,
+	           BATCH_STATUS
+	    FROM EXECUTION_BATCH
+	    WHERE BATCH_ID = #{batchId}
+	</select>
+
+	<!-- 실행 순서는 파일명이나 실행 ID가 아닌 요청의 QUERY_ORDER 기준이다. -->
+	<select id="selectExecutions"
+	        resultType="com.sqlflow.execution.domain.QueryExecution">
+	    SELECT E.EXECUTION_ID,
+	           E.BATCH_ID,
+	           E.QUERY_ID,
+	           E.STATUS
+	    FROM QUERY_EXECUTION E
+	    JOIN EXECUTION_BATCH B
+	      ON B.BATCH_ID = E.BATCH_ID
+	    JOIN QUERY_ITEM I
+	      ON I.QUERY_ID = E.QUERY_ID
+	     AND I.REQUEST_ID = B.REQUEST_ID
+	    WHERE E.BATCH_ID = #{batchId}
+	    ORDER BY I.QUERY_ORDER, I.QUERY_ID, E.EXECUTION_ID
+	</select>
+	
+	<select id="isActiveDbApprover" resultType="boolean">
+	    SELECT CASE WHEN EXISTS (
+	        SELECT 1
+	        FROM USERS U
+	        JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
+	        JOIN ROLE R ON R.ROLE_ID = UR.ROLE_ID
+	        WHERE U.USER_ID = #{userId}
+	          AND U.ENABLED = 'Y'
+	          AND R.ROLE_CODE = 'DB_APPROVER'
+	    ) THEN 1 ELSE 0 END
+	    FROM DUAL
+	</select>
+	
+	<update id="markBatchRunning">
+	    UPDATE EXECUTION_BATCH
+	    SET BATCH_STATUS = 'RUNNING',
+	        INITIATED_BY = #{userId},
+	        FINISHED_AT = NULL
+	    WHERE BATCH_ID = #{batchId}
+	      AND BATCH_STATUS = 'PENDING'
+	</update>
+	
+	<update id="updateRequestStatus">
+	    UPDATE QUERY_REQUEST
+	    SET REQUEST_STATUS = #{nextStatus}
+	    WHERE REQUEST_ID = #{requestId}
+	      AND REQUEST_STATUS = #{expectedStatus}
+	      AND APPROVAL_STATUS = 'APPROVED'
+	</update>
+	
+	<!-- 파일 경로나 SQL 원문 없이 실행 상태와 처리 개수만 제공한다. -->
+	<select id="selectVisibleBatchStatus"
+	        resultType="com.sqlflow.execution.dto.ExecutionBatchStatusResponseDTO">
+	
+	    SELECT B.BATCH_ID,
+	           B.REQUEST_ID,
+	           B.BATCH_STATUS,
+	           Q.REQUEST_STATUS,
+	           B.FINISHED_AT,
+	           COUNT(E.EXECUTION_ID) AS TOTAL_COUNT,
+	           SUM(CASE WHEN E.STATUS = 'PENDING' THEN 1 ELSE 0 END)
+	               AS PENDING_COUNT,
+	           SUM(CASE WHEN E.STATUS = 'RUNNING' THEN 1 ELSE 0 END)
+	               AS RUNNING_COUNT,
+	           SUM(CASE WHEN E.STATUS = 'SUCCESS' THEN 1 ELSE 0 END)
+	               AS SUCCESS_COUNT,
+	           SUM(CASE WHEN E.STATUS = 'FAILED' THEN 1 ELSE 0 END)
+	               AS FAILURE_COUNT
+	    FROM EXECUTION_BATCH B
+	    JOIN QUERY_REQUEST Q
+	      ON Q.REQUEST_ID = B.REQUEST_ID
+	    LEFT JOIN QUERY_EXECUTION E
+	      ON E.BATCH_ID = B.BATCH_ID
+	    WHERE B.BATCH_ID = #{batchId}
+	      AND EXISTS (
+	          SELECT 1
+	          FROM USERS U
+	          WHERE U.USER_ID = #{actorId}
+	            AND U.ENABLED = 'Y'
+	            AND (
+	                Q.DRAFTER_ID = U.USER_ID
+	                OR EXISTS (
+	                    SELECT 1
+	                    FROM USER_ROLE UR
+	                    JOIN ROLE R ON R.ROLE_ID = UR.ROLE_ID
+	                    WHERE UR.USER_ID = U.USER_ID
+	                      AND R.ROLE_CODE = 'DB_APPROVER'
+	                )
+	            )
+	      )
+	    GROUP BY B.BATCH_ID,
+	             B.REQUEST_ID,
+	             B.BATCH_STATUS,
+	             Q.REQUEST_STATUS,
+	             B.FINISHED_AT
+	</select>
 
 </mapper>

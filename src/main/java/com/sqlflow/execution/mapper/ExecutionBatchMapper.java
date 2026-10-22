@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Param;
 
 import com.sqlflow.execution.domain.ExecutionBatch;
 import com.sqlflow.execution.domain.ExecutionRequestContext;
+import com.sqlflow.execution.domain.QueryExecution;
+import com.sqlflow.execution.dto.ExecutionBatchStatusResponseDTO;
 
 @Mapper
 public interface ExecutionBatchMapper {
@@ -34,4 +36,29 @@ public interface ExecutionBatchMapper {
 
     /** 활성 DB팀 사용자만 수동 실행 대기 묶음을 등록할 수 있는지 확인한다. */
     boolean isActiveDbTeamMember(@Param("userId") Long userId);
+    
+    /** 실행 묶음의 요청 ID와 현재 상태를 조회한다. */
+    ExecutionBatch selectBatch(@Param("batchId") Long batchId);
+
+    /** 요청에 저장된 SQL 순서대로 실행 이력을 조회한다. */
+    List<QueryExecution> selectExecutions(@Param("batchId") Long batchId);
+
+    /** 현재 DB에 저장된 계정 활성 상태와 DB_APPROVER 역할을 확인한다. */
+    boolean isActiveDbApprover(@Param("userId") Long userId);
+
+    /** 대기 묶음만 시작하고 실제 실행 시작자를 기록한다. */
+    int markBatchRunning(
+            @Param("batchId") Long batchId,
+            @Param("userId") Long userId);
+
+    /** 예상 상태일 때만 요청의 실행 상태를 변경한다. */
+    int updateRequestStatus(
+            @Param("requestId") Long requestId,
+            @Param("expectedStatus") String expectedStatus,
+            @Param("nextStatus") String nextStatus);
+    
+    /** 요청자 본인 또는 현재 DB_APPROVER에게 실행 상태를 반환한다. */
+    ExecutionBatchStatusResponseDTO selectVisibleBatchStatus(
+            @Param("batchId") Long batchId,
+            @Param("actorId") Long actorId);
 }
