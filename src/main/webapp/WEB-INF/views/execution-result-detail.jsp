@@ -88,9 +88,15 @@
     </section>
 
     <section class="panel section-gap">
-        <div class="panel-heading">
-            <h2>조회 결과</h2>
-        </div>
+		<div class="panel-heading">
+		    <h2>조회 결과</h2>
+
+		    <a id="execution-result-download"
+		       class="button"
+		       hidden>
+		        CSV 다운로드
+		    </a>
+		</div>
 
         <p id="execution-result-message" role="status"></p>
 
@@ -219,6 +225,24 @@
             detail.errorMessage || '저장된 오류 내용이 없습니다.';
 
         const hasResult = detail.resultId != null;
+		
+		const downloadLink = $('#execution-result-download');
+
+		const canDownload =
+		    detail.status === 'SUCCESS'
+		    && hasResult
+		    && !detail.deletedAt;
+
+		downloadLink.hidden = !canDownload;
+		downloadLink.removeAttribute('href');
+
+		if (canDownload) {
+		    downloadLink.href =
+		        BASE
+		        + '/api/execution-results/mine/'
+		        + encodeURIComponent(detail.executionId)
+		        + '/csv';
+		}
 
         $('#execution-result-metadata').hidden = !hasResult;
 

@@ -3,6 +3,11 @@ package com.sqlflow.execution.controller;
 import java.util.Map;
 import java.util.Objects;
 
+import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -69,6 +74,37 @@ public class ExecutionResultController {
                 result.getFilePath(),
                 offset,
                 limit);
+    }
+    
+    @GetMapping("/mine/{executionId}/csv")
+    public ResponseEntity<Resource> downloadMyResultCsv(
+            @PathVariable("executionId") Long executionId,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+        // 미리보기와 동일하게 본인 실행·성공·만료·삭제 여부를 검사한다.
+        ExecutionResultFile result =
+                executionResultService.getMyResultFile(
+                        executionId,
+                        user == null ? null : user.getUserId());
+
+        Resource resource =
+                csvPreviewService.getDownloadResource(
+                        result.getFilePath());
+
+        String downloadName =
+                "sqlflow-execution-" + executionId + ".csv";
+
+        return ResponseEntity.ok()
+                .contentType(
+                        MediaType.parseMediaType("text/csv;charset=UTF-8"))
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(downloadName)
+                                .build()
+                                .toString())
+                .cacheControl(CacheControl.noStore())
+                .body(resource);
     }
     
     @ExceptionHandler(ResponseStatusException.class)
