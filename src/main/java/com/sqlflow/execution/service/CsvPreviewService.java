@@ -5,6 +5,8 @@ import java.io.PushbackReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -13,6 +15,8 @@ import java.util.List;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -131,6 +135,34 @@ public class CsvPreviewService {
         }
     }
 
+    /**
+     * 권한과 만료 여부를 확인한 DB 경로로만 호출한다.
+     * 미리보기와 동일한 경로 검사 후 원본 파일을 반환한다.
+     */
+    public Resource getDownloadResource(String relativePath) {
+        try {
+            Path file = resolveFile(relativePath);
+
+            if (!Files.isReadable(file)) {
+                throw new IOException("결과 파일을 읽을 수 없습니다.");
+            }
+
+            return new FileSystemResource(file);
+
+        } catch (NoSuchFileException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "저장된 CSV 파일을 찾을 수 없습니다.",
+                    exception);
+
+        } catch (IOException | InvalidPathException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "CSV 파일을 다운로드할 수 없습니다.",
+                    exception);
+        }
+    }
+    
     private Path resolveFile(String relativePath) throws IOException {
         if (relativePath == null || relativePath.isBlank()) {
             throw new IOException("결과 파일 경로가 없습니다.");
