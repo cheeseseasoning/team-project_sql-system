@@ -14,8 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.auth.security.SqlFlowUserDetails;
+import com.sqlflow.execution.domain.ExecutionResultFile;
 import com.sqlflow.execution.dto.ExecutionResultDetailResponse;
 import com.sqlflow.execution.dto.ExecutionResultPageResponse;
+import com.sqlflow.execution.dto.ExecutionResultPreviewResponse;
+import com.sqlflow.execution.service.CsvPreviewService;
 import com.sqlflow.execution.service.ExecutionResultService;
 
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class ExecutionResultController {
 
     private final ExecutionResultService executionResultService;
+    private final CsvPreviewService csvPreviewService;
 
     @GetMapping("/mine")
     public ExecutionResultPageResponse getMyResults(
@@ -49,6 +53,24 @@ public class ExecutionResultController {
                 user == null ? null : user.getUserId());
     }
 
+    @GetMapping("/mine/{executionId}/preview")
+    public ExecutionResultPreviewResponse getMyResultPreview(
+            @PathVariable("executionId") Long executionId,
+            @AuthenticationPrincipal SqlFlowUserDetails user,
+            @RequestParam(name = "offset", defaultValue = "0") long offset,
+            @RequestParam(name = "limit", defaultValue = "25") int limit) {
+
+        ExecutionResultFile result =
+                executionResultService.getMyResultFile(
+                        executionId,
+                        user == null ? null : user.getUserId());
+
+        return csvPreviewService.read(
+                result.getFilePath(),
+                offset,
+                limit);
+    }
+    
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, String>> handleError(
             ResponseStatusException exception) {

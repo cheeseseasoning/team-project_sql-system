@@ -132,5 +132,41 @@
 	    WHERE E.EXECUTION_ID = #{executionId}
 	      AND R.DRAFTER_ID = #{drafterId}
 	</select>
+	
+	<!-- 본인 요청에 속한 실행의 최신 결과 파일 정보 조회 -->
+    <select id="selectMyResultFile"
+            resultType="com.sqlflow.execution.domain.ExecutionResultFile">
+        SELECT E.EXECUTION_ID,
+               E.STATUS,
+               F.RESULT_ID,
+               F.FILE_PATH,
+               F.EXPIRES_AT,
+               F.DELETED_AT
+        FROM QUERY_EXECUTION E
+        JOIN EXECUTION_BATCH B
+          ON B.BATCH_ID = E.BATCH_ID
+        JOIN QUERY_REQUEST R
+          ON R.REQUEST_ID = B.REQUEST_ID
+        JOIN QUERY_ITEM I
+          ON I.QUERY_ID = E.QUERY_ID
+         AND I.REQUEST_ID = R.REQUEST_ID
+        LEFT JOIN (
+            SELECT RESULT_ID,
+                   EXECUTION_ID,
+                   FILE_PATH,
+                   EXPIRES_AT,
+                   DELETED_AT,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY EXECUTION_ID
+                       ORDER BY CREATED_AT DESC,
+                                RESULT_ID DESC
+                   ) AS RESULT_RANK
+            FROM QUERY_RESULT
+        ) F
+          ON F.EXECUTION_ID = E.EXECUTION_ID
+         AND F.RESULT_RANK = 1
+        WHERE E.EXECUTION_ID = #{executionId}
+          AND R.DRAFTER_ID = #{drafterId}
+    </select>
 
 </mapper>
