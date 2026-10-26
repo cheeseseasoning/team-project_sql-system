@@ -35,6 +35,11 @@
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/execution-queue.css">
     </c:if>
+    <c:if test="${page == 'views'}">
+	    <link rel="stylesheet"
+	          href="${pageContext.request.contextPath}/css/pages/views.css">
+	</c:if>
+    
 </head>
 <body>
     <div class="app-shell">
@@ -77,6 +82,14 @@
 				    <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg"
 				         alt="">
 				    실행 결과
+				</a>
+				
+				<a class="nav-item ${activeMenu == 'views' ? 'active' : ''}"
+				   href="${pageContext.request.contextPath}/views"
+				   ${activeMenu == 'views' ? 'aria-current="page"' : ''}>
+				    <img src="${pageContext.request.contextPath}/icons/Files.svg"
+				         alt="">
+				    뷰 조회
 				</a>
 
                 <a class="nav-item ${activeMenu == 'notices' ? 'active' : ''}"
