@@ -110,12 +110,19 @@ public class CsvPreviewService {
                 }
             }
 
-        } catch (IOException | UncheckedIOException exception) {
+        } catch (NoSuchFileException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "저장된 CSV 파일을 찾을 수 없습니다.",
+                    exception);
+
+        } catch (IOException
+                | UncheckedIOException
+                | InvalidPathException exception) {
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "CSV 결과 파일을 읽을 수 없습니다.",
-                    exception
-            );
+                    exception);
         }
     }
 

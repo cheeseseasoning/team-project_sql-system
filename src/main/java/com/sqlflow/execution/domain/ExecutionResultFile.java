@@ -14,6 +14,7 @@ import lombok.Setter;
 public class ExecutionResultFile {
 
     private Long executionId;
+    private Long queryId;
     private Long resultId;
     private String status;
     private String filePath;
