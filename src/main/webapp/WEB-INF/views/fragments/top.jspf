@@ -36,6 +36,10 @@
               href="${pageContext.request.contextPath}/css/pages/execution-queue.css">
     </c:if>
 
+    <c:if test="${page == 'admin-user-form'}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/admin-user.css">
+    </c:if>
+    
     <c:if test="${page == 'execution-result-detail'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/execution-result.css">
@@ -88,6 +92,12 @@
                    href="${pageContext.request.contextPath}/notices"
                    ${activeMenu == 'notices' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/Bell.svg" alt="">공지사항</a>
+                <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
+                    <a class="nav-item ${activeMenu == 'admin-users' ? 'active' : ''}"
+                       href="${pageContext.request.contextPath}/admin/users/new"
+                       ${activeMenu == 'admin-users' ? 'aria-current="page"' : ''}>
+                        <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">관리자 페이지</a>
+                </c:if>
             </nav>
 
             <div class="sidebar-foot">
