@@ -19,11 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.auth.security.SqlFlowUserDetails;
-import com.sqlflow.execution.domain.ExecutionResultFile;
 import com.sqlflow.execution.dto.ExecutionResultDetailResponse;
 import com.sqlflow.execution.dto.ExecutionResultPageResponse;
 import com.sqlflow.execution.dto.ExecutionResultPreviewResponse;
-import com.sqlflow.execution.service.CsvPreviewService;
+import com.sqlflow.execution.service.ExecutionResultDeliveryService;
 import com.sqlflow.execution.service.ExecutionResultService;
 
 import lombok.RequiredArgsConstructor;
@@ -33,9 +32,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ExecutionResultController {
 
-    private final ExecutionResultService executionResultService;
-    private final CsvPreviewService csvPreviewService;
-
+	private final ExecutionResultService executionResultService;
+	private final ExecutionResultDeliveryService executionResultDeliveryService;
+	
     @GetMapping("/mine")
     public ExecutionResultPageResponse getMyResults(
             @AuthenticationPrincipal SqlFlowUserDetails user,
@@ -65,13 +64,9 @@ public class ExecutionResultController {
             @RequestParam(name = "offset", defaultValue = "0") long offset,
             @RequestParam(name = "limit", defaultValue = "25") int limit) {
 
-        ExecutionResultFile result =
-                executionResultService.getMyResultFile(
-                        executionId,
-                        user == null ? null : user.getUserId());
-
-        return csvPreviewService.read(
-                result.getFilePath(),
+        return executionResultDeliveryService.preview(
+                executionId,
+                user == null ? null : user.getUserId(),
                 offset,
                 limit);
     }
@@ -81,15 +76,10 @@ public class ExecutionResultController {
             @PathVariable("executionId") Long executionId,
             @AuthenticationPrincipal SqlFlowUserDetails user) {
 
-        // 이력 열람 자격·파일 상태·현재 조회 권한·반출 정책을 검사한다.
-        ExecutionResultFile result =
-                executionResultService.getMyDownloadFile(
+        Resource resource =
+                executionResultDeliveryService.download(
                         executionId,
                         user == null ? null : user.getUserId());
-
-        Resource resource =
-                csvPreviewService.getDownloadResource(
-                        result.getFilePath());
 
         String downloadName =
                 "sqlflow-execution-" + executionId + ".csv";
