@@ -1,6 +1,6 @@
 .account-intro { color: var(--muted); margin: -4px 0 20px; }
 .account-notice { background: var(--banner); border: 1px solid var(--line); border-radius: 6px; padding: 14px 18px; margin-bottom: 20px; }
-#account-form { max-width: 1100px; }
+#account-form { width: 100%; max-width: none; }
 .account-fields { margin: 20px 0 12px; }
 .account-fields label { display: flex; flex-direction: column; gap: 8px; }
 .account-label-text { display: block; }
