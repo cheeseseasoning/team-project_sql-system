@@ -1,0 +1,171 @@
+/* ==================================================
+   1. 제목과 검색 영역
+   ================================================== */
+
+.views-page .views-introduction {
+    margin-top: 6px;
+}
+
+.views-page .views-filter {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 16px;
+}
+
+.views-page .views-filter label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+}
+
+.views-page .views-filter input,
+.views-page .views-filter select {
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    margin: 0;
+}
+
+.views-page .views-filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.views-page .views-filter-actions .button {
+    min-height: 46px;
+    white-space: nowrap;
+}
+
+.views-page .views-filter-description {
+    margin-top: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+}
+
+
+/* ==================================================
+   2. 뷰 목록
+   ================================================== */
+
+.views-page .views-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.views-page .views-table {
+    width: 100%;
+    min-width: 760px;
+    table-layout: fixed;
+}
+
+.views-page .views-name-column {
+    width: 34%;
+}
+
+.views-page .views-schema-column {
+    width: 17%;
+}
+
+.views-page .views-description-column {
+    width: 35%;
+}
+
+.views-page .views-status-column {
+    width: 14%;
+}
+
+.views-page .views-table th,
+.views-page .views-table td {
+    vertical-align: top;
+}
+
+.views-page .views-table th {
+    white-space: nowrap;
+}
+
+.views-page .views-object-name {
+    display: block;
+    color: var(--accent);
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.views-page .views-table .secondary {
+    display: block;
+    margin-top: 5px;
+    overflow-wrap: anywhere;
+}
+
+.views-page .views-schema {
+    overflow-wrap: anywhere;
+}
+
+.views-page .views-description {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+
+/* ==================================================
+   3. 조회 상태와 오류 안내
+   ================================================== */
+
+.views-page .views-list-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.views-page .views-list-footer:has(
+    #view-list-message:empty
+):has(
+    #view-retry[hidden]
+) {
+    display: none;
+}
+
+.views-page .views-error {
+    color: var(--error);
+}
+
+
+/* ==================================================
+   4. 좁은 화면의 검색 영역
+   ================================================== */
+
+@media (max-width: 1000px) {
+    .views-page .views-filter {
+        grid-template-columns: 160px minmax(0, 1fr);
+    }
+
+    .views-page .views-filter-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 560px) {
+    .views-page .views-filter {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .views-page .views-filter-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .views-page .views-filter-actions .button {
+        width: 100%;
+    }
+
+    .views-page .views-list-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

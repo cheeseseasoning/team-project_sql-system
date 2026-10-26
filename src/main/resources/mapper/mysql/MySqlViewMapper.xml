@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.mysql.mapper.MySqlViewMapper">
+
+    <!-- 접속한 업무 DB의 뷰만 조회한다. -->
+	<select id="selectViews"
+	        resultType="com.sqlflow.mysql.dto.MySqlViewSummaryDTO">
+	    SELECT TABLE_SCHEMA AS schema_name,
+	           TABLE_NAME AS object_name
+	    FROM information_schema.VIEWS
+	    WHERE TABLE_SCHEMA = DATABASE()
+	    ORDER BY TABLE_NAME
+	</select>
+	
+</mapper>

@@ -128,6 +128,12 @@ public class PageController {
 	            "SQL 실행 결과 상세"
 	    );
 	}
+	
+	/** 읽기 전용 뷰 목록 화면을 연다. */
+	@GetMapping("/views")
+	public String viewList(Model model) {
+	    return view(model, "views", "뷰 조회");
+	}
 
 	@GetMapping("/notices")
 	public String notices(Model model) {
@@ -140,6 +146,7 @@ public class PageController {
 		model.addAttribute("activeMenu",
 		        page.equals("home") ? "home"
 		                : page.equals("notices") ? "notices"
+		                : page.equals("views") ? "views"		
 		                : page.equals("admin-user-form") ? "admin-users"
 		                : page.startsWith("execution-queue") ? "execution-queue"
 		                : page.startsWith("execution-result") ? "execution-results"

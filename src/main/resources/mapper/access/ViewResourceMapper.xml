@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.access.mapper.ViewResourceMapper">
+
+    <select id="selectResources"
+            resultType="com.sqlflow.access.dto.ViewResourceInfoDTO">
+        SELECT RESOURCE_ID,
+               SCHEMA_NAME,
+               OBJECT_NAME,
+               RESOURCE_NAME,
+               DESCRIPTION,
+               ENABLED
+        FROM DATA_RESOURCE
+        WHERE SCHEMA_NAME = #{schemaName}
+        ORDER BY OBJECT_NAME, RESOURCE_ID
+    </select>
+    
+    <!-- 정책 등록 여부와 관계없이 전체 부서를 표시한다. -->
+	<select id="selectDepartments"
+	        resultType="com.sqlflow.access.dto.ViewDepartmentInfoDTO">
+	    SELECT DEPT_ID,
+	           DEPT_NAME
+	    FROM DEPARTMENT
+	    ORDER BY DEPT_NAME, DEPT_ID
+	</select>
+	
+	<!--
+	    부서를 기준으로 LEFT JOIN해 정책이 없는 부서도 반환한다.
+	    활성 여부를 WHERE에서 제한하면 미등록·비활성 구분이 사라진다.
+	-->
+	<select id="selectDepartmentPolicies"
+	        resultType="com.sqlflow.access.dto.ViewDepartmentPolicyInfoDTO">
+	    SELECT #{resourceId, jdbcType=NUMERIC} AS RESOURCE_ID,
+	           D.DEPT_ID,
+	           D.DEPT_NAME,
+	           P.POLICY_ID,
+	           P.ACCESS_LEVEL,
+	           P.EXPORT_POLICY,
+	           P.ENABLED AS POLICY_ENABLED
+	    FROM DEPARTMENT D
+	    LEFT JOIN DATA_ACCESS_POLICY P
+	      ON P.DEPT_ID = D.DEPT_ID
+	     AND P.RESOURCE_ID = #{resourceId}
+	    ORDER BY D.DEPT_NAME, D.DEPT_ID, P.POLICY_ID
+	</select>
+	
+	<!--
+    리소스와 부서 정책이 모두 활성인 대상만 반환한다.
+    EXISTS를 사용해 정책 행이 중복돼도 리소스 목록이 중복되지 않게 한다.
+	-->
+	<select id="selectResourcesByDepartment"
+	        resultType="com.sqlflow.access.dto.ViewResourceInfoDTO">
+	    SELECT R.RESOURCE_ID,
+	           R.SCHEMA_NAME,
+	           R.OBJECT_NAME,
+	           R.RESOURCE_NAME,
+	           R.DESCRIPTION,
+	           R.ENABLED
+	    FROM DATA_RESOURCE R
+	    WHERE R.SCHEMA_NAME = #{schemaName}
+	      AND R.ENABLED = 'Y'
+	      AND EXISTS (
+	          SELECT 1
+	          FROM DATA_ACCESS_POLICY P
+	          WHERE P.RESOURCE_ID = R.RESOURCE_ID
+	            AND P.DEPT_ID = #{deptId}
+	            AND P.ENABLED = 'Y'
+	      )
+	    ORDER BY R.OBJECT_NAME, R.RESOURCE_ID
+	</select>
+
+</mapper>
