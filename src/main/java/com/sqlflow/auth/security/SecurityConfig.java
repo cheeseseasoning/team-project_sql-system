@@ -53,6 +53,7 @@ public class SecurityConfig {
                 ).permitAll()
 
                 // 나머지 요청은 로그인 필요
+                .requestMatchers("/admin/**", "/api/admin/**").hasRole("SYSTEM_ADMIN")
                 .anyRequest().authenticated()
             )
 

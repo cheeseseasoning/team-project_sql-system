@@ -1,0 +1,22 @@
+.account-intro { color: var(--muted); margin: -4px 0 20px; }
+.account-notice { background: var(--banner); border: 1px solid var(--line); border-radius: 6px; padding: 14px 18px; margin-bottom: 20px; }
+#account-form { max-width: 1100px; }
+.account-fields { margin: 20px 0 12px; }
+.account-fields label { display: flex; flex-direction: column; gap: 8px; }
+.account-label-text { display: block; }
+.account-fields select:disabled { background: var(--soft); color: var(--muted); opacity: 1; }
+.account-password-toggle { display: flex; align-items: center; gap: 8px; margin: 12px 0 8px; }
+#account-form input[type="checkbox"] { width: 17px; height: 17px; margin: 0; accent-color: var(--accent); flex-shrink: 0; }
+.account-roles { border: 0; border-top: 1px solid var(--line); padding: 24px 0 0; margin: 28px 0 0; min-width: 0; }
+.account-roles legend { font-size: 15px; font-weight: 600; padding: 0 12px 0 0; }
+.account-role-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.account-role { display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 18px; cursor: pointer; }
+.account-role:has(input:checked) { background: var(--tint); border-color: var(--accent); }
+.account-role span { display: grid; gap: 5px; min-width: 0; }
+.account-role code { color: var(--accent); font-size: 12px; overflow-wrap: anywhere; }
+.account-role small { color: var(--muted); font-weight: 400; }
+.account-roles > p + p { margin-top: 8px; }
+#account-form button:disabled { cursor: not-allowed; }
+.account-review { padding: 18px; margin-top: 20px; border: 1px solid var(--line); border-radius: 6px; background: var(--soft); overflow-wrap: anywhere; }
+.account-review p { margin-top: 10px; }
+@media (max-width: 760px) { .account-role-grid { grid-template-columns: 1fr; } #account-form .form-footer { align-items: stretch; flex-direction: column; } #account-form .form-footer > div { display: flex; flex-wrap: wrap; gap: 8px; } }
