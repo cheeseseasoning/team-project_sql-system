@@ -70,7 +70,7 @@ class ResultAccessLogServiceTest {
                 RESULT_ID,
                 USER_ID,
                 "DOWNLOAD",
-                "SUCCESS");
+                "PREPARED");
 
         ArgumentCaptor<ResultAccessLog> entryCaptor =
                 ArgumentCaptor.forClass(ResultAccessLog.class);
@@ -95,7 +95,7 @@ class ResultAccessLogServiceTest {
         assertEquals(RESULT_ID, entry.getResultId());
         assertEquals(USER_ID, entry.getUserId());
         assertEquals("DOWNLOAD", entry.getActionType());
-        assertEquals("SUCCESS", entry.getAccessResult());
+        assertEquals("PREPARED", entry.getAccessResult());
 
         TransactionDefinition definition =
                 definitionCaptor.getValue();
@@ -181,7 +181,7 @@ class ResultAccessLogServiceTest {
                 .thenThrow(failure);
 
         ResponseStatusException error =
-                assertUnavailable(() -> recordSuccess());
+                assertUnavailable(() -> recordPrepared());
 
         assertSame(failure, error.getCause());
 
@@ -198,7 +198,7 @@ class ResultAccessLogServiceTest {
         when(mapper.insertAccessLog(any(ResultAccessLog.class)))
                 .thenReturn(0);
 
-        assertUnavailable(() -> recordSuccess());
+        assertUnavailable(() -> recordPrepared());
 
         verify(transactionManager).rollback(transactionStatus);
 
@@ -222,7 +222,7 @@ class ResultAccessLogServiceTest {
                 .commit(transactionStatus);
 
         ResponseStatusException error =
-                assertUnavailable(() -> recordSuccess());
+                assertUnavailable(() -> recordPrepared());
 
         assertSame(failure, error.getCause());
 
@@ -245,7 +245,7 @@ class ResultAccessLogServiceTest {
                 .thenThrow(failure);
 
         ResponseStatusException error =
-                assertUnavailable(() -> recordSuccess());
+                assertUnavailable(() -> recordPrepared());
 
         assertSame(failure, error.getCause());
 
@@ -264,25 +264,25 @@ class ResultAccessLogServiceTest {
                 IllegalArgumentException.class,
                 () -> service.record(
                         null, RESULT_ID, USER_ID,
-                        "DOWNLOAD", "SUCCESS"));
+                        "DOWNLOAD", "PREPARED"));
 
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.record(
                         REQUEST_ID, RESULT_ID, null,
-                        "DOWNLOAD", "SUCCESS"));
+                        "DOWNLOAD", "PREPARED"));
 
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.record(
                         REQUEST_ID, 0L, USER_ID,
-                        "DOWNLOAD", "SUCCESS"));
+                        "DOWNLOAD", "PREPARED"));
 
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.record(
                         REQUEST_ID, RESULT_ID, USER_ID,
-                        "UNKNOWN", "SUCCESS"));
+                        "UNKNOWN", "PREPARED"));
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -299,13 +299,13 @@ class ResultAccessLogServiceTest {
                 .thenReturn(transactionStatus);
     }
 
-    private void recordSuccess() {
+    private void recordPrepared() {
         service.record(
                 REQUEST_ID,
                 RESULT_ID,
                 USER_ID,
                 "DOWNLOAD",
-                "SUCCESS");
+                "PREPARED");
     }
 
     private ResponseStatusException assertUnavailable(

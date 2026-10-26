@@ -129,7 +129,7 @@ class ResultAccessLogIntegrationTest {
                 null,
                 userId,
                 "PREVIEW",
-                "SUCCESS");
+                "PREPARED");
 
         List<Map<String, Object>> rows = logs();
 
@@ -149,7 +149,7 @@ class ResultAccessLogIntegrationTest {
 
         assertNull(saved.get("RESULT_ID"));
         assertEquals("PREVIEW", saved.get("ACTION_TYPE"));
-        assertEquals("SUCCESS", saved.get("ACCESS_RESULT"));
+        assertEquals("PREPARED", saved.get("ACCESS_RESULT"));
         assertNotNull(saved.get("ACCESSED_AT"));
     }
 
@@ -252,7 +252,7 @@ class ResultAccessLogIntegrationTest {
                         missingResultId,
                         userId,
                         "DOWNLOAD",
-                        "SUCCESS"));
+                        "PREPARED"));
 
         assertEquals(
                 HttpStatus.SERVICE_UNAVAILABLE,

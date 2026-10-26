@@ -20,7 +20,8 @@ import lombok.RequiredArgsConstructor;
 /**
  * 결과 접근 검사·CSV 준비·접근 로그 저장을 연결한다.
  *
- * 정상 결과는 SUCCESS 로그의 커밋이 끝난 뒤 반환한다.
+ * 정상 결과는 PREPARED 로그의 커밋이 끝난 뒤 반환한다.
+ * PREPARED는 응답 준비 완료이며 전송·사용자 저장 완료를 의미하지 않는다.
  * 로그 저장 실패를 다시 ERROR로 기록하지 않는다.
  */
 @Service
@@ -149,8 +150,8 @@ public class ExecutionResultDeliveryService {
                 context.getResultId(),
                 context.getUserId(),
                 actionType,
-                "SUCCESS");
-
+        		"PREPARED");
+        
         return response;
     }
 

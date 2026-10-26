@@ -58,7 +58,7 @@ class ExecutionResultDeliveryServiceTest {
     private ExecutionResultDeliveryService service;
 
     @Test
-    void previewReadsDataThenRecordsSuccessBeforeReturning() {
+    void previewReadsDataThenRecordsPreparedBeforeReturning() {
         preparePreviewAccess();
 
         ExecutionResultPreviewResponse preview = previewResponse();
@@ -85,7 +85,7 @@ class ExecutionResultDeliveryServiceTest {
         order.verify(resultAccessLogService)
                 .record(
                         REQUEST_ID, RESULT_ID, USER_ID,
-                        "PREVIEW", "SUCCESS");
+                        "PREVIEW", "PREPARED");
 
         verifyNoMoreInteractions(resultAccessLogService);
     }
@@ -99,11 +99,11 @@ class ExecutionResultDeliveryServiceTest {
 
         service.preview(EXECUTION_ID, USER_ID, 25L, 25);
 
-        verifyLog("PREVIEW_MORE", "SUCCESS");
+        verifyLog("PREVIEW_MORE", "PREPARED");
     }
 
     @Test
-    void downloadUsesDownloadCheckAndRecordsSuccess() {
+    void downloadUsesDownloadCheckAndRecordsPrepared() {
         prepareContext();
 
         when(executionResultService.getMyDownloadFile(
@@ -133,7 +133,7 @@ class ExecutionResultDeliveryServiceTest {
         order.verify(resultAccessLogService)
                 .record(
                         REQUEST_ID, RESULT_ID, USER_ID,
-                        "DOWNLOAD", "SUCCESS");
+                        "DOWNLOAD", "PREPARED");
 
         verifyNoMoreInteractions(
                 executionResultService,
@@ -231,7 +231,7 @@ class ExecutionResultDeliveryServiceTest {
     }
 
     @Test
-    void successLogFailureBlocksResponseWithoutSecondLogAttempt() {
+    void preparedLogFailureBlocksResponseWithoutSecondLogAttempt() {
         preparePreviewAccess();
 
         when(csvPreviewService.read(FILE_PATH, 0L, 25))
@@ -245,7 +245,7 @@ class ExecutionResultDeliveryServiceTest {
                 .when(resultAccessLogService)
                 .record(
                         REQUEST_ID, RESULT_ID, USER_ID,
-                        "PREVIEW", "SUCCESS");
+                        "PREVIEW", "PREPARED");
 
         assertSame(
                 loggingFailure,
@@ -254,8 +254,8 @@ class ExecutionResultDeliveryServiceTest {
                         () -> service.preview(
                                 EXECUTION_ID, USER_ID, 0L, 25)));
 
-        // SUCCESS 저장 실패를 ERROR로 다시 기록하면 안 된다.
-        verifyLog("PREVIEW", "SUCCESS");
+        // PREPARED 저장 실패를 ERROR로 다시 기록하면 안 된다.
+        verifyLog("PREVIEW", "PREPARED");
     }
 
     @Test

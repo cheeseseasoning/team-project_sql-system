@@ -30,7 +30,7 @@ public class ResultAccessLogService {
             Set.of("PREVIEW", "PREVIEW_MORE", "DOWNLOAD");
 
     private static final Set<String> ACCESS_RESULTS =
-            Set.of("SUCCESS", "DENIED", "ERROR");
+    		Set.of("PREPARED", "DENIED", "ERROR");
 
     private final ResultAccessLogMapper resultAccessLogMapper;
     private final TransactionTemplate logTransaction;

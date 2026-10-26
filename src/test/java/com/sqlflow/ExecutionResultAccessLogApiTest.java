@@ -108,7 +108,7 @@ class ExecutionResultAccessLogApiTest {
     }
     
     @Test
-    void firstPreviewReturnsDataAndRecordsOneSuccessLog()
+    void firstPreviewReturnsDataAndRecordsOnePreparedLog()
             throws Exception {
 
         preparePreview(0L);
@@ -127,7 +127,7 @@ class ExecutionResultAccessLogApiTest {
         verify(executionResultService)
                 .getMyResultFile(EXECUTION_ID, USER_ID);
 
-        verifyLog("PREVIEW", "SUCCESS");
+        verifyLog("PREVIEW", "PREPARED");
     }
 
     @Test
@@ -147,11 +147,11 @@ class ExecutionResultAccessLogApiTest {
 
         verify(csvPreviewService).read(FILE_PATH, 25L, 25);
 
-        verifyLog("PREVIEW_MORE", "SUCCESS");
+        verifyLog("PREVIEW_MORE", "PREPARED");
     }
 
     @Test
-    void allowedDownloadReturnsOriginalBytesAndRecordsSuccess()
+    void allowedDownloadReturnsOriginalBytesAndRecordsPrepared()
             throws Exception {
 
         byte[] csv = prepareDownload();
@@ -174,7 +174,7 @@ class ExecutionResultAccessLogApiTest {
         verify(executionResultService)
                 .getMyDownloadFile(EXECUTION_ID, USER_ID);
 
-        verifyLog("DOWNLOAD", "SUCCESS");
+        verifyLog("DOWNLOAD", "PREPARED");
     }
 
     @Test
@@ -272,7 +272,7 @@ class ExecutionResultAccessLogApiTest {
                         RESULT_ID,
                         USER_ID,
                         "PREVIEW",
-                        "SUCCESS");
+                        "PREPARED");
 
         mockMvc.perform(
                     get(PREVIEW_URL, EXECUTION_ID)
@@ -285,8 +285,8 @@ class ExecutionResultAccessLogApiTest {
                         .value(LOG_FAILURE_MESSAGE))
                 .andExpect(jsonPath("$.rows").doesNotExist());
 
-        // SUCCESS 로그 실패를 ERROR 로그로 재시도하지 않는다.
-        verifyLog("PREVIEW", "SUCCESS");
+        // PREPARED 로그 실패를 ERROR 로그로 재시도하지 않는다.
+        verifyLog("PREVIEW", "PREPARED");
     }
 
     @Test
@@ -302,7 +302,7 @@ class ExecutionResultAccessLogApiTest {
                         RESULT_ID,
                         USER_ID,
                         "DOWNLOAD",
-                        "SUCCESS");
+                        "PREPARED");
 
         mockMvc.perform(
                     get(DOWNLOAD_URL, EXECUTION_ID)
@@ -316,7 +316,7 @@ class ExecutionResultAccessLogApiTest {
                 .andExpect(header()
                         .doesNotExist(HttpHeaders.CONTENT_DISPOSITION));
 
-        verifyLog("DOWNLOAD", "SUCCESS");
+        verifyLog("DOWNLOAD", "PREPARED");
     }
 
     @Test
