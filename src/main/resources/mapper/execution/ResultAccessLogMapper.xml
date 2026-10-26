@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.execution.mapper.ResultAccessLogMapper">
+
+    <insert id="insertAccessLog"
+            parameterType="com.sqlflow.execution.domain.ResultAccessLog">
+
+        <selectKey keyProperty="logId"
+                   resultType="java.lang.Long"
+                   order="BEFORE">
+            SELECT SQLFLOW.SEQ_RESULT_ACCESS_LOG.NEXTVAL
+            FROM DUAL
+        </selectKey>
+
+        INSERT INTO SQLFLOW.RESULT_ACCESS_LOG (
+            LOG_ID,
+            REQUEST_ID,
+            RESULT_ID,
+            USER_ID,
+            ACTION_TYPE,
+            ACCESS_RESULT,
+            ACCESSED_AT
+        ) VALUES (
+            #{logId},
+            #{requestId},
+            #{resultId, jdbcType=NUMERIC},
+            #{userId},
+            #{actionType},
+            #{accessResult},
+            SYSTIMESTAMP
+        )
+    </insert>
+    
+    <!--
+        로그 기록 전용 내부 조회.
+
+        접근 거부도 기록해야 하므로 이력 열람 권한으로 제한하지 않는다.
+        이 조회 결과로 CSV를 제공하거나 클라이언트에 정보를 반환하면 안 된다.
+
+        비활성 계정·만료·삭제된 결과도 기록 대상이므로 제외하지 않는다.
+        USERS에 존재하지 않는 사용자는 로그 FK를 충족하지 못하므로 반환하지 않는다.
+    -->
+    <select id="selectAccessContext"
+            resultType="com.sqlflow.execution.domain.ResultAccessLogContext">
+
+        SELECT R.REQUEST_ID,
+               F.RESULT_ID,
+               ACTOR.USER_ID
+        FROM QUERY_EXECUTION E
+        JOIN EXECUTION_BATCH B
+          ON B.BATCH_ID = E.BATCH_ID
+        JOIN QUERY_REQUEST R
+          ON R.REQUEST_ID = B.REQUEST_ID
+        JOIN QUERY_ITEM I
+          ON I.QUERY_ID = E.QUERY_ID
+         AND I.REQUEST_ID = R.REQUEST_ID
+        JOIN USERS ACTOR
+          ON ACTOR.USER_ID = #{userId}
+        LEFT JOIN (
+            SELECT RESULT_ID,
+                   EXECUTION_ID,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY EXECUTION_ID
+                       ORDER BY CREATED_AT DESC,
+                                RESULT_ID DESC
+                   ) AS RESULT_RANK
+            FROM QUERY_RESULT
+        ) F
+          ON F.EXECUTION_ID = E.EXECUTION_ID
+         AND F.RESULT_RANK = 1
+        WHERE E.EXECUTION_ID = #{executionId}
+
+    </select>
+
+</mapper>

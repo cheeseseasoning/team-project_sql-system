@@ -358,20 +358,23 @@
             case 'FAILED':
                 resultMessage = 'SQL 실행에 실패했습니다. 오류 내용을 확인해 주세요.';
                 break;
-			case 'SUCCESS':
+				case 'SUCCESS':
 				resultMessage = detail.deletedAt
 				    ? '보관된 결과 파일이 삭제되었습니다.'
 				    : expired
 				        ? '결과 파일의 보관 기간이 만료되었습니다.'
 				        : hasResult
-				            ? '실행이 완료되어 결과 파일이 저장됐습니다.'
+				            ? ''
 				            : '실행은 성공했지만 저장된 결과 정보가 없습니다.';
 				break;
             default:
                 resultMessage = '실행 상태를 확인해 주세요.';
         }
 
-        $('#execution-result-message').textContent = resultMessage;
+		const resultMessageElement = $('#execution-result-message');
+
+		resultMessageElement.textContent = resultMessage;
+		resultMessageElement.hidden = !resultMessage;
 		
 		return canRequestDownload;
     }
