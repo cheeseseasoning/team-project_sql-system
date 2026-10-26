@@ -1,6 +1,6 @@
 package com.sqlflow;
 
-import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -10,18 +10,11 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 
 @Controller
 public class PageController {
-
-	private final Environment environment;
-
-    public PageController(Environment environment) {
-        this.environment = environment;
-    }
 	
 	@ModelAttribute
 	public void common(Model model, Authentication authentication) {
@@ -128,11 +121,6 @@ public class PageController {
 	        @PathVariable("executionId") Long executionId) {
 
 	    model.addAttribute("executionId", executionId);
-
-	    model.addAttribute(
-	            "csvPreviewEnabled",
-	            environment.matchesProfiles("csv-preview")
-	    );
 
 	    return view(
 	            model,

@@ -22,7 +22,3 @@ app.datasource.query.driver-class-name=com.mysql.cj.jdbc.Driver
 # 실행하는 Windows 계정에 공유 폴더 접근 권한과 인증이 필요함
 # 공유 폴더가 현재 PC에 있다면 실제 로컬 경로를 사용할 수 있음
 sqlflow.result.storage-root=//<공유-PC-IP>/<공유이름>/results
-
-# 샘플 CSV 미리보기 개발 시 아래 주석 해제
-# 공유 저장 폴더에 sample.csv가 있어야 함
-# spring.profiles.include=csv-preview

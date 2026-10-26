@@ -1,5 +1,7 @@
 package com.sqlflow.execution.service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -7,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.sqlflow.execution.domain.ExecutionResultFile;
 import com.sqlflow.execution.dto.ExecutionResultDetailResponse;
 import com.sqlflow.execution.dto.ExecutionResultListResponse;
 import com.sqlflow.execution.dto.ExecutionResultPageResponse;
@@ -19,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 public class ExecutionResultService {
 
     private final ExecutionResultMapper executionResultMapper;
+    private final ExecutionResultAccessService executionResultAccessService;
 
     @Transactional(
         transactionManager = "managementTransactionManager",
@@ -104,4 +108,118 @@ public class ExecutionResultService {
 
     	    return detail;
     	}
+    
+    /**
+     * 미리보기용 결과 파일 정보를 반환한다.
+     * 반출 정책은 검사하지 않는다.
+     */
+    @Transactional(
+            transactionManager = "managementTransactionManager",
+            readOnly = true
+    )
+    public ExecutionResultFile getMyResultFile(
+            Long executionId,
+            Long actorId) {
+
+        ExecutionResultFile result =
+                requireAvailableResultFile(executionId, actorId);
+
+        executionResultAccessService.requirePreview(
+                actorId,
+                result.getQueryId());
+
+        return result;
+    }
+
+    /**
+     * 다운로드용 결과 파일 정보를 반환한다.
+     * 조회 권한과 반출 정책을 모두 검사한다.
+     */
+    @Transactional(
+            transactionManager = "managementTransactionManager",
+            readOnly = true
+    )
+    public ExecutionResultFile getMyDownloadFile(
+            Long executionId,
+            Long actorId) {
+
+        ExecutionResultFile result =
+                requireAvailableResultFile(executionId, actorId);
+
+        executionResultAccessService.requireDownload(
+                actorId,
+                result.getQueryId());
+
+        return result;
+    }
+
+    /**
+     * 이력 열람 자격과 결과 메타데이터 상태를 공통 검사한다.
+     * 실제 파일 존재 여부와 저장소 내부 경로는 CsvPreviewService가 검사한다.
+     */
+    private ExecutionResultFile requireAvailableResultFile(
+            Long executionId,
+            Long actorId) {
+
+        if (actorId == null || actorId <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "로그인이 필요합니다.");
+        }
+
+        if (executionId == null || executionId <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "올바른 실행 ID를 입력하세요.");
+        }
+
+        ExecutionResultFile result =
+                executionResultMapper.selectMyResultFile(
+                        executionId,
+                        actorId);
+
+        // 존재하지 않거나 이력 열람 자격이 없는 경우.
+        if (result == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "실행 정보를 찾을 수 없습니다.");
+        }
+
+        if (!"SUCCESS".equals(result.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "성공한 실행의 결과만 조회할 수 있습니다.");
+        }
+
+        if (result.getResultId() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "저장된 결과 정보가 없습니다.");
+        }
+
+        if (result.getDeletedAt() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.GONE,
+                    "결과 파일이 삭제되었습니다.");
+        }
+
+        LocalDateTime now =
+                LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+
+        if (result.getExpiresAt() != null
+                && !result.getExpiresAt().isAfter(now)) {
+            throw new ResponseStatusException(
+                    HttpStatus.GONE,
+                    "결과 파일의 보관 기간이 만료되었습니다.");
+        }
+
+        if (result.getFilePath() == null
+                || result.getFilePath().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "결과 파일 경로가 누락되었습니다.");
+        }
+
+        return result;
+    }
 }

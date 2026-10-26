@@ -35,8 +35,14 @@
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/execution-queue.css">
     </c:if>
+
     <c:if test="${page == 'admin-user-form'}">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/admin-user.css">
+    </c:if>
+    
+    <c:if test="${page == 'execution-result-detail'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/execution-result.css">
     </c:if>
 </head>
 <body>

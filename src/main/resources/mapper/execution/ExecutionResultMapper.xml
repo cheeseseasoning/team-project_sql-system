@@ -5,6 +5,45 @@
 
 <mapper namespace="com.sqlflow.execution.mapper.ExecutionResultMapper">
 
+    <!--
+        실행이력 열람 자격.
+        R은 QUERY_REQUEST의 별칭이다.
+
+        현재 Java 메서드의 drafterId 파라미터에는
+        요청 작성자가 아니라 로그인 사용자 ID가 전달된다.
+    -->
+    <sql id="resultHistoryEligibility">
+        AND EXISTS (
+            SELECT 1
+            FROM USERS ACTOR
+            WHERE ACTOR.USER_ID = #{drafterId}
+              AND ACTOR.ENABLED = 'Y'
+              AND (
+                  R.DRAFTER_ID = ACTOR.USER_ID
+
+                  OR EXISTS (
+                      SELECT 1
+                      FROM APPROVAL A
+                      WHERE A.REQUEST_ID = R.REQUEST_ID
+                        AND A.APPROVER_ID = ACTOR.USER_ID
+                        AND A.APPROVAL_TYPE = 'DIRECTOR'
+                  )
+
+                  OR EXISTS (
+                      SELECT 1
+                      FROM USER_ROLE UR
+                      JOIN ROLE RL
+                        ON RL.ROLE_ID = UR.ROLE_ID
+                      WHERE UR.USER_ID = ACTOR.USER_ID
+                        AND RL.ROLE_CODE IN (
+                            'DB_ADMIN',
+                            'DB_APPROVER'
+                        )
+                  )
+              )
+        )
+    </sql>
+
     <!-- 본인 요청의 SQL별 실행 이력에 최신 순위 부여 -->
     <sql id="myRankedExecutions">
         SELECT E.EXECUTION_ID,
@@ -32,7 +71,8 @@
         JOIN QUERY_ITEM I
           ON I.QUERY_ID = E.QUERY_ID
          AND I.REQUEST_ID = R.REQUEST_ID
-        WHERE R.DRAFTER_ID = #{drafterId}
+        WHERE 1 = 1
+        <include refid="resultHistoryEligibility"/>
     </sql>
 
     <!-- SQL item별 최신 실행 건수 -->
@@ -130,7 +170,59 @@
 	      ON F.EXECUTION_ID = E.EXECUTION_ID
 	     AND F.RESULT_RANK = 1
 	    WHERE E.EXECUTION_ID = #{executionId}
-	      AND R.DRAFTER_ID = #{drafterId}
+        <include refid="resultHistoryEligibility"/>
 	</select>
+	
+	<!-- 이력 열람 자격이 있는 실행의 최신 결과 파일 정보 조회 -->
+    <select id="selectMyResultFile"
+            resultType="com.sqlflow.execution.domain.ExecutionResultFile">
+        SELECT E.EXECUTION_ID,
+        	   E.QUERY_ID,
+               E.STATUS,
+               F.RESULT_ID,
+               F.FILE_PATH,
+               F.EXPIRES_AT,
+               F.DELETED_AT
+        FROM QUERY_EXECUTION E
+        JOIN EXECUTION_BATCH B
+          ON B.BATCH_ID = E.BATCH_ID
+        JOIN QUERY_REQUEST R
+          ON R.REQUEST_ID = B.REQUEST_ID
+        JOIN QUERY_ITEM I
+          ON I.QUERY_ID = E.QUERY_ID
+         AND I.REQUEST_ID = R.REQUEST_ID
+        LEFT JOIN (
+            SELECT RESULT_ID,
+                   EXECUTION_ID,
+                   FILE_PATH,
+                   EXPIRES_AT,
+                   DELETED_AT,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY EXECUTION_ID
+                       ORDER BY CREATED_AT DESC,
+                                RESULT_ID DESC
+                   ) AS RESULT_RANK
+            FROM QUERY_RESULT
+        ) F
+          ON F.EXECUTION_ID = E.EXECUTION_ID
+         AND F.RESULT_RANK = 1
+        WHERE E.EXECUTION_ID = #{executionId}
+        <include refid="resultHistoryEligibility"/>
+    </select>
+    
+    <!--
+        제출 시 저장한 SQL별 조회 대상.
+        누락된 리소스를 조용히 제외하지 않도록 LEFT JOIN한다.
+    -->
+    <select id="selectResultTargets"
+            resultType="com.sqlflow.execution.domain.QueryObjectName">
+        SELECT DISTINCT
+               D.SCHEMA_NAME AS OWNER,
+               D.OBJECT_NAME
+        FROM QUERY_RESOURCE_USAGE U
+        LEFT JOIN DATA_RESOURCE D
+          ON D.RESOURCE_ID = U.RESOURCE_ID
+        WHERE U.QUERY_ID = #{queryId}
+    </select>
 
 </mapper>
