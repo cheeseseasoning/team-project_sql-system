@@ -39,6 +39,11 @@ public class PageController {
 		return "login";
 	}
 
+	@GetMapping("/admin/users/new")
+	public String createUser(Model model) {
+		return view(model, "admin-user-form", "계정 생성·역할 부여");
+	}
+
 	@GetMapping("/")
 	public String home(Model model) {
 		return view(model, "home", "업무 현황");
@@ -142,6 +147,7 @@ public class PageController {
 		        page.equals("home") ? "home"
 		                : page.equals("notices") ? "notices"
 		                : page.equals("views") ? "views"		
+		                : page.equals("admin-user-form") ? "admin-users"
 		                : page.startsWith("execution-queue") ? "execution-queue"
 		                : page.startsWith("execution-result") ? "execution-results"
 		                : page.startsWith("approval-") ? "approvals"

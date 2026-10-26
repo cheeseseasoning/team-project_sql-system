@@ -28,4 +28,81 @@
         WHERE UR.USER_ID = #{userId}
         ORDER BY R.ROLE_CODE
     </select>
+
+    <select id="selectDepartments" resultType="map">
+        SELECT DEPT_ID AS "id",
+               DEPT_NAME AS "name"
+        FROM DEPARTMENT
+        ORDER BY DEPT_NAME
+    </select>
+
+    <select id="selectPositions" resultType="map">
+        SELECT POSITION_ID AS "id",
+               POSITION_NAME AS "name"
+        FROM POSITION
+        ORDER BY POSITION_LEVEL, POSITION_ID
+    </select>
+
+    <select id="countByLoginId" resultType="int">
+        SELECT COUNT(*)
+        FROM USERS
+        WHERE LOGIN_ID = #{loginId}
+    </select>
+
+    <select id="countDepartment" resultType="int">
+        SELECT COUNT(*)
+        FROM DEPARTMENT
+        WHERE DEPT_ID = #{deptId}
+    </select>
+
+    <select id="countPosition" resultType="int">
+        SELECT COUNT(*)
+        FROM POSITION
+        WHERE POSITION_ID = #{positionId}
+    </select>
+
+    <select id="nextUserId" resultType="java.lang.Long">
+        SELECT SEQ_USERS.NEXTVAL FROM DUAL
+    </select>
+
+    <select id="selectRoleIdsByCodes" resultType="java.lang.Long">
+        SELECT ROLE_ID
+        FROM ROLE
+        WHERE ROLE_CODE IN
+        <foreach collection="roleCodes"
+                 item="roleCode"
+                 open="("
+                 separator=","
+                 close=")">
+            #{roleCode}
+        </foreach>
+    </select>
+
+    <insert id="insertUser">
+        INSERT INTO USERS (
+            USER_ID,
+            DEPT_ID,
+            POSITION_ID,
+            LOGIN_ID,
+            PASSWORD_HASH,
+            USER_NAME,
+            ENABLED,
+            CREATED_AT
+        ) VALUES (
+            #{userId},
+            #{deptId},
+            #{positionId},
+            #{loginId},
+            #{passwordHash},
+            #{userName},
+            'Y',
+            SYSTIMESTAMP
+        )
+    </insert>
+
+    <insert id="insertUserRole">
+        INSERT INTO USER_ROLE (USER_ID, ROLE_ID)
+        VALUES (#{userId}, #{roleId})
+    </insert>
+
 </mapper>

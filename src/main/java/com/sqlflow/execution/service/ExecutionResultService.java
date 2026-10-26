@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 public class ExecutionResultService {
 
     private final ExecutionResultMapper executionResultMapper;
+    private final ExecutionResultAccessService executionResultAccessService;
 
     @Transactional(
         transactionManager = "managementTransactionManager",
@@ -109,8 +110,8 @@ public class ExecutionResultService {
     	}
     
     /**
-     * 본인 실행 결과인지 확인하고 이용 가능한 파일 정보를 반환한다.
-     * 실제 파일 읽기는 호출하는 쪽에서 수행한다.
+     * 미리보기용 결과 파일 정보를 반환한다.
+     * 반출 정책은 검사하지 않는다.
      */
     @Transactional(
             transactionManager = "managementTransactionManager",
@@ -118,9 +119,49 @@ public class ExecutionResultService {
     )
     public ExecutionResultFile getMyResultFile(
             Long executionId,
-            Long drafterId) {
+            Long actorId) {
 
-        if (drafterId == null || drafterId <= 0) {
+        ExecutionResultFile result =
+                requireAvailableResultFile(executionId, actorId);
+
+        executionResultAccessService.requirePreview(
+                actorId,
+                result.getQueryId());
+
+        return result;
+    }
+
+    /**
+     * 다운로드용 결과 파일 정보를 반환한다.
+     * 조회 권한과 반출 정책을 모두 검사한다.
+     */
+    @Transactional(
+            transactionManager = "managementTransactionManager",
+            readOnly = true
+    )
+    public ExecutionResultFile getMyDownloadFile(
+            Long executionId,
+            Long actorId) {
+
+        ExecutionResultFile result =
+                requireAvailableResultFile(executionId, actorId);
+
+        executionResultAccessService.requireDownload(
+                actorId,
+                result.getQueryId());
+
+        return result;
+    }
+
+    /**
+     * 이력 열람 자격과 결과 메타데이터 상태를 공통 검사한다.
+     * 실제 파일 존재 여부와 저장소 내부 경로는 CsvPreviewService가 검사한다.
+     */
+    private ExecutionResultFile requireAvailableResultFile(
+            Long executionId,
+            Long actorId) {
+
+        if (actorId == null || actorId <= 0) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
                     "로그인이 필요합니다.");
@@ -135,9 +176,9 @@ public class ExecutionResultService {
         ExecutionResultFile result =
                 executionResultMapper.selectMyResultFile(
                         executionId,
-                        drafterId);
+                        actorId);
 
-        // 다른 사용자의 실행도 조회 결과가 없으므로 동일하게 처리한다.
+        // 존재하지 않거나 이력 열람 자격이 없는 경우.
         if (result == null) {
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND,

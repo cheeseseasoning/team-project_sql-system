@@ -91,14 +91,19 @@
 		<div class="panel-heading">
 		    <h2>조회 결과</h2>
 
-		    <a id="execution-result-download"
-		       class="button"
-		       hidden>
-		        CSV 다운로드
-		    </a>
+			<button id="execution-result-download"
+			        type="button"
+			        class="button"
+			        hidden>
+			    CSV 다운로드
+			</button>
 		</div>
 
         <p id="execution-result-message" role="status"></p>
+		
+		<p id="execution-download-message"
+		   role="status"
+		   aria-live="polite"></p>
 
         <div id="execution-result-metadata" class="status-grid" hidden>
             <div>
@@ -117,11 +122,13 @@
     </section>
 </div>
 
-<section class="panel section-gap">
-    <div class="panel-heading">
-        <h2>CSV 결과 미리보기</h2>
-        <span id="csv-preview-count" class="caption"></span>
-    </div>
+<section id="execution-preview-section"
+     	 class="panel section-gap"
+    	 hidden>
+	<div class="panel-heading">
+	     <h2>CSV 결과 미리보기</h2>
+	     <span id="csv-preview-count" class="caption"></span>
+	</div>
 
     <p class="caption">
         아래로 스크롤하면 25행씩 추가됩니다. 최대 100행까지 표시합니다.
@@ -157,6 +164,82 @@
         $('#execution-detail-config').dataset.executionId;
 
     let executionDetailVersion = 0;
+	let downloading = false;
+	
+	// 결과 화면의 GET 요청에만 사용한다.
+	// 공통 api()를 수정하지 않고 HTTP 상태를 전달한다.
+	async function executionResultApi(path) {
+	    const controller = new AbortController();
+
+	    const timer = setTimeout(function () {
+	        controller.abort();
+	    }, 30000);
+
+	    try {
+	        const response = await fetch(
+	            BASE + '/api' + path,
+	            {
+	                method: 'GET',
+	                credentials: 'same-origin',
+	                cache: 'no-store',
+	                headers: {
+	                    Accept: 'application/json'
+	                },
+	                signal: controller.signal
+	            }
+	        );
+
+	        const data = await response.json().catch(function (error) {
+	            if (error.name === 'AbortError') {
+	                throw error;
+	            }
+
+	            return null;
+	        });
+
+	        if (!response.ok) {
+	            const error = new Error(
+	                data?.message
+	                || data?.detail
+	                || '결과 요청을 처리하지 못했습니다.'
+	            );
+
+	            error.status = response.status;
+
+	            throw error;
+	        }
+
+	        if (data == null) {
+	            throw new Error('서버 응답을 확인할 수 없습니다.');
+	        }
+
+	        return data;
+
+	    } catch (error) {
+	        if (error.name === 'AbortError') {
+	            throw new Error(
+	                '응답 시간이 초과되었습니다. 다시 시도해 주세요.'
+	            );
+	        }
+
+	        throw error;
+
+	    } finally {
+	        clearTimeout(timer);
+	    }
+	}
+
+	function executionResultErrorMessage(error) {
+	    if (error.status === 401) {
+	        return '로그인이 만료되었습니다. 다시 로그인해 주세요.';
+	    }
+
+	    if (error.status >= 500) {
+	        return '서버에서 결과를 제공하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+	    }
+
+	    return error.message || '결과를 불러오지 못했습니다.';
+	}
 
     function formatExecutionDetailDate(value) {
         return value
@@ -226,23 +309,27 @@
 
         const hasResult = detail.resultId != null;
 		
-		const downloadLink = $('#execution-result-download');
+		// 현재 API의 expiresAt은 한국 시간 기준 LocalDateTime이다.
+		const expiresAt = detail.expiresAt
+		    ? Date.parse(detail.expiresAt + '+09:00')
+		    : null;
 
-		const canDownload =
+		const expired =
+		    expiresAt !== null
+		    && (!Number.isFinite(expiresAt) || expiresAt <= Date.now());
+
+		const downloadButton = $('#execution-result-download');
+
+		const canRequestDownload =
 		    detail.status === 'SUCCESS'
 		    && hasResult
-		    && !detail.deletedAt;
+		    && !detail.deletedAt
+		    && !expired;
 
-		downloadLink.hidden = !canDownload;
-		downloadLink.removeAttribute('href');
+		downloadButton.hidden = !canRequestDownload;
+		downloadButton.disabled = downloading;
 
-		if (canDownload) {
-		    downloadLink.href =
-		        BASE
-		        + '/api/execution-results/mine/'
-		        + encodeURIComponent(detail.executionId)
-		        + '/csv';
-		}
+		$('#execution-download-message').textContent = '';
 
         $('#execution-result-metadata').hidden = !hasResult;
 
@@ -271,22 +358,161 @@
             case 'FAILED':
                 resultMessage = 'SQL 실행에 실패했습니다. 오류 내용을 확인해 주세요.';
                 break;
-            case 'SUCCESS':
-                resultMessage = detail.deletedAt
-                    ? '보관된 결과 파일이 삭제되었습니다.'
-                    : hasResult
-                        ? '실행이 완료되어 결과 파일이 저장됐습니다.'
-                        : '실행은 성공했지만 저장된 결과 정보가 없습니다.';
-                break;
+			case 'SUCCESS':
+				resultMessage = detail.deletedAt
+				    ? '보관된 결과 파일이 삭제되었습니다.'
+				    : expired
+				        ? '결과 파일의 보관 기간이 만료되었습니다.'
+				        : hasResult
+				            ? '실행이 완료되어 결과 파일이 저장됐습니다.'
+				            : '실행은 성공했지만 저장된 결과 정보가 없습니다.';
+				break;
             default:
                 resultMessage = '실행 상태를 확인해 주세요.';
         }
 
         $('#execution-result-message').textContent = resultMessage;
+		
+		return canRequestDownload;
     }
+	
+	async function downloadExecutionCsv() {
+	    const button = $('#execution-result-download');
+	    const message = $('#execution-download-message');
+
+	    if (downloading || button.hidden) {
+	        return;
+	    }
+
+	    const version = executionDetailVersion;
+
+	    downloading = true;
+	    button.disabled = true;
+	    button.textContent = '다운로드 준비 중…';
+	    message.textContent = 'CSV 파일을 요청하고 있습니다.';
+
+	    try {
+	        const response = await fetch(
+	            BASE
+	            + '/api/execution-results/mine/'
+	            + encodeURIComponent(executionId)
+	            + '/csv',
+	            {
+	                method: 'GET',
+	                credentials: 'same-origin',
+	                cache: 'no-store',
+	                headers: {
+	                    Accept: 'text/csv, application/json'
+	                }
+	            }
+	        );
+
+	        if (!response.ok) {
+	            const data = await response.json().catch(() => null);
+
+	            const error = new Error(
+	                data?.message
+	                || data?.detail
+	                || 'CSV 다운로드에 실패했습니다.'
+	            );
+
+	            error.status = response.status;
+
+	            throw error;
+	        }
+
+	        const contentType =
+	            response.headers.get('Content-Type') || '';
+
+	        if (!contentType.toLowerCase().startsWith('text/csv')) {
+	            throw new Error(
+	                'CSV 파일 응답을 받지 못했습니다. 로그인 상태를 확인해 주세요.'
+	            );
+	        }
+
+	        const blob = await response.blob();
+
+	        // 새로고침 이후 도착한 이전 요청의 결과는 사용하지 않는다.
+	        if (version !== executionDetailVersion) {
+	            return;
+	        }
+
+	        const objectUrl = URL.createObjectURL(blob);
+	        const link = document.createElement('a');
+
+	        link.href = objectUrl;
+	        link.download = 'sqlflow-execution-' + executionId + '.csv';
+
+	        document.body.appendChild(link);
+	        link.click();
+	        link.remove();
+
+	        setTimeout(function () {
+	            URL.revokeObjectURL(objectUrl);
+	        }, 60000);
+
+	        message.textContent =
+	            '브라우저의 다운로드 목록을 확인해 주세요.';
+
+	    } catch (error) {
+	        if (version !== executionDetailVersion) {
+	            return;
+	        }
+
+	        switch (error.status) {
+	            case 401:
+	                message.textContent =
+	                    '로그인이 만료되었습니다. 다시 로그인해 주세요.';
+	                break;
+
+	            case 403:
+	                // 조회 거부와 반출 거부는 서버 메시지로 구분한다.
+	                // 다운로드 실패로 미리보기 표를 지우지 않는다.
+	                message.textContent =
+	                    error.message || 'CSV 다운로드 권한이 없습니다.';
+	                break;
+
+	            case 404:
+	                message.textContent =
+	                    error.message || 'CSV 결과 파일을 찾을 수 없습니다.';
+	                break;
+
+	            case 409:
+	                message.textContent =
+	                    error.message || '현재 상태에서는 다운로드할 수 없습니다.';
+	                break;
+
+	            case 410:
+	                message.textContent =
+	                    error.message || '결과가 만료되었거나 삭제되었습니다.';
+	                break;
+
+	            default:
+	                message.textContent = error.status >= 500
+	                    ? '서버에서 파일을 제공하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+	                    : error.message || '서버에 연결하지 못했습니다.';
+	        }
+
+	    } finally {
+	        downloading = false;
+	        button.disabled = false;
+	        button.textContent = 'CSV 다운로드';
+	    }
+	}
+
+	$('#execution-result-download').addEventListener(
+	    'click',
+	    downloadExecutionCsv
+	);
 
     async function loadExecutionDetail() {
         const version = ++executionDetailVersion;
+		
+		$('#execution-result-download').hidden = true;
+
+		document.dispatchEvent(
+		    new Event('execution-preview-reset')
+		);
 
         $('#execution-detail-refresh').disabled = true;
         $('#execution-detail-loading').hidden = false;
@@ -297,7 +523,7 @@
         $('#page-message').hidden = true;
 
         try {
-            const detail = await api(
+            const detail = await executionResultApi(
                 '/execution-results/mine/'
                 + encodeURIComponent(executionId)
             );
@@ -306,20 +532,31 @@
                 return;
             }
 
-            renderExecutionDetail(detail);
+			const canRequestPreview = renderExecutionDetail(detail);
 
-            $('#execution-detail-loading').hidden = true;
-            $('#execution-detail-content').hidden = false;
+			$('#execution-detail-loading').hidden = true;
+			$('#execution-detail-content').hidden = false;
+
+			document.dispatchEvent(
+			    new CustomEvent(
+			        'execution-result-ready',
+			        {
+			            detail: {
+			                available: canRequestPreview
+			            }
+			        }
+			    )
+			);
 
         } catch (error) {
             if (version !== executionDetailVersion) {
                 return;
             }
 
-            $('#execution-detail-loading').textContent =
-                '실행 정보를 불러오지 못했습니다. 목록으로 돌아가 확인해 주세요.';
+			const message = executionResultErrorMessage(error);
 
-            notify(error.message, true);
+			$('#execution-detail-loading').textContent = message;
+			notify(message, true);
 
         } finally {
             if (version === executionDetailVersion) {
@@ -332,27 +569,57 @@
         'click',
         loadExecutionDetail
     );
-
-    loadExecutionDetail();
 </script>
 
 <script>
 (() => {
-    const scrollBox = document.getElementById('csv-preview-scroll');
-    const headerRow = document.getElementById('csv-preview-columns');
-    const tableBody = document.getElementById('csv-preview-rows');
-    const countLabel = document.getElementById('csv-preview-count');
-    const message = document.getElementById('csv-preview-message');
-    const retryButton = document.getElementById('csv-preview-retry');
+    const section = $('#execution-preview-section');
+    const scrollBox = $('#csv-preview-scroll');
+    const headerRow = $('#csv-preview-columns');
+    const tableBody = $('#csv-preview-rows');
+    const countLabel = $('#csv-preview-count');
+    const message = $('#csv-preview-message');
+    const retryButton = $('#csv-preview-retry');
 
     const pageSize = 25;
 
     let columns = null;
     let nextOffset = 0;
     let loadedRows = 0;
-    let hasMore = true;
+    let hasMore = false;
     let loading = false;
     let failed = false;
+    let previewVersion = 0;
+
+    function clearRows() {
+        headerRow.replaceChildren();
+        tableBody.replaceChildren();
+
+        columns = null;
+        nextOffset = 0;
+        loadedRows = 0;
+        countLabel.textContent = '';
+
+        scrollBox.scrollTop = 0;
+    }
+
+    function resetPreview() {
+        // 이전 요청이 늦게 도착해도 새 표에 반영되지 않게 한다.
+        previewVersion++;
+
+        clearRows();
+
+        hasMore = false;
+        loading = false;
+        failed = false;
+
+        section.hidden = true;
+        scrollBox.hidden = false;
+        retryButton.hidden = true;
+        message.textContent = '';
+
+        scrollBox.setAttribute('aria-busy', 'false');
+    }
 
     function createHeader(names) {
         const fragment = document.createDocumentFragment();
@@ -379,10 +646,7 @@
             values.forEach(function (value) {
                 const td = document.createElement('td');
 
-                // CSV 값을 HTML로 해석하지 않고 문자 그대로 표시한다.
                 td.textContent = value == null ? '' : String(value);
-
-                // 값 내부의 줄바꿈을 유지한다.
                 td.style.whiteSpace = 'pre-wrap';
                 td.style.minWidth = '100px';
                 td.style.verticalAlign = 'top';
@@ -393,7 +657,6 @@
             fragment.appendChild(tr);
         });
 
-        // 기존 행을 유지하고 새 행만 뒤에 붙인다.
         tableBody.appendChild(fragment);
     }
 
@@ -428,6 +691,8 @@
             return;
         }
 
+        const version = previewVersion;
+
         loading = true;
         retryButton.hidden = true;
         scrollBox.setAttribute('aria-busy', 'true');
@@ -439,13 +704,16 @@
                 limit: String(pageSize)
             });
 
-            // 기존 JSP에서 사용하는 공통 api() 함수를 이용한다.
-			const data = await api(
-			    '/execution-results/mine/'
-			    + encodeURIComponent(executionId)
-			    + '/preview?'
-			    + params.toString()
-			);
+            const data = await executionResultApi(
+                '/execution-results/mine/'
+                + encodeURIComponent(executionId)
+                + '/preview?'
+                + params.toString()
+            );
+
+            if (version !== previewVersion) {
+                return;
+            }
 
             validateResponse(data);
 
@@ -464,27 +732,72 @@
 
             if (loadedRows === 0) {
                 message.textContent = '조회 결과가 없습니다.';
+
             } else if (hasMore) {
                 message.textContent =
                     '아래로 스크롤하면 다음 데이터를 불러옵니다.';
+
             } else {
                 message.textContent =
-                    '미리보기 끝입니다. 전체 결과는 CSV 다운로드로 확인할 수 있습니다.';
+                    '미리보기 끝입니다. 최대 100행까지 표시합니다. '
+                    + '전체 CSV 다운로드는 반출 정책에 따라 제한될 수 있습니다.';
             }
 
         } catch (error) {
+            if (version !== previewVersion) {
+                return;
+            }
+
             failed = true;
 
-            message.textContent =
-                error.message || '미리보기를 불러오지 못했습니다.';
+            const blocked =
+                [400, 401, 403, 404, 409, 410].includes(error.status);
 
-            retryButton.hidden = false;
+            if (blocked) {
+                // 미리보기 자체가 거부된 경우 기존 데이터를 지운다.
+                // 다운로드 API의 반출 거부는 이 코드로 들어오지 않는다.
+                clearRows();
+
+                hasMore = false;
+                scrollBox.hidden = true;
+                retryButton.hidden = true;
+
+                $('#execution-result-download').hidden = true;
+
+            } else {
+                // 서버·통신 오류는 이미 표시한 행과 offset을 유지한다.
+                retryButton.hidden = false;
+            }
+
+            message.textContent =
+                executionResultErrorMessage(error);
 
         } finally {
-            loading = false;
-            scrollBox.setAttribute('aria-busy', 'false');
+            if (version === previewVersion) {
+                loading = false;
+                scrollBox.setAttribute('aria-busy', 'false');
+            }
         }
     }
+
+    document.addEventListener(
+        'execution-preview-reset',
+        resetPreview
+    );
+
+    document.addEventListener(
+        'execution-result-ready',
+        function (event) {
+            if (!event.detail.available) {
+                return;
+            }
+
+            section.hidden = false;
+            hasMore = true;
+
+            loadNextRows();
+        }
+    );
 
     scrollBox.addEventListener('scroll', function () {
         const remaining =
@@ -492,7 +805,6 @@
             - scrollBox.scrollTop
             - scrollBox.clientHeight;
 
-        // 표의 맨 아래에서 60px 이내로 접근하면 추가 조회한다.
         if (remaining <= 60) {
             loadNextRows();
         }
@@ -503,7 +815,8 @@
         loadNextRows();
     });
 
-    loadNextRows();
+    // 미리보기 이벤트를 등록한 뒤 상세 정보를 먼저 조회한다.
+    loadExecutionDetail();
 })();
 </script>
 

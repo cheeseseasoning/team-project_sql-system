@@ -17,6 +17,31 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class SecurityAuthenticationTest {
 
+    @Test
+    void accountCreationPageRequiresLogin() throws Exception {
+        mockMvc.perform(get("/admin/users/new"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    void regularUserCannotAccessAccountCreationPage() throws Exception {
+        mockMvc.perform(get("/admin/users/new").with(
+                org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                        .user("employee").roles("DB_ADMIN")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void systemAdminCanAccessAccountCreationPage() throws Exception {
+        mockMvc.perform(get("/admin/users/new").with(
+                org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
+                        .user("system-admin").roles("SYSTEM_ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .view().name("admin-user-form"));
+    }
+
     @Autowired
     private MockMvc mockMvc;
 

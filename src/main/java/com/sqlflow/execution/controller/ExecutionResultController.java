@@ -81,9 +81,9 @@ public class ExecutionResultController {
             @PathVariable("executionId") Long executionId,
             @AuthenticationPrincipal SqlFlowUserDetails user) {
 
-        // 미리보기와 동일하게 본인 실행·성공·만료·삭제 여부를 검사한다.
+        // 이력 열람 자격·파일 상태·현재 조회 권한·반출 정책을 검사한다.
         ExecutionResultFile result =
-                executionResultService.getMyResultFile(
+                executionResultService.getMyDownloadFile(
                         executionId,
                         user == null ? null : user.getUserId());
 
