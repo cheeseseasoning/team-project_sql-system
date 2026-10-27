@@ -316,6 +316,9 @@ class ExecutionResultAccessServiceTest {
         policy.setPolicyId(resourceId + 100L);
         policy.setOwner(target.owner());
         policy.setObjectName(target.objectName());
+
+        // 조회 허용과 CSV 다운로드 정책을 구분한다.
+        policy.setAccessDecision("ALLOW");
         policy.setAccessLevel(accessLevel);
         policy.setExportPolicy(exportPolicy);
 
