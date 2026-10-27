@@ -1,6 +1,8 @@
 package com.sqlflow;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import com.sqlflow.execution.service.MySqlQueryExecutionService;
+import com.sqlflow.execution.service.ResultFileStorageService;
 
 /**
  * 실제 MySQL 조회 전용 연결로 SQL을 실행한다.
@@ -44,7 +47,8 @@ class MySqlQueryExecutionIntegrationTest {
                 queryDataSource,
                 resultDirectory.toString(),
                 60,
-                104_857_600);
+                104_857_600,
+                new ResultFileStorageService(resultDirectory.toString()));
     }
 
     @Test

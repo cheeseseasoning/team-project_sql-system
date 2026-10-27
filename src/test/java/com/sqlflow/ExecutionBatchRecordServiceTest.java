@@ -104,20 +104,39 @@ class ExecutionBatchRecordServiceTest {
     @Test
     void reservesOnePendingSqlWithoutStartingWholeBatch() {
         when(mapper.isActiveDbApprover(ACTOR_ID)).thenReturn(true);
+
         when(mapper.selectBatch(BATCH_ID)).thenReturn(batch);
+
         when(mapper.selectRequestContextForUpdate(REQUEST_ID)).thenReturn(request);
+
         var target = new com.sqlflow.execution.domain.QueryExecutionTarget();
-        target.setBatchId(BATCH_ID); target.setRequestId(REQUEST_ID); target.setExecutionStatus("PENDING");
+
+        target.setBatchId(BATCH_ID);
+        target.setRequestId(REQUEST_ID);
+        target.setExecutionStatus("PENDING");
+
         when(queryExecutionMapper.selectExecutionTarget(501L)).thenReturn(target);
+
         when(queryExecutionMapper.markRunning(501L)).thenReturn(1);
+
         when(mapper.updateRequestStatus(REQUEST_ID, "READY", "RUNNING")).thenReturn(1);
 
         var result = service.startSingle(BATCH_ID, 501L, ACTOR_ID);
 
         assertEquals(501L, result.executionId());
+
+        // 선택한 SQL과 요청은 실행 중으로 변경한다.
         verify(queryExecutionMapper).markRunning(501L);
-        verify(mapper, never()).markBatchRunning(anyLong(), anyLong());
-        verify(mapper, never()).updateRequestStatus(anyLong(), anyString(), anyString());
+
+        verify(mapper).updateRequestStatus(
+                REQUEST_ID,
+                "READY",
+                "RUNNING");
+
+        // 개별 실행이므로 전체 묶음은 시작하지 않는다.
+        verify(mapper, never()).markBatchRunning(
+                anyLong(),
+                anyLong());
     }
 
     @Test

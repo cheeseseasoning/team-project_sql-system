@@ -310,6 +310,83 @@ class QueryExecutionServiceTest {
                 eq("RESULT_SAVE_FAILED"),
                 eq("결과 저장 제약 위반"));
     }
+    
+    @Test
+    void failureRecordingErrorStillAttemptsFileCleanup() throws Exception {
+        prepareTarget();
+        when(mySqlService.execute(SQL)).thenReturn(fileResult);
+
+        var saveFailure =
+                new DataIntegrityViolationException("결과 저장 제약 위반");
+
+        var recordFailure =
+                new DataAccessResourceFailureException("실패 상태 기록 연결 단절");
+
+        doThrow(saveFailure)
+                .when(recordService)
+                .complete(EXECUTION_ID, fileResult);
+
+        doThrow(recordFailure)
+                .when(recordService)
+                .fail(
+                        eq(EXECUTION_ID),
+                        anyLong(),
+                        eq("RESULT_SAVE_FAILED"),
+                        eq("결과 저장 제약 위반"));
+
+        IllegalStateException actual = assertThrows(
+                IllegalStateException.class,
+                () -> service.execute(EXECUTION_ID));
+
+        assertSame(saveFailure, actual.getCause());
+        assertArrayEquals(
+                new Throwable[] { recordFailure },
+                saveFailure.getSuppressed());
+
+        verify(mySqlService).deleteResultFile(fileResult);
+    }
+    
+    @Test
+    void preservesBothRecordingAndCleanupErrors() throws Exception {
+        prepareTarget();
+        when(mySqlService.execute(SQL)).thenReturn(fileResult);
+
+        var saveFailure =
+                new DataIntegrityViolationException("결과 저장 제약 위반");
+
+        var recordFailure =
+                new DataAccessResourceFailureException("실패 상태 기록 연결 단절");
+
+        var cleanupFailure =
+                new IOException("CSV 삭제 실패");
+
+        doThrow(saveFailure)
+                .when(recordService)
+                .complete(EXECUTION_ID, fileResult);
+
+        doThrow(recordFailure)
+                .when(recordService)
+                .fail(
+                        eq(EXECUTION_ID),
+                        anyLong(),
+                        eq("RESULT_SAVE_FAILED"),
+                        eq("결과 저장 제약 위반"));
+
+        doThrow(cleanupFailure)
+                .when(mySqlService)
+                .deleteResultFile(fileResult);
+
+        IllegalStateException actual = assertThrows(
+                IllegalStateException.class,
+                () -> service.execute(EXECUTION_ID));
+
+        assertSame(saveFailure, actual.getCause());
+        assertArrayEquals(
+                new Throwable[] { recordFailure, cleanupFailure },
+                saveFailure.getSuppressed());
+
+        verify(mySqlService).deleteResultFile(fileResult);
+    }
 
     private void prepareTarget() {
         when(executionMapper.selectExecutionTarget(EXECUTION_ID))

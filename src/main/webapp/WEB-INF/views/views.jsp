@@ -280,15 +280,28 @@
             const row = document.createElement('tr');
 
             const nameCell = document.createElement('td');
-            const objectName = document.createElement('span');
+            const objectName = document.createElement('a');
             const resourceName = document.createElement('span');
 
-            objectName.className = 'views-object-name';
-            objectName.textContent = view.objectName;
+			const detailParams = new URLSearchParams({schemaName: view.schemaName, objectName: view.objectName});
+
+			// 상세에서 목록으로 돌아올 때 기존 검색 조건을 유지한다.
+			const listParams = new URLSearchParams(window.location.search);
+
+			if (listParams.get('deptId')) {
+			    detailParams.set('deptId', listParams.get('deptId'));
+			}
+
+			if (listParams.get('keyword')) {
+			    detailParams.set('keyword', listParams.get('keyword'));
+			}
+
+			objectName.className = 'views-object-name';
+			objectName.textContent = view.objectName;
+			objectName.href = BASE + '/views/detail?' + detailParams.toString();
 
             resourceName.className = 'secondary';
-            resourceName.textContent =
-                view.resourceName || '등록 이름 없음';
+            resourceName.textContent = view.resourceName || '등록 이름 없음';
 
             nameCell.append(objectName, resourceName);
 

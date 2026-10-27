@@ -3,7 +3,6 @@ package com.sqlflow.request.service;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Set;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
@@ -35,9 +34,6 @@ public class RequestService {
 	private final RequestMapper requestMapper;
 
 	private final ObjectProvider<ApprovalLineCreator> approvalLineCreatorProvider;
-
-	private static final Set<String> SEARCHABLE_STATUSES = Set.of("DRAFT", "PENDING_APPROVAL", "READY", "RUNNING",
-			"RETRY_REVIEW", "COMPLETED", "PARTIAL_FAILED", "FAILED", "REJECTED", "WITHDRAWN");
 	
 	private final RequestSqlValidationService requestSqlValidationService;
 
@@ -413,13 +409,7 @@ public class RequestService {
 
 		validateSearchConditions(searchKeyword, searchStatus);
 
-		if (page < 1) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "페이지 번호는 1 이상이어야 합니다.");
-		}
-
-		if (size < 1 || size > 50) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "페이지 크기는 1 이상, 50 이하여야 합니다.");
-		}
+		RequestSearchValidator.validatePage(page, size);
 
 		long totalCount = requestMapper.countMyRequests(drafterId, searchKeyword, searchStatus);
 
@@ -437,14 +427,7 @@ public class RequestService {
 	}
 
 	private void validateSearchConditions(String keyword, String status) {
-
-		if (keyword.length() > 120) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "검색어는 120자 이하여야 합니다.");
-		}
-
-		if (!status.isEmpty() && !SEARCHABLE_STATUSES.contains(status)) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "올바르지 않은 요청 상태입니다.");
-		}
+	    RequestSearchValidator.validateSearch(keyword, status);
 	}
 
 	@Transactional(readOnly = true)

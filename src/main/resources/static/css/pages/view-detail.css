@@ -1,0 +1,171 @@
+/* ==================================================
+   1. 제목과 목록 복귀
+   ================================================== */
+
+.view-detail-page .view-back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: var(--accent);
+    font-size: 12px;
+}
+
+.view-detail-page .view-heading {
+    align-items: flex-start;
+}
+
+.view-detail-page .view-schema {
+    margin-bottom: 5px;
+}
+
+.view-detail-page .view-title {
+    overflow-wrap: anywhere;
+}
+
+.view-detail-page .view-resource-name {
+    margin-top: 6px;
+}
+
+
+/* ==================================================
+   2. 기본 정보
+   ================================================== */
+
+.view-detail-page .view-panel {
+    margin-bottom: 20px;
+}
+
+.view-detail-page .view-info {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 28px;
+    margin: 0;
+}
+
+.view-detail-page .view-info > div {
+    min-width: 0;
+}
+
+.view-detail-page .view-info dt {
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.view-detail-page .view-info dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.view-detail-page .view-info-description {
+    grid-column: 1 / -1;
+}
+
+
+/* ==================================================
+   3. 부서 정책과 컬럼 표
+   ================================================== */
+
+.view-detail-page .view-policy-notice {
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-radius: 5px;
+    background: var(--wait);
+    color: var(--wait-text);
+    font-size: 12px;
+}
+
+.view-detail-page .view-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.view-detail-page table {
+    width: 100%;
+}
+
+.view-detail-page .view-policy-table {
+    min-width: 580px;
+}
+
+.view-detail-page .view-column-table {
+    min-width: 680px;
+}
+
+.view-detail-page th {
+    white-space: nowrap;
+}
+
+.view-detail-page td {
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+
+.view-detail-page .view-column-name,
+.view-detail-page .view-column-type {
+    font-family: Consolas, 'Malgun Gothic', monospace;
+}
+
+.view-detail-page .view-policy-description {
+    margin-top: 14px;
+}
+
+
+/* ==================================================
+   4. CREATE문
+   ================================================== */
+
+.view-detail-page .view-ddl {
+    max-width: 100%;
+    margin: 0;
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--soft);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    tab-size: 4;
+    font: 13px/1.8 Consolas, 'Malgun Gothic', monospace;
+}
+
+.view-detail-page .view-ddl-description {
+    margin-top: 12px;
+}
+
+
+/* ==================================================
+   5. 로딩과 오류
+   ================================================== */
+
+.view-detail-page .view-loading {
+    padding: 36px 20px;
+    text-align: center;
+}
+
+.view-detail-page .view-error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.view-detail-page .view-error-message {
+    margin-top: 12px;
+    color: var(--error);
+    overflow-wrap: anywhere;
+}
+
+
+/* ==================================================
+   6. 좁은 화면
+   ================================================== */
+
+@media (max-width: 560px) {
+    .view-detail-page .view-info {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .view-detail-page .view-heading {
+        flex-direction: column;
+    }
+}

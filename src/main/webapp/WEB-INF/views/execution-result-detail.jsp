@@ -273,8 +273,8 @@
         const requestLink = $('#execution-request-link');
 
         requestLink.textContent = detail.requestNo || '요청 보기';
-        requestLink.href =
-            BASE + '/requests/' + encodeURIComponent(detail.requestId);
+		requestLink.href =
+			BASE + '/department-requests/' + encodeURIComponent(detail.requestId);
 
         $('#execution-request-title').textContent =
             detail.requestTitle || '—';
