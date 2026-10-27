@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.sqlflow.request.mapper.DepartmentRequestMapper">
+
+    <sql id="requestFrom">
+        FROM QUERY_REQUEST R
+        JOIN USERS DRAFTER
+          ON DRAFTER.USER_ID = R.DRAFTER_ID
+        JOIN DEPARTMENT REQUEST_DEPT
+          ON REQUEST_DEPT.DEPT_ID = R.DEPT_ID
+    </sql>
+
+    <!--
+        제출된 기안만 공유한다.
+        활성 사용자에게 자기 부서 기안을 허용한다.
+        DB팀 소속이며 DB_APPROVER 또는 DB_ADMIN이면 전체 부서를 허용한다.
+    -->
+    <sql id="visibilityConditions">
+        R.SUBMITTED_AT IS NOT NULL
+        AND R.REQUEST_STATUS &lt;&gt; 'DRAFT'
+        AND EXISTS (
+            SELECT 1
+            FROM USERS ACTOR
+            JOIN DEPARTMENT ACTOR_DEPT
+              ON ACTOR_DEPT.DEPT_ID = ACTOR.DEPT_ID
+            WHERE ACTOR.USER_ID = #{actorId}
+              AND ACTOR.ENABLED = 'Y'
+              AND (
+                  R.DEPT_ID = ACTOR.DEPT_ID
+                  OR (
+                      ACTOR_DEPT.DEPT_NAME = 'DB팀'
+                      AND EXISTS (
+                          SELECT 1
+                          FROM USER_ROLE UR
+                          JOIN ROLE RL
+                            ON RL.ROLE_ID = UR.ROLE_ID
+                          WHERE UR.USER_ID = ACTOR.USER_ID
+                            AND RL.ROLE_CODE IN (
+                                'DB_APPROVER',
+                                'DB_ADMIN'
+                            )
+                      )
+                  )
+              )
+        )
+    </sql>
+
+    <sql id="searchConditions">
+        <if test="keyword != null and keyword != ''">
+            AND (
+                INSTR(UPPER(R.REQUEST_NO), UPPER(#{keyword})) &gt; 0
+                OR INSTR(UPPER(R.TITLE), UPPER(#{keyword})) &gt; 0
+                OR INSTR(
+                    UPPER(DRAFTER.USER_NAME),
+                    UPPER(#{keyword})
+                ) &gt; 0
+                OR INSTR(
+                    UPPER(REQUEST_DEPT.DEPT_NAME),
+                    UPPER(#{keyword})
+                ) &gt; 0
+            )
+        </if>
+
+        <if test="status != null and status != ''">
+            AND R.REQUEST_STATUS = #{status}
+        </if>
+    </sql>
+
+    <select id="countVisibleRequests" resultType="long">
+        SELECT COUNT(*)
+        <include refid="requestFrom"/>
+        WHERE
+            <include refid="visibilityConditions"/>
+            <include refid="searchConditions"/>
+    </select>
+
+    <select id="selectVisibleRequestsPage"
+            resultType="com.sqlflow.request.dto.DepartmentRequestListResponse">
+        SELECT R.REQUEST_ID,
+               R.REQUEST_NO,
+               R.TITLE,
+               R.IS_URGENT,
+               R.REQUEST_CLASS,
+               R.REQUEST_STATUS,
+               R.APPROVAL_STATUS,
+               R.CREATED_AT,
+               R.DESIRED_DATE,
+               R.SUBMITTED_AT,
+               DRAFTER.USER_NAME AS DRAFTER_NAME,
+               REQUEST_DEPT.DEPT_NAME,
+               (
+                   SELECT COUNT(*)
+                   FROM QUERY_ITEM I
+                   WHERE I.REQUEST_ID = R.REQUEST_ID
+               ) AS SQL_COUNT
+        <include refid="requestFrom"/>
+        WHERE
+            <include refid="visibilityConditions"/>
+            <include refid="searchConditions"/>
+        ORDER BY R.SUBMITTED_AT DESC, R.REQUEST_ID DESC
+        OFFSET #{offset} ROWS
+        FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+</mapper>
