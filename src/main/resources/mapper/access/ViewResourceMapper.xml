@@ -22,8 +22,9 @@
 	<select id="selectDepartments"
 	        resultType="com.sqlflow.access.dto.ViewDepartmentInfoDTO">
 	    SELECT DEPT_ID,
-	           DEPT_NAME
-	    FROM DEPARTMENT
+	           DEPT_NAME,
+	           (SELECT COUNT(*) FROM USERS U WHERE U.DEPT_ID = D.DEPT_ID AND U.ENABLED = 'Y') AS ACTIVE_ACCOUNT_COUNT
+	    FROM DEPARTMENT D
 	    ORDER BY DEPT_NAME, DEPT_ID
 	</select>
 	
@@ -33,17 +34,18 @@
 	-->
 	<select id="selectDepartmentPolicies"
 	        resultType="com.sqlflow.access.dto.ViewDepartmentPolicyInfoDTO">
-	    SELECT #{resourceId, jdbcType=NUMERIC} AS RESOURCE_ID,
+        SELECT #{resourceId, jdbcType=NUMERIC} AS RESOURCE_ID,
 	           D.DEPT_ID,
 	           D.DEPT_NAME,
 	           P.POLICY_ID,
-	           P.ACCESS_LEVEL,
-	           P.EXPORT_POLICY,
+               R.ACCESS_LEVEL,
+	           R.EXPORT_POLICY,
 	           P.ENABLED AS POLICY_ENABLED
 	    FROM DEPARTMENT D
 	    LEFT JOIN DATA_ACCESS_POLICY P
 	      ON P.DEPT_ID = D.DEPT_ID
 	     AND P.RESOURCE_ID = #{resourceId}
+	    JOIN DATA_RESOURCE R ON R.RESOURCE_ID = #{resourceId}
 	    ORDER BY D.DEPT_NAME, D.DEPT_ID, P.POLICY_ID
 	</select>
 	
@@ -68,8 +70,53 @@
 	          WHERE P.RESOURCE_ID = R.RESOURCE_ID
 	            AND P.DEPT_ID = #{deptId}
 	            AND P.ENABLED = 'Y'
+                AND P.ACCESS_DECISION = 'ALLOW'
 	      )
 	    ORDER BY R.OBJECT_NAME, R.RESOURCE_ID
 	</select>
 
+    <select id="selectAllManagedResources" resultType="com.sqlflow.access.dto.ViewResourceInfoDTO">
+        SELECT RESOURCE_ID, SCHEMA_NAME, OBJECT_NAME, RESOURCE_NAME, DESCRIPTION, ENABLED, ACCESS_LEVEL, EXPORT_POLICY
+        FROM DATA_RESOURCE ORDER BY SCHEMA_NAME, OBJECT_NAME
+    </select>
+    <select id="nextResourceId" resultType="long">SELECT SEQ_DATA_RESOURCE.NEXTVAL FROM DUAL</select>
+    <select id="countResource" resultType="int">
+        SELECT COUNT(*) FROM DATA_RESOURCE WHERE SCHEMA_NAME = #{schemaName} AND OBJECT_NAME = #{objectName}
+    </select>
+    <insert id="insertResource">
+        INSERT INTO DATA_RESOURCE (RESOURCE_ID, SCHEMA_NAME, OBJECT_NAME, RESOURCE_NAME, DESCRIPTION, ENABLED, ACCESS_LEVEL, EXPORT_POLICY)
+        VALUES (#{resourceId}, #{schemaName}, #{objectName}, #{resourceName}, #{description}, 'Y', 'GENERAL', 'BLOCK')
+    </insert>
+    <select id="nextPolicyId" resultType="long">SELECT SEQ_DATA_ACCESS_POLICY.NEXTVAL FROM DUAL</select>
+    <update id="updateResourcePolicy">
+        UPDATE DATA_RESOURCE SET ACCESS_LEVEL = #{accessLevel}, EXPORT_POLICY = #{exportPolicy}, ENABLED = #{enabled}
+        WHERE RESOURCE_ID = #{resourceId}
+    </update>
+    <update id="enableDepartmentMembership">
+        UPDATE DATA_ACCESS_POLICY SET ACCESS_DECISION = 'ALLOW', ENABLED = 'Y'
+        WHERE POLICY_ID = #{policyId}
+    </update>
+    <delete id="deleteDepartmentPoliciesNotIn">
+        DELETE FROM DATA_ACCESS_POLICY WHERE RESOURCE_ID = #{resourceId} AND DEPT_ID NOT IN
+        <foreach collection="deptIds" item="deptId" open="(" separator="," close=")">#{deptId}</foreach>
+    </delete>
+    <delete id="deleteDepartmentPolicies">
+        DELETE FROM DATA_ACCESS_POLICY WHERE RESOURCE_ID = #{resourceId}
+    </delete>
+    <select id="selectPolicyIdForDepartment" resultType="long">
+        SELECT POLICY_ID FROM DATA_ACCESS_POLICY WHERE RESOURCE_ID = #{resourceId} AND DEPT_ID = #{deptId}
+    </select>
+    <insert id="insertDepartmentMembership">
+        INSERT INTO DATA_ACCESS_POLICY (POLICY_ID, RESOURCE_ID, DEPT_ID, ACCESS_DECISION, ENABLED)
+        VALUES (#{policyId}, #{resourceId}, #{deptId}, 'ALLOW', 'Y')
+    </insert>
+    <select id="selectActiveDepartmentMemberships" resultType="com.sqlflow.access.dto.ViewDepartmentPolicyInfoDTO">
+        SELECT RESOURCE_ID, DEPT_ID, POLICY_ID
+        FROM DATA_ACCESS_POLICY WHERE RESOURCE_ID = #{resourceId} AND ENABLED = 'Y' AND ACCESS_DECISION = 'ALLOW'
+        ORDER BY DEPT_ID
+    </select>
+    <select id="selectActiveDbTeamMember" resultType="int">
+        SELECT COUNT(*) FROM USERS U JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+        WHERE U.USER_ID = #{userId} AND U.ENABLED = 'Y' AND D.DEPT_NAME = 'DB팀'
+    </select>
 </mapper>

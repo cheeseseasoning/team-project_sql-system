@@ -25,8 +25,9 @@
                P.POLICY_ID,
                R.SCHEMA_NAME AS OWNER,
                R.OBJECT_NAME,
-               P.ACCESS_LEVEL,
-               P.EXPORT_POLICY
+               R.ACCESS_LEVEL,
+               P.ACCESS_DECISION,
+               R.EXPORT_POLICY
         FROM DATA_RESOURCE R
         JOIN DATA_ACCESS_POLICY P
           ON P.RESOURCE_ID = R.RESOURCE_ID

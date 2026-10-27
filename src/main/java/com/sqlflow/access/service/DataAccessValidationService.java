@@ -70,6 +70,9 @@ public class DataAccessValidationService {
             if (policy == null) {
                 throw forbidden("소속 부서에 허용된 조회 대상이 아닙니다: " + displayName(target));
             }
+            if (!"ALLOW".equals(policy.getAccessDecision())) {
+                throw forbidden("소속 부서에 차단된 조회 대상입니다: " + displayName(target));
+            }
 
             if (SENSITIVE.equals(policy.getAccessLevel())) {
                 sensitive = true;

@@ -71,10 +71,6 @@ public class AdminUserService {
                         .distinct()
                         .toList();
 
-        if (roleCodes.isEmpty()) {
-            throw badRequest("하나 이상의 업무 역할을 선택하세요.");
-        }
-
         List<String> allowedRoles = List.of(
                 "SYSTEM_ADMIN",
                 "DB_ADMIN",
@@ -91,8 +87,9 @@ public class AdminUserService {
                     "이미 사용 중인 아이디입니다.");
         }
 
-        List<Long> roleIds =
-                userAccountMapper.selectRoleIdsByCodes(roleCodes);
+        List<Long> roleIds = roleCodes.isEmpty()
+                ? List.of()
+                : userAccountMapper.selectRoleIdsByCodes(roleCodes);
 
         if (roleIds.size() != roleCodes.size()) {
             throw badRequest("역할 정보를 확인할 수 없습니다.");

@@ -36,4 +36,22 @@ public interface ViewResourceMapper {
     List<ViewResourceInfoDTO> selectResourcesByDepartment(
             @Param("schemaName") String schemaName,
             @Param("deptId") Long deptId);
+
+    List<ViewResourceInfoDTO> selectAllManagedResources();
+    Long nextResourceId();
+    int countResource(@Param("schemaName") String schemaName, @Param("objectName") String objectName);
+    int insertResource(@Param("resourceId") Long resourceId, @Param("schemaName") String schemaName,
+            @Param("objectName") String objectName, @Param("resourceName") String resourceName,
+            @Param("description") String description);
+    Long nextPolicyId();
+    int updateResourcePolicy(@Param("resourceId") Long resourceId, @Param("accessLevel") String accessLevel,
+            @Param("exportPolicy") String exportPolicy, @Param("enabled") String enabled);
+    int enableDepartmentMembership(@Param("policyId") Long policyId);
+    int deleteDepartmentPoliciesNotIn(@Param("resourceId") Long resourceId, @Param("deptIds") List<Long> deptIds);
+    int deleteDepartmentPolicies(@Param("resourceId") Long resourceId);
+    Long selectPolicyIdForDepartment(@Param("resourceId") Long resourceId, @Param("deptId") Long deptId);
+    int insertDepartmentMembership(@Param("policyId") Long policyId, @Param("resourceId") Long resourceId,
+            @Param("deptId") Long deptId);
+    List<ViewDepartmentPolicyInfoDTO> selectActiveDepartmentMemberships(@Param("resourceId") Long resourceId);
+    int selectActiveDbTeamMember(@Param("userId") Long userId);
 }

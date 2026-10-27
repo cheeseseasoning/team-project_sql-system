@@ -17,6 +17,7 @@ public class ViewDepartmentPolicyInfoDTO {
 
     private Long policyId;
     private String accessLevel;
+    private String accessDecision;
     private String exportPolicy;
     private String policyEnabled;
 }

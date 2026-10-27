@@ -119,6 +119,10 @@ public class ExecutionResultAccessService {
                         "현재 소속 부서에 허용되지 않은 데이터가 포함되어 있습니다.");
             }
 
+            if (!"ALLOW".equals(policy.getAccessDecision())) {
+                throw forbidden("현재 소속 부서에 차단된 데이터가 포함되어 있습니다.");
+            }
+
             if ("SENSITIVE".equals(policy.getAccessLevel())) {
                 sensitive = true;
 

@@ -36,4 +36,6 @@ public interface MySqlMetadataMapper {
     MySqlObjectMetadata selectObject(
             @Param("databaseName") String databaseName,
             @Param("objectName") String objectName);
+
+    List<MySqlObjectMetadata> selectSelectableObjects();
 }

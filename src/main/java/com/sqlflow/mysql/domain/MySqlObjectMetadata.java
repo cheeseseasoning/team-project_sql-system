@@ -11,4 +11,5 @@ public class MySqlObjectMetadata {
     private String databaseName;
     private String objectName;
     private String objectType;
+    private String objectComment;
 }

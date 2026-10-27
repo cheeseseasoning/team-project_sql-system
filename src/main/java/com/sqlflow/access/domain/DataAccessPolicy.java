@@ -17,5 +17,6 @@ public class DataAccessPolicy {
     private String owner;
     private String objectName;
     private String accessLevel;
+    private String accessDecision;
     private String exportPolicy;
 }
