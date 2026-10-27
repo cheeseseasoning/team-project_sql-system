@@ -1,12 +1,17 @@
 package com.sqlflow.view.controller;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.access.dto.ViewDepartmentInfoDTO;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
@@ -51,5 +56,17 @@ public class ViewQueryController {
             @AuthenticationPrincipal SqlFlowUserDetails user) {
 
         return viewQueryService.getViewDetail(schemaName, objectName, user == null ? null : user.getUserId());
+    }
+    
+    /**
+     * 서비스에서 정의한 오류 안내를 JSON으로 반환한다.
+     * 상태 코드는 유지하고, 화면에서 사용할 message를 전달한다.
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> handleError(ResponseStatusException exception) {
+
+        String message = Objects.requireNonNullElse(exception.getReason(), "뷰 정보를 조회하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+
+        return ResponseEntity.status(exception.getStatusCode()).body(Map.of("message", message));
     }
 }
