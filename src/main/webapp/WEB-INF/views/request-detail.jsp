@@ -39,130 +39,8 @@
 				</div>
 			</div>
 
-			<div class="request-detail-layout">
-
-				<!-- 왼쪽: 요청 정보와 본문 -->
-				<section id="request-info" class="panel request-info-panel" hidden>
-					<h2>요청 정보</h2>
-
-					<dl class="key-values request-info-grid">
-						<div id="source-request-row" class="request-source-row" hidden>
-							<dt>원본 요청</dt>
-							<dd>
-								<a id="source-request-link"></a>
-							</dd>
-						</div>
-
-						<div>
-							<dt>작성자</dt>
-							<dd id="drafter-name"></dd>
-						</div>
-
-						<div>
-							<dt>요청 부서</dt>
-							<dd id="dept-name"></dd>
-						</div>
-
-						<div>
-							<dt>조회 유형</dt>
-							<dd id="request-class"></dd>
-						</div>
-
-						<div>
-							<dt>결재 상태</dt>
-							<dd id="approval-status"></dd>
-						</div>
-
-						<div>
-							<dt>생성 시각</dt>
-							<dd id="created-at"></dd>
-						</div>
-
-						<div>
-							<dt>제출 시각</dt>
-							<dd id="submitted-at"></dd>
-						</div>
-
-						<div>
-							<dt>긴급 여부</dt>
-							<dd>
-								<span id="request-urgency" class="badge"></span>
-							</dd>
-						</div>
-
-						<div>
-							<dt>희망일</dt>
-							<dd id="request-desired-date"></dd>
-						</div>
-					</dl>
-
-					<div class="request-content-section">
-						<h2>조회 목적</h2>
-						<p id="request-purpose" class="notice-body"></p>
-					</div>
-
-					<div class="request-content-section">
-						<h2>상세 내용</h2>
-						<p id="request-detail-content" class="notice-body"></p>
-					</div>
-				</section>
-
-				<!-- 오른쪽: 결재선 배치 미리보기 -->
-				<aside class="panel request-approval-panel" aria-labelledby="request-approval-title">
-
-					<div class="panel-heading">
-						<h2 id="request-approval-title">결재선</h2>
-						<span id="request-approval-badge" class="badge">미등록</span>
-					</div>
-
-					<p class="request-approval-description">
-						중간 결재자 → 소속 부서장 → DB팀 실행 승인 순서로 진행됩니다.
-					</p>
-
-					<ol id="request-approval-list" class="request-approval-list">
-					
-					</ol>
-
-					<button id="approval-line-open" type="button" class="button primary request-approval-register"
-						aria-haspopup="dialog" aria-controls="approval-line-dialog"
-						aria-describedby="approval-preview-help" disabled>
-						결재선 등록
-					</button>
-
-					<p id="approval-preview-help" class="request-approval-help">
-						초안 상태에서 결재선 등록 화면을 열 수 있습니다.
-					</p>
-				</aside>
-
-			</div>
-			
-			<section id="approval-history-panel"
-			         class="panel section-gap approval-history-panel"
-			         aria-labelledby="approval-history-title"
-			         hidden>
-				<div class="panel-heading">
-					<h2 id="approval-history-title">결재 이력</h2>
-				</div>
-				<ol id="approval-history-list" class="approval-history-list">
-					<li class="empty">결재 이력을 불러오는 중입니다.</li>
-				</ol>
-			</section>
-			
-			<!-- 아래: SQL은 전체 너비 사용 -->
-			<section class="panel section-gap request-sql-panel">
-				<div class="panel-heading">
-					<h2>등록한 SQL</h2>
-					<span id="sql-count" class="caption"></span>
-				</div>
-				<div id="sql-validation-controls" class="sql-validation-controls" hidden>
-					<p class="caption">제출 전에 등록한 SQL 전체를 검증해 주세요.</p>
-					<button id="validate-sqls" type="button" class="button primary">
-						전체 SQL 검증
-					</button>
-				</div>
-
-				<div id="detail-items">불러오는 중입니다.</div>
-			</section>
+			<c:set var="requestDetailReadOnly" value="${false}" />
+			<%@ include file="fragments/request-detail-body.jspf" %>
 
 		</div><!-- request-detail-page 끝 -->
 
@@ -344,10 +222,6 @@
 			let validationMessages = new Map();
 			let sqlValidationInProgress = false;
 
-			const detailStatusNames = RequestDetailRenderer.statusNames;
-			const detailClassNames = RequestDetailRenderer.classNames;
-			const detailApprovalNames = RequestDetailRenderer.approvalNames;
-
 			function validationMessageStorageKey(queryId) {
 				return 'sqlflow-validation-message:' + requestId + ':' + queryId;
 			}
@@ -409,8 +283,7 @@
 						'/requests/mine/' + encodeURIComponent(requestId)
 					);
 
-					$('#request-number').textContent = request.requestNo;
-					$('#detail-title').textContent = request.title;
+					RequestDetailRenderer.renderRequestInfo(request);
 
 					const hasSource =
 						request.sourceRequestId != null
@@ -447,56 +320,16 @@
 					$('#request-redraft').hidden =
 						request.requestStatus !== 'REJECTED';
 
-					$('#detail-state').innerHTML = badge(
-						detailStatusNames[request.requestStatus]
-						|| request.requestStatus
-					);
-
-					$('#drafter-name').textContent = request.drafterName;
-					$('#dept-name').textContent = request.deptName;
-					$('#request-purpose').textContent = request.purpose;
-
-					const isUrgent = request.isUrgent === 'Y';
-					$('#request-urgency').textContent = isUrgent ? '긴급' : '일반';
-					$('#request-urgency').classList.toggle('urgent-badge', isUrgent);
-
-					$('#request-desired-date').textContent =
-						request.desiredDate || '미지정';
-
-					$('#request-detail-content').textContent =
-						request.detailContent || '입력된 상세 내용이 없습니다.';
-
-					$('#request-class').textContent =
-						detailClassNames[request.requestClass]
-						|| request.requestClass
-						|| '미분류';
-
-					// 초안의 NOT_REQUIRED 기본값을 확정된 결재 정책처럼 표시하지 않음
-					$('#approval-status').textContent =
-						request.requestStatus === 'DRAFT'
-							? '제출 전'
-							: (
-								detailApprovalNames[request.approvalStatus]
-								|| request.approvalStatus
-								|| '-'
-							);
-
-					$('#created-at').textContent =
-						formatDetailDate(request.createdAt);
-
-					$('#submitted-at').textContent = request.submittedAt
-						? formatDetailDate(request.submittedAt)
-						: '아직 제출하지 않았습니다.';
-
-					$('#sql-count').textContent =
-						'총 ' + request.items.length + '개';
+					
 					detailItems = (request.items || []).map(function (item) {
 						return {
 							...item,
 							validationStatus: item.validationStatus || 'PENDING'
 						};
 					});
+					
 					validationMessages = restoreValidationMessages(detailItems);
+					
 					$('#sql-validation-controls').hidden =
 						request.requestStatus !== 'DRAFT';
 
@@ -504,8 +337,6 @@
 						renderDetailItems(detailItems);
 
 					renderRequestApprovalLine(request);
-
-					$('#request-info').hidden = false;	
 					
 					$('#request-info').hidden = false;
 					
@@ -908,69 +739,7 @@
 			        return;
 			    }
 
-			    const approvals = Array.isArray(request.approvals)
-			        ? request.approvals
-			        : [];
-
-			    if (approvals.length === 0) {
-			        $('#request-approval-list').innerHTML =
-			            '<li><p class="muted">'
-			            + (
-			                isDraft
-			                    ? '결재선을 등록해 주세요.'
-			                    : '저장된 결재선이 없습니다.'
-			            )
-			            + '</p></li>';
-
-			        $('#request-approval-badge').textContent =
-			            isDraft ? '미등록' : '결재선 없음';
-
-			        $('#approval-preview-help').textContent =
-			            isDraft
-			                ? '결재선 등록 버튼에서 결재자를 구성할 수 있습니다.'
-			                : '저장된 결재선 정보를 확인해 주세요.';
-
-			        return;
-			    }
-
-			    const roleNames = {
-			        INTERMEDIATE: '중간 결재자',
-			        DIRECTOR: '소속 부서장',
-			        DB_EXECUTION: 'DB팀 실행 승인'
-			    };
-
-			    const rows = [...approvals]
-			        .sort(function (a, b) {
-			            return a.approvalOrder - b.approvalOrder;
-			        })
-			        .map(function (approval) {
-			            return {
-			                order: approval.approvalOrder,
-			                role: roleNames[approval.approvalType]
-			                    || approval.approvalType
-			                    || '결재자',
-			                name: approval.approverName,
-			                deptName: approval.deptName,
-			                positionName: approval.positionName,
-			                status: approval.status
-			            };
-			        });
-
-			    renderApprovalLineRows(rows);
-
-			    const summaryNames = {
-			        PENDING: '결재 진행 중',
-			        APPROVED: '결재 완료',
-			        REJECTED: '반려'
-			    };
-
-			    $('#request-approval-badge').textContent =
-			        summaryNames[request.approvalStatus]
-			        || request.approvalStatus
-			        || '결재선';
-
-			    $('#approval-preview-help').textContent =
-			        '저장된 결재선과 현재 처리 상태입니다.';
+			    RequestDetailRenderer.renderSavedApprovalLine(request);
 			}
 			
 			function updateApprovalLineControls() {

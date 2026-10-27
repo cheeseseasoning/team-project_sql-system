@@ -183,6 +183,118 @@ window.RequestDetailRenderer = (() => {
                 + '</li>';
         }).join('');
     }
+	
+	function renderRequestInfo(request) {
+	    $('#request-number').textContent = request.requestNo;
+	    $('#detail-title').textContent = request.title;
+
+	    $('#detail-state').innerHTML = badge(
+	        statusNames[request.requestStatus]
+	        || request.requestStatus
+	        || '-'
+	    );
+
+	    $('#drafter-name').textContent = request.drafterName || '-';
+	    $('#dept-name').textContent = request.deptName || '-';
+	    $('#request-purpose').textContent = request.purpose || '-';
+
+	    const isUrgent = request.isUrgent === 'Y';
+
+	    $('#request-urgency').textContent = isUrgent ? '긴급' : '일반';
+	    $('#request-urgency').classList.toggle('urgent-badge', isUrgent);
+
+	    $('#request-desired-date').textContent =
+	        request.desiredDate || '미지정';
+
+	    $('#request-detail-content').textContent =
+	        request.detailContent || '입력된 상세 내용이 없습니다.';
+
+	    $('#request-class').textContent =
+	        classNames[request.requestClass]
+	        || request.requestClass
+	        || '미분류';
+
+	    $('#approval-status').textContent =
+	        request.requestStatus === 'DRAFT'
+	            ? '제출 전'
+	            : (
+	                approvalNames[request.approvalStatus]
+	                || request.approvalStatus
+	                || '-'
+	            );
+
+	    $('#created-at').textContent = formatDate(request.createdAt);
+
+	    $('#submitted-at').textContent = request.submittedAt
+	        ? formatDate(request.submittedAt)
+	        : '아직 제출하지 않았습니다.';
+
+	    $('#sql-count').textContent =
+	        '총 ' + (Array.isArray(request.items) ? request.items.length : 0) + '개';
+	}
+
+	function renderSavedApprovalLine(request) {
+	    const isDraft = request.requestStatus === 'DRAFT';
+
+	    const approvals = Array.isArray(request.approvals)
+	        ? request.approvals
+	        : [];
+
+	    if (approvals.length === 0) {
+	        $('#request-approval-list').innerHTML =
+	            '<li><p class="muted">'
+	            + (
+	                isDraft
+	                    ? '결재선을 등록해 주세요.'
+	                    : '저장된 결재선이 없습니다.'
+	            )
+	            + '</p></li>';
+
+	        $('#request-approval-badge').textContent =
+	            isDraft ? '미등록' : '결재선 없음';
+
+	        $('#approval-preview-help').textContent = isDraft
+	            ? '결재선 등록 버튼에서 결재자를 구성할 수 있습니다.'
+	            : '저장된 결재선 정보를 확인해 주세요.';
+
+	        return;
+	    }
+
+	    const roleNames = {
+	        INTERMEDIATE: '중간 결재자',
+	        DIRECTOR: '소속 부서장',
+	        DB_EXECUTION: 'DB팀 실행 승인'
+	    };
+
+	    const rows = [...approvals]
+	        .sort((a, b) => a.approvalOrder - b.approvalOrder)
+	        .map(approval => ({
+	            order: approval.approvalOrder,
+	            role: roleNames[approval.approvalType]
+	                || approval.approvalType
+	                || '결재자',
+	            name: approval.approverName,
+	            deptName: approval.deptName,
+	            positionName: approval.positionName,
+	            status: approval.status
+	        }));
+
+	    $('#request-approval-list').innerHTML = renderApprovalRows(rows);
+
+	    const summaryNames = {
+	        PENDING: '결재 진행 중',
+	        APPROVED: '결재 완료',
+	        REJECTED: '반려'
+	    };
+
+	    $('#request-approval-badge').textContent =
+	        summaryNames[request.approvalStatus]
+	        || request.approvalStatus
+	        || '결재선';
+
+	    $('#approval-preview-help').textContent =
+	        '저장된 결재선과 현재 처리 상태입니다.';
+	}
 
     return Object.freeze({
         statusNames,
@@ -191,6 +303,8 @@ window.RequestDetailRenderer = (() => {
         formatDate,
         renderItems,
         renderHistory,
-        renderApprovalRows
+        renderApprovalRows,
+		renderRequestInfo,
+		renderSavedApprovalLine
     });
 })();
