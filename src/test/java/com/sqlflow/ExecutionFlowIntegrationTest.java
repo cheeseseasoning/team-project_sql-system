@@ -45,11 +45,11 @@ import com.sqlflow.auth.security.SqlFlowUserDetails;
 @AutoConfigureMockMvc
 class ExecutionFlowIntegrationTest {
 
-    private static final String FIRST_SQL = """
-            SELECT department_id, department_name
-            FROM sqlflow_demo.demo_department
-            ORDER BY department_id
-            """;
+	private static final String FIRST_SQL = """
+	        SELECT product_id, product_name
+	        FROM sqlflow_demo.v_active_product_catalog
+	        ORDER BY product_id
+	        """;
 
     @Autowired
     private MockMvc mockMvc;
@@ -105,14 +105,14 @@ class ExecutionFlowIntegrationTest {
         approver = loginUser(
                 approverId, approverDeptId, List.of("DB_APPROVER"));
 
-        // demo_department에 GENERAL 정책이 정확히 하나 있는 부서를 선택한다.
+        // 활성 상품 뷰에 GENERAL 정책이 정확히 하나 있는 부서를 선택한다.
         List<Long> departments = jdbc.queryForList("""
                 SELECT P.DEPT_ID
                 FROM DATA_RESOURCE R
                 JOIN DATA_ACCESS_POLICY P
                   ON P.RESOURCE_ID = R.RESOURCE_ID
                 WHERE R.SCHEMA_NAME = 'sqlflow_demo'
-                  AND R.OBJECT_NAME = 'demo_department'
+                  AND R.OBJECT_NAME = 'v_active_product_catalog'
                   AND R.ENABLED = 'Y'
                   AND P.ENABLED = 'Y'
                 GROUP BY P.DEPT_ID
@@ -124,7 +124,7 @@ class ExecutionFlowIntegrationTest {
 
         assertFalse(
                 departments.isEmpty(),
-                "demo_department에 GENERAL 접근 정책이 있는 부서가 필요합니다.");
+                "v_active_product_catalog에 활성 GENERAL 접근 정책이 있는 부서가 필요합니다.");
 
         deptId = departments.get(0);
 
@@ -164,7 +164,7 @@ class ExecutionFlowIntegrationTest {
     void allSqlsSucceedAndCreateSharedResultFiles() throws Exception {
         createApprovedRequest("""
                 SELECT COUNT(*) AS total_count
-                FROM sqlflow_demo.demo_department
+                FROM sqlflow_demo.v_active_product_catalog
                 """);
 
         registerBatch();
@@ -203,7 +203,7 @@ class ExecutionFlowIntegrationTest {
     void validationFailureProducesPartialFailure() throws Exception {
         createApprovedRequest("""
                 SELECT missing_column_for_execution_test
-                FROM sqlflow_demo.demo_department
+                FROM sqlflow_demo.v_active_product_catalog
                 """);
 
         registerBatch();
