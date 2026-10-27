@@ -5,6 +5,7 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.request.dto.DepartmentRequestListResponse;
 import com.sqlflow.request.dto.RequestApprovalResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
@@ -34,6 +35,14 @@ public interface DepartmentRequestMapper {
             @Param("actorId") Long actorId);
 
     List<RequestApprovalResponse> selectVisibleRequestApprovals(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId);
+    
+    int countVisibleRequest(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId);
+
+    List<ApprovalHistoryResponse> selectVisibleRequestApprovalHistory(
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);
 }

@@ -247,6 +247,16 @@ class DepartmentRequestMapperIntegrationTest {
 
         assertEquals(1, approvals.size());
         assertNotNull(approvals.get(0).getApproverName());
+        
+        assertEquals(
+                1,
+                mapper.countVisibleRequest(requestId, actorId));
+
+        var history = mapper.selectVisibleRequestApprovalHistory(
+                requestId, actorId);
+
+        assertEquals(1, history.size());
+        assertNotNull(history.get(0).getApproverName());
     }
 
     private void assertDetailHidden(Long requestId, Long actorId) {
@@ -256,6 +266,13 @@ class DepartmentRequestMapperIntegrationTest {
                 requestId, actorId).isEmpty());
 
         assertTrue(mapper.selectVisibleRequestApprovals(
+                requestId, actorId).isEmpty());
+        
+        assertEquals(
+                0,
+                mapper.countVisibleRequest(requestId, actorId));
+
+        assertTrue(mapper.selectVisibleRequestApprovalHistory(
                 requestId, actorId).isEmpty());
     }
 

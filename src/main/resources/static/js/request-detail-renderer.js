@@ -43,7 +43,11 @@ window.RequestDetailRenderer = (() => {
             : '-';
     }
 
-    function renderItems(items, validationMessages = new Map()) {
+	function renderItems(
+	    items,
+	    validationMessages = new Map(),
+	    { readOnly = false } = {}
+	  ) {
         if (!Array.isArray(items) || items.length === 0) {
             return '<p class="empty">등록된 SQL이 없습니다.</p>';
         }
@@ -67,8 +71,12 @@ window.RequestDetailRenderer = (() => {
                     ? '<p class="sql-validation-message" role="alert">'
                         + '<strong>검증 실패 원인:</strong> '
                         + esc(
-                            validationMessage
-                            || '전체 SQL 검증을 다시 실행해 원인을 확인하세요.'
+							validationMessage
+							|| (
+							    readOnly
+							        ? '저장된 SQL의 검증 상태가 실패입니다.'
+							        : '전체 SQL 검증을 다시 실행해 원인을 확인하세요.'
+							)
                         )
                         + '</p>'
                     : '';

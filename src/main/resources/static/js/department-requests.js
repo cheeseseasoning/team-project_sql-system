@@ -13,18 +13,6 @@
         WITHDRAWN: '회수'
     };
 
-    const approvalNames = {
-        PENDING: '대기',
-        APPROVED: '승인',
-        REJECTED: '반려',
-        SKIPPED: '생략'
-    };
-
-    const classNames = {
-        GENERAL: '일반 조회',
-        SENSITIVE: '민감 조회'
-    };
-
     function dateTime(value) {
         return value
             ? String(value).replace('T', ' ').substring(0, 19)
@@ -37,10 +25,6 @@
 
     if ($('#department-filter-form')) {
         initializeList();
-    }
-
-    if ($('#department-detail-config')) {
-        loadDetail();
     }
 
     function initializeList() {
@@ -237,84 +221,5 @@
                 : 1
         );
     }
-
-    async function loadDetail() {
-        const requestId =
-            $('#department-detail-config').dataset.requestId;
-
-        $('#department-back').href =
-            BASE + '/department-requests' + location.search;
-
-        try {
-            const detail = await api(
-                '/requests/department/' + encodeURIComponent(requestId),
-                { cache: 'no-store' }
-            );
-
-            $('#department-request-no').textContent = detail.requestNo;
-            $('#department-title').textContent = detail.title;
-            $('#department-purpose').textContent = detail.purpose || '-';
-            $('#department-description').textContent =
-                detail.detailContent || '상세 설명 없음';
-
-            const metadata = [
-                ['작성자', detail.drafterName],
-                ['부서', detail.deptName],
-                [
-                    '조회 유형',
-                    classNames[detail.requestClass]
-                    || detail.requestClass
-                    || '미분류'
-                ],
-                [
-                    '처리 상태',
-                    statusNames[detail.requestStatus]
-                    || detail.requestStatus
-                ],
-                ['제출 시각', dateTime(detail.submittedAt)],
-                ['희망일', dateOnly(detail.desiredDate)],
-                ['긴급 여부', detail.isUrgent === 'Y' ? '긴급' : '일반']
-            ];
-
-            $('#department-metadata').innerHTML = metadata
-                .map(([label, value]) =>
-                    '<div><dt>' + esc(label) + '</dt><dd>'
-                    + esc(value ?? '-') + '</dd></div>')
-                .join('');
-
-            $('#department-sql-list').innerHTML = detail.items
-                .map(item =>
-                    '<article class="result-item">'
-                    + '<h3>SQL ' + esc(item.queryOrder)
-                    + ' · ' + esc(item.queryTitle || '제목 없음')
-                    + '</h3><pre><code>'
-                    + esc(item.sqlText)
-                    + '</code></pre></article>')
-                .join('')
-                || '<p class="empty">등록된 SQL이 없습니다.</p>';
-
-            $('#department-approval-rows').innerHTML = detail.approvals
-                .map(item =>
-                    '<tr>'
-                    + '<td>' + esc(item.approvalOrder) + '</td>'
-                    + '<td>' + esc(item.approverName || '-') + '</td>'
-                    + '<td>' + esc(item.deptName || '-')
-                    + '<span class="secondary">'
-                    + esc(item.positionName || '-')
-                    + '</span></td>'
-                    + '<td>'
-                    + badge(approvalNames[item.status] || item.status)
-                    + '</td></tr>')
-                .join('')
-                || '<tr><td colspan="4" class="empty">'
-                    + '등록된 결재선이 없습니다.</td></tr>';
-
-            $('#department-detail-content').hidden = false;
-
-        } catch (error) {
-            $('#department-title').textContent = '기안을 열 수 없습니다.';
-            $('#department-detail-content').hidden = true;
-            notify(error.message, true);
-        }
-    }
+	
 })();

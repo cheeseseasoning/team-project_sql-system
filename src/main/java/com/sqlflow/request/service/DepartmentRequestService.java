@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.request.dto.DepartmentRequestPageResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.mapper.DepartmentRequestMapper;
@@ -82,17 +83,7 @@ public class DepartmentRequestService {
             Long requestId,
             Long actorId) {
 
-        if (actorId == null || actorId <= 0) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "로그인이 필요합니다.");
-        }
-
-        if (requestId == null || requestId <= 0) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "올바른 요청 ID가 필요합니다.");
-        }
+    	validateDetailIds(requestId, actorId);
 
         RequestDetailResponse detail =
                 departmentRequestMapper.selectVisibleRequestDetail(
@@ -117,5 +108,41 @@ public class DepartmentRequestService {
                         actorId));
 
         return detail;
+    }
+    
+    private void validateDetailIds(Long requestId, Long actorId) {
+        if (actorId == null || actorId <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "로그인이 필요합니다.");
+        }
+
+        if (requestId == null || requestId <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "올바른 요청 ID가 필요합니다.");
+        }
+    }
+
+    @Transactional(
+            transactionManager = "managementTransactionManager",
+            readOnly = true)
+    public List<ApprovalHistoryResponse> getRequestApprovalHistory(
+            Long requestId,
+            Long actorId) {
+
+        validateDetailIds(requestId, actorId);
+
+        if (departmentRequestMapper.countVisibleRequest(
+                requestId, actorId) != 1) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "조회 요청을 찾을 수 없습니다.");
+        }
+
+        return departmentRequestMapper.selectVisibleRequestApprovalHistory(
+                requestId,
+                actorId);
     }
 }

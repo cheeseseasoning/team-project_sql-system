@@ -167,4 +167,37 @@
 	    ORDER BY A.APPROVAL_ORDER, A.APPROVAL_ID
 	</select>
 	
+	<select id="countVisibleRequest" resultType="int">
+	    SELECT COUNT(*)
+	    <include refid="requestFrom"/>
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND <include refid="visibilityConditions"/>
+	</select>
+	
+	<select id="selectVisibleRequestApprovalHistory"
+	        resultType="com.sqlflow.approval.dto.ApprovalHistoryResponse">
+	    SELECT A.APPROVAL_ORDER,
+	           A.APPROVAL_TYPE,
+	           A.APPROVER_ID,
+	           APPROVER.USER_NAME AS APPROVER_NAME,
+	           APPROVER_DEPT.DEPT_NAME,
+	           P.POSITION_NAME,
+	           A.STATUS,
+	           A.COMMENT_TEXT,
+	           A.CREATED_AT,
+	           A.DECIDED_AT
+	    <include refid="requestFrom"/>
+	    JOIN APPROVAL A
+	      ON A.REQUEST_ID = R.REQUEST_ID
+	    LEFT JOIN USERS APPROVER
+	      ON APPROVER.USER_ID = A.APPROVER_ID
+	    LEFT JOIN DEPARTMENT APPROVER_DEPT
+	      ON APPROVER_DEPT.DEPT_ID = APPROVER.DEPT_ID
+	    LEFT JOIN POSITION P
+	      ON P.POSITION_ID = APPROVER.POSITION_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND <include refid="visibilityConditions"/>
+	    ORDER BY A.APPROVAL_ORDER, A.APPROVAL_ID
+	</select>
+	
 </mapper>

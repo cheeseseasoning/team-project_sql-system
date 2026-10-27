@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.approval.service.ApprovalService;
 import com.sqlflow.auth.security.SecurityConfig;
 import com.sqlflow.request.controller.RequestController;
@@ -163,5 +164,47 @@ class DepartmentRequestApiTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message")
                         .value("조회 요청을 찾을 수 없습니다."));
+    }
+    
+    @Test
+    void anonymousHistoryRequestIsRejected() throws Exception {
+        mockMvc.perform(get(
+                        "/api/requests/department/100/approval-history"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(departmentRequestService);
+    }
+
+    @Test
+    void historyUsesAuthenticatedActorId() throws Exception {
+        var history = new ApprovalHistoryResponse();
+        history.setApproverName("테스트 결재자");
+
+        when(departmentRequestService.getRequestApprovalHistory(100L, 1L))
+                .thenReturn(List.of(history));
+
+        mockMvc.perform(get(
+                        "/api/requests/department/100/approval-history")
+                        .with(authenticatedUser())
+                        .param("actorId", "999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].approverName")
+                        .value("테스트 결재자"));
+
+        verify(departmentRequestService)
+                .getRequestApprovalHistory(100L, 1L);
+    }
+
+    @Test
+    void inaccessibleHistoryReturnsNotFound() throws Exception {
+        when(departmentRequestService.getRequestApprovalHistory(100L, 1L))
+                .thenThrow(new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "조회 요청을 찾을 수 없습니다."));
+
+        mockMvc.perform(get(
+                        "/api/requests/department/100/approval-history")
+                        .with(authenticatedUser()))
+                .andExpect(status().isNotFound());
     }
 }

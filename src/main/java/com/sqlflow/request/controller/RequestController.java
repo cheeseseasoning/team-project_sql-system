@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.approval.dto.ApprovalCandidatesResponse;
+import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.approval.service.ApprovalService;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 import com.sqlflow.request.dto.DepartmentRequestPageResponse;
@@ -102,6 +103,16 @@ public class RequestController {
 	        @AuthenticationPrincipal SqlFlowUserDetails user) {
 
 	    return departmentRequestService.getRequestDetail(
+	            requestId,
+	            user == null ? null : user.getUserId());
+	}
+	
+	@GetMapping("/department/{requestId}/approval-history")
+	public List<ApprovalHistoryResponse> getDepartmentRequestApprovalHistory(
+	        @PathVariable("requestId") Long requestId,
+	        @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+	    return departmentRequestService.getRequestApprovalHistory(
 	            requestId,
 	            user == null ? null : user.getUserId());
 	}

@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.request.dto.DepartmentRequestListResponse;
 import com.sqlflow.request.dto.RequestApprovalResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
@@ -160,6 +161,53 @@ class DepartmentRequestServiceTest {
                 () -> service.getRequestDetail(100L, null));
 
         assertEquals(HttpStatus.UNAUTHORIZED, error.getStatusCode());
+        verifyNoInteractions(mapper);
+    }
+    
+    @Test
+    void visibleRequestHistoryIsReturned() {
+        var history = new ApprovalHistoryResponse();
+        history.setApproverName("테스트 결재자");
+
+        when(mapper.countVisibleRequest(100L, 1L))
+                .thenReturn(1);
+
+        when(mapper.selectVisibleRequestApprovalHistory(100L, 1L))
+                .thenReturn(List.of(history));
+
+        var response = service.getRequestApprovalHistory(100L, 1L);
+
+        assertSame(history, response.get(0));
+    }
+
+    @Test
+    void inaccessibleHistoryIsNotLoaded() {
+        var error = assertThrows(
+                ResponseStatusException.class,
+                () -> service.getRequestApprovalHistory(100L, 1L));
+
+        assertEquals(HttpStatus.NOT_FOUND, error.getStatusCode());
+
+        verify(mapper).countVisibleRequest(100L, 1L);
+        verifyNoMoreInteractions(mapper);
+    }
+
+    @Test
+    void historyRejectsInvalidIdsBeforeQuery() {
+        assertEquals(
+                HttpStatus.UNAUTHORIZED,
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> service.getRequestApprovalHistory(100L, null))
+                        .getStatusCode());
+
+        assertEquals(
+                HttpStatus.BAD_REQUEST,
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> service.getRequestApprovalHistory(0L, 1L))
+                        .getStatusCode());
+
         verifyNoInteractions(mapper);
     }
 
