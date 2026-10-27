@@ -77,6 +77,24 @@ public class PageController {
 		model.addAttribute("requestId", id);
 		return view(model, "request-edit", "조회 요청 초안 수정");
 	}
+	
+	@GetMapping("/department-requests")
+	public String departmentRequests(Model model) {
+	    return view(model, "department-requests", "부서 기안함");
+	}
+
+	@GetMapping("/department-requests/{requestId}")
+	public String departmentRequestDetail(
+	        Model model,
+	        @PathVariable("requestId") Long requestId) {
+
+	    model.addAttribute("requestId", requestId);
+
+	    return view(
+	            model,
+	            "department-request-detail",
+	            "부서 기안 상세");
+	}
 
 	@GetMapping("/approvals/pending")
 	public String pendingApprovals(Model model) {
@@ -150,9 +168,10 @@ public class PageController {
 		model.addAttribute("page", page);
 		model.addAttribute("pageTitle", title);
 		model.addAttribute("activeMenu",
-		        page.equals("home") ? "home"
-		                : page.equals("notices") ? "notices"
-		                : page.equals("views") || page.equals("view-detail") ? "views"		
+                page.equals("home") ? "home"
+                        : page.startsWith("department-request") ? "department-requests"
+                        : page.equals("notices") ? "notices"
+                        : page.equals("views") || page.equals("view-detail") ? "views"
 		                : page.equals("admin-user-form") ? "admin-users"
 		                : page.startsWith("execution-queue") ? "execution-queue"
 		                : page.startsWith("execution-result") ? "execution-results"
