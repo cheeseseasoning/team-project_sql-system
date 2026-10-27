@@ -10,4 +10,5 @@ public class ViewDepartmentInfoDTO {
 
     private Long deptId;
     private String deptName;
+    private Integer activeAccountCount;
 }

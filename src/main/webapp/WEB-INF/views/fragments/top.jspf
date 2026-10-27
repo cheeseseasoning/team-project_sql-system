@@ -39,6 +39,9 @@
 	    <link rel="stylesheet"
 	          href="${pageContext.request.contextPath}/css/pages/views.css">
 	</c:if>
+    <c:if test="${page == 'db-resource-admin'}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/db-resource-admin.css">
+    </c:if>
     
 
     <c:if test="${page == 'admin-user-form'}">
@@ -100,6 +103,12 @@
 				         alt="">
 				    뷰 조회
 				</a>
+
+                <c:if test="${pageContext.request.isUserInRole('DB_ADMIN') or deptName == 'DB팀'}">
+                    <a class="nav-item ${activeMenu == 'db-resource-admin' ? 'active' : ''}"
+                       href="${pageContext.request.contextPath}/db-admin/resources">
+                        <img src="${pageContext.request.contextPath}/icons/SlidersHorizontal.svg" alt="">리소스·접근 정책 관리</a>
+                </c:if>
 
                 <a class="nav-item ${activeMenu == 'notices' ? 'active' : ''}"
                    href="${pageContext.request.contextPath}/notices"

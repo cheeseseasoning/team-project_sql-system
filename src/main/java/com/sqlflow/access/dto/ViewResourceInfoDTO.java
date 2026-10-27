@@ -17,4 +17,10 @@ public class ViewResourceInfoDTO {
     private String resourceName;
     private String description;
     private String enabled;
+    private String exportPolicy;
+    private String accessDecision;
+    private String accessLevel;
+    private String policyEnabled;
+    private Long deptId;
+    private String deptName;
 }

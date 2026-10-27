@@ -12,9 +12,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.auth.security.SqlFlowUserDetails;
+import com.sqlflow.access.service.ResourcePolicyAdminService;
 
 @Controller
 public class PageController {
+	private final ResourcePolicyAdminService resourcePolicyAdminService;
+	public PageController(ResourcePolicyAdminService resourcePolicyAdminService) {
+		this.resourcePolicyAdminService = resourcePolicyAdminService;
+	}
 	
 	@ModelAttribute
 	public void common(Model model, Authentication authentication) {
@@ -135,6 +140,23 @@ public class PageController {
 	    return view(model, "views", "뷰 조회");
 	}
 
+	@GetMapping("/db-admin/resources")
+	public String resourcePolicyAdmin(Model model, Authentication authentication) {
+		Long userId = authentication != null && authentication.getPrincipal() instanceof SqlFlowUserDetails user
+				? user.getUserId() : null;
+		resourcePolicyAdminService.assertCanView(userId);
+		return view(model, "db-resource-admin", "리소스·접근 정책 관리");
+	}
+
+	@GetMapping("/db-admin/resources/{resourceId}")
+	public String resourcePolicyDetail(Model model, Authentication authentication, @PathVariable Long resourceId) {
+		Long userId = authentication != null && authentication.getPrincipal() instanceof SqlFlowUserDetails user
+				? user.getUserId() : null;
+		resourcePolicyAdminService.assertCanView(userId);
+		model.addAttribute("resourceId", resourceId);
+		return view(model, "db-resource-admin", "리소스 정책 상세");
+	}
+
 	@GetMapping("/notices")
 	public String notices(Model model) {
 		return view(model, "notices", "공지사항");
@@ -147,6 +169,7 @@ public class PageController {
 		        page.equals("home") ? "home"
 		                : page.equals("notices") ? "notices"
 		                : page.equals("views") ? "views"		
+	                : page.equals("db-resource-admin") ? "db-resource-admin"
 		                : page.equals("admin-user-form") ? "admin-users"
 		                : page.startsWith("execution-queue") ? "execution-queue"
 		                : page.startsWith("execution-result") ? "execution-results"
