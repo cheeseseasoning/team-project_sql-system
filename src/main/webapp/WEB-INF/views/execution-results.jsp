@@ -94,8 +94,8 @@
                         ? 'waiting'
                         : 'neutral';
 
-            const requestUrl =
-                BASE + '/requests/' + encodeURIComponent(row.requestId);
+			const requestUrl =
+				BASE + '/department-requests/' + encodeURIComponent(row.requestId);
 				
 			const detailUrl =
 				BASE + '/execution-results/' + encodeURIComponent(row.executionId);
