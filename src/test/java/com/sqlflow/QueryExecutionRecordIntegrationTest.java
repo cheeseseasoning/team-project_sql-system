@@ -22,6 +22,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.sqlflow.execution.mapper.QueryResultMapper;
 import com.sqlflow.execution.service.MySqlQueryExecutionService.ExecutionResult;
@@ -49,6 +51,10 @@ class QueryExecutionRecordIntegrationTest {
     
     @Autowired
     private QueryResultMapper queryResultMapper;
+    
+    @Autowired
+    @Qualifier("managementTransactionManager")
+    private PlatformTransactionManager managementTransactionManager;
 
     private JdbcTemplate jdbc;
     private Long requestId;
@@ -238,6 +244,57 @@ class QueryExecutionRecordIntegrationTest {
         service.fail(executionId, 120L, "RESULT_SAVE_FAILED", "결과 정보 저장 실패");
 
         assertEquals("FAILED", executionStatus());
+    }
+    
+    @Test
+    void rechecksExpiryPathAndDeletionInsideTransaction() {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        var transaction =
+                new TransactionTemplate(managementTransactionManager);
+
+        transaction.executeWithoutResult(status -> {
+            // 1. 아직 만료되지 않았다면 정리 대상이 아니다.
+            setExpiry(resultId, cutoff.plusDays(1));
+
+            assertNull(queryResultMapper.selectExpiredResultForUpdate(
+                    resultId,
+                    cleanupTestFilePath(),
+                    cutoff));
+
+            // 2. 만료됐어도 파일 경로가 다르면 정리 대상이 아니다.
+            setExpiry(resultId, cutoff.minusDays(1));
+
+            assertNull(queryResultMapper.selectExpiredResultForUpdate(
+                    resultId,
+                    "different.csv",
+                    cutoff));
+
+            // 3. 만료·경로 조건이 일치하면 잠금 조회에 성공한다.
+            var target = queryResultMapper.selectExpiredResultForUpdate(
+                    resultId,
+                    cleanupTestFilePath(),
+                    cutoff);
+
+            assertNotNull(target);
+            assertEquals(resultId, target.getResultId());
+            assertEquals(cleanupTestFilePath(), target.getFilePath());
+
+            // 4. 같은 트랜잭션에서 삭제 완료를 기록한다.
+            assertEquals(
+                    1,
+                    queryResultMapper.markExpiredResultDeleted(
+                            resultId,
+                            cleanupTestFilePath(),
+                            cutoff));
+
+            // 5. 삭제 완료된 결과는 다시 정리 대상으로 반환하지 않는다.
+            assertNull(queryResultMapper.selectExpiredResultForUpdate(
+                    resultId,
+                    cleanupTestFilePath(),
+                    cutoff));
+        });
     }
 
     private String executionStatus() {

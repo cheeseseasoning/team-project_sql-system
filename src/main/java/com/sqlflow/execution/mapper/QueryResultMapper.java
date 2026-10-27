@@ -25,4 +25,9 @@ public interface QueryResultMapper {
             @Param("resultId") Long resultId,
             @Param("filePath") String filePath,
             @Param("cutoff") LocalDateTime cutoff);
+    
+    ExpiredResultFile selectExpiredResultForUpdate(
+            @Param("resultId") Long resultId,
+            @Param("filePath") String filePath,
+            @Param("cutoff") LocalDateTime cutoff);
 }

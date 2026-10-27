@@ -76,5 +76,24 @@
 	      AND EXPIRES_AT &lt;= <include refid="seoulNow"/>
 	      AND DELETED_AT IS NULL
 	</update>
+	
+	<!--
+	    삭제 직전 상태를 재검사하고 해당 결과 행을 잠근다.
+	    반드시 삭제 서비스의 트랜잭션 안에서 호출한다.
+	-->
+	<select id="selectExpiredResultForUpdate"
+        resultType="com.sqlflow.execution.domain.ExpiredResultFile"
+        flushCache="true"
+        useCache="false">
+	    SELECT RESULT_ID,
+	           FILE_PATH
+	    FROM QUERY_RESULT
+	    WHERE RESULT_ID = #{resultId}
+	      AND FILE_PATH = #{filePath}
+	      AND EXPIRES_AT &lt;= #{cutoff, jdbcType=TIMESTAMP}
+	      AND EXPIRES_AT &lt;= <include refid="seoulNow"/>
+	      AND DELETED_AT IS NULL
+	    FOR UPDATE
+	</select>
 
 </mapper>
