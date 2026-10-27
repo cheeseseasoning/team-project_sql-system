@@ -63,11 +63,13 @@ class DataAccessPolicyMapperIntegrationTest {
         sales = new QueryObjectName(owner, "SALES");
         customers = new QueryObjectName(owner, "CUSTOMERS");
 
-        salesResourceId = insertResource(sales, "Y");
-        customersResourceId = insertResource(customers, "Y");
+        // 조회 등급과 반출 정책은 리소스에 저장한다.
+        salesResourceId = insertResource(sales, "GENERAL", "BLOCK", "Y");
+        customersResourceId = insertResource(customers, "SENSITIVE", "BLOCK", "Y");
 
-        insertPolicy(salesResourceId, deptId, "GENERAL", "Y");
-        insertPolicy(customersResourceId, deptId, "SENSITIVE", "Y");
+        // 부서 정책에는 해당 리소스의 접근 허용 여부를 저장한다.
+        insertPolicy(salesResourceId, deptId, "ALLOW", "Y");
+        insertPolicy(customersResourceId, deptId, "ALLOW", "Y");
     }
 
     @Test
@@ -85,12 +87,14 @@ class DataAccessPolicyMapperIntegrationTest {
         var general = byResourceId.get(salesResourceId);
         assertEquals(sales.owner(), general.getOwner());
         assertEquals(sales.objectName(), general.getObjectName());
-        assertEquals("GENERAL", general.getAccessLevel());
+        assertEquals("ALLOW", general.getAccessDecision());
+        assertEquals("BLOCK", general.getExportPolicy());
 
         var sensitive = byResourceId.get(customersResourceId);
         assertEquals(customers.owner(), sensitive.getOwner());
         assertEquals(customers.objectName(), sensitive.getObjectName());
-        assertEquals("SENSITIVE", sensitive.getAccessLevel());
+        assertEquals("ALLOW", sensitive.getAccessDecision());
+        assertEquals("BLOCK", sensitive.getExportPolicy());
     }
 
     @Test
@@ -171,6 +175,8 @@ class DataAccessPolicyMapperIntegrationTest {
 
     private Long insertResource(
             QueryObjectName target,
+            String accessLevel,
+            String exportPolicy,
             String enabled) {
 
         Long resourceId = nextTestId();
@@ -181,14 +187,18 @@ class DataAccessPolicyMapperIntegrationTest {
                     SCHEMA_NAME,
                     OBJECT_NAME,
                     RESOURCE_NAME,
+                    ACCESS_LEVEL,
+                    EXPORT_POLICY,
                     ENABLED,
                     CREATED_AT
-                ) VALUES (?, ?, ?, ?, ?, SYSTIMESTAMP)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, SYSTIMESTAMP)
                 """,
                 resourceId,
                 target.owner(),
                 target.objectName(),
                 "정책 테스트 " + target.objectName(),
+                accessLevel,
+                exportPolicy,
                 enabled);
 
         return resourceId;
@@ -197,7 +207,7 @@ class DataAccessPolicyMapperIntegrationTest {
     private void insertPolicy(
             Long resourceId,
             Long policyDeptId,
-            String accessLevel,
+            String accessDecision,
             String enabled) {
 
         jdbcTemplate.update("""
@@ -205,16 +215,17 @@ class DataAccessPolicyMapperIntegrationTest {
                     POLICY_ID,
                     RESOURCE_ID,
                     DEPT_ID,
+                    ACCESS_DECISION,
                     ACCESS_LEVEL,
                     EXPORT_POLICY,
                     ENABLED,
                     CREATED_AT
-                ) VALUES (?, ?, ?, ?, 'BLOCK', ?, SYSTIMESTAMP)
+                ) VALUES (?, ?, ?, ?, 'GENERAL', 'BLOCK', ?, SYSTIMESTAMP)
                 """,
                 nextTestId(),
                 resourceId,
                 policyDeptId,
-                accessLevel,
+                accessDecision,
                 enabled);
     }
 

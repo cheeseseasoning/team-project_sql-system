@@ -191,11 +191,16 @@ class DataAccessValidationServiceTest {
             String accessLevel) {
 
         DataAccessPolicy policy = new DataAccessPolicy();
+
         policy.setResourceId(resourceId);
         policy.setPolicyId(resourceId + 100L);
         policy.setOwner(target.owner());
         policy.setObjectName(target.objectName());
+
+        // 기존 테스트의 조회 허용 조건을 명시한다.
+        policy.setAccessDecision("ALLOW");
         policy.setAccessLevel(accessLevel);
+
         return policy;
     }
 
