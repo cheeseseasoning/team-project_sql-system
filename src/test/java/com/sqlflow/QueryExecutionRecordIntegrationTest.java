@@ -1,7 +1,17 @@
 package com.sqlflow;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -10,12 +20,20 @@ import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import com.sqlflow.execution.mapper.QueryResultMapper;
+import com.sqlflow.execution.service.ExpiredResultCleanupService;
+import com.sqlflow.execution.service.ExpiredResultCleanupService.CleanupResult;
 import com.sqlflow.execution.service.MySqlQueryExecutionService.ExecutionResult;
 import com.sqlflow.execution.service.QueryExecutionRecordService;
 
@@ -26,11 +44,24 @@ import com.sqlflow.execution.service.QueryExecutionRecordService;
  * 테스트용 데이터는 각 테스트 종료 후 외래키 역순으로 삭제한다.
  */
 @SpringBootTest(properties = {
-		"sqlflow.result.storage-root=${java.io.tmpdir}/sqlflow-test-results",
         "app.execution.query-timeout-seconds=60",
         "app.execution.max-file-bytes=104857600"
 })
+
 class QueryExecutionRecordIntegrationTest {
+	
+	@TempDir
+	static Path cleanupStorageRoot;
+
+	@DynamicPropertySource
+	static void cleanupStorageProperties(DynamicPropertyRegistry registry) {
+	    registry.add(
+	            "sqlflow.result.storage-root",
+	            () -> cleanupStorageRoot.toString());
+	}
+
+	@Autowired
+	private ExpiredResultCleanupService cleanupService;
 
     @Autowired
     @Qualifier("managementDataSource")
@@ -38,6 +69,13 @@ class QueryExecutionRecordIntegrationTest {
 
     @Autowired
     private QueryExecutionRecordService service;
+    
+    @Autowired
+    private QueryResultMapper queryResultMapper;
+    
+    @Autowired
+    @Qualifier("managementTransactionManager")
+    private PlatformTransactionManager managementTransactionManager;
 
     private JdbcTemplate jdbc;
     private Long requestId;
@@ -228,6 +266,57 @@ class QueryExecutionRecordIntegrationTest {
 
         assertEquals("FAILED", executionStatus());
     }
+    
+    @Test
+    void rechecksExpiryPathAndDeletionInsideTransaction() {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        var transaction =
+                new TransactionTemplate(managementTransactionManager);
+
+        transaction.executeWithoutResult(status -> {
+            // 1. 아직 만료되지 않았다면 정리 대상이 아니다.
+            setExpiry(resultId, cutoff.plusDays(1));
+
+            assertNull(queryResultMapper.selectExpiredResultForUpdate(
+                    resultId,
+                    cleanupTestFilePath(),
+                    cutoff));
+
+            // 2. 만료됐어도 파일 경로가 다르면 정리 대상이 아니다.
+            setExpiry(resultId, cutoff.minusDays(1));
+
+            assertNull(queryResultMapper.selectExpiredResultForUpdate(
+                    resultId,
+                    "different.csv",
+                    cutoff));
+
+            // 3. 만료·경로 조건이 일치하면 잠금 조회에 성공한다.
+            var target = queryResultMapper.selectExpiredResultForUpdate(
+                    resultId,
+                    cleanupTestFilePath(),
+                    cutoff);
+
+            assertNotNull(target);
+            assertEquals(resultId, target.getResultId());
+            assertEquals(cleanupTestFilePath(), target.getFilePath());
+
+            // 4. 같은 트랜잭션에서 삭제 완료를 기록한다.
+            assertEquals(
+                    1,
+                    queryResultMapper.markExpiredResultDeleted(
+                            resultId,
+                            cleanupTestFilePath(),
+                            cutoff));
+
+            // 5. 삭제 완료된 결과는 다시 정리 대상으로 반환하지 않는다.
+            assertNull(queryResultMapper.selectExpiredResultForUpdate(
+                    resultId,
+                    cleanupTestFilePath(),
+                    cutoff));
+        });
+    }
 
     private String executionStatus() {
         return jdbc.queryForObject(
@@ -239,5 +328,252 @@ class QueryExecutionRecordIntegrationTest {
         return jdbc.queryForObject(
                 "SELECT COUNT(*) FROM QUERY_RESULT WHERE EXECUTION_ID = ?",
                 Integer.class, executionId);
+    }
+    
+    private Long createCleanupTestResult() {
+        service.start(executionId);
+
+        service.complete(
+                executionId,
+                new ExecutionResult(
+                        "query-cleanup-" + executionId + ".csv",
+                        4L,
+                        512L,
+                        120L));
+
+        return jdbc.queryForObject("""
+                SELECT RESULT_ID
+                FROM QUERY_RESULT
+                WHERE EXECUTION_ID = ?
+                """, Long.class, executionId);
+    }
+
+    private String cleanupTestFilePath() {
+        return "query-cleanup-" + executionId + ".csv";
+    }
+
+    private void setExpiry(Long resultId, LocalDateTime expiresAt) {
+        jdbc.update("""
+                UPDATE QUERY_RESULT
+                SET CREATED_AT = ?,
+                    EXPIRES_AT = ?
+                WHERE RESULT_ID = ?
+                """,
+                Timestamp.valueOf(expiresAt.minusDays(30)),
+                Timestamp.valueOf(expiresAt),
+                resultId);
+    }
+
+    @Test
+    void selectsResultAtExpiryBoundaryAndMarksDeletedOnce() {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        assertNotNull(cutoff);
+        setExpiry(resultId, cutoff);
+
+        var targets = queryResultMapper.selectExpiredResults(
+                resultId - 1, cutoff, 1);
+
+        assertEquals(1, targets.size());
+        assertEquals(resultId, targets.get(0).getResultId());
+        assertEquals(cleanupTestFilePath(), targets.get(0).getFilePath());
+
+        assertEquals(
+                1,
+                queryResultMapper.markExpiredResultDeleted(
+                        resultId, cleanupTestFilePath(), cutoff));
+
+        Timestamp deletedAt = jdbc.queryForObject("""
+                SELECT DELETED_AT
+                FROM QUERY_RESULT
+                WHERE RESULT_ID = ?
+                """, Timestamp.class, resultId);
+
+        assertNotNull(deletedAt);
+
+        assertEquals(
+                0,
+                queryResultMapper.markExpiredResultDeleted(
+                        resultId, cleanupTestFilePath(), cutoff));
+
+        assertEquals(
+                deletedAt,
+                jdbc.queryForObject("""
+                        SELECT DELETED_AT
+                        FROM QUERY_RESULT
+                        WHERE RESULT_ID = ?
+                        """, Timestamp.class, resultId));
+
+        assertEquals("SUCCESS", executionStatus());
+        assertEquals(1, resultCount());
+    }
+
+    @Test
+    void doesNotSelectOrMarkUnexpiredResult() {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        setExpiry(resultId, cutoff.plusDays(1));
+
+        var targets = queryResultMapper.selectExpiredResults(
+                resultId - 1, cutoff, 1);
+
+        assertTrue(targets.stream()
+                .noneMatch(item -> resultId.equals(item.getResultId())));
+
+        assertEquals(
+                0,
+                queryResultMapper.markExpiredResultDeleted(
+                        resultId, cleanupTestFilePath(), cutoff));
+    }
+
+    @Test
+    void excludesAlreadyDeletedResult() {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        setExpiry(resultId, cutoff.minusDays(1));
+
+        assertEquals(
+                1,
+                queryResultMapper.markExpiredResultDeleted(
+                        resultId, cleanupTestFilePath(), cutoff));
+
+        var targets = queryResultMapper.selectExpiredResults(
+                resultId - 1, cutoff, 1);
+
+        assertTrue(targets.stream()
+                .noneMatch(item -> resultId.equals(item.getResultId())));
+    }
+
+    @Test
+    void requiresMatchingPathAndAdvancesByResultId() {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        setExpiry(resultId, cutoff.minusDays(1));
+
+        assertEquals(
+                0,
+                queryResultMapper.markExpiredResultDeleted(
+                        resultId, "different.csv", cutoff));
+
+        var targets = queryResultMapper.selectExpiredResults(
+                resultId - 1, cutoff, 1);
+
+        assertEquals(1, targets.size());
+        assertEquals(resultId, targets.get(0).getResultId());
+
+        var nextTargets = queryResultMapper.selectExpiredResults(
+                resultId, cutoff, 1);
+
+        assertTrue(nextTargets.stream()
+                .allMatch(item -> item.getResultId() > resultId));
+    }
+    
+    @Test
+    void deletesActualCsvAndRecordsDeletion() throws Exception {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        setExpiry(resultId, cutoff.minusDays(1));
+
+        Path file = cleanupStorageRoot.resolve(cleanupTestFilePath());
+        Files.writeString(file, "id\r\n1\r\n");
+
+        assertEquals(
+                CleanupResult.DELETED,
+                cleanupService.cleanupOne(
+                        resultId,
+                        cleanupTestFilePath(),
+                        cutoff));
+
+        assertFalse(Files.exists(file));
+        assertNotNull(deletionTime(resultId));
+
+        // 파일 삭제와 별개로 실행 이력과 결과 메타데이터는 유지한다.
+        assertEquals("SUCCESS", executionStatus());
+        assertEquals(1, resultCount());
+
+        // 이미 처리한 결과는 다시 삭제하지 않는다.
+        assertEquals(
+                CleanupResult.SKIPPED,
+                cleanupService.cleanupOne(
+                        resultId,
+                        cleanupTestFilePath(),
+                        cutoff));
+    }
+
+    @Test
+    void missingActualCsvStillRecordsDeletion() throws Exception {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        setExpiry(resultId, cutoff.minusDays(1));
+
+        Path file = cleanupStorageRoot.resolve(cleanupTestFilePath());
+        assertFalse(Files.exists(file));
+
+        assertEquals(
+                CleanupResult.ALREADY_MISSING,
+                cleanupService.cleanupOne(
+                        resultId,
+                        cleanupTestFilePath(),
+                        cutoff));
+
+        assertNotNull(deletionTime(resultId));
+    }
+
+    @Test
+    void unexpiredActualCsvIsPreserved() throws Exception {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        setExpiry(resultId, cutoff.plusDays(1));
+
+        Path file = cleanupStorageRoot.resolve(cleanupTestFilePath());
+        Files.writeString(file, "keep");
+
+        assertEquals(
+                CleanupResult.SKIPPED,
+                cleanupService.cleanupOne(
+                        resultId,
+                        cleanupTestFilePath(),
+                        cutoff));
+
+        assertEquals("keep", Files.readString(file));
+        assertNull(deletionTime(resultId));
+    }
+
+    @Test
+    void invalidFileTypeDoesNotRecordDeletion() throws Exception {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        setExpiry(resultId, cutoff.minusDays(1));
+
+        // CSV 파일 대신 같은 이름의 디렉터리를 만들어 삭제 오류를 유발한다.
+        Path directory = Files.createDirectory(
+                cleanupStorageRoot.resolve(cleanupTestFilePath()));
+
+        assertThrows(
+                IOException.class,
+                () -> cleanupService.cleanupOne(
+                        resultId,
+                        cleanupTestFilePath(),
+                        cutoff));
+
+        assertTrue(Files.isDirectory(directory));
+        assertNull(deletionTime(resultId));
+        assertEquals("SUCCESS", executionStatus());
+    }
+
+    private Timestamp deletionTime(Long resultId) {
+        return jdbc.queryForObject("""
+                SELECT DELETED_AT
+                FROM QUERY_RESULT
+                WHERE RESULT_ID = ?
+                """, Timestamp.class, resultId);
     }
 }

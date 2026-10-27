@@ -119,16 +119,12 @@ public class QueryExecutionService {
             recordService.complete(executionId, result);
 
         } catch (DataIntegrityViolationException exception) {
-            // 제약 위반으로 저장이 롤백된 경우 실패를 기록하고 파일을 정리한다.
-            ExecutionOutcome outcome = recordFailure(
+            // 결과 저장이 제약 위반으로 롤백된 경우에만 정리한다.
+            return handleResultSaveFailure(
                     executionId,
                     startedNanos,
-                    "RESULT_SAVE_FAILED",
-                    exception.getMessage());
-
-            deleteResultFile(result, exception);
-
-            return outcome;
+                    result,
+                    exception);
 
         } catch (RuntimeException exception) {
             /*
@@ -225,22 +221,51 @@ public class QueryExecutionService {
             original.addSuppressed(recordException);
         }
     }
+    
+    /**
+     * 결과 저장이 제약 위반으로 롤백된 경우의 후속 처리.
+     *
+     * 실패 상태 기록과 CSV 삭제를 각각 시도한다.
+     * 후속 처리에서 오류가 나면 최초 저장 오류에 보존하고 상위로 전달한다.
+     */
+    private ExecutionOutcome handleResultSaveFailure(
+            Long executionId,
+            long startedNanos,
+            ExecutionResult result,
+            DataIntegrityViolationException original) {
 
-    /** 결과 정보 저장에 실패한 파일을 정리한다. */
-    private void deleteResultFile(
-            ExecutionResult result, RuntimeException original) {
+        boolean recoveryFailed = false;
 
+        try {
+            recordFailure(
+                    executionId,
+                    startedNanos,
+                    "RESULT_SAVE_FAILED",
+                    original.getMessage());
+
+        } catch (RuntimeException recordException) {
+            original.addSuppressed(recordException);
+            recoveryFailed = true;
+        }
+
+        // 실패 상태 기록이 실패해도 파일 정리는 시도한다.
         try {
             mySqlQueryExecutionService.deleteResultFile(result);
 
         } catch (IOException | RuntimeException cleanupException) {
             original.addSuppressed(cleanupException);
+            recoveryFailed = true;
+        }
 
+        if (recoveryFailed) {
             throw new IllegalStateException(
-                    "결과 저장 실패 후 파일을 정리하지 못했습니다. relativePath="
-                            + result.relativePath(),
+                    "결과 저장 실패 후 후속 처리를 완료하지 못했습니다. "
+                            + "executionId=" + executionId
+                            + ", relativePath=" + result.relativePath(),
                     original);
         }
+
+        return new ExecutionOutcome(executionId, false);
     }
 
     private long elapsedMillis(long startedNanos) {

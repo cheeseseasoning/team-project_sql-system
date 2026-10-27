@@ -1,7 +1,14 @@
 package com.sqlflow;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -23,6 +30,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.sqlflow.execution.service.MySqlQueryExecutionService;
+import com.sqlflow.execution.service.ResultFileStorageService;
 
 /**
  * JDBC 응답은 Mock으로 구성하고 CSV 파일은 실제 임시 폴더에 저장한다.
@@ -176,7 +184,7 @@ class MySqlQueryExecutionServiceTest {
     @Test
     void zeroLimitsAllowExecutionAndFileCreation() throws Exception {
         service = new MySqlQueryExecutionService(
-                dataSource, resultDirectory.toString(), 0, 0);
+                dataSource, resultDirectory.toString(), 0, 0, new ResultFileStorageService(resultDirectory.toString()));
 
         prepareResult("name");
         when(resultSet.next()).thenReturn(true, false);
@@ -197,12 +205,30 @@ class MySqlQueryExecutionServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new MySqlQueryExecutionService(
-                        dataSource, resultDirectory.toString(), -1, 0));
+                        dataSource, resultDirectory.toString(), -1, 0, new ResultFileStorageService(resultDirectory.toString())));
 
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new MySqlQueryExecutionService(
-                        dataSource, resultDirectory.toString(), 0, -1));
+                        dataSource, resultDirectory.toString(), 0, -1, new ResultFileStorageService(resultDirectory.toString())));
+    }
+    
+    @Test
+    void deletesCompletedResultFile() throws Exception {
+        prepareResult("name");
+        when(resultSet.next()).thenReturn(false);
+
+        var result = service.execute(SQL);
+        Path file = resultDirectory.resolve(result.relativePath());
+
+        assertTrue(Files.exists(file));
+
+        service.deleteResultFile(result);
+
+        assertFalse(Files.exists(file));
+
+        // 중복 정리도 예외 없이 끝나야 한다.
+        assertDoesNotThrow(() -> service.deleteResultFile(result));
     }
 
     private MySqlQueryExecutionService createService(long maxFileBytes) {
@@ -210,7 +236,8 @@ class MySqlQueryExecutionServiceTest {
                 dataSource,
                 resultDirectory.toString(),
                 60,
-                maxFileBytes);
+                maxFileBytes,
+                new ResultFileStorageService(resultDirectory.toString()));
     }
 
     /** 해당 테스트에서 필요한 JDBC 응답만 설정해 불필요한 Mock 설정을 피한다. */
