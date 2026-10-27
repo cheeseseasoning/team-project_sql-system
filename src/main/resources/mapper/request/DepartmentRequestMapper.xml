@@ -105,4 +105,66 @@
         FETCH NEXT #{size} ROWS ONLY
     </select>
 
+    <select id="selectVisibleRequestDetail"
+	        resultType="com.sqlflow.request.dto.RequestDetailResponse">
+	    SELECT R.REQUEST_ID,
+	           R.REQUEST_NO,
+	           R.TITLE,
+	           R.PURPOSE,
+	           R.DETAIL_CONTENT,
+	           R.IS_URGENT,
+	           R.DESIRED_DATE,
+	           DRAFTER.USER_NAME AS DRAFTER_NAME,
+	           REQUEST_DEPT.DEPT_NAME,
+	           R.REQUEST_CLASS,
+	           R.REQUEST_STATUS,
+	           R.APPROVAL_STATUS,
+	           R.CREATED_AT,
+	           R.SUBMITTED_AT
+	    <include refid="requestFrom"/>
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND <include refid="visibilityConditions"/>
+	</select>
+	
+	<select id="selectVisibleRequestItems"
+	        resultType="com.sqlflow.request.dto.RequestItemResponse">
+	    SELECT I.QUERY_ID,
+	           I.QUERY_ORDER,
+	           I.QUERY_TITLE,
+	           I.SQL_TEXT,
+	           I.AUTHORING_TYPE,
+	           I.VALIDATION_STATUS,
+	           I.ITEM_CLASS
+	    <include refid="requestFrom"/>
+	    JOIN QUERY_ITEM I
+	      ON I.REQUEST_ID = R.REQUEST_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND <include refid="visibilityConditions"/>
+	    ORDER BY I.QUERY_ORDER, I.QUERY_ID
+	</select>
+	
+	<select id="selectVisibleRequestApprovals"
+	        resultType="com.sqlflow.request.dto.RequestApprovalResponse">
+	    SELECT A.APPROVAL_ID,
+	           A.APPROVAL_ORDER,
+	           A.APPROVAL_TYPE,
+	           A.STATUS,
+	           A.APPROVER_ID,
+	           APPROVER.USER_NAME AS APPROVER_NAME,
+	           APPROVER_DEPT.DEPT_NAME,
+	           P.POSITION_NAME
+	    <include refid="requestFrom"/>
+	    JOIN APPROVAL A
+	      ON A.REQUEST_ID = R.REQUEST_ID
+	    LEFT JOIN USERS APPROVER
+	      ON APPROVER.USER_ID = A.APPROVER_ID
+	    LEFT JOIN DEPARTMENT APPROVER_DEPT
+	      ON APPROVER_DEPT.DEPT_ID = APPROVER.DEPT_ID
+	    LEFT JOIN POSITION P
+	      ON P.POSITION_ID = APPROVER.POSITION_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND <include refid="visibilityConditions"/>
+	    ORDER BY A.APPROVAL_ORDER, A.APPROVAL_ID
+	</select>
+	
 </mapper>

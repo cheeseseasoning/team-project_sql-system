@@ -1,7 +1,13 @@
 package com.sqlflow;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -18,6 +24,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.request.dto.DepartmentRequestListResponse;
+import com.sqlflow.request.dto.RequestApprovalResponse;
+import com.sqlflow.request.dto.RequestDetailResponse;
+import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.mapper.DepartmentRequestMapper;
 import com.sqlflow.request.service.DepartmentRequestService;
 
@@ -92,6 +101,65 @@ class DepartmentRequestServiceTest {
                         1L, keyword, status, page, size));
 
         assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
+        verifyNoInteractions(mapper);
+    }
+    
+    @Test
+    void detailContainsItemsAndApprovals() {
+        var detail = new RequestDetailResponse();
+        detail.setRequestId(100L);
+
+        var item = new RequestItemResponse();
+        item.setSqlText("SELECT 1 FROM DUAL");
+
+        var approval = new RequestApprovalResponse();
+        approval.setApprovalOrder(1);
+
+        when(mapper.selectVisibleRequestDetail(100L, 1L))
+                .thenReturn(detail);
+
+        when(mapper.selectVisibleRequestItems(100L, 1L))
+                .thenReturn(List.of(item));
+
+        when(mapper.selectVisibleRequestApprovals(100L, 1L))
+                .thenReturn(List.of(approval));
+
+        var response = service.getRequestDetail(100L, 1L);
+
+        assertSame(detail, response);
+        assertSame(item, response.getItems().get(0));
+        assertSame(approval, response.getApprovals().get(0));
+    }
+
+    @Test
+    void inaccessibleDetailDoesNotLoadItemsOrApprovals() {
+        var error = assertThrows(
+                ResponseStatusException.class,
+                () -> service.getRequestDetail(100L, 1L));
+
+        assertEquals(HttpStatus.NOT_FOUND, error.getStatusCode());
+
+        verify(mapper).selectVisibleRequestDetail(100L, 1L);
+        verifyNoMoreInteractions(mapper);
+    }
+
+    @Test
+    void invalidDetailRequestIdIsRejectedBeforeQuery() {
+        var error = assertThrows(
+                ResponseStatusException.class,
+                () -> service.getRequestDetail(0L, 1L));
+
+        assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
+        verifyNoInteractions(mapper);
+    }
+
+    @Test
+    void detailRequiresAuthenticatedActor() {
+        var error = assertThrows(
+                ResponseStatusException.class,
+                () -> service.getRequestDetail(100L, null));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, error.getStatusCode());
         verifyNoInteractions(mapper);
     }
 

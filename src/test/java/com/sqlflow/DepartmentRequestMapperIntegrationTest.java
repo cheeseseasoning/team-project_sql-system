@@ -46,6 +46,9 @@ class DepartmentRequestMapperIntegrationTest {
 
     private Long businessSubmittedId;
     private Long dbSubmittedId;
+    private Long businessDraftId;
+    private Long dbDraftId;
+    
 
     @BeforeEach
     void setUp() {
@@ -81,13 +84,13 @@ class DepartmentRequestMapperIntegrationTest {
         businessSubmittedId = createRequest(
                 businessDrafterId, businessDeptId, "업무부서 기안", true);
 
-        createRequest(
+        businessDraftId = createRequest(
                 businessDrafterId, businessDeptId, "업무부서 초안", false);
 
         dbSubmittedId = createRequest(
                 dbDrafterId, dbDeptId, "DB부서 기안", true);
 
-        createRequest(
+        dbDraftId = createRequest(
                 dbDrafterId, dbDeptId, "DB부서 초안", false);
     }
 
@@ -189,6 +192,72 @@ class DepartmentRequestMapperIntegrationTest {
                         first.get(0).getRequestId(),
                         second.get(0).getRequestId()));
     }
+    
+    @Test
+    void memberCanReadDepartmentDetailButNotAnotherDepartment() {
+        assertDetailVisible(businessSubmittedId, businessMemberId);
+        assertDetailHidden(dbSubmittedId, businessMemberId);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DB_APPROVER", "DB_ADMIN"})
+    void authorizedDbMemberCanReadDetailsAcrossDepartments(String roleCode) {
+        grantRole(dbMemberId, roleCode);
+
+        assertDetailVisible(businessSubmittedId, dbMemberId);
+        assertDetailVisible(dbSubmittedId, dbMemberId);
+
+        assertDetailHidden(businessDraftId, dbMemberId);
+        assertDetailHidden(dbDraftId, dbMemberId);
+    }
+
+    @Test
+    void departmentDetailDoesNotExposeAuthorsOwnDraft() {
+        assertDetailHidden(businessDraftId, businessDrafterId);
+    }
+
+    @Test
+    void dbMemberWithoutRoleCannotReadAnotherDepartmentsDetail() {
+        assertDetailHidden(businessSubmittedId, dbMemberId);
+    }
+
+    @Test
+    void disabledUserCannotReadDetailItemsOrApprovals() {
+        jdbc.update(
+                "UPDATE USERS SET ENABLED = 'N' WHERE USER_ID = ?",
+                businessMemberId);
+
+        assertDetailHidden(businessSubmittedId, businessMemberId);
+    }
+
+    private void assertDetailVisible(Long requestId, Long actorId) {
+        var detail = mapper.selectVisibleRequestDetail(requestId, actorId);
+
+        assertNotNull(detail);
+        assertEquals(requestId, detail.getRequestId());
+        assertNotNull(detail.getDrafterName());
+
+        var items = mapper.selectVisibleRequestItems(requestId, actorId);
+
+        assertEquals(1, items.size());
+        assertEquals("SELECT 1 FROM DUAL", items.get(0).getSqlText());
+
+        var approvals = mapper.selectVisibleRequestApprovals(
+                requestId, actorId);
+
+        assertEquals(1, approvals.size());
+        assertNotNull(approvals.get(0).getApproverName());
+    }
+
+    private void assertDetailHidden(Long requestId, Long actorId) {
+        assertNull(mapper.selectVisibleRequestDetail(requestId, actorId));
+
+        assertTrue(mapper.selectVisibleRequestItems(
+                requestId, actorId).isEmpty());
+
+        assertTrue(mapper.selectVisibleRequestApprovals(
+                requestId, actorId).isEmpty());
+    }
 
     private void assertVisible(Long actorId, Set<Long> expectedIds) {
         assertEquals(
@@ -261,6 +330,39 @@ class DepartmentRequestMapperIntegrationTest {
                 "부서 기안함 조회 권한 테스트",
                 submitted ? "READY" : "DRAFT",
                 submitted ? 1 : 0);
+
+        jdbc.update("""
+                INSERT INTO QUERY_ITEM (
+                    QUERY_ID,
+                    REQUEST_ID,
+                    QUERY_ORDER,
+                    QUERY_TITLE,
+                    SQL_TEXT,
+                    AUTHORING_TYPE
+                ) VALUES (
+                    SEQ_QUERY_ITEM.NEXTVAL, ?, 1, ?, ?, 'MANUAL'
+                )
+                """,
+                requestId,
+                "상세 권한 테스트 SQL",
+                "SELECT 1 FROM DUAL");
+
+        jdbc.update("""
+                INSERT INTO APPROVAL (
+                    APPROVAL_ID,
+                    REQUEST_ID,
+                    APPROVER_ID,
+                    APPROVAL_ORDER,
+                    APPROVAL_TYPE,
+                    STATUS,
+                    CREATED_AT
+                ) VALUES (
+                    SEQ_APPROVAL.NEXTVAL, ?, ?, 1,
+                    'DIRECTOR', 'PENDING', SYSTIMESTAMP
+                )
+                """,
+                requestId,
+                drafterId);
 
         return requestId;
     }

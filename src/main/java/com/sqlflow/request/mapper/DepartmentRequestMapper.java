@@ -6,6 +6,9 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import com.sqlflow.request.dto.DepartmentRequestListResponse;
+import com.sqlflow.request.dto.RequestApprovalResponse;
+import com.sqlflow.request.dto.RequestDetailResponse;
+import com.sqlflow.request.dto.RequestItemResponse;
 
 @Mapper
 public interface DepartmentRequestMapper {
@@ -21,4 +24,16 @@ public interface DepartmentRequestMapper {
             @Param("status") String status,
             @Param("offset") long offset,
             @Param("size") int size);
+    
+    RequestDetailResponse selectVisibleRequestDetail(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId);
+
+    List<RequestItemResponse> selectVisibleRequestItems(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId);
+
+    List<RequestApprovalResponse> selectVisibleRequestApprovals(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId);
 }

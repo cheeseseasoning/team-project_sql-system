@@ -45,14 +45,11 @@ public class RequestController {
 	private final RequestService requestService;
 	private final ApprovalService approvalService;
 	private final DepartmentRequestService departmentRequestService;
-
-	@PostMapping("/drafts")
-	public ResponseEntity<DraftCreateResponse> createDraft(
-			@Valid @RequestBody RequestDraftCreateRequest input,
+	
+	@GetMapping("/dashboard")
+	public RequestDashboardResponse getMyDashboard(
 			@AuthenticationPrincipal SqlFlowUserDetails user) {
-		Long requestId = requestService.createDraft(input, user.getUserId(), user.getDeptId());
-		return ResponseEntity.created(URI.create("/api/requests/mine/" + requestId))
-				.body(new DraftCreateResponse(requestId));
+		return requestService.getMyDashboard(user.getUserId());
 	}
 
 	public record DraftCreateResponse(Long requestId) {
@@ -76,6 +73,13 @@ public class RequestController {
 		return requestService.getMyRequestsPage(user.getUserId(), keyword, status, page, size);
 	}
 
+	@GetMapping("/mine/{requestId}")
+	public RequestDetailResponse getMyRequestDetail(
+			@PathVariable Long requestId,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		return requestService.getMyRequestDetail(requestId, user.getUserId());
+	}
+	
 	@GetMapping("/department/page")
 	public DepartmentRequestPageResponse getDepartmentRequestsPage(
 	        @RequestParam(name = "keyword", defaultValue = "") String keyword,
@@ -91,20 +95,26 @@ public class RequestController {
 	            page,
 	            size);
 	}
+	
+	@GetMapping("/department/{requestId}")
+	public RequestDetailResponse getDepartmentRequestDetail(
+	        @PathVariable("requestId") Long requestId,
+	        @AuthenticationPrincipal SqlFlowUserDetails user) {
 
-	@GetMapping("/dashboard")
-	public RequestDashboardResponse getMyDashboard(
-			@AuthenticationPrincipal SqlFlowUserDetails user) {
-		return requestService.getMyDashboard(user.getUserId());
+	    return departmentRequestService.getRequestDetail(
+	            requestId,
+	            user == null ? null : user.getUserId());
 	}
-
-	@GetMapping("/mine/{requestId}")
-	public RequestDetailResponse getMyRequestDetail(
-			@PathVariable Long requestId,
+	
+	@PostMapping("/drafts")
+	public ResponseEntity<DraftCreateResponse> createDraft(
+			@Valid @RequestBody RequestDraftCreateRequest input,
 			@AuthenticationPrincipal SqlFlowUserDetails user) {
-		return requestService.getMyRequestDetail(requestId, user.getUserId());
+		Long requestId = requestService.createDraft(input, user.getUserId(), user.getDeptId());
+		return ResponseEntity.created(URI.create("/api/requests/mine/" + requestId))
+				.body(new DraftCreateResponse(requestId));
 	}
-
+	
 	@PutMapping("/drafts/{requestId}")
 	public ResponseEntity<Void> updateDraft(
 			@PathVariable Long requestId,

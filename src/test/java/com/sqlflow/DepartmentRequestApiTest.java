@@ -17,16 +17,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.approval.service.ApprovalService;
 import com.sqlflow.auth.security.SecurityConfig;
 import com.sqlflow.request.controller.RequestController;
 import com.sqlflow.request.dto.DepartmentRequestPageResponse;
+import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.service.DepartmentRequestService;
 import com.sqlflow.request.service.RequestService;
 
@@ -119,5 +122,46 @@ class DepartmentRequestApiTest {
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(departmentRequestService);
+    }
+    
+    @Test
+    void anonymousDetailRequestIsRejected() throws Exception {
+        mockMvc.perform(get("/api/requests/department/100"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(departmentRequestService);
+    }
+
+    @Test
+    void detailUsesAuthenticatedActorId() throws Exception {
+        var detail = new RequestDetailResponse();
+        detail.setRequestId(100L);
+        detail.setTitle("부서 공유 기안");
+
+        when(departmentRequestService.getRequestDetail(100L, 1L))
+                .thenReturn(detail);
+
+        mockMvc.perform(get("/api/requests/department/100")
+                        .with(authenticatedUser())
+                        .param("actorId", "999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestId").value(100))
+                .andExpect(jsonPath("$.title").value("부서 공유 기안"));
+
+        verify(departmentRequestService).getRequestDetail(100L, 1L);
+    }
+
+    @Test
+    void inaccessibleDetailReturnsNotFound() throws Exception {
+        when(departmentRequestService.getRequestDetail(100L, 1L))
+                .thenThrow(new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "조회 요청을 찾을 수 없습니다."));
+
+        mockMvc.perform(get("/api/requests/department/100")
+                        .with(authenticatedUser()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message")
+                        .value("조회 요청을 찾을 수 없습니다."));
     }
 }

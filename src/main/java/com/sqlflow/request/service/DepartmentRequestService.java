@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.request.dto.DepartmentRequestPageResponse;
+import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.mapper.DepartmentRequestMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -72,5 +73,49 @@ public class DepartmentRequestService {
                 size,
                 totalCount,
                 totalPages);
+    }
+    
+    @Transactional(
+            transactionManager = "managementTransactionManager",
+            readOnly = true)
+    public RequestDetailResponse getRequestDetail(
+            Long requestId,
+            Long actorId) {
+
+        if (actorId == null || actorId <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "로그인이 필요합니다.");
+        }
+
+        if (requestId == null || requestId <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "올바른 요청 ID가 필요합니다.");
+        }
+
+        RequestDetailResponse detail =
+                departmentRequestMapper.selectVisibleRequestDetail(
+                        requestId,
+                        actorId);
+
+        // 존재하지 않는 경우와 열람 권한이 없는 경우를 구분해 노출하지 않는다.
+        if (detail == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "조회 요청을 찾을 수 없습니다.");
+        }
+
+        detail.setItems(
+                departmentRequestMapper.selectVisibleRequestItems(
+                        requestId,
+                        actorId));
+
+        detail.setApprovals(
+                departmentRequestMapper.selectVisibleRequestApprovals(
+                        requestId,
+                        actorId));
+
+        return detail;
     }
 }
