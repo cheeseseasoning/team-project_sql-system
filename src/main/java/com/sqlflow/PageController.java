@@ -139,6 +139,12 @@ public class PageController {
 	public String notices(Model model) {
 		return view(model, "notices", "공지사항");
 	}
+	
+	/** 뷰 상세 화면을 연다. 실제 데이터는 상세 API에서 조회한다. */
+	@GetMapping("/views/detail")
+	public String viewDetail(Model model) {
+	    return view(model, "view-detail", "뷰 상세");
+	}
 
 	private String view(Model model, String page, String title) {
 		model.addAttribute("page", page);
@@ -146,7 +152,7 @@ public class PageController {
 		model.addAttribute("activeMenu",
 		        page.equals("home") ? "home"
 		                : page.equals("notices") ? "notices"
-		                : page.equals("views") ? "views"		
+		                : page.equals("views") || page.equals("view-detail") ? "views"		
 		                : page.equals("admin-user-form") ? "admin-users"
 		                : page.startsWith("execution-queue") ? "execution-queue"
 		                : page.startsWith("execution-result") ? "execution-results"

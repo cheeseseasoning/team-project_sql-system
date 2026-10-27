@@ -2,12 +2,15 @@ package com.sqlflow.view.controller;
 
 import java.util.List;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.sqlflow.access.dto.ViewDepartmentInfoDTO;
+import com.sqlflow.auth.security.SqlFlowUserDetails;
+import com.sqlflow.view.dto.ViewDetailResponseDTO;
 import com.sqlflow.view.dto.ViewSummaryResponseDTO;
 import com.sqlflow.view.service.ViewQueryService;
 
@@ -37,5 +40,16 @@ public class ViewQueryController {
     @GetMapping("/departments")
     public List<ViewDepartmentInfoDTO> getDepartments() {
         return viewQueryService.getDepartments();
+    }
+    
+    /** 실제 뷰의 등록 정보·부서 정책·컬럼·CREATE문을 반환한다. */
+    /** 로그인 사용자의 현재 소속에 맞는 정책 범위로 상세를 반환한다. */
+    @GetMapping("/detail")
+    public ViewDetailResponseDTO getViewDetail(
+            @RequestParam(name = "schemaName") String schemaName,
+            @RequestParam(name = "objectName") String objectName,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+        return viewQueryService.getViewDetail(schemaName, objectName, user == null ? null : user.getUserId());
     }
 }
