@@ -5,14 +5,68 @@
 
 <mapper namespace="com.sqlflow.mysql.mapper.MySqlViewMapper">
 
-    <!-- 접속한 업무 DB의 뷰만 조회한다. -->
-	<select id="selectViews"
-	        resultType="com.sqlflow.mysql.dto.MySqlViewSummaryDTO">
-	    SELECT TABLE_SCHEMA AS schema_name,
-	           TABLE_NAME AS object_name
-	    FROM information_schema.VIEWS
-	    WHERE TABLE_SCHEMA = DATABASE()
-	    ORDER BY TABLE_NAME
-	</select>
+    <!-- 접속한 업무 DB의 실제 뷰만 조회한다. -->
+    <select id="selectViews"
+            resultType="com.sqlflow.mysql.dto.MySqlViewSummaryDTO">
+        SELECT TABLE_SCHEMA AS schema_name,
+               TABLE_NAME AS object_name
+        FROM information_schema.VIEWS
+        WHERE TABLE_SCHEMA = DATABASE()
+        ORDER BY TABLE_NAME
+    </select>
+
+    <!--
+        입력한 스키마가 현재 업무 DB와 일치하고,
+        해당 객체가 실제 뷰일 때만 존재하는 것으로 판단한다.
+    -->
+    <select id="countView" resultType="int">
+        SELECT COUNT(*)
+        FROM information_schema.VIEWS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_SCHEMA = #{schemaName}
+          AND TABLE_NAME = #{objectName}
+    </select>
+
+    <!--
+        VIEWS와 연결해 원본 테이블의 컬럼이 반환되지 않도록 한다.
+        COLUMN_TYPE은 decimal(12,2)처럼 길이·정밀도까지 포함한다.
+    -->
+    <select id="selectViewColumns"
+            resultType="com.sqlflow.mysql.dto.MySqlViewColumnDTO">
+        SELECT C.ORDINAL_POSITION,
+               C.COLUMN_NAME,
+               C.COLUMN_TYPE,
+               C.IS_NULLABLE,
+               C.COLUMN_COMMENT
+        FROM information_schema.COLUMNS C
+        JOIN information_schema.VIEWS V
+          ON V.TABLE_SCHEMA = C.TABLE_SCHEMA
+         AND V.TABLE_NAME = C.TABLE_NAME
+        WHERE C.TABLE_SCHEMA = DATABASE()
+          AND C.TABLE_SCHEMA = #{schemaName}
+          AND C.TABLE_NAME = #{objectName}
+        ORDER BY C.ORDINAL_POSITION
+    </select>
+    
+    <!-- SHOW CREATE VIEW의 결과 컬럼명에는 공백이 있어 직접 매핑한다. -->
+	<resultMap id="viewDefinitionMap"
+	           type="com.sqlflow.mysql.dto.MySqlViewDefinitionDTO">
+	    <result column="View" property="objectName"/>
+	    <result column="Create View" property="createStatement"/>
+	</resultMap>
 	
+	<!--
+	    SHOW CREATE VIEW는 객체 이름에 바인딩 변수(#{} 사용)를 쓸 수 없다.
+	    이름 내부의 백틱을 이중화한 뒤 백틱으로 감싸 식별자로 처리한다.
+	-->
+	<select id="selectViewDefinition"
+	        resultMap="viewDefinitionMap">
+	    <bind name="escapedSchema"
+	          value="schemaName.replace(&quot;`&quot;, &quot;``&quot;)"/>
+	    <bind name="escapedObject"
+	          value="objectName.replace(&quot;`&quot;, &quot;``&quot;)"/>
+	
+	    SHOW CREATE VIEW `${escapedSchema}`.`${escapedObject}`
+	</select>
+
 </mapper>

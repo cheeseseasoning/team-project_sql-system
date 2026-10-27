@@ -35,11 +35,16 @@
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/execution-queue.css">
     </c:if>
+    
     <c:if test="${page == 'views'}">
 	    <link rel="stylesheet"
 	          href="${pageContext.request.contextPath}/css/pages/views.css">
 	</c:if>
     
+    <c:if test="${page == 'view-detail'}">
+	    <link rel="stylesheet"
+	          href="${pageContext.request.contextPath}/css/pages/view-detail.css">
+	</c:if>
 
     <c:if test="${page == 'admin-user-form'}">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/admin-user.css">
