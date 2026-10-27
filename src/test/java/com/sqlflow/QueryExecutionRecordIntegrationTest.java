@@ -1,7 +1,14 @@
 package com.sqlflow;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.sqlflow.execution.mapper.QueryResultMapper;
 import com.sqlflow.execution.service.MySqlQueryExecutionService.ExecutionResult;
 import com.sqlflow.execution.service.QueryExecutionRecordService;
 
@@ -38,6 +46,9 @@ class QueryExecutionRecordIntegrationTest {
 
     @Autowired
     private QueryExecutionRecordService service;
+    
+    @Autowired
+    private QueryResultMapper queryResultMapper;
 
     private JdbcTemplate jdbc;
     private Long requestId;
@@ -239,5 +250,147 @@ class QueryExecutionRecordIntegrationTest {
         return jdbc.queryForObject(
                 "SELECT COUNT(*) FROM QUERY_RESULT WHERE EXECUTION_ID = ?",
                 Integer.class, executionId);
+    }
+    
+    private Long createCleanupTestResult() {
+        service.start(executionId);
+
+        service.complete(
+                executionId,
+                new ExecutionResult(
+                        "query-cleanup-" + executionId + ".csv",
+                        4L,
+                        512L,
+                        120L));
+
+        return jdbc.queryForObject("""
+                SELECT RESULT_ID
+                FROM QUERY_RESULT
+                WHERE EXECUTION_ID = ?
+                """, Long.class, executionId);
+    }
+
+    private String cleanupTestFilePath() {
+        return "query-cleanup-" + executionId + ".csv";
+    }
+
+    private void setExpiry(Long resultId, LocalDateTime expiresAt) {
+        jdbc.update("""
+                UPDATE QUERY_RESULT
+                SET CREATED_AT = ?,
+                    EXPIRES_AT = ?
+                WHERE RESULT_ID = ?
+                """,
+                Timestamp.valueOf(expiresAt.minusDays(30)),
+                Timestamp.valueOf(expiresAt),
+                resultId);
+    }
+
+    @Test
+    void selectsResultAtExpiryBoundaryAndMarksDeletedOnce() {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        assertNotNull(cutoff);
+        setExpiry(resultId, cutoff);
+
+        var targets = queryResultMapper.selectExpiredResults(
+                resultId - 1, cutoff, 1);
+
+        assertEquals(1, targets.size());
+        assertEquals(resultId, targets.get(0).getResultId());
+        assertEquals(cleanupTestFilePath(), targets.get(0).getFilePath());
+
+        assertEquals(
+                1,
+                queryResultMapper.markExpiredResultDeleted(
+                        resultId, cleanupTestFilePath(), cutoff));
+
+        Timestamp deletedAt = jdbc.queryForObject("""
+                SELECT DELETED_AT
+                FROM QUERY_RESULT
+                WHERE RESULT_ID = ?
+                """, Timestamp.class, resultId);
+
+        assertNotNull(deletedAt);
+
+        assertEquals(
+                0,
+                queryResultMapper.markExpiredResultDeleted(
+                        resultId, cleanupTestFilePath(), cutoff));
+
+        assertEquals(
+                deletedAt,
+                jdbc.queryForObject("""
+                        SELECT DELETED_AT
+                        FROM QUERY_RESULT
+                        WHERE RESULT_ID = ?
+                        """, Timestamp.class, resultId));
+
+        assertEquals("SUCCESS", executionStatus());
+        assertEquals(1, resultCount());
+    }
+
+    @Test
+    void doesNotSelectOrMarkUnexpiredResult() {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        setExpiry(resultId, cutoff.plusDays(1));
+
+        var targets = queryResultMapper.selectExpiredResults(
+                resultId - 1, cutoff, 1);
+
+        assertTrue(targets.stream()
+                .noneMatch(item -> resultId.equals(item.getResultId())));
+
+        assertEquals(
+                0,
+                queryResultMapper.markExpiredResultDeleted(
+                        resultId, cleanupTestFilePath(), cutoff));
+    }
+
+    @Test
+    void excludesAlreadyDeletedResult() {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        setExpiry(resultId, cutoff.minusDays(1));
+
+        assertEquals(
+                1,
+                queryResultMapper.markExpiredResultDeleted(
+                        resultId, cleanupTestFilePath(), cutoff));
+
+        var targets = queryResultMapper.selectExpiredResults(
+                resultId - 1, cutoff, 1);
+
+        assertTrue(targets.stream()
+                .noneMatch(item -> resultId.equals(item.getResultId())));
+    }
+
+    @Test
+    void requiresMatchingPathAndAdvancesByResultId() {
+        Long resultId = createCleanupTestResult();
+        LocalDateTime cutoff = queryResultMapper.selectCleanupCutoff();
+
+        setExpiry(resultId, cutoff.minusDays(1));
+
+        assertEquals(
+                0,
+                queryResultMapper.markExpiredResultDeleted(
+                        resultId, "different.csv", cutoff));
+
+        var targets = queryResultMapper.selectExpiredResults(
+                resultId - 1, cutoff, 1);
+
+        assertEquals(1, targets.size());
+        assertEquals(resultId, targets.get(0).getResultId());
+
+        var nextTargets = queryResultMapper.selectExpiredResults(
+                resultId, cutoff, 1);
+
+        assertTrue(nextTargets.stream()
+                .allMatch(item -> item.getResultId() > resultId));
     }
 }

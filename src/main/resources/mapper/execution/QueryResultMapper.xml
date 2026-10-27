@@ -30,9 +30,51 @@
             #{filePath},
             #{rowCount},
             #{fileSize},
-            SYSTIMESTAMP,
-            SYSTIMESTAMP + INTERVAL '30' DAY
+			<include refid="seoulNow"/>,
+			<include refid="seoulNow"/> + INTERVAL '30' DAY
         )
     </insert>
+    
+    <!-- 시간대 없는 TIMESTAMP 컬럼에 맞춰 한국 현지 시각을 명시한다. -->
+	<sql id="seoulNow">
+	    CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP)
+	</sql>
+	
+	<!-- 한 번의 정리 실행에서 사용할 만료 기준 시각. -->
+	<select id="selectCleanupCutoff"
+	        resultType="java.time.LocalDateTime">
+	    SELECT <include refid="seoulNow"/>
+	    FROM DUAL
+	</select>
+	
+	<!--
+	    최신 실행 여부와 관계없이 전체 결과에서 만료 파일을 찾는다.
+	    OFFSET 대신 마지막 결과 ID 이후를 조회한다.
+	-->
+	<select id="selectExpiredResults"
+	        resultType="com.sqlflow.execution.domain.ExpiredResultFile">
+	    SELECT RESULT_ID,
+	           FILE_PATH
+	    FROM QUERY_RESULT
+	    WHERE RESULT_ID &gt; #{afterResultId}
+	      AND EXPIRES_AT &lt;= #{cutoff, jdbcType=TIMESTAMP}
+	      AND DELETED_AT IS NULL
+	    ORDER BY RESULT_ID
+	    FETCH NEXT #{limit} ROWS ONLY
+	</select>
+	
+	<!--
+	    실제 파일 삭제 또는 이미 없음 확인 후에만 호출한다.
+	    만료 상태, 경로, 기존 삭제 여부를 다시 확인한다.
+	-->
+	<update id="markExpiredResultDeleted">
+	    UPDATE QUERY_RESULT
+	    SET DELETED_AT = <include refid="seoulNow"/>
+	    WHERE RESULT_ID = #{resultId}
+	      AND FILE_PATH = #{filePath}
+	      AND EXPIRES_AT &lt;= #{cutoff, jdbcType=TIMESTAMP}
+	      AND EXPIRES_AT &lt;= <include refid="seoulNow"/>
+	      AND DELETED_AT IS NULL
+	</update>
 
 </mapper>
