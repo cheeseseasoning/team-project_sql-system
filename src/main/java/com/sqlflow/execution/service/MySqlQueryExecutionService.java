@@ -32,22 +32,27 @@ public class MySqlQueryExecutionService {
     private final Path resultDirectory;
     private final int queryTimeoutSeconds;
     private final long maxFileBytes;
+    private final ResultFileStorageService resultFileStorageService;
 
     public MySqlQueryExecutionService(
             @Qualifier("queryDataSource") DataSource queryDataSource,
             @Value("${sqlflow.result.storage-root}") String resultDirectory,
             @Value("${app.execution.query-timeout-seconds}") int queryTimeoutSeconds,
-            @Value("${app.execution.max-file-bytes}") long maxFileBytes) {
+            @Value("${app.execution.max-file-bytes}") long maxFileBytes,
+            ResultFileStorageService resultFileStorageService) {
 
-        // 0은 제한 없음, 양수는 제한 적용을 의미한다.
         if (queryTimeoutSeconds < 0 || maxFileBytes < 0) {
-            throw new IllegalArgumentException("실행 제한 시간과 파일 크기는 0 이상이어야 합니다.");
+            throw new IllegalArgumentException(
+                    "실행 제한 시간과 파일 크기는 0 이상이어야 합니다.");
         }
 
         this.queryDataSource = queryDataSource;
-        this.resultDirectory = Path.of(resultDirectory).toAbsolutePath().normalize();
+        this.resultDirectory = Path.of(resultDirectory)
+                .toAbsolutePath()
+                .normalize();
         this.queryTimeoutSeconds = queryTimeoutSeconds;
         this.maxFileBytes = maxFileBytes;
+        this.resultFileStorageService = resultFileStorageService;
     }
 
     /**
@@ -183,57 +188,28 @@ public class MySqlQueryExecutionService {
     }
     
     /**
-     * 결과 메타데이터 저장이 확실히 실패한 경우 생성 완료된 파일을 삭제한다.
-     * 저장소 밖의 파일은 삭제하지 않는다.
-     */
-    public void deleteResult(String relativePath) throws IOException {
-
-        if (relativePath == null || relativePath.isBlank()) {
-            throw new IllegalArgumentException("삭제할 결과 파일 경로가 필요합니다.");
-        }
-
-        Path relative = Path.of(relativePath);
-
-        if (relative.isAbsolute()) {
-            throw new IllegalArgumentException("결과 파일은 상대 경로로 지정해야 합니다.");
-        }
-
-        Path file = resultDirectory.resolve(relative).normalize();
-
-        if (!file.startsWith(resultDirectory) || file.equals(resultDirectory)) {
-            throw new IllegalArgumentException("결과 저장소 밖의 파일은 삭제할 수 없습니다.");
-        }
-
-        Files.deleteIfExists(file);
-    }
-    
-    /**
-     * 결과 정보 저장이 명확하게 실패했을 때 생성된 CSV를 삭제한다.
-     * 이 서비스의 결과 저장소 내부 파일만 삭제할 수 있다.
+     * 결과 정보 저장이 확실히 실패했을 때 생성된 CSV를 정리한다.
      */
     public void deleteResultFile(ExecutionResult result) throws IOException {
-
-        Path relativePath = Path.of(result.relativePath());
-
-        if (relativePath.isAbsolute()) {
-            throw new IllegalArgumentException("결과 파일은 상대 경로여야 합니다.");
-        }
-
-        Path file = resultDirectory.resolve(relativePath).normalize();
-
-        if (file.equals(resultDirectory) || !file.startsWith(resultDirectory)) {
-            throw new IllegalArgumentException(
-                    "결과 저장소 외부 파일은 삭제할 수 없습니다.");
-        }
-
-        Files.deleteIfExists(file);
+        resultFileStorageService.deleteIfExists(result.relativePath());
     }
 
-    /** 파일 정리 실패가 원래 SQL·저장 오류를 덮어쓰지 않도록 한다. */
-    private void deleteIncompleteFile(Path resultFile, Exception originalException) {
+    /**
+     * 생성 도중 실패한 CSV를 정리한다.
+     * 정리 오류가 최초 SQL·파일 오류를 덮어쓰지 않도록 보존한다.
+     */
+    private void deleteIncompleteFile(
+            Path resultFile,
+            Exception originalException) {
+
         try {
-            Files.deleteIfExists(resultFile);
-        } catch (IOException cleanupException) {
+            String relativePath = resultDirectory.relativize(resultFile)
+                    .toString()
+                    .replace('\\', '/');
+
+            resultFileStorageService.deleteIfExists(relativePath);
+
+        } catch (IOException | RuntimeException cleanupException) {
             originalException.addSuppressed(cleanupException);
         }
     }
