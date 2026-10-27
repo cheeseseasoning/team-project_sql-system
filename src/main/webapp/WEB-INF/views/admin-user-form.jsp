@@ -7,7 +7,7 @@
 </div>
 <p class="account-intro">계정 신청 내용을 확인하고 사용자 정보와 업무 역할을 설정하세요.</p>
 <div class="account-notice" role="note">
-    계정을 생성하면 선택한 역할이 즉시 적용됩니다.
+    선택한 역할은 계정 생성 즉시 적용됩니다. 역할을 선택하지 않으면 일반 사용자 계정으로 생성됩니다.
 </div>
 
 <form id="account-form" class="panel form-panel">
@@ -101,7 +101,7 @@
 
     <fieldset class="account-roles">
         <legend>업무 역할</legend>
-        <p class="caption">담당 업무에 필요한 역할을 선택하세요. 여러 역할을 함께 부여할 수 있습니다.</p>
+        <p class="caption">선택 사항 · 담당 업무에 필요한 역할을 선택하세요. 여러 역할을 함께 부여할 수 있습니다.</p>
 
         <div class="account-role-grid">
             <label class="account-role">
@@ -142,7 +142,7 @@
         </div>
 
         <p id="account-role-summary" class="caption" aria-live="polite">
-            선택한 역할이 없습니다.
+            선택한 역할이 없습니다. 일반 사용자 계정으로 생성됩니다.
         </p>
         <p class="caption">
             부서·직급과 업무 역할은 별개입니다. 부서장 결재는 소속 부서와 직급을 기준으로 판단합니다.
@@ -150,7 +150,7 @@
     </fieldset>
 
     <div class="form-footer">
-        <span class="caption">계정 정보와 역할을 확인한 뒤 생성하세요.</span>
+        <span class="caption">계정 정보를 확인한 뒤 생성하세요. 업무 역할은 선택 사항입니다.</span>
         <div>
             <button type="reset" class="button">입력 초기화</button>
             <button type="submit" class="button primary">계정 생성</button>
@@ -178,7 +178,7 @@
                                 .querySelector('strong')
                                 .textContent
                         ).join(', ')
-                    : '선택한 역할이 없습니다.';
+                    : '선택한 역할이 없습니다. 일반 사용자 계정으로 생성됩니다.';
         }
 
         async function loadOptions() {
@@ -247,10 +247,6 @@
             }
 
             const selectedRoles = roles().map(input => input.value);
-            if (selectedRoles.length === 0) {
-                notify('하나 이상의 업무 역할을 선택하세요.', true);
-                return;
-            }
 
             const submitButton =
                 form.querySelector('button[type="submit"]');
