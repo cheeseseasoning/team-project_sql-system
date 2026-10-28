@@ -33,6 +33,13 @@
 						</button>
 					</span>
 
+					<button id="request-withdraw"
+					        type="button"
+					        class="button"
+					        hidden>
+					    기안서 회수
+					</button>
+					
 					<button id="request-redraft" type="button" class="button primary" hidden>
 						재기안
 					</button>

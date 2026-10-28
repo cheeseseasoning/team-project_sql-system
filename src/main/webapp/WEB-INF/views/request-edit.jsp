@@ -3,13 +3,14 @@
 
 <div id="edit-config"
      data-request-id="<c:out value='${requestId}'/>"
+     data-redraft="${redraftMode eq true}"
      hidden>
 </div>
 
 <div class="page-heading">
     <div>
         <span id="edit-request-number" class="caption"></span>
-        <h1>조회 요청 초안 수정</h1>
+        <h1><c:out value="${pageTitle}"/></h1>
     </div>
     <span class="badge">초안</span>
 </div>
@@ -18,7 +19,7 @@
 
 <form id="edit-form" class="panel form-panel">
     <fieldset id="edit-fields" disabled>
-        <legend>초안 수정</legend>
+        <legend>요청 내용</legend>
 
         <div class="form-grid">
             <label>
@@ -68,29 +69,58 @@
 
         <div id="edit-sql-items"></div>
 
-        <div class="form-footer">
-            <span class="caption">
-                빈 SQL 입력 칸은 저장 목록에서 제외됩니다.
-            </span>
+		<div class="form-footer">
+		    <span class="caption">
+		        빈 SQL 입력 칸은 저장 목록에서 제외됩니다.
+		    </span>
 
-            <button id="edit-save" type="submit" class="button primary">
-                수정 저장
-            </button>
-        </div>
+		    <div>
+		        <a id="edit-cancel" class="button">
+		            <c:choose>
+		                <c:when test="${redraftMode eq true}">
+		                    원본 상세로 돌아가기
+		                </c:when>
+		                <c:otherwise>
+		                    상세로 돌아가기
+		                </c:otherwise>
+		            </c:choose>
+		        </a>
+
+		        <button id="edit-save"
+		                type="submit"
+		                class="button primary">
+		            <c:choose>
+		                <c:when test="${redraftMode eq true}">
+		                    초안 저장
+		                </c:when>
+		                <c:otherwise>
+		                    수정 저장
+		                </c:otherwise>
+		            </c:choose>
+		        </button>
+		    </div>
+		</div>
     </fieldset>
 </form>
 
-<a id="edit-cancel" class="back-link">← 상세로 돌아가기</a>
-
 <script>
-    const editRequestId = $('#edit-config').dataset.requestId;
+	const editConfig = $('#edit-config');
+	const editRequestId = editConfig.dataset.requestId;
+	const isRedraft = editConfig.dataset.redraft === 'true';
 
-    const detailUrl =
-        BASE + '/requests/' + encodeURIComponent(editRequestId);
+	const detailUrl =
+	    BASE + '/requests/' + encodeURIComponent(editRequestId);
 
-    $('#edit-cancel').href = detailUrl;
+	$('#edit-cancel').href = detailUrl;
 
-    let editSqls = [];
+	let editSqls = [];
+	let saveInProgress = false;
+
+	$('#edit-cancel').addEventListener('click', function (event) {
+	    if (saveInProgress) {
+	        event.preventDefault();
+	    }
+	});
 
 	function readEditSqls() {
 	    editSqls = Array.from(
@@ -171,14 +201,23 @@
                 '/requests/mine/' + encodeURIComponent(editRequestId)
             );
 
-            if (request.requestStatus !== 'DRAFT') {
-                $('#edit-loading').textContent =
-                    '초안 상태의 요청만 수정할 수 있습니다.';
-                notify('초안 상태의 요청만 수정할 수 있습니다.', true);
-                return;
-            }
+			const editable = isRedraft
+			    ? ['REJECTED', 'WITHDRAWN'].includes(request.requestStatus)
+			    : request.requestStatus === 'DRAFT';
 
-            $('#edit-request-number').textContent = request.requestNo;
+			if (!editable) {
+			    const message = isRedraft
+			        ? '반려되거나 회수된 요청만 재기안할 수 있습니다.'
+			        : '초안 상태의 요청만 수정할 수 있습니다.';
+
+			    $('#edit-loading').textContent = message;
+			    notify(message, true);
+			    return;
+			}
+
+			$('#edit-request-number').textContent =
+				(isRedraft ? '원본 요청: ' : '') + request.requestNo;
+			
             $('#edit-title').value = request.title;
             $('#edit-purpose').value = request.purpose;
 			$('#edit-detail-content').value = request.detailContent || '';
@@ -201,56 +240,103 @@
         }
     }
 
-    $('#edit-form').addEventListener('submit', function (event) {
-        event.preventDefault();
+	$('#edit-form').addEventListener('submit', async function (event) {
+	    event.preventDefault();
 
-        busy($('#edit-save'), async function () {
-            const title = $('#edit-title').value.trim();
-            const purpose = $('#edit-purpose').value.trim();
+	    if (saveInProgress) {
+	        return;
+	    }
 
-            if (!title) {
-                throw Error('요청 제목을 입력하세요.');
-            }
+	    const title = $('#edit-title').value.trim();
+	    const purpose = $('#edit-purpose').value.trim();
 
-            if (!purpose) {
-                throw Error('조회 목적을 입력하세요.');
-            }
+	    if (!title) {
+	        notify('요청 제목을 입력하세요.', true);
+	        $('#edit-title').focus();
+	        return;
+	    }
 
-            readEditSqls();
+	    if (!purpose) {
+	        notify('조회 목적을 입력하세요.', true);
+	        $('#edit-purpose').focus();
+	        return;
+	    }
 
-			const savedItems = editSqls.filter(
-			    item => item.sqlText.trim().length > 0
-			);
+	    readEditSqls();
 
-			const payload = {
-			    title,
-			    purpose,
-			    detailContent: $('#edit-detail-content').value.trim() || null,
-			    isUrgent: $('#edit-is-urgent').checked ? 'Y' : 'N',
-			    desiredDate: $('#edit-desired-date').value || null,
-			    sqls: savedItems.map(item => item.sqlText),
-			    sqlTitles: savedItems.map(item => item.title.trim())
-			};
+	    const savedItems = editSqls.filter(
+	        item => item.sqlText.trim().length > 0
+	    );
 
-            // 저장 중에는 입력과 SQL 추가·삭제를 막음
-            $('#edit-fields').disabled = true;
+	    const payload = {
+	        title,
+	        purpose,
+	        detailContent: $('#edit-detail-content').value.trim() || null,
+	        isUrgent: $('#edit-is-urgent').checked ? 'Y' : 'N',
+	        desiredDate: $('#edit-desired-date').value || null,
+	        sqls: savedItems.map(item => item.sqlText),
+	        sqlTitles: savedItems.map(item => item.title.trim())
+	    };
 
-            try {
-                await api(
-                    '/requests/drafts/'
-                        + encodeURIComponent(editRequestId),
-                    {
-                        method: 'PUT',
-                        body: JSON.stringify(payload)
-                    }
-                );
+	    const saveButton = $('#edit-save');
+	    const originalText = saveButton.textContent;
 
-                location.href = detailUrl;
-            } finally {
-                $('#edit-fields').disabled = false;
-            }
-        });
-    });
+	    saveInProgress = true;
+	    $('#edit-fields').disabled = true;
+	    saveButton.textContent = '저장 중…';
+
+	    let navigating = false;
+
+	    try {
+	        let destination = detailUrl;
+
+	        if (isRedraft) {
+	            // 저장 버튼을 누른 시점에 새 초안을 생성한다.
+	            const result = await api(
+	                '/requests/'
+	                + encodeURIComponent(editRequestId)
+	                + '/redraft',
+	                {
+	                    method: 'POST',
+	                    body: JSON.stringify(payload)
+	                }
+	            );
+
+	            if (!result?.requestId) {
+	                throw Error(
+	                    '저장 결과의 요청 ID를 확인할 수 없습니다. '
+	                    + '내 요청 목록에서 생성 여부를 확인해 주세요.'
+	                );
+	            }
+
+	            destination =
+	                BASE + '/requests/'
+	                + encodeURIComponent(result.requestId);
+	        } else {
+	            // 기존 초안 수정은 동일한 요청에 저장한다.
+	            await api(
+	                '/requests/drafts/'
+	                + encodeURIComponent(editRequestId),
+	                {
+	                    method: 'PUT',
+	                    body: JSON.stringify(payload)
+	                }
+	            );
+	        }
+
+	        location.assign(destination);
+	        navigating = true;
+	    } catch (error) {
+	        notify(error.message, true);
+	    } finally {
+	        // 성공 후 이동 중에는 중복 저장을 막는다.
+	        if (!navigating) {
+	            saveInProgress = false;
+	            $('#edit-fields').disabled = false;
+	            saveButton.textContent = originalText;
+	        }
+	    }
+	});
 
     loadEditDraft();
 </script>

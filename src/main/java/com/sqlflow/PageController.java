@@ -78,9 +78,26 @@ public class PageController {
 	}
 
 	@GetMapping("/requests/{id}/edit")
-	public String editDraft(Model model, @PathVariable Long id) {
-		model.addAttribute("requestId", id);
-		return view(model, "request-edit", "조회 요청 초안 수정");
+	public String editDraft(
+	        Model model,
+	        @PathVariable("id") Long id) {
+
+	    model.addAttribute("requestId", id);
+	    model.addAttribute("redraftMode", false);
+
+	    return view(model, "request-edit", "조회 요청 초안 수정");
+	}
+
+	@GetMapping("/requests/{id}/redraft")
+	public String redraftForm(
+	        Model model,
+	        @PathVariable("id") Long id) {
+
+	    // 이 단계에서는 새 요청을 생성하지 않는다.
+	    model.addAttribute("requestId", id);
+	    model.addAttribute("redraftMode", true);
+
+	    return view(model, "request-edit", "조회 요청 재기안");
 	}
 	
 	@GetMapping("/department-requests")

@@ -471,7 +471,9 @@ public class RequestService {
 			item.setSqlText(sqls.get(index));
 			item.setAuthoringType("MANUAL");
 
-			requestMapper.insertItem(item);
+			if (requestMapper.insertItem(item) != 1) {
+			    throw new IllegalStateException("SQL 항목 저장에 실패했습니다.");
+			}
 		}
 	}
 	
@@ -481,13 +483,14 @@ public class RequestService {
 	            : value.strip();
 	}
 	
-	@Transactional
+	@Transactional(transactionManager = "managementTransactionManager")
 	public Long redraftRequest(
 	        Long sourceRequestId,
+	        RequestDraftCreateRequest input,
 	        Long actorId,
 	        Long deptId) {
 
-	    // 1. 본인 요청 확인 및 동시 처리 방지를 위한 잠금
+	    // 원본 작성자 확인 및 동시 처리 방지를 위한 잠금
 	    String status = requestMapper.selectMyRequestStatusForUpdate(
 	            sourceRequestId, actorId);
 
@@ -497,18 +500,13 @@ public class RequestService {
 	                "조회 요청을 찾을 수 없습니다.");
 	    }
 
-	    // 2. 반려된 요청만 재기안 가능
-	    if (!"REJECTED".equals(status)) {
+	    if (!"REJECTED".equals(status)
+	            && !"WITHDRAWN".equals(status)) {
 	        throw new ResponseStatusException(
 	                HttpStatus.CONFLICT,
-	                "반려된 요청만 재기안할 수 있습니다.");
+	                "반려되거나 회수된 요청만 재기안할 수 있습니다.");
 	    }
 
-	    // 3. 원본 요청과 SQL 조회
-	    RequestDetailResponse source =
-	            getMyRequestDetail(sourceRequestId, actorId);
-
-	    // 4. 새 요청 ID와 요청번호 발급
 	    Long newRequestId = requestMapper.selectNextRequestId();
 
 	    QueryRequest draft = new QueryRequest();
@@ -516,32 +514,78 @@ public class RequestService {
 	    draft.setRequestNo(createRequestNo(newRequestId));
 	    draft.setSourceRequestId(sourceRequestId);
 
-	    // 새 초안의 작성자·부서는 현재 로그인 사용자 기준
+	    // 작성자·부서는 요청 본문이 아닌 로그인 정보 사용
 	    draft.setDrafterId(actorId);
 	    draft.setDeptId(deptId);
 
-	    draft.setTitle(source.getTitle());
-	    draft.setPurpose(source.getPurpose());
-	    draft.setDetailContent(source.getDetailContent());
-	    draft.setIsUrgent(source.getIsUrgent());
-	    draft.setDesiredDate(source.getDesiredDate());
+	    // 원본이 아니라 사용자가 수정한 내용을 저장
+	    draft.setTitle(input.getTitle().strip());
+	    draft.setPurpose(input.getPurpose().strip());
+	    draft.setDetailContent(
+	            normalizeOptionalText(input.getDetailContent()));
+	    draft.setIsUrgent(input.getIsUrgent());
+	    draft.setDesiredDate(input.getDesiredDate());
 
-	    // 요청·결재 상태는 DB 기본값인 DRAFT / NOT_REQUIRED 사용
 	    if (requestMapper.insertRequest(draft) != 1) {
-	        throw new IllegalStateException("재기안 초안 생성에 실패했습니다.");
+	        throw new IllegalStateException(
+	                "재기안 초안 생성에 실패했습니다.");
 	    }
 
-	    // 5. SQL 내용과 제목만 복사하여 새로운 SQL 항목 생성
-	    List<String> sqls = source.getItems().stream()
-	            .map(RequestItemResponse::getSqlText)
-	            .toList();
+	    saveDraftItems(
+	            newRequestId,
+	            input.getSqls(),
+	            input.getSqlTitles());
 
-	    List<String> sqlTitles = source.getItems().stream()
-	            .map(RequestItemResponse::getQueryTitle)
-	            .toList();
-
-	    saveDraftItems(newRequestId, sqls, sqlTitles);
-
+	    // 결재선은 이 단계에서 만들지 않는다.
 	    return newRequestId;
+	}
+	
+	@Transactional(transactionManager = "managementTransactionManager")
+	public void withdrawRequest(Long requestId, Long actorId) {
+
+	    if (actorId == null || actorId <= 0) {
+	        throw new ResponseStatusException(
+	                HttpStatus.UNAUTHORIZED,
+	                "로그인이 필요합니다.");
+	    }
+
+	    if (requestId == null || requestId <= 0) {
+	        throw new ResponseStatusException(
+	                HttpStatus.BAD_REQUEST,
+	                "올바른 요청 ID가 필요합니다.");
+	    }
+
+	    // 승인·반려와 동일한 요청 행을 먼저 잠근다.
+	    // 작성자가 다른 요청은 조회되지 않는다.
+	    String status = requestMapper.selectMyRequestStatusForUpdate(
+	            requestId, actorId);
+
+	    if (status == null) {
+	        throw new ResponseStatusException(
+	                HttpStatus.NOT_FOUND,
+	                "요청을 찾을 수 없습니다.");
+	    }
+
+	    if (!"PENDING_APPROVAL".equals(status)) {
+	        throw new ResponseStatusException(
+	                HttpStatus.CONFLICT,
+	                "결재 대기 중인 요청만 회수할 수 있습니다.");
+	    }
+
+	    // 첫 승인이 이미 처리됐다면 갱신되지 않는다.
+	    if (requestMapper.withdrawRequest(requestId, actorId) != 1) {
+	        throw new ResponseStatusException(
+	                HttpStatus.CONFLICT,
+	                "첫 결재자가 승인하기 전까지만 회수할 수 있습니다. "
+	                        + "현재 계정과 결재 상태를 다시 확인하세요.");
+	    }
+
+	    // 실패하면 위 요청 상태 변경까지 함께 롤백된다.
+	    int cancelled = requestMapper.cancelApprovalsForWithdrawal(requestId);
+
+	    if (cancelled < 1) {
+	        throw new IllegalStateException(
+	                "회수할 결재선을 종료하지 못했습니다.");
+	    }
 	}
 }
