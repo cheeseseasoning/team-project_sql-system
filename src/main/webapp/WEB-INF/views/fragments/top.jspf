@@ -28,7 +28,9 @@
 	           or page == 'request-detail'
 	           or page == 'requests'
 	           or page == 'department-requests'
-	           or page == 'department-request-detail'}">
+	           or page == 'department-request-detail'
+	           or page == 'view-create-request-form'
+	           }">
 	    <link rel="stylesheet"
 	          href="${pageContext.request.contextPath}/css/pages/request.css">
 	</c:if>
@@ -108,6 +110,14 @@
 				    <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg"
 				         alt="">
 				    실행 결과
+				</a>
+				
+				<a class="nav-item ${activeMenu == 'view-create-requests' ? 'active' : ''}"
+				   href="${pageContext.request.contextPath}/view-create-requests/new"
+				   ${activeMenu == 'view-create-requests' ? 'aria-current="page"' : ''}>
+				    <img src="${pageContext.request.contextPath}/icons/FilePlus.svg"
+				         alt="">
+				    뷰 생성 요청
 				</a>
 				
 				<a class="nav-item ${activeMenu == 'views' ? 'active' : ''}"
