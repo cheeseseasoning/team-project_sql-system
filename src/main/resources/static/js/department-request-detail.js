@@ -84,7 +84,8 @@
                     method: 'POST',
                     body: JSON.stringify({
                         resultStatus: $('#view-create-result-select').value,
-                        resultContent: $('#view-create-result-input').value
+                        resultContent: $('#view-create-result-input').value,
+                        changeReason: $('#view-create-result-reason').value
                     })
                 });
                 notify('외부 처리 결과를 등록했습니다.');

@@ -258,23 +258,85 @@
           )
     </select>
 
-    <insert id="upsertViewCreateResult">
-        MERGE INTO VIEW_CREATE_RESULT T
-        USING (SELECT #{requestId} AS REQUEST_ID FROM DUAL) S
-           ON (T.REQUEST_ID = S.REQUEST_ID)
-        WHEN MATCHED THEN UPDATE SET
-            T.RESULT_STATUS = #{resultStatus},
-            T.RESULT_CONTENT = #{resultContent, jdbcType=CLOB},
-            T.REGISTERED_BY = #{actorId},
-            T.REGISTERED_AT = SYSTIMESTAMP,
-            T.UPDATED_AT = SYSTIMESTAMP
-        WHEN NOT MATCHED THEN INSERT (
+    <select id="lockEligibleViewCreateRequest" resultType="long">
+        SELECT R.REQUEST_ID
+        FROM QUERY_REQUEST R
+        WHERE R.REQUEST_ID = #{requestId}
+          AND R.REQUEST_TYPE = 'CREATE_VIEW'
+          AND R.REQUEST_STATUS = 'READY'
+          AND R.APPROVAL_STATUS = 'APPROVED'
+          AND EXISTS (
+              SELECT 1
+              FROM USERS U
+              JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+              JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
+              JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID
+              WHERE U.USER_ID = #{actorId}
+                AND U.ENABLED = 'Y'
+                AND D.DEPT_NAME = 'DB팀'
+                AND RL.ROLE_CODE IN ('DB_APPROVER', 'DB_ADMIN')
+          )
+        FOR UPDATE OF R.REQUEST_ID
+    </select>
+
+    <insert id="insertViewCreateResultHistory">
+        INSERT INTO VIEW_CREATE_RESULT_HISTORY (
+            HISTORY_ID, REQUEST_ID, PREVIOUS_RESULT_STATUS,
+            PREVIOUS_RESULT_CONTENT, PREVIOUS_REGISTERED_BY,
+            PREVIOUS_REGISTERED_AT, CHANGED_BY, CHANGED_AT, CHANGE_REASON
+        )
+        SELECT SEQ_VIEW_CREATE_RESULT_HISTORY.NEXTVAL,
+               VR.REQUEST_ID,
+               VR.RESULT_STATUS,
+               VR.RESULT_CONTENT,
+               VR.REGISTERED_BY,
+               VR.REGISTERED_AT,
+               #{actorId},
+               SYSTIMESTAMP,
+               #{changeReason}
+        FROM VIEW_CREATE_RESULT VR
+        WHERE VR.REQUEST_ID = #{requestId}
+    </insert>
+
+    <insert id="insertViewCreateResult">
+        INSERT INTO VIEW_CREATE_RESULT (
             REQUEST_ID, RESULT_STATUS, RESULT_CONTENT, REGISTERED_BY,
             REGISTERED_AT, UPDATED_AT
         ) VALUES (
-            S.REQUEST_ID, #{resultStatus}, #{resultContent, jdbcType=CLOB},
+            #{requestId}, #{resultStatus}, #{resultContent, jdbcType=CLOB},
             #{actorId}, SYSTIMESTAMP, SYSTIMESTAMP
         )
     </insert>
+
+    <update id="updateViewCreateResult">
+        UPDATE VIEW_CREATE_RESULT
+        SET RESULT_STATUS = #{resultStatus},
+            RESULT_CONTENT = #{resultContent, jdbcType=CLOB},
+            REGISTERED_BY = #{actorId},
+            REGISTERED_AT = SYSTIMESTAMP,
+            UPDATED_AT = SYSTIMESTAMP
+        WHERE REQUEST_ID = #{requestId}
+    </update>
+
+    <select id="selectVisibleViewCreateResultHistory"
+            resultType="com.sqlflow.request.dto.ViewCreateResultHistoryResponse">
+        SELECT H.PREVIOUS_RESULT_STATUS,
+               H.PREVIOUS_RESULT_CONTENT,
+               PREVIOUS_USER.USER_NAME AS PREVIOUS_REGISTERED_BY_NAME,
+               H.PREVIOUS_REGISTERED_AT,
+               CHANGED_USER.USER_NAME AS CHANGED_BY_NAME,
+               H.CHANGED_AT,
+               H.CHANGE_REASON
+        FROM VIEW_CREATE_RESULT_HISTORY H
+        JOIN QUERY_REQUEST R ON R.REQUEST_ID = H.REQUEST_ID
+        JOIN USERS DRAFTER ON DRAFTER.USER_ID = R.DRAFTER_ID
+        JOIN DEPARTMENT REQUEST_DEPT ON REQUEST_DEPT.DEPT_ID = R.DEPT_ID
+        JOIN USERS PREVIOUS_USER ON PREVIOUS_USER.USER_ID = H.PREVIOUS_REGISTERED_BY
+        JOIN USERS CHANGED_USER ON CHANGED_USER.USER_ID = H.CHANGED_BY
+        WHERE R.REQUEST_ID = #{requestId}
+          AND R.REQUEST_TYPE = 'CREATE_VIEW'
+          AND <include refid="visibilityConditions"/>
+        ORDER BY H.CHANGED_AT DESC, H.HISTORY_ID DESC
+    </select>
 	
 </mapper>

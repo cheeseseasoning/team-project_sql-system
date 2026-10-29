@@ -11,6 +11,7 @@ import com.sqlflow.request.dto.RequestApprovalResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.ViewCreateResultResponse;
+import com.sqlflow.request.dto.ViewCreateResultHistoryResponse;
 
 @Mapper
 public interface DepartmentRequestMapper {
@@ -59,9 +60,28 @@ public interface DepartmentRequestMapper {
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);
 
-    int upsertViewCreateResult(
+    Long lockEligibleViewCreateRequest(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId);
+
+    int insertViewCreateResultHistory(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId,
+            @Param("changeReason") String changeReason);
+
+    int insertViewCreateResult(
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId,
             @Param("resultStatus") String resultStatus,
             @Param("resultContent") String resultContent);
+
+    int updateViewCreateResult(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId,
+            @Param("resultStatus") String resultStatus,
+            @Param("resultContent") String resultContent);
+
+    List<ViewCreateResultHistoryResponse> selectVisibleViewCreateResultHistory(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId);
 }

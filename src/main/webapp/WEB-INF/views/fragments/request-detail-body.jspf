@@ -158,6 +158,8 @@
     </div>
     <p id="view-create-result-content" class="notice-body">아직 DB팀 처리 결과가 등록되지 않았습니다.</p>
     <p id="view-create-result-meta" class="caption"></p>
+    <h3 id="view-create-result-history-title" hidden>처리 결과 수정 이력</h3>
+    <ol id="view-create-result-history" class="approval-history-list" hidden></ol>
 
     <form id="view-create-result-form" class="view-create-result-form" hidden>
         <label for="view-create-result-select">처리 상태</label>
@@ -169,6 +171,9 @@
         <label for="view-create-result-input">처리 내용</label>
         <textarea id="view-create-result-input" rows="4" maxlength="4000"
                   placeholder="외부 도구에서 실행한 결과나 실패 사유를 입력하세요." required></textarea>
+        <label id="view-create-result-reason-label" for="view-create-result-reason" hidden>수정 사유</label>
+        <textarea id="view-create-result-reason" rows="3" maxlength="1000"
+                  placeholder="기존 결과를 수정하는 이유를 입력하세요." hidden></textarea>
         <div class="form-footer">
             <span id="view-create-result-message" class="caption" role="status"></span>
             <button id="view-create-result-submit" type="submit" class="button primary">결과 등록</button>

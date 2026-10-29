@@ -57,7 +57,7 @@ public class RequestController {
 			@Valid @RequestBody ViewCreateResultRequest input,
 			@AuthenticationPrincipal SqlFlowUserDetails user) {
 		departmentRequestService.registerViewCreateResult(
-				requestId, user.getUserId(), input.getResultStatus(), input.getResultContent());
+				requestId, user.getUserId(), input.getResultStatus(), input.getResultContent(), input.getChangeReason());
 		return ResponseEntity.noContent().build();
 	}
 	
