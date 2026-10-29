@@ -194,6 +194,7 @@ public class RequestService {
 		);
 		if ("CREATE_VIEW".equals(detail.getRequestType())) {
 			detail.setViewCreateResult(requestMapper.selectViewCreateResult(requestId));
+			detail.setViewCreateResultHistory(requestMapper.selectViewCreateResultHistory(requestId));
 		}
 
 		return detail;
@@ -212,7 +213,12 @@ public class RequestService {
 				.append(requestId).append("\n\n");
 		for (RequestItemResponse item : items) {
 			content.append("-- ").append(item.getQueryTitle()).append("\n")
-					.append(item.getSqlText()).append("\n\n");
+					.append(item.getSqlText().stripTrailing()).append("\n");
+			String sql = item.getSqlText().stripTrailing();
+			if (!sql.endsWith(";")) {
+				content.append(';');
+			}
+			content.append("\n\n");
 		}
 		return content.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
 	}

@@ -325,6 +325,7 @@ window.RequestDetailRenderer = (() => {
         const content = $('#view-create-result-content');
         const meta = $('#view-create-result-meta');
         const form = $('#view-create-result-form');
+        const historyList = $('#view-create-result-history');
         const statusNames = { COMPLETED: '처리 완료', FAILED: '처리 실패' };
         if (result) {
             status.textContent = statusNames[result.resultStatus] || result.resultStatus || '등록됨';
@@ -342,6 +343,31 @@ window.RequestDetailRenderer = (() => {
             $('#view-create-result-submit').textContent = '결과 등록';
         }
         form.hidden = !request.canRegisterViewResult;
+        const reasonLabel = $('#view-create-result-reason-label');
+        const reasonInput = $('#view-create-result-reason');
+        const requiresReason = Boolean(result && request.canRegisterViewResult);
+        reasonLabel.hidden = !requiresReason;
+        reasonInput.hidden = !requiresReason;
+        reasonInput.required = requiresReason;
+        reasonInput.value = '';
+
+        const history = Array.isArray(request.viewCreateResultHistory)
+            ? request.viewCreateResultHistory
+            : [];
+        $('#view-create-result-history-title').hidden = history.length === 0;
+        historyList.innerHTML = history.map(item =>
+            '<li class="approval-history-item">'
+                + '<div class="panel-heading"><strong>수정 전 결과: '
+                + esc(statusNames[item.previousResultStatus] || item.previousResultStatus || '-')
+                + '</strong><span class="caption">'
+                + esc(formatDate(item.previousRegisteredAt)) + '</span></div>'
+                + '<p class="notice-body">' + esc(item.previousResultContent || '') + '</p>'
+                + '<p class="caption">수정자: ' + esc(item.changedByName || '-')
+                + ' · 수정 시각: ' + esc(formatDate(item.changedAt)) + '</p>'
+                + '<p class="caption">수정 사유: ' + esc(item.changeReason || '-') + '</p>'
+            + '</li>'
+        ).join('');
+        historyList.hidden = history.length === 0;
     }
 
     return Object.freeze({

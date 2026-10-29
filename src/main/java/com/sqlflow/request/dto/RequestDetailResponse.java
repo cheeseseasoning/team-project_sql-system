@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import com.sqlflow.request.dto.ViewCreateResultHistoryResponse;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -39,5 +40,6 @@ public class RequestDetailResponse {
     private String isUrgent;
     private LocalDate desiredDate;
     private ViewCreateResultResponse viewCreateResult;
+    private List<ViewCreateResultHistoryResponse> viewCreateResultHistory = new ArrayList<>();
     private boolean canRegisterViewResult;
 }

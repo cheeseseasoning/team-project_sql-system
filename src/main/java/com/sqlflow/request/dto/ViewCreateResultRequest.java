@@ -15,4 +15,7 @@ public class ViewCreateResultRequest {
     @NotBlank
     @Size(max = 4000)
     private String resultContent;
+
+    @Size(max = 1000)
+    private String changeReason;
 }
