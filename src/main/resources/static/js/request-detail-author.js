@@ -102,9 +102,25 @@ async function loadDetail() {
 		$('#approval-line-open').disabled =
 			request.requestStatus !== 'DRAFT';
 
-		// 반려된 본인 요청에서만 재기안 버튼 표시
+		// 회수 가능 여부는 화면 표시용이며 서버에서 다시 검사한다.
+		const approvals = Array.isArray(request.approvals)
+		    ? request.approvals
+		    : [];
+
+		const canWithdraw =
+		    request.requestStatus === 'PENDING_APPROVAL'
+		    && request.approvalStatus === 'PENDING'
+		    && approvals.some(approval => approval.status === 'PENDING')
+		    && approvals.every(approval =>
+		        approval.status === 'PENDING'
+		        || approval.status === 'WAITING'
+		    );
+
+		$('#request-withdraw').hidden = !canWithdraw;
+
+		// 반려·회수된 요청은 새로운 초안으로 재작성할 수 있다.
 		$('#request-redraft').hidden =
-			request.requestStatus !== 'REJECTED';
+		    !['REJECTED', 'WITHDRAWN'].includes(request.requestStatus);
 
 		
 		detailItems = (request.items || []).map(function (item) {
@@ -137,6 +153,7 @@ async function loadDetail() {
 		$('#draft-edit-action').hidden = true;
 		$('#request-redraft').hidden = true;
 		$('#source-request-row').hidden = true;
+		$('#request-withdraw').hidden = true;
 
 		notify(error.message, true);
 	}
@@ -227,47 +244,11 @@ $('#validate-sqls').addEventListener('click', function () {
 
 let requestSubmitting = false;
 
-let redraftCreating = false;
-
 $('#request-redraft').addEventListener('click', function () {
-	if (redraftCreating) {
-		return;
-	}
-
-	const confirmed = window.confirm(
-		'이 요청을 복사하여 새 초안을 작성하시겠습니까?\n'
-		+ '기존 요청과 결재 이력은 유지됩니다.'
-	);
-
-	if (!confirmed) {
-		return;
-	}
-
-	redraftCreating = true;
-
-	busy(this, async function () {
-		try {
-			const result = await api(
-				'/requests/'
-				+ encodeURIComponent(requestId)
-				+ '/redraft',
-				{method: 'POST'}
-			);
-
-			if (!result?.requestId) {
-				throw Error('생성된 초안 정보를 확인할 수 없습니다.');
-			}
-
-			location.href =
-				BASE + '/requests/'
-				+ encodeURIComponent(result.requestId)
-				+ '/edit';
-
-		} catch (error) {
-			redraftCreating = false;
-			throw error;
-		}
-	});
+    location.href =
+        BASE + '/requests/'
+        + encodeURIComponent(requestId)
+        + '/redraft';
 });
 
 // 결재선 등록 모달
@@ -1251,6 +1232,45 @@ $('#request-submit-open').addEventListener('click', function () {
 			notify(error.message, true);
 		}
 	});
+});
+
+let requestWithdrawing = false;
+
+$('#request-withdraw').addEventListener('click', function () {
+    if (requestWithdrawing) {
+        return;
+    }
+
+    const confirmed = window.confirm(
+        '이 기안서를 회수하시겠습니까?\n'
+        + '현재 결재선은 종료되고 원본과 이력은 유지됩니다.\n'
+        + '수정이 필요하면 회수 후 재기안해 주세요.'
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    requestWithdrawing = true;
+
+    busy(this, async function () {
+        try {
+            await api(
+                '/requests/'
+                + encodeURIComponent(requestId)
+                + '/withdraw',
+                { method: 'POST' }
+            );
+        } catch (error) {
+            requestWithdrawing = false;
+
+            // 화면을 연 뒤 승인이 진행됐을 수 있으므로 최신 상태를 조회한다.
+            await loadDetail();
+            throw error;
+        }
+
+        location.reload();
+    });
 });
 
 loadDetail();

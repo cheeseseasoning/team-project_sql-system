@@ -434,4 +434,51 @@
 	      AND REQUEST_STATUS = 'DRAFT'
 	</update>
 
+	<!--
+	    서비스에서 요청 행을 잠근 뒤 호출한다.
+	    작성자 본인의 결재 대기 요청이며
+	    모든 결재가 미처리 상태인 경우에만 회수한다.
+	-->
+	<update id="withdrawRequest">
+	    UPDATE QUERY_REQUEST R
+	    SET REQUEST_STATUS = 'WITHDRAWN',
+	        APPROVAL_STATUS = 'CANCELLED'
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND R.DRAFTER_ID = #{drafterId}
+	      AND R.REQUEST_STATUS = 'PENDING_APPROVAL'
+	      AND R.APPROVAL_STATUS = 'PENDING'
+	      AND EXISTS (
+	          SELECT 1
+	          FROM USERS U
+	          WHERE U.USER_ID = #{drafterId}
+	            AND U.ENABLED = 'Y'
+	      )
+	      AND EXISTS (
+	          SELECT 1
+	          FROM APPROVAL A
+	          WHERE A.REQUEST_ID = R.REQUEST_ID
+	            AND A.STATUS = 'PENDING'
+	      )
+	      AND NOT EXISTS (
+	          SELECT 1
+	          FROM APPROVAL A
+	          WHERE A.REQUEST_ID = R.REQUEST_ID
+	            AND (
+	                NVL(A.STATUS, 'UNKNOWN')
+	                    NOT IN ('PENDING', 'WAITING')
+	                OR A.DECIDED_AT IS NOT NULL
+	            )
+	      )
+	</update>
+	
+	<!-- 결재선을 삭제하지 않고 종료 상태와 사유를 보존한다. -->
+	<update id="cancelApprovalsForWithdrawal">
+	    UPDATE APPROVAL
+	    SET STATUS = 'CANCELLED',
+	        COMMENT_TEXT = '작성자의 기안서 회수로 결재가 종료되었습니다.',
+	        DECIDED_AT = SYSTIMESTAMP
+	    WHERE REQUEST_ID = #{requestId}
+	      AND STATUS IN ('PENDING', 'WAITING')
+	</update>
+
 </mapper>

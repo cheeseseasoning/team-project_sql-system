@@ -19,12 +19,13 @@ window.RequestDetailRenderer = (() => {
         SENSITIVE: '민감 조회'
     });
 
-    const approvalNames = Object.freeze({
-        NOT_REQUIRED: '결재 불필요',
-        PENDING: '결재 대기',
-        APPROVED: '승인',
-        REJECTED: '반려'
-    });
+	const approvalNames = Object.freeze({
+	    NOT_REQUIRED: '결재 불필요',
+	    PENDING: '결재 대기',
+	    APPROVED: '승인',
+	    REJECTED: '반려',
+	    CANCELLED: '결재 취소'
+	});
 
     const validationNames = {
         PENDING: '검증 전',
@@ -157,12 +158,13 @@ window.RequestDetailRenderer = (() => {
     }
 
     function renderApprovalRows(rows) {
-        const lineStatusNames = {
-            PENDING: '결재 차례',
-            WAITING: '대기',
-            APPROVED: '승인',
-            REJECTED: '반려'
-        };
+		const lineStatusNames = {
+		    PENDING: '결재 차례',
+		    WAITING: '대기',
+		    APPROVED: '승인',
+		    REJECTED: '반려',
+		    CANCELLED: '취소'
+		};
 
         return rows.map(row => {
             const organization = [
@@ -292,11 +294,12 @@ window.RequestDetailRenderer = (() => {
 
 	    $('#request-approval-list').innerHTML = renderApprovalRows(rows);
 
-	    const summaryNames = {
-	        PENDING: '결재 진행 중',
-	        APPROVED: '결재 완료',
-	        REJECTED: '반려'
-	    };
+		const summaryNames = {
+		    PENDING: '결재 진행 중',
+		    APPROVED: '결재 완료',
+		    REJECTED: '반려',
+		    CANCELLED: '결재 취소'
+		};
 
 	    $('#request-approval-badge').textContent =
 	        summaryNames[request.approvalStatus]

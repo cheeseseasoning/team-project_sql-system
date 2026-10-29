@@ -125,4 +125,10 @@ public interface RequestMapper {
             @Param("drafterId") Long drafterId,
             @Param("requestClass") String requestClass);
     
+    int withdrawRequest(
+            @Param("requestId") Long requestId,
+            @Param("drafterId") Long drafterId);
+
+    int cancelApprovalsForWithdrawal(
+            @Param("requestId") Long requestId);
 }

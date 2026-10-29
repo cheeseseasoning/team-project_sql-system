@@ -218,16 +218,30 @@ public class RequestController {
 	
 	@PostMapping("/{requestId}/redraft")
 	public ResponseEntity<DraftCreateResponse> redraftRequest(
-	        @PathVariable Long requestId,
+	        @PathVariable("requestId") Long requestId,
+	        @Valid @RequestBody RequestDraftCreateRequest input,
 	        @AuthenticationPrincipal SqlFlowUserDetails user) {
 
 	    Long newRequestId = requestService.redraftRequest(
 	            requestId,
+	            input,
 	            user.getUserId(),
 	            user.getDeptId());
 
 	    return ResponseEntity
 	            .created(URI.create("/api/requests/mine/" + newRequestId))
 	            .body(new DraftCreateResponse(newRequestId));
+	}
+	
+	@PostMapping("/{requestId}/withdraw")
+	public ResponseEntity<Void> withdrawRequest(
+	        @PathVariable("requestId") Long requestId,
+	        @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+	    requestService.withdrawRequest(
+	            requestId,
+	            user == null ? null : user.getUserId());
+
+	    return ResponseEntity.noContent().build();
 	}
 }

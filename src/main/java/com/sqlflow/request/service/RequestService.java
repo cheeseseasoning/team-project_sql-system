@@ -596,7 +596,9 @@ public class RequestService {
 			item.setSqlText(sqls.get(index));
 			item.setAuthoringType("MANUAL");
 
-			requestMapper.insertItem(item);
+			if (requestMapper.insertItem(item) != 1) {
+			    throw new IllegalStateException("SQL 항목 저장에 실패했습니다.");
+			}
 		}
 	}
 	
@@ -605,77 +607,141 @@ public class RequestService {
 	            ? null
 	            : value.strip();
 	}
-	
-	@Transactional
-	public Long redraftRequest(
-	        Long sourceRequestId,
-	        Long actorId,
-	        Long deptId) {
+    @Transactional(transactionManager = "managementTransactionManager")
+    public Long redraftRequest(
+            Long sourceRequestId,
+            RequestDraftCreateRequest input,
+            Long actorId,
+            Long deptId) {
 
-	    // 1. 본인 요청 확인 및 동시 처리 방지를 위한 잠금
-	    String status = requestMapper.selectMyRequestStatusForUpdate(
-	            sourceRequestId, actorId);
+        // 본인 요청을 잠그고 반려되거나 회수된 요청인지 확인한다.
+        String status = requestMapper.selectMyRequestStatusForUpdate(
+                sourceRequestId, actorId);
 
-	    if (status == null) {
-	        throw new ResponseStatusException(
-	                HttpStatus.NOT_FOUND,
-	                "조회 요청을 찾을 수 없습니다.");
-	    }
+        if (status == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "요청을 찾을 수 없습니다.");
+        }
+        if (!"REJECTED".equals(status) && !"WITHDRAWN".equals(status)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "반려되거나 회수된 요청만 재기안할 수 있습니다.");
+        }
 
-	    // 2. 반려된 요청만 재기안 가능
-	    if (!"REJECTED".equals(status)) {
-	        throw new ResponseStatusException(
-	                HttpStatus.CONFLICT,
-	                "반려된 요청만 재기안할 수 있습니다.");
-	    }
+        // 재기안 가능한 원본 요청과 SQL을 읽는다.
+        RequestDetailResponse source =
+                getMyRequestDetail(sourceRequestId, actorId);
+        Long newRequestId = requestMapper.selectNextRequestId();
 
-	    // 3. 원본 요청과 SQL 조회
-	    RequestDetailResponse source =
-	            getMyRequestDetail(sourceRequestId, actorId);
+        QueryRequest draft = new QueryRequest();
+        draft.setRequestId(newRequestId);
+        draft.setRequestNo(createRequestNo(newRequestId));
+        draft.setRequestType(source.getRequestType());
+        draft.setSourceRequestId(sourceRequestId);
+        draft.setDrafterId(actorId);
+        draft.setDeptId(deptId);
+        draft.setTitle(input.getTitle().strip());
+        draft.setPurpose(input.getPurpose().strip());
+        draft.setDetailContent(normalizeOptionalText(input.getDetailContent()));
+        draft.setIsUrgent(input.getIsUrgent());
+        draft.setDesiredDate(input.getDesiredDate());
 
-	    // 4. 새 요청 ID와 요청번호 발급
-	    Long newRequestId = requestMapper.selectNextRequestId();
+        if (requestMapper.insertRequest(draft) != 1) {
+            throw new IllegalStateException("재기안 초안 생성에 실패했습니다.");
+        }
 
-	    QueryRequest draft = new QueryRequest();
-	    draft.setRequestId(newRequestId);
-	    draft.setRequestNo(createRequestNo(newRequestId));
-	    draft.setRequestType(source.getRequestType());
-	    draft.setSourceRequestId(sourceRequestId);
+        if ("CREATE_VIEW".equals(source.getRequestType())) {
+            saveRedraftViewSqlItems(newRequestId, input.getSqls(), input.getSqlTitles());
+        } else {
+            saveDraftItems(newRequestId, input.getSqls(), input.getSqlTitles());
+        }
 
-	    // 새 초안의 작성자·부서는 현재 로그인 사용자 기준
-	    draft.setDrafterId(actorId);
-	    draft.setDeptId(deptId);
+        // 결재선은 초안 제출 시 새로 등록한다.
+        return newRequestId;
+    }
 
-	    draft.setTitle(source.getTitle());
-	    draft.setPurpose(source.getPurpose());
-	    draft.setDetailContent(source.getDetailContent());
-	    draft.setIsUrgent(source.getIsUrgent());
-	    draft.setDesiredDate(source.getDesiredDate());
+    private void saveRedraftViewSqlItems(
+            Long requestId,
+            List<String> sqls,
+            List<String> sqlTitles) {
+        if (sqls == null || sqls.isEmpty() || sqls.size() > 5) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "뷰 생성 SQL은 1개 이상, 5개 이하로 입력하세요.");
+        }
+        if (sqlTitles != null && sqlTitles.size() != sqls.size()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "SQL 목록과 SQL 제목 목록의 개수가 일치해야 합니다.");
+        }
 
-	    // 요청·결재 상태는 DB 기본값인 DRAFT / NOT_REQUIRED 사용
-	    if (requestMapper.insertRequest(draft) != 1) {
-	        throw new IllegalStateException("재기안 초안 생성에 실패했습니다.");
-	    }
+        for (int i = 0; i < sqls.size(); i++) {
+            String sql = sqls.get(i) == null ? "" : sqls.get(i).strip();
+            String withoutTrailingSemicolon = sql.endsWith(";")
+                    ? sql.substring(0, sql.length() - 1)
+                    : sql;
+            if (!sql.matches("(?is)^CREATE\\s+(?:OR\\s+REPLACE\\s+)?VIEW\\b.*")
+                    || withoutTrailingSemicolon.contains(";")) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "각 SQL은 CREATE VIEW 문 하나만 입력할 수 있습니다.");
+            }
 
-	    // 5. SQL 내용과 제목만 복사하여 새로운 SQL 항목 생성
-	    List<String> sqls = source.getItems().stream()
-	            .map(RequestItemResponse::getSqlText)
-	            .toList();
+            String title = sqlTitles == null ? null : sqlTitles.get(i);
+            title = title == null || title.isBlank()
+                    ? "뷰 생성 SQL " + (i + 1)
+                    : title.strip();
+            if (title.length() > 200) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "SQL 제목은 200자 이하여야 합니다.");
+            }
+            requestMapper.insertViewSql(requestId, i + 1, title, sql);
+        }
+    }
+    @Transactional(transactionManager = "managementTransactionManager")
+    public void withdrawRequest(Long requestId, Long actorId) {
 
-	    List<String> sqlTitles = source.getItems().stream()
-	            .map(RequestItemResponse::getQueryTitle)
-	            .toList();
+        if (actorId == null || actorId <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "로그인이 필요합니다.");
+        }
+        if (requestId == null || requestId <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "올바른 요청 ID가 필요합니다.");
+        }
 
-	    if ("CREATE_VIEW".equals(source.getRequestType())) {
-	        for (int i = 0; i < source.getItems().size(); i++) {
-	            RequestItemResponse item = source.getItems().get(i);
-	            requestMapper.insertViewSql(newRequestId, i + 1,
-	                    item.getQueryTitle(), item.getSqlText());
-	        }
-	    } else {
-	        saveDraftItems(newRequestId, sqls, sqlTitles);
-	    }
+        // 첫 승인과 회수가 동시에 진행되지 않도록 요청 행을 잠근다.
+        String status = requestMapper.selectMyRequestStatusForUpdate(
+                requestId, actorId);
+        if (status == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "요청을 찾을 수 없습니다.");
+        }
+        if (!"PENDING_APPROVAL".equals(status)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "결재 대기 중인 요청만 회수할 수 있습니다.");
+        }
 
-	    return newRequestId;
-	}
+        // 첫 결재자가 승인하기 전에만 회수할 수 있다.
+        if (requestMapper.withdrawRequest(requestId, actorId) != 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "첫 결재자가 승인하기 전까지만 회수할 수 있습니다. "
+                            + "현재 계정과 결재 상태를 다시 확인하세요.");
+        }
+
+        // 실패하면 요청 상태 변경도 트랜잭션으로 롤백된다.
+        int cancelled = requestMapper.cancelApprovalsForWithdrawal(requestId);
+        if (cancelled < 1) {
+            throw new IllegalStateException(
+                    "회수할 결재선을 종료하지 못했습니다.");
+        }
+    }
 }
+
