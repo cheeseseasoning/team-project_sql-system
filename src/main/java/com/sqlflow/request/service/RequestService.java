@@ -2,7 +2,9 @@ package com.sqlflow.request.service;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.access.service.RequestSqlValidationService;
+
 import com.sqlflow.request.domain.QueryItem;
 import com.sqlflow.request.domain.QueryRequest;
 import com.sqlflow.request.dto.RequestDashboardResponse;
@@ -24,6 +27,8 @@ import com.sqlflow.request.dto.RequestSubmitRequest;
 import com.sqlflow.request.dto.RequestSummaryResponse;
 import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.dto.ViewCreateDraftRequest;
+import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO;
+import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO.Status;
 import com.sqlflow.request.mapper.RequestMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -37,6 +42,8 @@ public class RequestService {
 	private final ObjectProvider<ApprovalLineCreator> approvalLineCreatorProvider;
 	
 	private final RequestSqlValidationService requestSqlValidationService;
+	
+    private final ViewCreateSqlValidationService viewCreateSqlValidationService;
 
 	@Transactional
 	public Long createDraft(RequestDraftCreateRequest input) {
@@ -216,6 +223,69 @@ public class RequestService {
 		}
 		return content.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
 	}
+	
+    /**
+     * 작성 중인 SQL을 입력 순서대로 검사한다.
+     * 요청을 저장하거나 실제 SQL을 실행하지 않는다.
+     */
+    public List<ViewCreateSqlValidationResultDTO> validateViewSqlTexts(
+            List<String> sqls) {
+
+        if (sqls == null || sqls.isEmpty() || sqls.size() > 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "검사할 SQL을 1개 이상, 5개 이하로 입력하세요.");
+        }
+
+        return sqls.stream()
+                .map(viewCreateSqlValidationService::validate)
+                .toList();
+    }
+	
+    /**
+     * 작성자 본인의 뷰 생성 초안에 저장된 SQL을 검사한다.
+     * 검사 결과는 반환만 하며 DB에는 저장하지 않는다.
+     */
+    @Transactional(
+            transactionManager = "managementTransactionManager",
+            readOnly = true)
+    public Map<Long, ViewCreateSqlValidationResultDTO> validateViewDraftSql(Long requestId, Long actorId) {
+
+        if (actorId == null || actorId <= 0) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        }
+
+        if (requestId == null || requestId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "올바른 요청 ID가 필요합니다.");
+        }
+
+        // 작성자 조건을 포함한 조회로 다른 사용자의 요청 접근을 막는다.
+        RequestDetailResponse draft = requestMapper.selectMyRequestDetail(requestId, actorId);
+
+        if (draft == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청을 찾을 수 없습니다.");
+        }
+
+        if (!"CREATE_VIEW".equals(draft.getRequestType())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "뷰 생성 요청만 검사할 수 있습니다.");
+        }
+
+        if (!"DRAFT".equals(draft.getRequestStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태에서만 검사할 수 있습니다.");
+        }
+
+        List<RequestItemResponse> items = requestMapper.selectMyViewSqlItems(requestId, actorId);
+
+        if (items.isEmpty() || items.size() > 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "뷰 생성 SQL은 1개 이상, 5개 이하로 등록하세요.");
+        }
+
+        Map<Long, ViewCreateSqlValidationResultDTO> results = new LinkedHashMap<>();
+
+        for (RequestItemResponse item : items) {
+            results.put(item.getQueryId(), viewCreateSqlValidationService.validate(item.getSqlText()));
+        }
+
+        return results;
+    }
 
 	@Transactional
 	public List<RequestSqlValidationResult> validateDraftSql(Long requestId, Long drafterId) {
@@ -425,8 +495,21 @@ public class RequestService {
 	        );
 	    }
 
-	    if ("CREATE_VIEW".equals(draft.getRequestType())) {
-	        ApprovalLineCreator creator = approvalLineCreatorProvider.getIfAvailable();
+        if ("CREATE_VIEW".equals(draft.getRequestType())) {
+
+            // 화면에서 전달한 검사 결과 대신 저장된 SQL을 다시 검사한다.
+            for (RequestItemResponse item : draft.getItems()) {
+                var result = viewCreateSqlValidationService.validate(item.getSqlText());
+
+                if (result.getStatus() == Status.BLOCKED) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SQL " + item.getQueryOrder()
+                                    + ": " + result.getMessage());
+                }
+            }
+
+            // WARNING은 제출을 허용한다.
+            // 경고 메시지는 다음 단계에서 화면에 연결한다.
+            ApprovalLineCreator creator = approvalLineCreatorProvider.getIfAvailable();
 	        if (creator == null) {
 	            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "결재 기능이 아직 연결되지 않았습니다.");
 	        }

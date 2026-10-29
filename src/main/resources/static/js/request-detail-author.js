@@ -133,8 +133,7 @@ async function loadDetail() {
 		validationMessages = restoreValidationMessages(detailItems);
 		
 		$('#sql-validation-controls').hidden =
-			request.requestStatus !== 'DRAFT'
-			|| currentRequestType === 'CREATE_VIEW';
+			request.requestStatus !== 'DRAFT';
 
 		$('#detail-items').innerHTML =
 			renderDetailItems(detailItems);
@@ -181,11 +180,101 @@ $('#draft-delete').addEventListener('click', function () {
 	});
 });
 
+/**
+ * 저장된 뷰 생성 SQL을 검사하고 항목별 결과를 표시한다.
+ * 결과는 화면에만 유지하며, 제출 시 서버에서 다시 검사한다.
+ */
+async function validateSavedViewSqls() {
+    sqlValidationInProgress = true;
+
+    // 이전 검사 결과가 새 검사 결과로 오인되지 않도록 초기화한다.
+    validationMessages = new Map();
+    detailItems = detailItems.map(item => ({
+        ...item,
+        validationStatus: 'PENDING'
+    }));
+
+    $('#detail-items').innerHTML = renderDetailItems(detailItems);
+
+    try {
+        const results = await api(
+            '/requests/' + encodeURIComponent(requestId)
+                + '/view-sql/validate',
+            { method: 'POST', timeoutMs: 120000 }
+        );
+
+        const allowedStatuses = ['VALID', 'WARNING', 'BLOCKED'];
+
+        // 일부 SQL의 결과가 누락돼도 전체 검사 완료로 표시하지 않는다.
+        const complete = detailItems.length > 0
+            && detailItems.every(item =>
+                allowedStatuses.includes(
+                    results?.[String(item.queryId)]?.status
+                )
+            );
+
+        if (!complete) {
+            throw new Error(
+                '일부 SQL의 검사 결과를 확인하지 못했습니다. 다시 검사해 주세요.'
+            );
+        }
+
+        detailItems = detailItems.map(item => {
+            const result = results[String(item.queryId)];
+
+            validationMessages.set(
+                item.queryId,
+                result.message || '검사 결과 안내가 없습니다.'
+            );
+
+            return {
+                ...item,
+                validationStatus: result.status
+            };
+        });
+
+        $('#detail-items').innerHTML = renderDetailItems(detailItems);
+
+        const blockedCount = detailItems.filter(
+            item => item.validationStatus === 'BLOCKED'
+        ).length;
+
+        const warningCount = detailItems.filter(
+            item => item.validationStatus === 'WARNING'
+        ).length;
+
+        if (blockedCount > 0) {
+            notify(
+                blockedCount + '개 SQL이 제출 차단 대상입니다. '
+                    + '각 SQL 아래 안내를 확인하세요.',
+                true
+            );
+        } else if (warningCount > 0) {
+            notify(
+                warningCount + '개 SQL은 검사 불확실 상태입니다. '
+                    + '제출은 가능하지만 DB팀 검토가 필요합니다.'
+            );
+        } else {
+            notify(
+                '전체 SQL이 기본 파싱을 통과했습니다. '
+                    + '실제 실행 성공을 보장하지는 않습니다.'
+            );
+        }
+    } finally {
+        sqlValidationInProgress = false;
+    }
+}
+
 async function validateSavedSqls() {
 	if (sqlValidationInProgress) {
-		return;
+	    return;
 	}
-
+	
+	if (currentRequestType === 'CREATE_VIEW') {
+	    await validateSavedViewSqls();
+	    return;
+	}
+	
 	sqlValidationInProgress = true;
 	try {
 		const results = await api(

@@ -26,10 +26,12 @@ import com.sqlflow.access.service.RequestSqlValidationService;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestSubmitRequest;
+import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO.Status;
 import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.mapper.RequestMapper;
 import com.sqlflow.request.service.ApprovalLineCreator;
 import com.sqlflow.request.service.RequestService;
+import com.sqlflow.request.service.ViewCreateSqlValidationService;
 
 @ExtendWith(MockitoExtension.class)
 class RequestSubmissionServiceTest {
@@ -53,7 +55,8 @@ class RequestSubmissionServiceTest {
         requestService = new RequestService(
                 requestMapper,
                 approvalLineCreatorProvider,
-                requestSqlValidationService);
+                requestSqlValidationService,
+                new ViewCreateSqlValidationService());
     }
 
     @Test
@@ -275,5 +278,74 @@ class RequestSubmissionServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
         verifyNoInteractions(requestSqlValidationService);
+    }
+    
+    @Test
+    void viewDraftValidationReturnsResultsBySqlId() {
+        RequestDetailResponse draft = new RequestDetailResponse();
+        draft.setRequestType("CREATE_VIEW");
+        draft.setRequestStatus("DRAFT");
+
+        RequestItemResponse validItem = new RequestItemResponse();
+        validItem.setQueryId(101L);
+        validItem.setSqlText(
+                "CREATE VIEW v_test AS SELECT 1 AS id");
+
+        RequestItemResponse warningItem = new RequestItemResponse();
+        warningItem.setQueryId(102L);
+        warningItem.setSqlText(
+                "CREATE VIEW v_bad AS SELECT * FROM");
+
+        when(requestMapper.selectMyRequestDetail(2L, 1L))
+                .thenReturn(draft);
+
+        when(requestMapper.selectMyViewSqlItems(2L, 1L))
+                .thenReturn(List.of(validItem, warningItem));
+
+        var results = requestService.validateViewDraftSql(2L, 1L);
+
+        assertEquals(2, results.size());
+        assertEquals(Status.VALID, results.get(101L).getStatus());
+        assertEquals(Status.WARNING, results.get(102L).getStatus());
+
+        // 검사만 수행하며 SELECT 검증·결재 생성은 호출하지 않는다.
+        verifyNoInteractions(
+                requestSqlValidationService,
+                approvalLineCreator);
+    }
+
+    @Test
+    void viewDraftValidationRejectsRequestNotOwnedByActor() {
+        // 작성자 조건으로 조회되지 않으면 SQL 원문도 조회하지 않는다.
+        when(requestMapper.selectMyRequestDetail(2L, 99L))
+                .thenReturn(null);
+
+        ResponseStatusException error = assertThrows(
+                ResponseStatusException.class,
+                () -> requestService.validateViewDraftSql(2L, 99L));
+
+        assertEquals(HttpStatus.NOT_FOUND, error.getStatusCode());
+
+        verify(requestMapper, never())
+                .selectMyViewSqlItems(any(), any());
+    }
+
+    @Test
+    void viewDraftValidationRejectsSubmittedRequest() {
+        RequestDetailResponse draft = new RequestDetailResponse();
+        draft.setRequestType("CREATE_VIEW");
+        draft.setRequestStatus("PENDING_APPROVAL");
+
+        when(requestMapper.selectMyRequestDetail(2L, 1L))
+                .thenReturn(draft);
+
+        ResponseStatusException error = assertThrows(
+                ResponseStatusException.class,
+                () -> requestService.validateViewDraftSql(2L, 1L));
+
+        assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
+
+        verify(requestMapper, never())
+                .selectMyViewSqlItems(any(), any());
     }
 }

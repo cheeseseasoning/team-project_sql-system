@@ -34,6 +34,8 @@ import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.dto.RequestSubmitRequest;
 import com.sqlflow.request.dto.ViewCreateDraftRequest;
 import com.sqlflow.request.dto.ViewCreateResultRequest;
+import com.sqlflow.request.dto.ViewCreateSqlValidationRequestDTO;
+import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO;
 import com.sqlflow.request.service.DepartmentRequestService;
 import com.sqlflow.request.service.RequestService;
 
@@ -195,6 +197,27 @@ public class RequestController {
 			@AuthenticationPrincipal SqlFlowUserDetails user) {
 		return requestService.validateDraftSql(requestId, user.getUserId());
 	}
+	
+    /**
+     * 로그인한 사용자가 작성 중인 뷰 SQL을 저장 없이 검사한다.
+     */
+    @PostMapping("/view-sql/validate")
+    public List<ViewCreateSqlValidationResultDTO> validateViewSqlTexts(
+            @Valid @RequestBody ViewCreateSqlValidationRequestDTO input) {
+
+        return requestService.validateViewSqlTexts(input.getSqls());
+    }
+	
+    /**
+     * 로그인한 작성자의 저장된 뷰 생성 SQL을 검사한다.
+     */
+    @PostMapping("/{requestId}/view-sql/validate")
+    public Map<Long, ViewCreateSqlValidationResultDTO> validateViewDraftSql(
+            @PathVariable Long requestId,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+        return requestService.validateViewDraftSql(requestId, user.getUserId());
+    }
 
 	@GetMapping("/{requestId}/view-sql/download")
 	public ResponseEntity<byte[]> downloadApprovedViewSql(
