@@ -1,9 +1,14 @@
 <%@ page pageEncoding="UTF-8" %>
 <%@ include file="fragments/top.jspf" %>
 
+<div id="view-create-edit-config"
+     data-request-id="<c:out value='${requestId}'/>"
+     data-edit-mode="${viewCreateEdit}"
+     hidden></div>
+
 <div class="page-heading">
-    <h1>뷰 생성 요청 작성</h1>
-    <span class="badge">초안 작성</span>
+    <h1>${viewCreateEdit ? '뷰 생성 요청 수정' : '뷰 생성 요청 작성'}</h1>
+    <span class="badge">${viewCreateEdit ? '초안 수정' : '초안 작성'}</span>
 </div>
 
 <div class="workflow" aria-label="처리 단계">
@@ -98,15 +103,15 @@
             </button>
             <button type="button"
                     class="button primary"
-                    disabled
+                    id="view-save-draft"
                     aria-describedby="view-save-guide">
-                초안 저장
+                ${viewCreateEdit ? '수정 저장' : '초안 저장'}
             </button>
         </div>
     </div>
 
     <p id="view-save-guide" class="caption">
-        현재는 작성 화면 확인 단계이며, 초안 저장 기능은 연결 예정입니다.
+        초안으로 저장하면 내 요청함에서 확인하고, 상세 화면에서 결재선을 등록해 제출할 수 있습니다.
     </p>
 </form>
 
@@ -154,7 +159,7 @@
     </section>
 </template>
 
-<script src="${pageContext.request.contextPath}/js/view-create-request-form.js"
+<script src="${pageContext.request.contextPath}/js/view-create-request-form.js?v=20261028-edit"
         defer></script>
 
 <%@ include file="fragments/bottom.jspf" %>

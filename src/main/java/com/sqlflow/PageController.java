@@ -154,11 +154,19 @@ public class PageController {
 	
 	@GetMapping("/view-create-requests/new")
 	public String createViewRequest(Model model) {
+	    model.addAttribute("viewCreateEdit", false);
 	    return view(
 	            model,
 	            "view-create-request-form",
 	            "뷰 생성 요청 작성"
 	    );
+	}
+
+	@GetMapping("/view-create-requests/{requestId}/edit")
+	public String editViewRequest(Model model, @PathVariable Long requestId) {
+	    model.addAttribute("viewCreateEdit", true);
+	    model.addAttribute("requestId", requestId);
+	    return view(model, "view-create-request-form", "뷰 생성 요청 초안 수정");
 	}
 	
 	/** 읽기 전용 뷰 목록 화면을 연다. */

@@ -40,7 +40,7 @@
 					<thead>
 						<tr>
 							<th>요청명 / 요청번호</th>
-							<th>조회 유형</th>
+									<th>요청 유형</th>
 							<th>처리 현황</th>
 							<th>요청일</th>
 							<th>희망일</th>
@@ -94,10 +94,11 @@
 				};
 
 				return rows.map(function (request) {
-					const classLabel =
-						classNames[request.requestClass]
-						|| request.requestClass
-						|| '미분류';
+					const classLabel = request.requestType === 'CREATE_VIEW'
+						? '뷰 생성 요청'
+						: (classNames[request.requestClass]
+							|| request.requestClass
+							|| '조회 요청');
 
 					const statusLabel =
 						statusNames[request.requestStatus]

@@ -22,6 +22,11 @@
             </div>
 
             <div>
+                <dt>요청 유형</dt>
+                <dd id="request-type"></dd>
+            </div>
+
+            <div>
                 <dt>조회 유형</dt>
                 <dd id="request-class"></dd>
             </div>
@@ -111,9 +116,17 @@
 </section>
 
 <section class="panel section-gap request-sql-panel">
-    <div class="panel-heading">
-        <h2>등록한 SQL</h2>
-        <span id="sql-count" class="caption"></span>
+    <div class="panel-heading request-sql-heading">
+        <div class="request-sql-heading-main">
+            <h2>등록한 SQL</h2>
+            <c:if test="${requestDetailReadOnly and deptName == 'DB팀' and pageContext.request.isUserInRole('DB_APPROVER')}">
+            <button id="view-sql-download" type="button" class="button primary" hidden>
+                승인된 뷰 SQL 다운로드
+            </button>
+            <span id="view-sql-download-message" class="caption" role="status"></span>
+            </c:if>
+        </div>
+        <span id="sql-count" class="caption request-sql-count"></span>
     </div>
 
     <c:if test="${not requestDetailReadOnly}">
@@ -133,4 +146,32 @@
     </c:if>
 
     <div id="detail-items">불러오는 중입니다.</div>
+</section>
+
+<section id="view-create-result-panel"
+         class="panel section-gap"
+         aria-labelledby="view-create-result-title"
+         hidden>
+    <div class="panel-heading">
+        <h2 id="view-create-result-title">외부 처리 결과</h2>
+        <span id="view-create-result-status" class="badge"></span>
+    </div>
+    <p id="view-create-result-content" class="notice-body">아직 DB팀 처리 결과가 등록되지 않았습니다.</p>
+    <p id="view-create-result-meta" class="caption"></p>
+
+    <form id="view-create-result-form" class="view-create-result-form" hidden>
+        <label for="view-create-result-select">처리 상태</label>
+        <select id="view-create-result-select" required>
+            <option value="COMPLETED">처리 완료</option>
+            <option value="FAILED">처리 실패</option>
+        </select>
+
+        <label for="view-create-result-input">처리 내용</label>
+        <textarea id="view-create-result-input" rows="4" maxlength="4000"
+                  placeholder="외부 도구에서 실행한 결과나 실패 사유를 입력하세요." required></textarea>
+        <div class="form-footer">
+            <span id="view-create-result-message" class="caption" role="status"></span>
+            <button id="view-create-result-submit" type="submit" class="button primary">결과 등록</button>
+        </div>
+    </form>
 </section>

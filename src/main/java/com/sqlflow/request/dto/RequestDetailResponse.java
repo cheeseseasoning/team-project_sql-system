@@ -14,6 +14,7 @@ public class RequestDetailResponse {
 
     private Long requestId;
     private String requestNo;
+    private String requestType;
     
     private Long sourceRequestId;
     private String sourceRequestNo;
@@ -37,4 +38,6 @@ public class RequestDetailResponse {
     private String detailContent;
     private String isUrgent;
     private LocalDate desiredDate;
+    private ViewCreateResultResponse viewCreateResult;
+    private boolean canRegisterViewResult;
 }

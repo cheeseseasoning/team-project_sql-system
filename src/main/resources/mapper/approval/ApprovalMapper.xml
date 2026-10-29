@@ -108,6 +108,7 @@
             resultType="com.sqlflow.approval.dto.PendingApprovalResponse">
         SELECT R.REQUEST_ID,
                R.REQUEST_NO,
+               R.REQUEST_TYPE,
                R.TITLE,
                R.PURPOSE,
                DU.USER_NAME AS DRAFTER_NAME,
@@ -129,6 +130,7 @@
             resultType="com.sqlflow.request.dto.RequestDetailResponse">
         SELECT R.REQUEST_ID,
                R.REQUEST_NO,
+               R.REQUEST_TYPE,
                R.TITLE,
                R.PURPOSE,
                R.DETAIL_CONTENT,
@@ -156,15 +158,10 @@
 
     <select id="selectPendingApprovalItems"
             resultType="com.sqlflow.request.dto.RequestItemResponse">
-        SELECT I.QUERY_ID,
-               I.QUERY_ORDER,
-               I.QUERY_TITLE,
-               I.SQL_TEXT,
-               I.AUTHORING_TYPE,
-               I.VALIDATION_STATUS,
-               I.ITEM_CLASS
-        FROM QUERY_ITEM I
-        WHERE I.REQUEST_ID = #{requestId}
+        SELECT I.QUERY_ID, I.QUERY_ORDER, I.QUERY_TITLE, I.SQL_TEXT,
+               I.AUTHORING_TYPE, I.VALIDATION_STATUS, I.ITEM_CLASS
+        FROM QUERY_ITEM I JOIN QUERY_REQUEST R ON R.REQUEST_ID = I.REQUEST_ID
+        WHERE I.REQUEST_ID = #{requestId} AND R.REQUEST_TYPE = 'SELECT'
           AND EXISTS (
               SELECT 1
               FROM APPROVAL A
@@ -172,7 +169,18 @@
               WHERE A.REQUEST_ID = I.REQUEST_ID
               <include refid="pendingApprovalEligibility"/>
           )
-        ORDER BY I.QUERY_ORDER
+        UNION ALL
+        SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
+               V.SQL_CONTENT AS SQL_TEXT, NULL AS AUTHORING_TYPE,
+               NULL AS VALIDATION_STATUS, NULL AS ITEM_CLASS
+        FROM VIEW_CREATE_SQL V JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
+        WHERE V.REQUEST_ID = #{requestId} AND R.REQUEST_TYPE = 'CREATE_VIEW'
+          AND EXISTS (
+              SELECT 1 FROM APPROVAL A JOIN USERS U ON U.USER_ID = A.APPROVER_ID
+              WHERE A.REQUEST_ID = V.REQUEST_ID
+              <include refid="pendingApprovalEligibility"/>
+          )
+        ORDER BY QUERY_ORDER, QUERY_ID
     </select>
 
     <select id="selectRequestContext"

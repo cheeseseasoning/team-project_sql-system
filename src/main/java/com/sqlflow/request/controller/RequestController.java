@@ -32,6 +32,8 @@ import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.dto.RequestPageResponse;
 import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.dto.RequestSubmitRequest;
+import com.sqlflow.request.dto.ViewCreateDraftRequest;
+import com.sqlflow.request.dto.ViewCreateResultRequest;
 import com.sqlflow.request.service.DepartmentRequestService;
 import com.sqlflow.request.service.RequestService;
 
@@ -46,6 +48,16 @@ public class RequestController {
 	private final RequestService requestService;
 	private final ApprovalService approvalService;
 	private final DepartmentRequestService departmentRequestService;
+
+	@PostMapping("/department/{requestId}/view-create-result")
+	public ResponseEntity<Void> registerViewCreateResult(
+			@PathVariable Long requestId,
+			@Valid @RequestBody ViewCreateResultRequest input,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		departmentRequestService.registerViewCreateResult(
+				requestId, user.getUserId(), input.getResultStatus(), input.getResultContent());
+		return ResponseEntity.noContent().build();
+	}
 	
 	@GetMapping("/dashboard")
 	public RequestDashboardResponse getMyDashboard(
@@ -125,6 +137,24 @@ public class RequestController {
 		return ResponseEntity.created(URI.create("/api/requests/mine/" + requestId))
 				.body(new DraftCreateResponse(requestId));
 	}
+
+	@PostMapping("/view-create-drafts")
+	public ResponseEntity<DraftCreateResponse> createViewDraft(
+			@Valid @RequestBody ViewCreateDraftRequest input,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		Long requestId = requestService.createViewDraft(input, user.getUserId(), user.getDeptId());
+		return ResponseEntity.created(URI.create("/api/requests/mine/" + requestId))
+				.body(new DraftCreateResponse(requestId));
+	}
+
+	@PutMapping("/view-create-drafts/{requestId}")
+	public ResponseEntity<Void> updateViewDraft(
+			@PathVariable Long requestId,
+			@Valid @RequestBody ViewCreateDraftRequest input,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		requestService.updateViewDraft(requestId, input, user.getUserId());
+		return ResponseEntity.noContent().build();
+	}
 	
 	@PutMapping("/drafts/{requestId}")
 	public ResponseEntity<Void> updateDraft(
@@ -164,6 +194,20 @@ public class RequestController {
 			@PathVariable Long requestId,
 			@AuthenticationPrincipal SqlFlowUserDetails user) {
 		return requestService.validateDraftSql(requestId, user.getUserId());
+	}
+
+	@GetMapping("/{requestId}/view-sql/download")
+	public ResponseEntity<byte[]> downloadApprovedViewSql(
+			@PathVariable Long requestId,
+			@AuthenticationPrincipal SqlFlowUserDetails user) {
+		byte[] content = requestService.downloadApprovedViewSql(requestId, user.getUserId());
+		return ResponseEntity.ok()
+				.header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+						org.springframework.http.ContentDisposition.attachment()
+							.filename("view-create-request-" + requestId + ".sql", java.nio.charset.StandardCharsets.UTF_8)
+							.build().toString())
+				.contentType(org.springframework.http.MediaType.parseMediaType("application/sql; charset=UTF-8"))
+				.body(content);
 	}
 
 	@ExceptionHandler(ResponseStatusException.class)

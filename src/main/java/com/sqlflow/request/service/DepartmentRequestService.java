@@ -97,17 +97,39 @@ public class DepartmentRequestService {
                     "조회 요청을 찾을 수 없습니다.");
         }
 
-        detail.setItems(
-                departmentRequestMapper.selectVisibleRequestItems(
-                        requestId,
-                        actorId));
+        detail.setItems("CREATE_VIEW".equals(detail.getRequestType())
+                ? departmentRequestMapper.selectVisibleViewSqlItems(requestId, actorId)
+                : departmentRequestMapper.selectVisibleRequestItems(requestId, actorId));
 
         detail.setApprovals(
                 departmentRequestMapper.selectVisibleRequestApprovals(
                         requestId,
                         actorId));
+        if ("CREATE_VIEW".equals(detail.getRequestType())) {
+            detail.setViewCreateResult(departmentRequestMapper.selectVisibleViewCreateResult(requestId, actorId));
+            detail.setCanRegisterViewResult(departmentRequestMapper.canRegisterViewCreateResult(requestId, actorId) == 1);
+        }
 
         return detail;
+    }
+
+    @Transactional(transactionManager = "managementTransactionManager")
+    public void registerViewCreateResult(Long requestId, Long actorId, String status, String content) {
+        if (actorId == null || actorId <= 0) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        }
+        if (!"COMPLETED".equals(status) && !"FAILED".equals(status)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "처리 결과 상태가 올바르지 않습니다.");
+        }
+        if (content == null || content.isBlank() || content.strip().length() > 4000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "처리 결과를 1~4000자로 입력해 주세요.");
+        }
+        if (departmentRequestMapper.canRegisterViewCreateResult(requestId, actorId) != 1) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "최종 승인된 뷰 요청은 DB팀 결재자만 결과를 등록할 수 있습니다.");
+        }
+        if (departmentRequestMapper.upsertViewCreateResult(requestId, actorId, status, content.strip()) != 1) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "처리 결과를 저장하지 못했습니다. 요청 상태를 확인해 주세요.");
+        }
     }
     
     private void validateDetailIds(Long requestId, Long actorId) {

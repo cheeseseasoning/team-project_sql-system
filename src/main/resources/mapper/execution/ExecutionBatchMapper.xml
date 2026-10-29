@@ -57,6 +57,7 @@
 	           APPROVAL_STATUS
 	    FROM QUERY_REQUEST
 	    WHERE REQUEST_ID = #{requestId}
+	      AND REQUEST_TYPE = 'SELECT'
 	    FOR UPDATE
 	</select>
 	

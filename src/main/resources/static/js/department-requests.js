@@ -132,7 +132,10 @@
                             + '</a>'
                             + '<span class="secondary">'
                             + esc(item.requestNo)
-                            + '</span></td>'
+                            + '</span>'
+                            + (item.requestType === 'CREATE_VIEW'
+                                ? '<span class="secondary">뷰 생성 요청</span>' : '')
+                            + '</td>'
                             + '<td>' + esc(item.drafterName) + '</td>'
                             + '<td>' + esc(item.deptName) + '</td>'
                             + '<td>'
@@ -142,7 +145,13 @@
                             )
                             + '<span class="secondary">SQL '
                             + esc(item.sqlCount)
-                            + '개</span></td>'
+                            + '개</span>'
+                            + (item.viewResultStatus
+                                ? '<span class="secondary">외부 처리: '
+                                    + esc({ PENDING: '처리 대기', COMPLETED: '처리 완료', FAILED: '처리 실패' }[item.viewResultStatus] || item.viewResultStatus)
+                                    + '</span>'
+                                : '')
+                            + '</td>'
                             + '<td>' + esc(dateTime(item.submittedAt)) + '</td>'
                             + '<td>' + esc(dateOnly(item.desiredDate)) + '</td>'
                             + '</tr>';

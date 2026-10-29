@@ -9,9 +9,13 @@
     const addButton = document.getElementById('view-add-sql');
     const count = document.getElementById('view-sql-count');
     const message = document.getElementById('view-form-message');
+    const saveButton = document.getElementById('view-save-draft');
 
     const title = document.getElementById('view-request-title');
     const purpose = document.getElementById('view-request-purpose');
+    const editConfig = document.getElementById('view-create-edit-config');
+    const editMode = editConfig.dataset.editMode === 'true';
+    const requestId = editConfig.dataset.requestId;
 
     let nextItemId = 0;
 
@@ -46,7 +50,7 @@
         addButton.disabled = sections.length >= MAX_SQL_COUNT;
     }
 
-    function addSql(focusEditor) {
+    function addSql(focusEditor, values = {}) {
         if (getSections().length >= MAX_SQL_COUNT) {
             return;
         }
@@ -57,6 +61,8 @@
 
         const sqlTitle = section.querySelector('.view-sql-title');
         const editor = section.querySelector('.sql-editor');
+        sqlTitle.value = values.queryTitle || '';
+        editor.value = values.sqlText || '';
 
         sqlTitle.name = 'sqlTitle-' + itemId;
         editor.name = 'sqlText-' + itemId;
@@ -180,5 +186,73 @@
             + 'SQL 문법 검증과 서버 저장은 아직 수행하지 않았습니다.';
     });
 
+    saveButton.addEventListener('click', async () => {
+        message.textContent = '';
+        if (!validateRequiredFields()) return;
+        const request = readRequest();
+        saveButton.disabled = true;
+        saveButton.textContent = '저장 중…';
+        try {
+            if (editMode) {
+                await api('/requests/view-create-drafts/'
+                    + encodeURIComponent(requestId), {
+                    method: 'PUT',
+                    body: JSON.stringify(request)
+                });
+                location.href = BASE + '/requests/' + encodeURIComponent(requestId);
+            } else {
+                const result = await post('/requests/view-create-drafts', request);
+                location.href = BASE + '/requests/' + encodeURIComponent(result.requestId);
+            }
+        } catch (error) {
+            message.textContent = error.message || '초안을 저장하지 못했습니다.';
+            saveButton.disabled = false;
+            saveButton.textContent = editMode ? '수정 저장' : '초안 저장';
+        }
+    });
+
     addSql(false);
+
+    async function loadViewDraft() {
+        if (!editMode) return;
+        form.querySelectorAll('input, textarea, button').forEach(element => {
+            element.disabled = true;
+        });
+        saveButton.textContent = '초안 불러오는 중…';
+        try {
+            const request = await api(
+                '/requests/mine/' + encodeURIComponent(requestId)
+            );
+            if (request.requestStatus !== 'DRAFT'
+                    || request.requestType !== 'CREATE_VIEW') {
+                throw new Error('수정할 수 있는 뷰 생성 초안이 아닙니다.');
+            }
+            title.value = request.title || '';
+            purpose.value = request.purpose || '';
+            document.getElementById('view-request-detail').value =
+                request.detailContent || '';
+            document.getElementById('view-request-urgent').checked =
+                request.isUrgent === 'Y';
+            document.getElementById('view-request-date').value =
+                request.desiredDate || '';
+            items.replaceChildren();
+            nextItemId = 0;
+            (request.items || []).forEach(item => addSql(false, {
+                queryTitle: item.queryTitle,
+                sqlText: item.sqlText
+            }));
+            if (getSections().length === 0) addSql(false);
+            form.querySelectorAll('input, textarea, button').forEach(element => {
+                element.disabled = false;
+            });
+            refreshOrder();
+            saveButton.textContent = '수정 저장';
+        } catch (error) {
+            message.textContent = error.message || '뷰 생성 초안을 불러오지 못했습니다.';
+            saveButton.textContent = '수정 저장';
+            saveButton.disabled = true;
+        }
+    }
+
+    loadViewDraft();
 })();

@@ -11,6 +11,7 @@ public class RequestListResponse {
 
     private Long requestId;
     private String requestNo;
+    private String requestType;
 
     private String title;
     private String isUrgent;
@@ -19,6 +20,7 @@ public class RequestListResponse {
     private String approvalStatus;
 
     private Integer sqlCount;
+    private String viewResultStatus;
     private LocalDateTime createdAt;
     private LocalDateTime desiredDate;
 }

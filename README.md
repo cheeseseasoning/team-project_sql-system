@@ -38,6 +38,8 @@ JSP 지원을 위해 실행 가능한 WAR로 구성했습니다. 기본 포트�
 | `/notices` | notices.jsp | 공지 목록 및 상세 |
 | `/login` | login.jsp | 활성 계정 로그인 및 세션 생성 |
 
+뷰 생성 요청은 `/view-create-requests/new`에서 작성합니다. 초안은 `QUERY_REQUEST.REQUEST_TYPE='CREATE_VIEW'`와 `VIEW_CREATE_SQL`에 저장하고, 제출 후 기존 `APPROVAL` 결재선을 사용합니다. DB팀 결재자의 최종 승인 뒤 부서 기안 상세에서 `.sql` 파일을 내려받고, 외부 처리 결과를 등록할 수 있습니다. 처리 결과는 요청 상세에서 요청자와 부서 구성원이 확인합니다. 배포 전에 관리 Oracle DB에 `db/manual/V004__view_create_request.sql`, `db/manual/V005__view_create_result.sql`을 순서대로 적용해야 합니다. 뷰 생성 요청은 일반 조회 실행 대기열에 등록되지 않습니다.
+
 공통 헤더·사이드바는 `WEB-INF/views/fragments/top.jspf`, 하단은 `bottom.jspf`입니다. 로그인은 Spring Security 폼 인증과 서버 세션으로 처리하며, `USERS.LOGIN_ID`, BCrypt 형식의 `PASSWORD_HASH`, `ENABLED='Y'` 계정을 사용합니다. 요청자 ID와 부서는 로그인 계정에서 가져옵니다. 로그아웃과 변경 요청에 CSRF 토큰을 적용합니다. 화면과 요청 날짜는 한국 시간 기준입니다.
 
 ## 시연 순서

@@ -2,6 +2,7 @@ const requestId = $('#detail-config').dataset.requestId;
 let detailItems = [];
 let validationMessages = new Map();
 let sqlValidationInProgress = false;
+let currentRequestType = 'SELECT';
 
 function validationMessageStorageKey(queryId) {
 	return 'sqlflow-validation-message:' + requestId + ':' + queryId;
@@ -65,6 +66,8 @@ async function loadDetail() {
 		);
 
 		RequestDetailRenderer.renderRequestInfo(request);
+	RequestDetailRenderer.renderViewCreateResult(request);
+		currentRequestType = request.requestType || 'SELECT';
 
 		const hasSource =
 			request.sourceRequestId != null
@@ -85,14 +88,16 @@ async function loadDetail() {
 		}
 
 		// 초안 수정 화면으로 이동할 주소
-		$('#draft-edit-link').href =
-			BASE + '/requests/'
-			+ encodeURIComponent(request.requestId)
-			+ '/edit';
+		$('#draft-edit-link').href = request.requestType === 'CREATE_VIEW'
+			? BASE + '/view-create-requests/'
+				+ encodeURIComponent(request.requestId) + '/edit'
+			: BASE + '/requests/'
+				+ encodeURIComponent(request.requestId) + '/edit';
 
 		// 초안 상태에서만 수정 버튼 표시
 		$('#draft-edit-action').hidden =
 			request.requestStatus !== 'DRAFT';
+		$('#draft-edit-link').hidden = false;
 
 		$('#approval-line-open').disabled =
 			request.requestStatus !== 'DRAFT';
@@ -112,7 +117,8 @@ async function loadDetail() {
 		validationMessages = restoreValidationMessages(detailItems);
 		
 		$('#sql-validation-controls').hidden =
-			request.requestStatus !== 'DRAFT';
+			request.requestStatus !== 'DRAFT'
+			|| currentRequestType === 'CREATE_VIEW';
 
 		$('#detail-items').innerHTML =
 			renderDetailItems(detailItems);
@@ -1165,7 +1171,8 @@ $('#request-submit-open').addEventListener('click', function () {
 		return;
 	}
 
-	if (detailItems.some(item => item.validationStatus !== 'VALID')) {
+	if (currentRequestType !== 'CREATE_VIEW'
+			&& detailItems.some(item => item.validationStatus !== 'VALID')) {
 		if (detailItems.some(item => item.validationStatus === 'INVALID')) {
 			window.alert('검증 실패한 SQL이 있습니다. 실패 원인을 수정한 뒤 전체 SQL을 다시 검증해 주세요.');
 		} else {
@@ -1232,12 +1239,14 @@ $('#request-submit-open').addEventListener('click', function () {
 			location.reload();
 		} catch (error) {
 			requestSubmitting = false;
-			// Server-side resubmission checks may catch policy or metadata changes
-			// made after the manual validation. Refresh per-SQL status and reasons.
-			try {
-				await validateSavedSqls();
-			} catch (validationRefreshError) {
-				// Keep the original submission error visible below.
+			// Only SELECT requests use the shared query validator. CREATE_VIEW
+			// submission errors must remain independent of that endpoint.
+			if (currentRequestType !== 'CREATE_VIEW') {
+				try {
+					await validateSavedSqls();
+				} catch (validationRefreshError) {
+					// Keep the original submission error visible below.
+				}
 			}
 			notify(error.message, true);
 		}
