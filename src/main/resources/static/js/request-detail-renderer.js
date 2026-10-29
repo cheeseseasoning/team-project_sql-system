@@ -27,11 +27,13 @@ window.RequestDetailRenderer = (() => {
 	    CANCELLED: '결재 취소'
 	});
 
-    const validationNames = {
-        PENDING: '검증 전',
-        VALID: '검증 완료',
-        INVALID: '검증 실패'
-    };
+	const validationNames = {
+	    PENDING: '검증 전',
+	    VALID: '검증 완료',
+	    INVALID: '검증 실패',
+	    WARNING: '검사 불확실',
+	    BLOCKED: '제출 차단'
+	};
 
     const authoringNames = {
         MANUAL: '직접 작성',
@@ -67,20 +69,31 @@ window.RequestDetailRenderer = (() => {
             const validationMessage =
                 validationMessages.get(item.queryId);
 
-            const validationDetail =
-                item.validationStatus === 'INVALID'
-                    ? '<p class="sql-validation-message" role="alert">'
-                        + '<strong>검증 실패 원인:</strong> '
-                        + esc(
-							validationMessage
-							|| (
-							    readOnly
-							        ? '저장된 SQL의 검증 상태가 실패입니다.'
-							        : '전체 SQL 검증을 다시 실행해 원인을 확인하세요.'
-							)
-                        )
-                        + '</p>'
-                    : '';
+				const showValidationDetail =
+				    Boolean(validationMessage)
+				    || ['INVALID', 'WARNING', 'BLOCKED']
+				        .includes(item.validationStatus);
+
+				const validationDetail = showValidationDetail
+				    ? '<p class="sql-validation-message'
+				        + (
+				            item.validationStatus === 'WARNING'
+				                ? ' is-warning'
+				                : item.validationStatus === 'VALID'
+				                    ? ' is-valid'
+				                    : ''
+				        )
+				        + '" role="status">'
+				        + esc(
+				            validationMessage
+				            || (
+				                readOnly
+				                    ? '저장된 SQL의 검증 상태를 확인해 주세요.'
+				                    : '전체 SQL 검증을 다시 실행해 안내를 확인하세요.'
+				            )
+				        )
+				        + '</p>'
+				    : '';
 
             return '<article class="result-item">'
                 + '<div class="panel-heading">'

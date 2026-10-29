@@ -10,6 +10,11 @@
     const count = document.getElementById('view-sql-count');
     const message = document.getElementById('view-form-message');
     const saveButton = document.getElementById('view-save-draft');
+	
+	const validateButton = document.getElementById('view-validate-sqls');
+
+	let validationInProgress = false;
+	let validationRevision = 0;
 
     const title = document.getElementById('view-request-title');
     const purpose = document.getElementById('view-request-purpose');
@@ -18,12 +23,135 @@
     const requestId = editConfig.dataset.requestId;
 
     let nextItemId = 0;
+	
+	/**
+	 * SQL 수정·추가·삭제·순서 변경 시 이전 검사 결과를 지운다.
+	 */
+	function invalidateSqlValidation() {
+	    validationRevision++;
+
+	    items.querySelectorAll('.view-sql-validation')
+	        .forEach(element => element.remove());
+
+	    message.textContent = '';
+	}
+
+	async function validateInputSqls() {
+	    if (validationInProgress) return;
+
+	    const sections = getSections();
+	    const editors = sections.map(
+	        section => section.querySelector('.sql-editor')
+	    );
+
+	    // 제목·목적이 아니라 SQL 입력란만 검사한다.
+	    for (const editor of editors) {
+	        if (!editor.reportValidity()) return;
+	    }
+
+	    invalidateSqlValidation();
+
+	    const revision = validationRevision;
+	    const sqls = editors.map(editor => editor.value);
+
+	    validationInProgress = true;
+	    validateButton.disabled = true;
+	    validateButton.textContent = '검사 중…';
+
+	    try {
+	        const results = await post(
+	            '/requests/view-sql/validate',
+	            { sqls: sqls }
+	        );
+
+	        // 응답을 기다리는 동안 SQL이 변경됐다면 결과를 적용하지 않는다.
+	        if (revision !== validationRevision) {
+	            message.textContent =
+	                'SQL 구성이 변경됐습니다. 다시 검사해 주세요.';
+	            return;
+	        }
+
+	        const names = {
+	            VALID: '기본 검사 통과',
+	            WARNING: '검사 불확실',
+	            BLOCKED: '제출 차단'
+	        };
+
+	        if (!Array.isArray(results)
+	                || results.length !== sections.length
+	                || !results.every(result =>
+	                    result
+	                    && Object.prototype.hasOwnProperty.call(
+	                        names, result.status
+	                    )
+	                )) {
+	            throw new Error(
+	                '전체 SQL의 검사 결과를 받지 못했습니다. 다시 검사해 주세요.'
+	            );
+	        }
+
+	        results.forEach((result, index) => {
+	            const element = document.createElement('p');
+
+	            element.className =
+	                'sql-validation-message view-sql-validation';
+
+	            if (result.status === 'WARNING') {
+	                element.classList.add('is-warning');
+	            } else if (result.status === 'VALID') {
+	                element.classList.add('is-valid');
+	            }
+
+	            element.setAttribute('role', 'status');
+
+	            // 서버 메시지를 HTML로 해석하지 않고 텍스트로 표시한다.
+	            element.textContent =
+	                names[result.status] + ': ' + result.message;
+
+	            sections[index].append(element);
+	        });
+
+	        const blockedCount = results.filter(
+	            result => result.status === 'BLOCKED'
+	        ).length;
+
+	        const warningCount = results.filter(
+	            result => result.status === 'WARNING'
+	        ).length;
+
+	        if (blockedCount > 0) {
+	            message.textContent =
+	                blockedCount + '개 SQL이 제출 차단 대상입니다. '
+	                + '항목별 안내를 확인해 수정하세요.';
+	        } else if (warningCount > 0) {
+	            message.textContent =
+	                warningCount + '개 SQL은 검사 불확실 상태입니다. '
+	                + '제출은 가능하지만 DB팀 검토가 필요합니다.';
+	        } else {
+	            message.textContent =
+	                '전체 SQL이 기본 파싱을 통과했습니다. '
+	                + '실제 DB 실행 성공을 보장하지는 않습니다.';
+	        }
+	    } catch (error) {
+	        if (revision === validationRevision) {
+	            message.textContent =
+	                error.message || 'SQL 검사 요청에 실패했습니다.';
+	        }
+	    } finally {
+	        validationInProgress = false;
+	        validateButton.disabled = false;
+	        validateButton.textContent = 'SQL 기본 검사';
+	    }
+	}
+
+	validateButton.addEventListener('click', validateInputSqls);
 
     function getSections() {
         return Array.from(items.querySelectorAll('.sql-item'));
     }
 
     function refreshOrder() {
+		invalidateSqlValidation();
         const sections = getSections();
 
         sections.forEach((section, index) => {
@@ -158,33 +286,21 @@
             : 'SQL 처리 순서를 변경했습니다.';
     });
 
-    form.addEventListener('input', event => {
-        if (typeof event.target.setCustomValidity === 'function') {
-            event.target.setCustomValidity('');
-        }
+	form.addEventListener('input', event => {
+	    if (typeof event.target.setCustomValidity === 'function') {
+	        event.target.setCustomValidity('');
+	    }
 
-        message.textContent = '';
-    });
+	    if (event.target.matches('.sql-editor')) {
+	        invalidateSqlValidation();
+	    } else {
+	        message.textContent = '';
+	    }
+	});
 
-    form.addEventListener('change', () => {
-        message.textContent = '';
-    });
-
-    form.addEventListener('submit', event => {
-        event.preventDefault();
-
-        if (!validateRequiredFields()) {
-            return;
-        }
-
-        const request = readRequest();
-
-        message.textContent =
-            '필수 입력값을 확인했습니다. SQL '
-            + request.items.length
-            + '개가 화면 순서대로 구성되어 있습니다. '
-            + 'SQL 문법 검증과 서버 저장은 아직 수행하지 않았습니다.';
-    });
+	form.addEventListener('submit', event => {
+	    event.preventDefault();
+	});
 
     saveButton.addEventListener('click', async () => {
         message.textContent = '';

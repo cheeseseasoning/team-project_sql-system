@@ -98,9 +98,11 @@
         </span>
 
         <div>
-            <button type="submit" class="button">
-                입력 확인
-            </button>
+			<button type="button"
+			        id="view-validate-sqls"
+			        class="button">
+			    SQL문 문법 검사
+			</button>
             <button type="button"
                     class="button primary"
                     id="view-save-draft"
@@ -159,7 +161,7 @@
     </section>
 </template>
 
-<script src="${pageContext.request.contextPath}/js/view-create-request-form.js?v=20261028-edit"
+<script src="${pageContext.request.contextPath}/js/view-create-request-form.js?v=20261029-validation"
         defer></script>
 
 <%@ include file="fragments/bottom.jspf" %>

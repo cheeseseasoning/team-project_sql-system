@@ -73,11 +73,24 @@ class ApprovalServiceTest {
     void pendingApprovalListIsScopedToAuthenticatedApprover() {
         List<PendingApprovalResponse> expected = List.of(
                 new PendingApprovalResponse(
-                        REQUEST_ID, "Q-20261019-100", "SELECT", "매출 조회", "월간 보고",
-                        "요청자", "영업팀", null, 1, "DIRECTOR"));
-        when(approvalMapper.selectPendingApprovals(ACTOR_ID)).thenReturn(expected);
+                        REQUEST_ID,
+                        "Q-20261019-100",
+                        "SELECT",
+                        "매출 조회",
+                        "월간 보고",
+                        "요청자",
+                        "영업팀",
+                        null,
+                        1,
+                        "DIRECTOR"));
 
-        assertEquals(expected, approvalService.getPendingApprovals(ACTOR_ID));
+        when(approvalMapper.selectPendingApprovals(ACTOR_ID))
+                .thenReturn(expected);
+
+        assertEquals(
+                expected,
+                approvalService.getPendingApprovals(ACTOR_ID));
+
         verify(approvalMapper).selectPendingApprovals(ACTOR_ID);
     }
 
