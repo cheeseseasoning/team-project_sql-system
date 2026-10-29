@@ -42,7 +42,10 @@
             const detailUrl = BASE + '/approvals/' + encodeURIComponent(item.requestId);
             return '<tr>'
                 + '<td><a class="table-title" href="' + detailUrl + '">' + esc(item.title) + '</a>'
-                + '<span class="secondary">' + esc(item.requestNo) + '</span></td>'
+                + '<span class="secondary">' + esc(item.requestNo) + '</span>'
+                + (item.requestType === 'CREATE_VIEW'
+                    ? '<span class="secondary">뷰 생성 요청</span>' : '')
+                + '</td>'
                 + '<td>' + esc(item.deptName) + '<span class="secondary">' + esc(item.drafterName) + '</span></td>'
                 + '<td>' + esc(approvalOrderName(item.approvalOrder)) + '</td>'
                 + '<td>' + esc(date(item.submittedAt)) + '</td>'

@@ -81,6 +81,7 @@
             resultType="com.sqlflow.request.dto.DepartmentRequestListResponse">
         SELECT R.REQUEST_ID,
                R.REQUEST_NO,
+               R.REQUEST_TYPE,
                R.TITLE,
                R.IS_URGENT,
                R.REQUEST_CLASS,
@@ -91,11 +92,18 @@
                R.SUBMITTED_AT,
                DRAFTER.USER_NAME AS DRAFTER_NAME,
                REQUEST_DEPT.DEPT_NAME,
-               (
-                   SELECT COUNT(*)
-                   FROM QUERY_ITEM I
-                   WHERE I.REQUEST_ID = R.REQUEST_ID
-               ) AS SQL_COUNT
+               CASE WHEN R.REQUEST_TYPE = 'CREATE_VIEW'
+                    THEN (SELECT COUNT(*) FROM VIEW_CREATE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
+                    ELSE (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID = R.REQUEST_ID)
+               END AS SQL_COUNT,
+               CASE WHEN R.REQUEST_TYPE = 'CREATE_VIEW'
+                          AND R.REQUEST_STATUS = 'READY'
+                          AND R.APPROVAL_STATUS = 'APPROVED'
+                    THEN NVL((SELECT VR.RESULT_STATUS
+                              FROM VIEW_CREATE_RESULT VR
+                              WHERE VR.REQUEST_ID = R.REQUEST_ID), 'PENDING')
+                    ELSE NULL
+               END AS VIEW_RESULT_STATUS
         <include refid="requestFrom"/>
         WHERE
             <include refid="visibilityConditions"/>
@@ -109,6 +117,7 @@
 	        resultType="com.sqlflow.request.dto.RequestDetailResponse">
 	    SELECT R.REQUEST_ID,
 	           R.REQUEST_NO,
+	           R.REQUEST_TYPE,
 	           R.TITLE,
 	           R.PURPOSE,
 	           R.DETAIL_CONTENT,
@@ -141,6 +150,19 @@
 	    WHERE R.REQUEST_ID = #{requestId}
 	      AND <include refid="visibilityConditions"/>
 	    ORDER BY I.QUERY_ORDER, I.QUERY_ID
+	</select>
+
+	<select id="selectVisibleViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
+	    SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
+	           V.SQL_CONTENT AS SQL_TEXT
+	    FROM VIEW_CREATE_SQL V
+	    JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
+	    JOIN USERS DRAFTER ON DRAFTER.USER_ID = R.DRAFTER_ID
+	    JOIN DEPARTMENT REQUEST_DEPT ON REQUEST_DEPT.DEPT_ID = R.DEPT_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND R.REQUEST_TYPE = 'CREATE_VIEW'
+	      AND <include refid="visibilityConditions"/>
+	    ORDER BY V.QUERY_ORDER, V.QUERY_ID
 	</select>
 	
 	<select id="selectVisibleRequestApprovals"
@@ -199,5 +221,60 @@
 	      AND <include refid="visibilityConditions"/>
 	    ORDER BY A.APPROVAL_ORDER, A.APPROVAL_ID
 	</select>
+
+    <select id="selectVisibleViewCreateResult"
+            resultType="com.sqlflow.request.dto.ViewCreateResultResponse">
+        SELECT VR.RESULT_STATUS,
+               VR.RESULT_CONTENT,
+               U.USER_NAME AS REGISTERED_BY_NAME,
+               VR.REGISTERED_AT
+        FROM VIEW_CREATE_RESULT VR
+        JOIN QUERY_REQUEST R ON R.REQUEST_ID = VR.REQUEST_ID
+        JOIN USERS DRAFTER ON DRAFTER.USER_ID = R.DRAFTER_ID
+        JOIN DEPARTMENT REQUEST_DEPT ON REQUEST_DEPT.DEPT_ID = R.DEPT_ID
+        JOIN USERS U ON U.USER_ID = VR.REGISTERED_BY
+        WHERE R.REQUEST_ID = #{requestId}
+          AND R.REQUEST_TYPE = 'CREATE_VIEW'
+          AND <include refid="visibilityConditions"/>
+    </select>
+
+    <select id="canRegisterViewCreateResult" resultType="int">
+        SELECT COUNT(*)
+        FROM QUERY_REQUEST R
+        WHERE R.REQUEST_ID = #{requestId}
+          AND R.REQUEST_TYPE = 'CREATE_VIEW'
+          AND R.REQUEST_STATUS = 'READY'
+          AND R.APPROVAL_STATUS = 'APPROVED'
+          AND EXISTS (
+              SELECT 1
+              FROM USERS U
+              JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+              JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
+              JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID
+              WHERE U.USER_ID = #{actorId}
+                AND U.ENABLED = 'Y'
+                AND D.DEPT_NAME = 'DB팀'
+                AND RL.ROLE_CODE IN ('DB_APPROVER', 'DB_ADMIN')
+          )
+    </select>
+
+    <insert id="upsertViewCreateResult">
+        MERGE INTO VIEW_CREATE_RESULT T
+        USING (SELECT #{requestId} AS REQUEST_ID FROM DUAL) S
+           ON (T.REQUEST_ID = S.REQUEST_ID)
+        WHEN MATCHED THEN UPDATE SET
+            T.RESULT_STATUS = #{resultStatus},
+            T.RESULT_CONTENT = #{resultContent, jdbcType=CLOB},
+            T.REGISTERED_BY = #{actorId},
+            T.REGISTERED_AT = SYSTIMESTAMP,
+            T.UPDATED_AT = SYSTIMESTAMP
+        WHEN NOT MATCHED THEN INSERT (
+            REQUEST_ID, RESULT_STATUS, RESULT_CONTENT, REGISTERED_BY,
+            REGISTERED_AT, UPDATED_AT
+        ) VALUES (
+            S.REQUEST_ID, #{resultStatus}, #{resultContent, jdbcType=CLOB},
+            #{actorId}, SYSTIMESTAMP, SYSTIMESTAMP
+        )
+    </insert>
 	
 </mapper>

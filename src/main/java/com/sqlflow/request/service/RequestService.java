@@ -23,6 +23,7 @@ import com.sqlflow.request.dto.RequestPageResponse;
 import com.sqlflow.request.dto.RequestSubmitRequest;
 import com.sqlflow.request.dto.RequestSummaryResponse;
 import com.sqlflow.request.dto.RequestSqlValidationResult;
+import com.sqlflow.request.dto.ViewCreateDraftRequest;
 import com.sqlflow.request.mapper.RequestMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -50,6 +51,7 @@ public class RequestService {
 
 		// 2. 요청서 구성
 		QueryRequest request = new QueryRequest();
+		request.setRequestType("SELECT");
 		request.setRequestId(requestId);
 		request.setRequestNo(createRequestNo(requestId));
 		request.setDrafterId(drafterId);
@@ -74,6 +76,77 @@ public class RequestService {
 		);
 
 		return requestId;
+	}
+
+	@Transactional(transactionManager = "managementTransactionManager")
+	public Long createViewDraft(ViewCreateDraftRequest input, Long drafterId, Long deptId) {
+		validateViewSqlItems(input);
+		Long requestId = requestMapper.selectNextRequestId();
+		QueryRequest request = new QueryRequest();
+		request.setRequestId(requestId);
+		request.setRequestNo(createRequestNo(requestId));
+		request.setRequestType("CREATE_VIEW");
+		request.setDrafterId(drafterId);
+		request.setDeptId(deptId);
+		request.setTitle(input.getTitle().strip());
+		request.setPurpose(input.getPurpose().strip());
+		request.setDetailContent(normalizeOptionalText(input.getDetailContent()));
+		request.setIsUrgent(input.getIsUrgent());
+		request.setDesiredDate(input.getDesiredDate());
+		requestMapper.insertRequest(request);
+		saveViewSqlItems(requestId, input);
+		return requestId;
+	}
+
+	@Transactional(transactionManager = "managementTransactionManager", rollbackFor = Exception.class)
+	public void updateViewDraft(Long requestId, ViewCreateDraftRequest input, Long drafterId) {
+		validateViewSqlItems(input);
+		String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
+		if (status == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청을 찾을 수 없습니다.");
+		}
+		if (!"DRAFT".equals(status)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 요청만 수정할 수 있습니다.");
+		}
+		RequestDetailResponse existing = requestMapper.selectMyRequestDetail(requestId, drafterId);
+		if (existing == null || !"CREATE_VIEW".equals(existing.getRequestType())) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "뷰 생성 요청을 찾을 수 없습니다.");
+		}
+		QueryRequest request = new QueryRequest();
+		request.setRequestId(requestId);
+		request.setDrafterId(drafterId);
+		request.setTitle(input.getTitle().strip());
+		request.setPurpose(input.getPurpose().strip());
+		request.setDetailContent(normalizeOptionalText(input.getDetailContent()));
+		request.setIsUrgent(input.getIsUrgent());
+		request.setDesiredDate(input.getDesiredDate());
+		if (requestMapper.updateDraft(request) != 1) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 수정할 수 없습니다.");
+		}
+		requestMapper.deleteDraftViewSql(requestId, drafterId);
+		saveViewSqlItems(requestId, input);
+	}
+
+	private void validateViewSqlItems(ViewCreateDraftRequest input) {
+		if (input.getItems() == null || input.getItems().isEmpty() || input.getItems().size() > 5) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "뷰 생성 SQL은 1개 이상, 5개 이하로 입력하세요.");
+		}
+		for (ViewCreateDraftRequest.SqlEntry item : input.getItems()) {
+			String sql = item.getSqlText() == null ? "" : item.getSqlText().strip();
+			if (!sql.matches("(?is)^CREATE\\s+(?:OR\\s+REPLACE\\s+)?VIEW\\b.*")
+					|| sql.substring(0, sql.length() - (sql.endsWith(";") ? 1 : 0)).contains(";")) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "각 SQL은 CREATE VIEW 문 하나만 입력할 수 있습니다.");
+			}
+		}
+	}
+
+	private void saveViewSqlItems(Long requestId, ViewCreateDraftRequest input) {
+		for (int i = 0; i < input.getItems().size(); i++) {
+			ViewCreateDraftRequest.SqlEntry item = input.getItems().get(i);
+			String title = item.getQueryTitle() == null || item.getQueryTitle().isBlank()
+					? "뷰 생성 SQL " + (i + 1) : item.getQueryTitle().strip();
+			requestMapper.insertViewSql(requestId, i + 1, title, item.getSqlText().strip());
+		}
 	}
 
 	private String createRequestNo(Long requestId) {
@@ -112,15 +185,36 @@ public class RequestService {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
 		}
 
-		detail.setItems(
-		        requestMapper.selectMyRequestItems(requestId, drafterId)
-		);
+		detail.setItems("CREATE_VIEW".equals(detail.getRequestType())
+		        ? requestMapper.selectMyViewSqlItems(requestId, drafterId)
+		        : requestMapper.selectMyRequestItems(requestId, drafterId));
 
 		detail.setApprovals(
 		        requestMapper.selectMyRequestApprovals(requestId, drafterId)
 		);
+		if ("CREATE_VIEW".equals(detail.getRequestType())) {
+			detail.setViewCreateResult(requestMapper.selectViewCreateResult(requestId));
+		}
 
 		return detail;
+	}
+
+	@Transactional(readOnly = true, transactionManager = "managementTransactionManager")
+	public byte[] downloadApprovedViewSql(Long requestId, Long actorId) {
+		if (requestMapper.canDownloadApprovedViewSql(requestId, actorId) != 1) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "다운로드할 수 있는 승인된 뷰 SQL이 없습니다.");
+		}
+		List<RequestItemResponse> items = requestMapper.selectApprovedViewSqlItems(requestId);
+		if (items.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "다운로드할 뷰 SQL이 없습니다.");
+		}
+		StringBuilder content = new StringBuilder("-- SQLFlow approved CREATE VIEW request ")
+				.append(requestId).append("\n\n");
+		for (RequestItemResponse item : items) {
+			content.append("-- ").append(item.getQueryTitle()).append("\n")
+					.append(item.getSqlText()).append("\n\n");
+		}
+		return content.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
 	}
 
 	@Transactional
@@ -131,6 +225,10 @@ public class RequestService {
 		}
 		if (!"DRAFT".equals(status)) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 SQL만 검증할 수 있습니다.");
+		}
+		RequestDetailResponse request = requestMapper.selectMyRequestDetail(requestId, drafterId);
+		if (request != null && "CREATE_VIEW".equals(request.getRequestType())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "뷰 생성 요청은 일반 조회 SQL 검증 대상이 아닙니다.");
 		}
 
 		List<RequestItemResponse> items = requestMapper.selectMyRequestItems(requestId, drafterId);
@@ -165,6 +263,10 @@ public class RequestService {
 		// 2. 초안 상태인지 확인
 		if (!"DRAFT".equals(status)) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 요청만 수정할 수 있습니다.");
+		}
+		RequestDetailResponse draftType = requestMapper.selectMyRequestDetail(requestId, drafterId);
+		if (draftType != null && "CREATE_VIEW".equals(draftType.getRequestType())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "뷰 생성 요청은 뷰 생성 화면에서 수정해야 합니다.");
 		}
 
 		// 3. 제목·목적 수정
@@ -218,6 +320,7 @@ public class RequestService {
 		}
 
 		// 3. 연결된 SQL 항목 먼저 삭제
+		requestMapper.deleteDraftViewSql(requestId, drafterId);
 		requestMapper.deleteDraftItems(requestId, drafterId);
 
 		// 4. 요청서 삭제
@@ -265,7 +368,9 @@ public class RequestService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "조회 목적을 입력하세요.");
 		}
 
-		List<RequestItemResponse> items = requestMapper.selectMyRequestItems(requestId, drafterId);
+		List<RequestItemResponse> items = "CREATE_VIEW".equals(request.getRequestType())
+				? requestMapper.selectMyViewSqlItems(requestId, drafterId)
+				: requestMapper.selectMyRequestItems(requestId, drafterId);
 
 		if (items.isEmpty() || items.size() > 5) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "제출하려면 SQL을 1개 이상, 5개 이하로 등록하세요.");
@@ -278,6 +383,13 @@ public class RequestService {
 		}
 
 		request.setItems(items);
+		if ("CREATE_VIEW".equals(request.getRequestType())) {
+			if (items.isEmpty() || items.size() > 5 || items.stream().anyMatch(item -> item.getSqlText() == null
+					|| !item.getSqlText().matches("(?is)^\\s*CREATE\\s+(?:OR\\s+REPLACE\\s+)?VIEW\\b.*"))) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CREATE VIEW SQL을 1개 이상, 5개 이하로 등록하세요.");
+			}
+			return request;
+		}
 
 		return request;
 	}
@@ -311,6 +423,19 @@ public class RequestService {
 	                HttpStatus.SERVICE_UNAVAILABLE,
 	                "결재 기능이 아직 연결되지 않았습니다."
 	        );
+	    }
+
+	    if ("CREATE_VIEW".equals(draft.getRequestType())) {
+	        ApprovalLineCreator creator = approvalLineCreatorProvider.getIfAvailable();
+	        if (creator == null) {
+	            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "결재 기능이 아직 연결되지 않았습니다.");
+	        }
+	        creator.createApprovalLine(requestId, actorId,
+	                input.getIntermediateApproverIds(), input.getDbApproverId());
+	        if (requestMapper.submitDraft(requestId, actorId) != 1) {
+	            throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 제출할 수 없습니다.");
+	        }
+	        return;
 	    }
 
 	    // 2. 저장된 모든 SQL 재검증
@@ -482,110 +607,141 @@ public class RequestService {
 	            ? null
 	            : value.strip();
 	}
-	
-	@Transactional(transactionManager = "managementTransactionManager")
-	public Long redraftRequest(
-	        Long sourceRequestId,
-	        RequestDraftCreateRequest input,
-	        Long actorId,
-	        Long deptId) {
+    @Transactional(transactionManager = "managementTransactionManager")
+    public Long redraftRequest(
+            Long sourceRequestId,
+            RequestDraftCreateRequest input,
+            Long actorId,
+            Long deptId) {
 
-	    // 원본 작성자 확인 및 동시 처리 방지를 위한 잠금
-	    String status = requestMapper.selectMyRequestStatusForUpdate(
-	            sourceRequestId, actorId);
+        // 본인 요청을 잠그고 반려되거나 회수된 요청인지 확인한다.
+        String status = requestMapper.selectMyRequestStatusForUpdate(
+                sourceRequestId, actorId);
 
-	    if (status == null) {
-	        throw new ResponseStatusException(
-	                HttpStatus.NOT_FOUND,
-	                "조회 요청을 찾을 수 없습니다.");
-	    }
+        if (status == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "요청을 찾을 수 없습니다.");
+        }
+        if (!"REJECTED".equals(status) && !"WITHDRAWN".equals(status)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "반려되거나 회수된 요청만 재기안할 수 있습니다.");
+        }
 
-	    if (!"REJECTED".equals(status)
-	            && !"WITHDRAWN".equals(status)) {
-	        throw new ResponseStatusException(
-	                HttpStatus.CONFLICT,
-	                "반려되거나 회수된 요청만 재기안할 수 있습니다.");
-	    }
+        // 재기안 가능한 원본 요청과 SQL을 읽는다.
+        RequestDetailResponse source =
+                getMyRequestDetail(sourceRequestId, actorId);
+        Long newRequestId = requestMapper.selectNextRequestId();
 
-	    Long newRequestId = requestMapper.selectNextRequestId();
+        QueryRequest draft = new QueryRequest();
+        draft.setRequestId(newRequestId);
+        draft.setRequestNo(createRequestNo(newRequestId));
+        draft.setRequestType(source.getRequestType());
+        draft.setSourceRequestId(sourceRequestId);
+        draft.setDrafterId(actorId);
+        draft.setDeptId(deptId);
+        draft.setTitle(input.getTitle().strip());
+        draft.setPurpose(input.getPurpose().strip());
+        draft.setDetailContent(normalizeOptionalText(input.getDetailContent()));
+        draft.setIsUrgent(input.getIsUrgent());
+        draft.setDesiredDate(input.getDesiredDate());
 
-	    QueryRequest draft = new QueryRequest();
-	    draft.setRequestId(newRequestId);
-	    draft.setRequestNo(createRequestNo(newRequestId));
-	    draft.setSourceRequestId(sourceRequestId);
+        if (requestMapper.insertRequest(draft) != 1) {
+            throw new IllegalStateException("재기안 초안 생성에 실패했습니다.");
+        }
 
-	    // 작성자·부서는 요청 본문이 아닌 로그인 정보 사용
-	    draft.setDrafterId(actorId);
-	    draft.setDeptId(deptId);
+        if ("CREATE_VIEW".equals(source.getRequestType())) {
+            saveRedraftViewSqlItems(newRequestId, input.getSqls(), input.getSqlTitles());
+        } else {
+            saveDraftItems(newRequestId, input.getSqls(), input.getSqlTitles());
+        }
 
-	    // 원본이 아니라 사용자가 수정한 내용을 저장
-	    draft.setTitle(input.getTitle().strip());
-	    draft.setPurpose(input.getPurpose().strip());
-	    draft.setDetailContent(
-	            normalizeOptionalText(input.getDetailContent()));
-	    draft.setIsUrgent(input.getIsUrgent());
-	    draft.setDesiredDate(input.getDesiredDate());
+        // 결재선은 초안 제출 시 새로 등록한다.
+        return newRequestId;
+    }
 
-	    if (requestMapper.insertRequest(draft) != 1) {
-	        throw new IllegalStateException(
-	                "재기안 초안 생성에 실패했습니다.");
-	    }
+    private void saveRedraftViewSqlItems(
+            Long requestId,
+            List<String> sqls,
+            List<String> sqlTitles) {
+        if (sqls == null || sqls.isEmpty() || sqls.size() > 5) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "뷰 생성 SQL은 1개 이상, 5개 이하로 입력하세요.");
+        }
+        if (sqlTitles != null && sqlTitles.size() != sqls.size()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "SQL 목록과 SQL 제목 목록의 개수가 일치해야 합니다.");
+        }
 
-	    saveDraftItems(
-	            newRequestId,
-	            input.getSqls(),
-	            input.getSqlTitles());
+        for (int i = 0; i < sqls.size(); i++) {
+            String sql = sqls.get(i) == null ? "" : sqls.get(i).strip();
+            String withoutTrailingSemicolon = sql.endsWith(";")
+                    ? sql.substring(0, sql.length() - 1)
+                    : sql;
+            if (!sql.matches("(?is)^CREATE\\s+(?:OR\\s+REPLACE\\s+)?VIEW\\b.*")
+                    || withoutTrailingSemicolon.contains(";")) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "각 SQL은 CREATE VIEW 문 하나만 입력할 수 있습니다.");
+            }
 
-	    // 결재선은 이 단계에서 만들지 않는다.
-	    return newRequestId;
-	}
-	
-	@Transactional(transactionManager = "managementTransactionManager")
-	public void withdrawRequest(Long requestId, Long actorId) {
+            String title = sqlTitles == null ? null : sqlTitles.get(i);
+            title = title == null || title.isBlank()
+                    ? "뷰 생성 SQL " + (i + 1)
+                    : title.strip();
+            if (title.length() > 200) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "SQL 제목은 200자 이하여야 합니다.");
+            }
+            requestMapper.insertViewSql(requestId, i + 1, title, sql);
+        }
+    }
+    @Transactional(transactionManager = "managementTransactionManager")
+    public void withdrawRequest(Long requestId, Long actorId) {
 
-	    if (actorId == null || actorId <= 0) {
-	        throw new ResponseStatusException(
-	                HttpStatus.UNAUTHORIZED,
-	                "로그인이 필요합니다.");
-	    }
+        if (actorId == null || actorId <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "로그인이 필요합니다.");
+        }
+        if (requestId == null || requestId <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "올바른 요청 ID가 필요합니다.");
+        }
 
-	    if (requestId == null || requestId <= 0) {
-	        throw new ResponseStatusException(
-	                HttpStatus.BAD_REQUEST,
-	                "올바른 요청 ID가 필요합니다.");
-	    }
+        // 첫 승인과 회수가 동시에 진행되지 않도록 요청 행을 잠근다.
+        String status = requestMapper.selectMyRequestStatusForUpdate(
+                requestId, actorId);
+        if (status == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "요청을 찾을 수 없습니다.");
+        }
+        if (!"PENDING_APPROVAL".equals(status)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "결재 대기 중인 요청만 회수할 수 있습니다.");
+        }
 
-	    // 승인·반려와 동일한 요청 행을 먼저 잠근다.
-	    // 작성자가 다른 요청은 조회되지 않는다.
-	    String status = requestMapper.selectMyRequestStatusForUpdate(
-	            requestId, actorId);
+        // 첫 결재자가 승인하기 전에만 회수할 수 있다.
+        if (requestMapper.withdrawRequest(requestId, actorId) != 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "첫 결재자가 승인하기 전까지만 회수할 수 있습니다. "
+                            + "현재 계정과 결재 상태를 다시 확인하세요.");
+        }
 
-	    if (status == null) {
-	        throw new ResponseStatusException(
-	                HttpStatus.NOT_FOUND,
-	                "요청을 찾을 수 없습니다.");
-	    }
-
-	    if (!"PENDING_APPROVAL".equals(status)) {
-	        throw new ResponseStatusException(
-	                HttpStatus.CONFLICT,
-	                "결재 대기 중인 요청만 회수할 수 있습니다.");
-	    }
-
-	    // 첫 승인이 이미 처리됐다면 갱신되지 않는다.
-	    if (requestMapper.withdrawRequest(requestId, actorId) != 1) {
-	        throw new ResponseStatusException(
-	                HttpStatus.CONFLICT,
-	                "첫 결재자가 승인하기 전까지만 회수할 수 있습니다. "
-	                        + "현재 계정과 결재 상태를 다시 확인하세요.");
-	    }
-
-	    // 실패하면 위 요청 상태 변경까지 함께 롤백된다.
-	    int cancelled = requestMapper.cancelApprovalsForWithdrawal(requestId);
-
-	    if (cancelled < 1) {
-	        throw new IllegalStateException(
-	                "회수할 결재선을 종료하지 못했습니다.");
-	    }
-	}
+        // 실패하면 요청 상태 변경도 트랜잭션으로 롤백된다.
+        int cancelled = requestMapper.cancelApprovalsForWithdrawal(requestId);
+        if (cancelled < 1) {
+            throw new IllegalStateException(
+                    "회수할 결재선을 종료하지 못했습니다.");
+        }
+    }
 }
+

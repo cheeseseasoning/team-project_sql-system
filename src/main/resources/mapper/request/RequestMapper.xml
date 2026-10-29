@@ -17,6 +17,7 @@
 	    INSERT INTO QUERY_REQUEST (
 	        REQUEST_ID,
 	        REQUEST_NO,
+	        REQUEST_TYPE,
 	        SOURCE_REQUEST_ID,
 	        DRAFTER_ID,
 	        DEPT_ID,
@@ -28,6 +29,7 @@
 	    ) VALUES (
 	        #{requestId},
 	        #{requestNo},
+	        NVL(#{requestType}, 'SELECT'),
 	        #{sourceRequestId, jdbcType=NUMERIC},
 	        #{drafterId},
 	        #{deptId},
@@ -68,6 +70,56 @@
             'PENDING'
         )
     </insert>
+
+    <insert id="insertViewSql">
+        INSERT INTO VIEW_CREATE_SQL (
+            QUERY_ID, REQUEST_ID, QUERY_ORDER, SQL_TITLE, SQL_CONTENT
+        ) VALUES (
+            SEQ_VIEW_CREATE_SQL.NEXTVAL, #{requestId}, #{queryOrder},
+            #{sqlTitle}, #{sqlContent, jdbcType=CLOB}
+        )
+    </insert>
+
+    <select id="selectMyViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
+        SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
+               V.SQL_CONTENT AS SQL_TEXT
+        FROM VIEW_CREATE_SQL V
+        JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
+        WHERE R.REQUEST_ID = #{requestId} AND R.DRAFTER_ID = #{drafterId}
+        ORDER BY V.QUERY_ORDER, V.QUERY_ID
+    </select>
+
+    <delete id="deleteDraftViewSql">
+        DELETE FROM VIEW_CREATE_SQL
+        WHERE REQUEST_ID = #{requestId}
+          AND EXISTS (SELECT 1 FROM QUERY_REQUEST R
+                      WHERE R.REQUEST_ID = VIEW_CREATE_SQL.REQUEST_ID
+                        AND R.DRAFTER_ID = #{drafterId}
+                        AND R.REQUEST_STATUS = 'DRAFT'
+                        AND R.REQUEST_TYPE = 'CREATE_VIEW')
+    </delete>
+
+    <select id="selectApprovedViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
+        SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
+               V.SQL_CONTENT AS SQL_TEXT
+        FROM VIEW_CREATE_SQL V
+        JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
+        WHERE R.REQUEST_ID = #{requestId}
+          AND R.REQUEST_TYPE = 'CREATE_VIEW'
+          AND R.REQUEST_STATUS = 'READY'
+          AND R.APPROVAL_STATUS = 'APPROVED'
+        ORDER BY V.QUERY_ORDER, V.QUERY_ID
+    </select>
+
+    <select id="canDownloadApprovedViewSql" resultType="int">
+        SELECT COUNT(*) FROM QUERY_REQUEST R
+        JOIN USERS U ON U.USER_ID = #{actorId} AND U.ENABLED = 'Y'
+        JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID AND D.DEPT_NAME = 'DB팀'
+        JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
+        JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID AND RL.ROLE_CODE = 'DB_APPROVER'
+        WHERE R.REQUEST_ID = #{requestId} AND R.REQUEST_TYPE = 'CREATE_VIEW'
+          AND R.REQUEST_STATUS = 'READY' AND R.APPROVAL_STATUS = 'APPROVED'
+    </select>
     
     <!-- 작성자의 요청 목록 및 검색 -->
 	<select id="selectMyRequests"
@@ -76,6 +128,7 @@
 	    SELECT
 	        R.REQUEST_ID,
 	        R.REQUEST_NO,
+	        R.REQUEST_TYPE,
 	        R.TITLE,
 	        R.IS_URGENT,
 	        R.REQUEST_CLASS,
@@ -83,11 +136,10 @@
 	        R.APPROVAL_STATUS,
 	        R.CREATED_AT,
 	        R.DESIRED_DATE,
-	        (
-	            SELECT COUNT(*)
-	            FROM QUERY_ITEM I
-	            WHERE I.REQUEST_ID = R.REQUEST_ID
-	        ) AS SQL_COUNT
+	        CASE WHEN R.REQUEST_TYPE = 'CREATE_VIEW'
+	             THEN (SELECT COUNT(*) FROM VIEW_CREATE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
+	             ELSE (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID = R.REQUEST_ID)
+	        END AS SQL_COUNT
 	    FROM QUERY_REQUEST R
 	    WHERE R.DRAFTER_ID = #{drafterId}
 	
@@ -129,6 +181,7 @@
 	    SELECT
 	        R.REQUEST_ID,
 	        R.REQUEST_NO,
+	        R.REQUEST_TYPE,
 	        R.SOURCE_REQUEST_ID,
 	        S.REQUEST_NO AS SOURCE_REQUEST_NO,
 	        R.TITLE,
@@ -155,6 +208,17 @@
 	      AND R.DRAFTER_ID = #{drafterId}
 	
 	</select>
+
+    <select id="selectViewCreateResult"
+            resultType="com.sqlflow.request.dto.ViewCreateResultResponse">
+        SELECT VR.RESULT_STATUS,
+               VR.RESULT_CONTENT,
+               U.USER_NAME AS REGISTERED_BY_NAME,
+               VR.REGISTERED_AT
+        FROM VIEW_CREATE_RESULT VR
+        JOIN USERS U ON U.USER_ID = VR.REGISTERED_BY
+        WHERE VR.REQUEST_ID = #{requestId}
+    </select>
 	
 	<!-- 본인 요청에 등록된 SQL 목록 -->
 	<select id="selectMyRequestItems"
@@ -262,6 +326,7 @@
 	    SELECT
 	        R.REQUEST_ID,
 	        R.REQUEST_NO,
+	        R.REQUEST_TYPE,
 	        R.TITLE,
 	        R.IS_URGENT,
 	        R.REQUEST_CLASS,
@@ -269,11 +334,10 @@
 	        R.APPROVAL_STATUS,
 	        R.CREATED_AT,
 	        R.DESIRED_DATE,
-	        (
-	            SELECT COUNT(*)
-	            FROM QUERY_ITEM I
-	            WHERE I.REQUEST_ID = R.REQUEST_ID
-	        ) AS SQL_COUNT
+	        CASE WHEN R.REQUEST_TYPE = 'CREATE_VIEW'
+	             THEN (SELECT COUNT(*) FROM VIEW_CREATE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
+	             ELSE (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID = R.REQUEST_ID)
+	        END AS SQL_COUNT
 	    FROM QUERY_REQUEST R
 	
 	    <include refid="myRequestPageConditions"/>

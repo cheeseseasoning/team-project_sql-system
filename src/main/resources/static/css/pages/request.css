@@ -225,6 +225,40 @@
 	margin: 20px 0 0;
 }
 
+.view-create-result-form {
+	display: grid;
+	grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+	gap: 12px 16px;
+	align-items: start;
+	margin-top: 20px;
+}
+
+.view-create-result-form label {
+	font-weight: 600;
+}
+
+.view-create-result-form textarea {
+	min-height: 110px;
+	resize: vertical;
+}
+
+.view-create-result-form .form-footer {
+	grid-column: 1 / -1;
+}
+
+#view-create-result-content {
+	white-space: pre-wrap;
+}
+
+@media (max-width: 650px) {
+	.view-create-result-form {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.view-create-result-form .form-footer {
+		grid-column: auto;
+	}
+}
+
 .request-detail-page .request-info-grid>div {
 	display: grid;
 	grid-template-columns: 76px minmax(0, 1fr);
@@ -406,6 +440,32 @@
 
 .request-detail-page .request-sql-panel {
 	margin-top: 20px;
+}
+
+.request-detail-page .request-sql-heading {
+	justify-content: space-between;
+}
+
+.request-detail-page .request-sql-heading-main {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	min-width: 0;
+}
+
+.request-detail-page .request-sql-heading h2 {
+	margin: 0;
+}
+
+.request-detail-page .request-sql-count {
+	margin-left: auto;
+	white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+	.request-detail-page .request-sql-heading-main {
+		flex-wrap: wrap;
+	}
 }
 
 .sql-validation-controls {

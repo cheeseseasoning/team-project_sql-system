@@ -206,6 +206,9 @@ window.RequestDetailRenderer = (() => {
 
 	    $('#drafter-name').textContent = request.drafterName || '-';
 	    $('#dept-name').textContent = request.deptName || '-';
+	    $('#request-type').textContent = request.requestType === 'CREATE_VIEW'
+	        ? '뷰 생성 요청'
+	        : '조회 요청';
 	    $('#request-purpose').textContent = request.purpose || '-';
 
 	    const isUrgent = request.isUrgent === 'Y';
@@ -307,6 +310,40 @@ window.RequestDetailRenderer = (() => {
 	        '저장된 결재선과 현재 처리 상태입니다.';
 	}
 
+    function renderViewCreateResult(request) {
+        const panel = $('#view-create-result-panel');
+        if (!panel) return;
+        if (request.requestType !== 'CREATE_VIEW'
+                || request.requestStatus !== 'READY'
+                || request.approvalStatus !== 'APPROVED') {
+            panel.hidden = true;
+            return;
+        }
+        panel.hidden = false;
+        const result = request.viewCreateResult;
+        const status = $('#view-create-result-status');
+        const content = $('#view-create-result-content');
+        const meta = $('#view-create-result-meta');
+        const form = $('#view-create-result-form');
+        const statusNames = { COMPLETED: '처리 완료', FAILED: '처리 실패' };
+        if (result) {
+            status.textContent = statusNames[result.resultStatus] || result.resultStatus || '등록됨';
+            content.textContent = result.resultContent || '';
+            meta.textContent = '등록자: ' + (result.registeredByName || '-')
+                + ' · 등록 시각: ' + formatDate(result.registeredAt);
+            $('#view-create-result-select').value = result.resultStatus || 'COMPLETED';
+            $('#view-create-result-input').value = result.resultContent || '';
+            $('#view-create-result-submit').textContent = '결과 수정';
+        } else {
+            status.textContent = '처리 대기';
+            content.textContent = '아직 DB팀 처리 결과가 등록되지 않았습니다.';
+            meta.textContent = '';
+            $('#view-create-result-input').value = '';
+            $('#view-create-result-submit').textContent = '결과 등록';
+        }
+        form.hidden = !request.canRegisterViewResult;
+    }
+
     return Object.freeze({
         statusNames,
         classNames,
@@ -316,6 +353,7 @@ window.RequestDetailRenderer = (() => {
         renderHistory,
         renderApprovalRows,
 		renderRequestInfo,
-		renderSavedApprovalLine
+		renderSavedApprovalLine,
+		renderViewCreateResult
     });
 })();

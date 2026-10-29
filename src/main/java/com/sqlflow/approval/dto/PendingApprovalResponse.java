@@ -15,6 +15,7 @@ public class PendingApprovalResponse {
 	
 	private Long requestId;
 	private String requestNo;
+	private String requestType;
 	private String title;
 	private String purpose;
 	private String drafterName;

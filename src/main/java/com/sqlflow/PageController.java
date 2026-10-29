@@ -169,6 +169,23 @@ public class PageController {
 	    );
 	}
 	
+	@GetMapping("/view-create-requests/new")
+	public String createViewRequest(Model model) {
+	    model.addAttribute("viewCreateEdit", false);
+	    return view(
+	            model,
+	            "view-create-request-form",
+	            "뷰 생성 요청 작성"
+	    );
+	}
+
+	@GetMapping("/view-create-requests/{requestId}/edit")
+	public String editViewRequest(Model model, @PathVariable Long requestId) {
+	    model.addAttribute("viewCreateEdit", true);
+	    model.addAttribute("requestId", requestId);
+	    return view(model, "view-create-request-form", "뷰 생성 요청 초안 수정");
+	}
+	
 	/** 읽기 전용 뷰 목록 화면을 연다. */
 	@GetMapping("/views")
 	public String viewList(Model model) {
@@ -208,6 +225,7 @@ public class PageController {
 		model.addAttribute("pageTitle", title);
 		model.addAttribute("activeMenu",
         page.equals("home") ? "home"
+        		: page.startsWith("view-create-request") ? "view-create-requests"
                 : page.startsWith("department-request") ? "department-requests"
                 : page.equals("notices") ? "notices"
                 : page.equals("views") || page.equals("view-detail") ? "views"
