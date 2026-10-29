@@ -219,6 +219,22 @@
         JOIN USERS U ON U.USER_ID = VR.REGISTERED_BY
         WHERE VR.REQUEST_ID = #{requestId}
     </select>
+
+    <select id="selectViewCreateResultHistory"
+            resultType="com.sqlflow.request.dto.ViewCreateResultHistoryResponse">
+        SELECT H.PREVIOUS_RESULT_STATUS,
+               H.PREVIOUS_RESULT_CONTENT,
+               PREVIOUS_USER.USER_NAME AS PREVIOUS_REGISTERED_BY_NAME,
+               H.PREVIOUS_REGISTERED_AT,
+               CHANGED_USER.USER_NAME AS CHANGED_BY_NAME,
+               H.CHANGED_AT,
+               H.CHANGE_REASON
+        FROM VIEW_CREATE_RESULT_HISTORY H
+        JOIN USERS PREVIOUS_USER ON PREVIOUS_USER.USER_ID = H.PREVIOUS_REGISTERED_BY
+        JOIN USERS CHANGED_USER ON CHANGED_USER.USER_ID = H.CHANGED_BY
+        WHERE H.REQUEST_ID = #{requestId}
+        ORDER BY H.CHANGED_AT DESC, H.HISTORY_ID DESC
+    </select>
 	
 	<!-- 본인 요청에 등록된 SQL 목록 -->
 	<select id="selectMyRequestItems"

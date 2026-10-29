@@ -107,6 +107,8 @@ public class DepartmentRequestService {
                         actorId));
         if ("CREATE_VIEW".equals(detail.getRequestType())) {
             detail.setViewCreateResult(departmentRequestMapper.selectVisibleViewCreateResult(requestId, actorId));
+            detail.setViewCreateResultHistory(
+                    departmentRequestMapper.selectVisibleViewCreateResultHistory(requestId, actorId));
             detail.setCanRegisterViewResult(departmentRequestMapper.canRegisterViewCreateResult(requestId, actorId) == 1);
         }
 
@@ -114,7 +116,8 @@ public class DepartmentRequestService {
     }
 
     @Transactional(transactionManager = "managementTransactionManager")
-    public void registerViewCreateResult(Long requestId, Long actorId, String status, String content) {
+    public void registerViewCreateResult(
+            Long requestId, Long actorId, String status, String content, String changeReason) {
         if (actorId == null || actorId <= 0) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
         }
@@ -124,10 +127,29 @@ public class DepartmentRequestService {
         if (content == null || content.isBlank() || content.strip().length() > 4000) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "처리 결과를 1~4000자로 입력해 주세요.");
         }
-        if (departmentRequestMapper.canRegisterViewCreateResult(requestId, actorId) != 1) {
+        if (departmentRequestMapper.lockEligibleViewCreateRequest(requestId, actorId) == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "최종 승인된 뷰 요청은 DB팀 결재자만 결과를 등록할 수 있습니다.");
         }
-        if (departmentRequestMapper.upsertViewCreateResult(requestId, actorId, status, content.strip()) != 1) {
+
+        boolean isUpdate = departmentRequestMapper.selectVisibleViewCreateResult(requestId, actorId) != null;
+        if (isUpdate && (changeReason == null || changeReason.isBlank()
+                || changeReason.strip().length() > 1000)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "결과 수정 사유를 1~1000자로 입력해 주세요.");
+        }
+
+        int changed;
+        if (isUpdate) {
+            changed = departmentRequestMapper.insertViewCreateResultHistory(
+                    requestId, actorId, changeReason.strip());
+            if (changed == 1) {
+                changed = departmentRequestMapper.updateViewCreateResult(
+                        requestId, actorId, status, content.strip());
+            }
+        } else {
+            changed = departmentRequestMapper.insertViewCreateResult(
+                    requestId, actorId, status, content.strip());
+        }
+        if (changed != 1) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "처리 결과를 저장하지 못했습니다. 요청 상태를 확인해 주세요.");
         }
     }

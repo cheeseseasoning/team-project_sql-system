@@ -13,6 +13,7 @@ import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.dto.RequestSummaryResponse;
 import com.sqlflow.request.dto.ViewCreateResultResponse;
+import com.sqlflow.request.dto.ViewCreateResultHistoryResponse;
 
 @Mapper
 public interface RequestMapper {
@@ -45,6 +46,8 @@ public interface RequestMapper {
                                    @Param("actorId") Long actorId);
 
     ViewCreateResultResponse selectViewCreateResult(@Param("requestId") Long requestId);
+
+    List<ViewCreateResultHistoryResponse> selectViewCreateResultHistory(@Param("requestId") Long requestId);
     
     List<RequestListResponse> selectMyRequests(
             @Param("drafterId") Long drafterId,
