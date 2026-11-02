@@ -6,20 +6,24 @@
 <mapper namespace="com.sqlflow.auth.mapper.UserAccountMapper">
 
     <select id="selectByLoginId"
-            resultType="com.sqlflow.auth.domain.UserAccount">
-        SELECT U.USER_ID,
-               U.DEPT_ID,
-               U.LOGIN_ID,
-               U.PASSWORD_HASH,
-               U.USER_NAME,
-               U.ENABLED,
-               D.DEPT_NAME,
-               P.POSITION_NAME
-        FROM USERS U
-        JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
-        JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
-        WHERE U.LOGIN_ID = #{loginId}
-    </select>
+        	resultType="com.sqlflow.auth.domain.UserAccount">
+	    SELECT U.USER_ID,
+	    	   U.LOGIN_ID,
+	           U.PASSWORD_HASH,
+	           U.EMPLOYEE_NO,
+	           U.USER_NAME,
+	           U.PHONE_NUMBER,
+	           U.EMAIL,
+	           U.DEPT_ID,
+	           D.DEPT_NAME,
+	           U.POSITION_ID,
+	           P.POSITION_NAME,
+	           U.ENABLED
+	    FROM USERS U
+	    JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+	    JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
+	    WHERE U.LOGIN_ID = #{loginId}
+	</select>
 
     <select id="selectRoleCodes" resultType="java.lang.String">
         SELECT R.ROLE_CODE
