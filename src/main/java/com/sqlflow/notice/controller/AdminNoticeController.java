@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.sqlflow.notice.dto.NoticeCreateRequest;
 import com.sqlflow.notice.service.NoticeService;
@@ -40,7 +41,12 @@ public class AdminNoticeController {
         String loginId = principal == null ? null : principal.getName();
         Long noticeId = noticeService.createNotice(request, loginId);
 
-        return ResponseEntity.created(URI.create("notices/" + noticeId))
+        URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/notices/{noticeId}")
+                .buildAndExpand(noticeId)
+                .toUri();
+
+        return ResponseEntity.created(location)
                 .body(Map.of(
                         "noticeId", noticeId,
                         "message", "공지사항이 등록되었습니다."));
