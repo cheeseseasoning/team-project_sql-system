@@ -10,62 +10,63 @@
     <meta name="csrf-header" content="${_csrf.headerName}">
 
     <title><c:out value="${pageTitle}"/> | SQLFlow</title>
-    
+
     <link rel="stylesheet"
-      href="${pageContext.request.contextPath}/css/sqlflow.css">
-      
-	<link rel="stylesheet"
-      href="${pageContext.request.contextPath}/css/layout.css">
-      
+          href="${pageContext.request.contextPath}/css/sqlflow.css">
+    <link rel="stylesheet"
+          href="${pageContext.request.contextPath}/css/layout.css">
+
     <c:if test="${page == 'home'}">
-	    <link rel="stylesheet"
-	          href="${pageContext.request.contextPath}/css/pages/dashboard.css">
-	</c:if>
-	
-	<c:if test="${page == 'my-page'}">
-	    <link rel="stylesheet"
-	          href="${pageContext.request.contextPath}/css/pages/my-page.css">
-	</c:if>
-      
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/dashboard.css">
+    </c:if>
+
+    <c:if test="${page == 'my-page'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/my-page.css">
+    </c:if>
+
     <c:if test="${page == 'request-form'
-	           or page == 'request-review'
-	           or page == 'request-edit'
-	           or page == 'request-detail'
-	           or page == 'requests'
-	           or page == 'department-requests'
-	           or page == 'department-request-detail'
-	           or page == 'view-create-request-form'
-	           }">
-	    <link rel="stylesheet"
-	          href="${pageContext.request.contextPath}/css/pages/request.css?v=20261029-view-history">
-	</c:if>
+               or page == 'request-review'
+               or page == 'request-edit'
+               or page == 'request-detail'
+               or page == 'requests'
+               or page == 'department-requests'
+               or page == 'department-request-detail'
+               or page == 'view-create-request-form'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261029-view-history">
+    </c:if>
 
     <c:if test="${page == 'execution-queue' or page == 'execution-queue-detail'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/execution-queue.css">
     </c:if>
-    
-    <c:if test="${page == 'views'}">
-	    <link rel="stylesheet"
-	          href="${pageContext.request.contextPath}/css/pages/views.css">
-	</c:if>
-    <c:if test="${page == 'db-resource-admin'}">
-        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/db-resource-admin.css">
-    </c:if>
-    
-    <c:if test="${page == 'view-detail'}">
-	    <link rel="stylesheet"
-	          href="${pageContext.request.contextPath}/css/pages/view-detail.css">
-	</c:if>
 
-    <c:if test="${page == 'admin-user-form'}">
-        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/admin-user.css">
+    <c:if test="${page == 'views'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/views.css">
     </c:if>
-    
+
+    <c:if test="${page == 'db-resource-admin'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/db-resource-admin.css">
+    </c:if>
+
+    <c:if test="${page == 'view-detail'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/view-detail.css">
+    </c:if>
+
+    <c:if test="${page == 'admin-user-form' or page == 'admin-user-detail'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/admin-user.css">
+    </c:if>
+
     <c:if test="${page == 'execution-result-detail'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/execution-result.css">
-    </c:if>    
+    </c:if>
 </head>
 <body>
     <div class="app-shell">
@@ -78,83 +79,104 @@
                 <a class="nav-item ${activeMenu == 'home' ? 'active' : ''}"
                    href="${pageContext.request.contextPath}/"
                    ${activeMenu == 'home' ? 'aria-current="page"' : ''}>
-                    <img src="${pageContext.request.contextPath}/icons/House.svg" alt="">업무 현황</a>
-                    
+                    <img src="${pageContext.request.contextPath}/icons/House.svg" alt="">
+                    업무 현황
+                </a>
+
                 <a class="nav-item ${activeMenu == 'my-page' ? 'active' : ''}"
-				   href="${pageContext.request.contextPath}/my-page"
-				   ${activeMenu == 'my-page' ? 'aria-current="page"' : ''}>
-				    <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
-				    마이페이지
-				</a>
+                   href="${pageContext.request.contextPath}/my-page"
+                   ${activeMenu == 'my-page' ? 'aria-current="page"' : ''}>
+                    <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
+                    마이페이지
+                </a>
 
                 <a class="nav-item ${activeMenu == 'create' ? 'active' : ''}"
                    href="${pageContext.request.contextPath}/requests/new"
                    ${activeMenu == 'create' ? 'aria-current="page"' : ''}>
-                    <img src="${pageContext.request.contextPath}/icons/FilePlus.svg" alt="">조회 요청 작성</a>
+                    <img src="${pageContext.request.contextPath}/icons/FilePlus.svg" alt="">
+                    조회 요청 작성
+                </a>
 
                 <a class="nav-item ${activeMenu == 'requests' ? 'active' : ''}"
                    href="${pageContext.request.contextPath}/requests"
                    ${activeMenu == 'requests' ? 'aria-current="page"' : ''}>
-                    <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">내 조회 요청</a>
+                    <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
+                    내 조회 요청
+                </a>
 
-				<a class="nav-item ${activeMenu == 'department-requests' ? 'active' : ''}"
-				   href="${pageContext.request.contextPath}/department-requests"
-				   ${activeMenu == 'department-requests' ? 'aria-current="page"' : ''}>
-				    <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
-				    부서 기안함
-				</a>
+                <a class="nav-item ${activeMenu == 'department-requests' ? 'active' : ''}"
+                   href="${pageContext.request.contextPath}/department-requests"
+                   ${activeMenu == 'department-requests' ? 'aria-current="page"' : ''}>
+                    <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
+                    부서 기안함
+                </a>
 
                 <a class="nav-item ${activeMenu == 'approvals' ? 'active' : ''}"
                    href="${pageContext.request.contextPath}/approvals/pending"
                    ${activeMenu == 'approvals' ? 'aria-current="page"' : ''}>
-                    <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">결재 대기</a>
+                    <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
+                    결재 대기
+                </a>
 
                 <c:if test="${pageContext.request.isUserInRole('DB_APPROVER')}">
                     <a class="nav-item ${activeMenu == 'execution-queue' ? 'active' : ''}"
                        href="${pageContext.request.contextPath}/execution-queue"
                        ${activeMenu == 'execution-queue' ? 'aria-current="page"' : ''}>
-                        <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg" alt="">실행 목록</a>
+                        <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg" alt="">
+                        실행 목록
+                    </a>
                 </c:if>
-                    
+
                 <a class="nav-item ${activeMenu == 'execution-results' ? 'active' : ''}"
-				   href="${pageContext.request.contextPath}/execution-results"
-				   ${activeMenu == 'execution-results' ? 'aria-current="page"' : ''}>
-				    <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg"
-				         alt="">
-				    실행 결과
-				</a>
-				
-				<a class="nav-item ${activeMenu == 'view-create-requests' ? 'active' : ''}"
-				   href="${pageContext.request.contextPath}/view-create-requests/new"
-				   ${activeMenu == 'view-create-requests' ? 'aria-current="page"' : ''}>
-				    <img src="${pageContext.request.contextPath}/icons/FilePlus.svg"
-				         alt="">
-				    뷰 생성 요청
-				</a>
-				
-				<a class="nav-item ${activeMenu == 'views' ? 'active' : ''}"
-				   href="${pageContext.request.contextPath}/views"
-				   ${activeMenu == 'views' ? 'aria-current="page"' : ''}>
-				    <img src="${pageContext.request.contextPath}/icons/Files.svg"
-				         alt="">
-				    뷰 조회
-				</a>
+                   href="${pageContext.request.contextPath}/execution-results"
+                   ${activeMenu == 'execution-results' ? 'aria-current="page"' : ''}>
+                    <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg" alt="">
+                    실행 결과
+                </a>
+
+                <a class="nav-item ${activeMenu == 'view-create-requests' ? 'active' : ''}"
+                   href="${pageContext.request.contextPath}/view-create-requests/new"
+                   ${activeMenu == 'view-create-requests' ? 'aria-current="page"' : ''}>
+                    <img src="${pageContext.request.contextPath}/icons/FilePlus.svg" alt="">
+                    뷰 생성 요청
+                </a>
+
+                <a class="nav-item ${activeMenu == 'views' ? 'active' : ''}"
+                   href="${pageContext.request.contextPath}/views"
+                   ${activeMenu == 'views' ? 'aria-current="page"' : ''}>
+                    <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
+                    뷰 조회
+                </a>
 
                 <c:if test="${pageContext.request.isUserInRole('DB_ADMIN') or deptName == 'DB팀'}">
                     <a class="nav-item ${activeMenu == 'db-resource-admin' ? 'active' : ''}"
                        href="${pageContext.request.contextPath}/db-admin/resources">
-                        <img src="${pageContext.request.contextPath}/icons/SlidersHorizontal.svg" alt="">리소스·접근 정책 관리</a>
+                        <img src="${pageContext.request.contextPath}/icons/SlidersHorizontal.svg" alt="">
+                        리소스·접근 정책 관리
+                    </a>
                 </c:if>
 
                 <a class="nav-item ${activeMenu == 'notices' ? 'active' : ''}"
                    href="${pageContext.request.contextPath}/notices"
                    ${activeMenu == 'notices' ? 'aria-current="page"' : ''}>
-                    <img src="${pageContext.request.contextPath}/icons/Bell.svg" alt="">공지사항</a>
+                    <img src="${pageContext.request.contextPath}/icons/Bell.svg" alt="">
+                    공지사항
+                </a>
+
+                <a class="nav-item ${activeMenu == 'accounts' ? 'active' : ''}"
+                   href="${pageContext.request.contextPath}/accounts"
+                   ${activeMenu == 'accounts' ? 'aria-current="page"' : ''}>
+                    <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
+                    계정 목록
+                </a>
+
                 <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
                     <a class="nav-item ${activeMenu == 'admin-users' ? 'active' : ''}"
                        href="${pageContext.request.contextPath}/admin/users/new"
                        ${activeMenu == 'admin-users' ? 'aria-current="page"' : ''}>
-                        <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">관리자 페이지</a>
+                        <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
+                        관리자 페이지
+                    </a>
                 </c:if>
             </nav>
 
@@ -166,12 +188,12 @@
         <div class="workspace">
             <header class="header">
                 <div class="breadcrumb">
-				    <a href="${pageContext.request.contextPath}/">SQLFlow</a>
-				    <span aria-hidden="true">›</span>
-			            <span class="breadcrumb-current">
-				        <c:out value="${pageTitle}"/>
-				    </span>
-				</div>
+                    <a href="${pageContext.request.contextPath}/">SQLFlow</a>
+                    <span aria-hidden="true">›</span>
+                    <span class="breadcrumb-current">
+                        <c:out value="${pageTitle}"/>
+                    </span>
+                </div>
 
                 <div class="header-tools">
                     <form class="header-search"
@@ -179,7 +201,9 @@
                           method="get">
                         <label class="sr-only" for="header-keyword">요청 검색</label>
                         <span aria-hidden="true">⌕</span>
-                        <input id="header-keyword" name="keyword" placeholder="요청번호, 제목 검색">
+                        <input id="header-keyword"
+                               name="keyword"
+                               placeholder="요청번호, 제목 검색">
                         <button type="submit" class="sr-only">검색</button>
                     </form>
 
@@ -190,17 +214,26 @@
                         <i></i>
                     </a>
 
-                    <a class="help-link" href="${pageContext.request.contextPath}/notices">도움말</a>
+                    <a class="help-link"
+                       href="${pageContext.request.contextPath}/notices?id=guide">도움말</a>
 
                     <div class="header-user">
-                        <span class="avatar small"><c:out value="${userName.substring(0, 1)}"/></span>
+                        <span class="avatar small">
+                            <c:out value="${userName.substring(0, 1)}"/>
+                        </span>
                         <div>
-                            <strong><c:out value="${userName}"/> <c:out value="${positionName}"/></strong>
+                            <strong>
+                                <c:out value="${userName}"/>
+                                <c:out value="${positionName}"/>
+                            </strong>
                             <span><c:out value="${deptName}"/></span>
                         </div>
                     </div>
+
                     <form action="${pageContext.request.contextPath}/logout" method="post">
-                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                        <input type="hidden"
+                               name="${_csrf.parameterName}"
+                               value="${_csrf.token}">
                         <button class="button" type="submit">로그아웃</button>
                     </form>
                 </div>
@@ -208,7 +241,8 @@
 
             <main class="main">
                 <div class="demo-strip">
-                    <span>개발 환경</span>로그인 계정 기준으로 요청과 결재 권한을 확인합니다.
+                    <span>개발 환경</span>
+                    로그인 계정 기준으로 요청과 결재 권한을 확인합니다.
                 </div>
 
                 <div id="page-message" class="message" role="status" hidden></div>
@@ -216,53 +250,62 @@
                 <script>
                     'use strict';
 
-                    const BASE = document.querySelector('meta[name="context-path"]').content;
-                    const $ = s => document.querySelector(s);
+                    const BASE =
+                        document.querySelector('meta[name="context-path"]').content;
+                    const $ = selector => document.querySelector(selector);
 
-                    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+                    const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
                         '&': '&amp;',
                         '<': '&lt;',
                         '>': '&gt;',
                         '"': '&quot;',
                         "'": '&#39;'
-                    }[c]));
+                    }[char]));
 
                     function notify(message, error = false) {
-                        const el = $('#page-message');
-                        el.textContent = message;
-                        el.hidden = false;
-                        el.classList.toggle('error', error);
-                        el.setAttribute('role', error ? 'alert' : 'status');
+                        const element = $('#page-message');
+                        element.textContent = message;
+                        element.hidden = false;
+                        element.classList.toggle('error', error);
+                        element.setAttribute('role', error ? 'alert' : 'status');
                     }
 
                     async function api(path, options = {}) {
                         const { timeoutMs = 15000, ...fetchOptions } = options;
-                        const controller = new AbortController(),
-                            timer = setTimeout(() => controller.abort(), timeoutMs);
+                        const controller = new AbortController();
+                        const timer = setTimeout(
+                            () => controller.abort(),
+                            timeoutMs
+                        );
 
                         try {
                             const response = await fetch(BASE + '/api' + path, {
                                 ...fetchOptions,
                                 headers: {
                                     'Accept': 'application/json',
-                                    [document.querySelector('meta[name="csrf-header"]')?.content || 'X-CSRF-TOKEN']:
-                                        document.querySelector('meta[name="csrf-token"]')?.content || '',
-                                    ...(options.body ? {'Content-Type': 'application/json'} : {}),
+                                    [document.querySelector(
+                                        'meta[name="csrf-header"]'
+                                    )?.content || 'X-CSRF-TOKEN']:
+                                        document.querySelector(
+                                            'meta[name="csrf-token"]'
+                                        )?.content || '',
+                                    ...(options.body
+                                        ? {'Content-Type': 'application/json'}
+                                        : {}),
                                     ...options.headers
                                 },
                                 signal: controller.signal
                             });
-                            
-                            // 응답 본문이 없는 정상 처리
-							if (response.status === 204) {
-							    return null;
-							}
+
+                            if (response.status === 204) {
+                                return null;
+                            }
 
                             let data;
 
                             try {
                                 data = await response.json();
-                            } catch (e) {
+                            } catch (error) {
                                 throw Error('서버 응답을 확인할 수 없습니다.');
                             }
 
@@ -276,9 +319,11 @@
                             }
 
                             return data;
-                        } catch (e) {
-                            if (e.name === 'AbortError') throw Error('응답 시간이 초과되었습니다. 다시 시도하세요.');
-                            throw e;
+                        } catch (error) {
+                            if (error.name === 'AbortError') {
+                                throw Error('응답 시간이 초과되었습니다. 다시 시도하세요.');
+                            }
+                            throw error;
                         } finally {
                             clearTimeout(timer);
                         }
@@ -290,78 +335,107 @@
                     });
 
                     async function busy(button, task) {
-                        const original = button.textContent;
+                        const originalText = button.textContent;
                         button.disabled = true;
                         button.textContent = '처리 중…';
 
                         try {
                             return await task();
-                        } catch (e) {
-                            notify(e.message, true);
+                        } catch (error) {
+                            notify(error.message, true);
                         } finally {
                             button.disabled = false;
-                            button.textContent = original;
+                            button.textContent = originalText;
                         }
                     }
 
-                    const date = s => s
+                    const date = value => value
                         ? new Intl.DateTimeFormat('ko-KR', {
                             timeZone: 'Asia/Seoul',
                             year: 'numeric',
                             month: '2-digit',
                             day: '2-digit'
-                        }).format(new Date(s))
+                        }).format(new Date(value))
                         : '-';
 
-                    const typeName = t => t === 'SENSITIVE' ? '민감 조회' : '일반 조회';
+                    const typeName = type =>
+                        type === 'SENSITIVE' ? '민감 조회' : '일반 조회';
 
-                    const stateName = s => ({
+                    const stateName = state => ({
                         SUCCESS: '성공',
                         FAILED: '실패',
                         PENDING: '미실행',
                         COMPLETED: '실행 종료',
                         APPROVAL_PENDING: '결재 대기'
-                    }[s] || s);
+                    }[state] || state);
 
                     function badge(label, kind = 'neutral') {
-                        return '<span class="badge ' + kind + '">' + esc(label) + '</span>';
+                        return '<span class="badge ' + kind + '">'
+                            + esc(label)
+                            + '</span>';
                     }
 
-                    function requestStatus(q) {
+                    function requestStatus(request) {
                         return badge(
-                            stateName(q.state),
-                            q.state === 'APPROVAL_PENDING'
+                            stateName(request.state),
+                            request.state === 'APPROVAL_PENDING'
                                 ? 'waiting'
-                                : q.items.some(i => i.state === 'FAILED') ? 'neutral' : 'success'
+                                : request.items.some(item => item.state === 'FAILED')
+                                    ? 'neutral'
+                                    : 'success'
                         );
                     }
 
-                    function executionSummary(q) {
-                        return '성공 ' + q.items.filter(i => i.state === 'SUCCESS').length
-                            + ' / 실패 ' + q.items.filter(i => i.state === 'FAILED').length;
+                    function executionSummary(request) {
+                        return '성공 '
+                            + request.items.filter(
+                                item => item.state === 'SUCCESS'
+                            ).length
+                            + ' / 실패 '
+                            + request.items.filter(
+                                item => item.state === 'FAILED'
+                            ).length;
                     }
 
                     function requestRows(rows) {
-                        return rows.map(q =>
+                        return rows.map(request =>
                             '<tr><td><a class="table-title" href="'
-                            + BASE + '/requests/' + encodeURIComponent(q.id) + '">'
-                            + esc(q.title) + '</a><span class="secondary">'
-                            + esc(q.id) + '</span></td><td>'
-                            + esc(typeName(q.type)) + '</td><td>'
-                            + requestStatus(q) + '<span class="secondary">'
-                            + esc(q.state === 'APPROVAL_PENDING' ? '부서장 결재 진행' : executionSummary(q))
-                            + '</span></td><td>' + esc(date(q.createdAt)) + '</td></tr>'
+                            + BASE + '/requests/'
+                            + encodeURIComponent(request.id) + '">'
+                            + esc(request.title)
+                            + '</a><span class="secondary">'
+                            + esc(request.id)
+                            + '</span></td><td>'
+                            + esc(typeName(request.type))
+                            + '</td><td>'
+                            + requestStatus(request)
+                            + '<span class="secondary">'
+                            + esc(
+                                request.state === 'APPROVAL_PENDING'
+                                    ? '부서장 결재 진행'
+                                    : executionSummary(request)
+                            )
+                            + '</span></td><td>'
+                            + esc(date(request.createdAt))
+                            + '</td></tr>'
                         ).join('');
                     }
 
                     function progressHtml(pending) {
-                        return '<ol class="approval-steps"><li class="done"><span class="step-dot">✓</span><strong>요청 제출</strong><small>제출 완료</small></li><li class="done"><span class="step-dot">✓</span><strong>중간 결재</strong><small>승인 완료</small></li><li class="'
-                            + (pending ? 'current' : 'done')
-                            + '"><span class="step-dot">' + (pending ? '3' : '✓')
+                        return '<ol class="approval-steps">'
+                            + '<li class="done"><span class="step-dot">✓</span>'
+                            + '<strong>요청 제출</strong><small>제출 완료</small></li>'
+                            + '<li class="done"><span class="step-dot">✓</span>'
+                            + '<strong>중간 결재</strong><small>승인 완료</small></li>'
+                            + '<li class="' + (pending ? 'current' : 'done') + '">'
+                            + '<span class="step-dot">'
+                            + (pending ? '3' : '✓')
                             + '</span><strong>부서장 결재</strong><small>'
                             + (pending ? '현재 단계' : '승인 완료')
-                            + '</small></li><li class="' + (pending ? '' : 'done')
-                            + '"><span class="step-dot">' + (pending ? '4' : '✓')
+                            + '</small></li>'
+                            + '<li class="' + (pending ? '' : 'done') + '">'
+                            + '<span class="step-dot">'
+                            + (pending ? '4' : '✓')
                             + '</span><strong>자동 실행</strong><small>'
                             + (pending ? '승인 후 진행' : '실행 완료')
                             + '</small></li></ol>';
