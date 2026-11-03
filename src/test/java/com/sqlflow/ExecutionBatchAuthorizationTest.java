@@ -139,6 +139,7 @@ class ExecutionBatchAuthorizationTest {
 
         for (QueryExecution execution : executions) {
             assertEquals(BATCH_ID, execution.getBatchId());
+            assertEquals(USER_ID, execution.getExecutedBy());
             assertEquals(1, execution.getAttemptNo());
             assertEquals(null, execution.getRetryOfExecutionId());
         }

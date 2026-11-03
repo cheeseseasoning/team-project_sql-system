@@ -6,32 +6,34 @@
 <mapper namespace="com.sqlflow.execution.mapper.QueryExecutionMapper">
 
     <!-- 실행할 SQL마다 별도의 이력을 생성한다. -->
-    <insert id="insertExecution"
-            parameterType="com.sqlflow.execution.domain.QueryExecution">
-
-        <selectKey keyProperty="executionId"
-                   resultType="java.lang.Long"
-                   order="BEFORE">
-            SELECT SEQ_QUERY_EXECUTION.NEXTVAL
-            FROM DUAL
-        </selectKey>
-
-        INSERT INTO QUERY_EXECUTION (
-            EXECUTION_ID,
-            BATCH_ID,
-            QUERY_ID,
-            RETRY_OF_EXECUTION_ID,
-            ATTEMPT_NO,
-            STATUS
-        ) VALUES (
-            #{executionId},
-            #{batchId},
-            #{queryId},
-            #{retryOfExecutionId, jdbcType=NUMERIC},
-            #{attemptNo},
-            'PENDING'
-        )
-    </insert>
+	<insert id="insertExecution"
+	        parameterType="com.sqlflow.execution.domain.QueryExecution">
+	
+	    <selectKey keyProperty="executionId"
+	               resultType="java.lang.Long"
+	               order="BEFORE">
+	        SELECT SEQ_QUERY_EXECUTION.NEXTVAL
+	        FROM DUAL
+	    </selectKey>
+	
+	    INSERT INTO QUERY_EXECUTION (
+	        EXECUTION_ID,
+	        BATCH_ID,
+	        QUERY_ID,
+	        EXECUTED_BY,
+	        RETRY_OF_EXECUTION_ID,
+	        ATTEMPT_NO,
+	        STATUS
+	    ) VALUES (
+	        #{executionId},
+	        #{batchId, jdbcType=NUMERIC},
+	        #{queryId},
+	        #{executedBy},
+	        #{retryOfExecutionId, jdbcType=NUMERIC},
+	        #{attemptNo},
+	        'PENDING'
+	    )
+	</insert>
 
     <!-- PENDING인 기록만 시작 처리하여 동일 이력의 중복 실행을 방지한다. -->
     <update id="markRunning">
