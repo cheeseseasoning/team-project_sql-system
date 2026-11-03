@@ -26,12 +26,14 @@
     <div class="form-grid">
         <label>
             변경 유형
-            <select id="db-change-type"
-                    aria-describedby="db-change-guide"
-                    ${viewCreateEdit ? 'disabled' : ''}>
-                <option value="CREATE_VIEW">뷰 생성</option>
-                <option value="DATA_CHANGE">데이터 변경</option>
-            </select>
+			<select id="db-change-type"
+			        aria-describedby="db-change-guide"
+			        ${viewCreateEdit ? 'disabled' : ''}>
+			    <option value="CREATE_VIEW">CREATE VIEW · 뷰 생성</option>
+			    <option value="INSERT">INSERT · 데이터 추가</option>
+			    <option value="UPDATE">UPDATE · 데이터 수정</option>
+			    <option value="DELETE">DELETE · 데이터 삭제</option>
+			</select>
         </label>
 
         <label>

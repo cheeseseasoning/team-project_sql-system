@@ -33,6 +33,7 @@ import com.sqlflow.request.dto.DepartmentRequestPageResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.service.DepartmentRequestService;
 import com.sqlflow.request.service.DmlSqlValidationService;
+import com.sqlflow.request.service.DmlSqlValidationService.SqlType;
 import com.sqlflow.request.service.RequestService;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -223,7 +224,7 @@ class DepartmentRequestApiTest {
     void dmlValidationReturnsResultForSubmittedSql() throws Exception {
         String sql = "DELETE FROM demo_product WHERE product_id = 1";
 
-        when(dmlSqlValidationService.validate(sql))
+        when(dmlSqlValidationService.validate(SqlType.DELETE, sql))
                 .thenReturn(new ValidationResult(Status.VALID, "기본 구문 검사 통과"));
 
         mockMvc.perform(post("/api/requests/dml-sql/validate")
@@ -231,12 +232,12 @@ class DepartmentRequestApiTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"sqls":["DELETE FROM demo_product WHERE product_id = 1"]}
+                                {"sqlType":"DELETE","sqls":["DELETE FROM demo_product WHERE product_id = 1"]}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("VALID"))
                 .andExpect(jsonPath("$[0].message").value("기본 구문 검사 통과"));
 
-        verify(dmlSqlValidationService).validate(sql);
+        verify(dmlSqlValidationService).validate(SqlType.DELETE, sql);
     }
 }

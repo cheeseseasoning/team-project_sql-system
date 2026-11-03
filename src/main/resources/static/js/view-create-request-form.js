@@ -2,22 +2,32 @@
     'use strict';
 
     const MAX_SQL_COUNT = 5;
-    const TYPE = {
-        CREATE_VIEW: {
-            path: '/requests/view-sql/validate',
-            guide: '신규 뷰를 만드는 CREATE VIEW 문을 요청합니다.',
-            sqlGuide: '항목마다 CREATE VIEW 문 한 개를 작성하세요. 위에서 아래 순서로 처리됩니다.',
-            placeholder: 'CREATE VIEW v_product AS\nSELECT product_id FROM demo_product;',
-            saveGuide: '초안 저장 후 내 기안함에서 결재선을 지정하고 제출할 수 있습니다.'
-        },
-        DATA_CHANGE: {
-            path: '/requests/dml-sql/validate',
-            guide: 'INSERT, UPDATE, DELETE 문을 검사할 수 있습니다.',
-            sqlGuide: '항목마다 변경문 한 개를 작성하세요. 구문 검사 결과는 각 입력란 아래에 표시됩니다.',
-            placeholder: "UPDATE demo_product\nSET product_name = '변경할 이름'\nWHERE product_id = 1;",
-            saveGuide: '데이터 변경은 현재 구문 검사까지 사용할 수 있습니다.'
-        }
-    };
+	const TYPE = {
+	    CREATE_VIEW: {
+	        guide: '신규 뷰를 생성하는 요청입니다.',
+	        sqlGuide: '항목마다 CREATE VIEW 문을 한 개씩 입력하세요.',
+	        placeholder: 'CREATE VIEW v_product AS\nSELECT product_id FROM demo_product;',
+	        saveGuide: '초안 저장 후 내 기안함에서 결재선을 지정하고 제출할 수 있습니다.'
+	    },
+	    INSERT: {
+	        guide: '테이블에 데이터를 추가하는 요청입니다.',
+	        sqlGuide: '항목마다 INSERT 문을 한 개씩 입력하세요.',
+	        placeholder: "INSERT INTO demo_product (product_id, product_name)\nVALUES (1, '상품명');",
+	        saveGuide: 'INSERT는 현재 구문 검사까지 사용할 수 있습니다.'
+	    },
+	    UPDATE: {
+	        guide: '테이블의 기존 데이터를 수정하는 요청입니다.',
+	        sqlGuide: '항목마다 UPDATE 문을 한 개씩 입력하세요.',
+	        placeholder: "UPDATE demo_product\nSET product_name = '새 상품명'\nWHERE product_id = 1;",
+	        saveGuide: 'UPDATE는 현재 구문 검사까지 사용할 수 있습니다.'
+	    },
+	    DELETE: {
+	        guide: '테이블에서 데이터를 삭제하는 요청입니다.',
+	        sqlGuide: '항목마다 DELETE 문을 한 개씩 입력하세요.',
+	        placeholder: 'DELETE FROM demo_product\nWHERE product_id = 1;',
+	        saveGuide: 'DELETE는 현재 구문 검사까지 사용할 수 있습니다.'
+	    }
+	};
 
     const RESULT_LABEL = {
         VALID: '기본 검사 통과',
@@ -70,7 +80,7 @@
             editor.placeholder = type.placeholder;
         });
 
-        saveButton.disabled = saving || changeType.value === 'DATA_CHANGE';
+        saveButton.disabled = saving || changeType.value !== 'CREATE_VIEW';
     }
 
     // 입력, 유형, 순서가 바뀌면 이전 응답이 새 입력에 표시되지 않도록 한다.
@@ -179,7 +189,10 @@
         validateButton.textContent = '검사 중…';
 
         try {
-            const results = await post(TYPE[changeType.value].path, { sqls });
+			const sqlType = changeType.value;
+			const results = sqlType === 'CREATE_VIEW'
+			    ? await post('/requests/view-sql/validate', { sqls })
+			    : await post('/requests/dml-sql/validate', { sqlType, sqls });
 
             if (revision === validationRevision) {
                 showValidationResults(sections, results);

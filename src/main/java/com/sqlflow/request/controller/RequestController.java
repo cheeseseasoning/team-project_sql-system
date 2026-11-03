@@ -40,6 +40,7 @@ import com.sqlflow.request.service.DepartmentRequestService;
 import com.sqlflow.request.service.DmlSqlValidationService;
 import com.sqlflow.request.service.RequestService;
 import com.sqlflow.request.service.DmlSqlValidationService.ValidationResult;
+import com.sqlflow.request.service.DmlSqlValidationService.SqlType;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -214,19 +215,19 @@ public class RequestController {
         return requestService.validateViewSqlTexts(input.getSqls());
     }
 	
-    /** 변경 SQL의 기본 검사 결과를 입력 순서대로 반환한다. */
+    /** 화면에서 선택한 유형을 SQL 목록 전체에 적용한다. */
     @PostMapping("/dml-sql/validate")
     public List<ValidationResult> validateDmlSqlTexts(
             @Valid @RequestBody DmlSqlValidationRequest input) {
 
         return input.sqls().stream()
-                .map(dmlSqlValidationService::validate)
+                .map(sql -> dmlSqlValidationService.validate(input.sqlType(), sql))
                 .toList();
     }
 
     public record DmlSqlValidationRequest(
-            @NotEmpty
-            @Size(max = 5)
+            @NotNull SqlType sqlType,
+            @NotEmpty @Size(max = 5)
             List<@NotNull @Size(max = 20000) String> sqls
     ) {
     }
