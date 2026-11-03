@@ -167,6 +167,79 @@ class ExecutionBatchRecordIntegrationTest {
 
         assertEquals("PENDING", batchStatus());
         assertEquals("READY", requestStatus());
+    }    
+
+    @Test
+    void requestCompletionFailureRollsBackBatchCompletion() {
+        service.start(batchId, actorId);
+        setExecutionStatuses("SUCCESS", "SUCCESS");
+
+        // 묶음 SUCCESS 변경 후 요청 완료 변경이 실패하는 상황.
+        doReturn(0).when(mapper).updateRequestStatus(
+                requestId, "RUNNING", "COMPLETED");
+
+        assertThrows(
+                ResponseStatusException.class,
+                () -> service.finish(batchId));
+
+        // 상태와 종료 시각 모두 롤백되어야 한다.
+        assertEquals("RUNNING", batchStatus());
+        assertEquals("RUNNING", requestStatus());
+
+        assertNull(jdbc.queryForObject("""
+                SELECT FINISHED_AT
+                FROM EXECUTION_BATCH
+                WHERE BATCH_ID = ?
+                """, java.sql.Timestamp.class, batchId));
+    }
+    
+    @Test
+    void 자동배치_접수거절시_예약을_제거하고_READY로_복원한다() {
+        // 배치는 RUNNING, SQL 이력은 모두 PENDING인 상태를 만든다.
+        var started = service.start(batchId, actorId);
+
+        service.cancelRejectedRemainingStart(started);
+
+        assertEquals(
+                0,
+                jdbc.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM QUERY_EXECUTION
+                        WHERE BATCH_ID = ?
+                        """, Integer.class, batchId));
+
+        assertEquals(
+                0,
+                jdbc.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM EXECUTION_BATCH
+                        WHERE BATCH_ID = ?
+                        """, Integer.class, batchId));
+
+        assertEquals("READY", requestStatus());
+    }
+
+    @Test
+    void 복구중_요청상태_변경이_실패하면_삭제도_롤백한다() {
+        var started = service.start(batchId, actorId);
+
+        doReturn(0).when(mapper).updateRequestStatus(
+                requestId, "RUNNING", "READY");
+
+        assertThrows(
+                ResponseStatusException.class,
+                () -> service.cancelRejectedRemainingStart(started));
+
+        assertEquals(
+                started.executionIds().size(),
+                jdbc.queryForObject("""
+                        SELECT COUNT(*)
+                        FROM QUERY_EXECUTION
+                        WHERE BATCH_ID = ?
+                        """, Integer.class, batchId));
+
+        assertEquals("RUNNING", batchStatus());
+        assertEquals("RUNNING", requestStatus());
     }
 
     @ParameterizedTest
@@ -199,31 +272,7 @@ class ExecutionBatchRecordIntegrationTest {
                 WHERE BATCH_ID = ?
                 """, java.sql.Timestamp.class, batchId));
     }
-
-    @Test
-    void requestCompletionFailureRollsBackBatchCompletion() {
-        service.start(batchId, actorId);
-        setExecutionStatuses("SUCCESS", "SUCCESS");
-
-        // 묶음 SUCCESS 변경 후 요청 완료 변경이 실패하는 상황.
-        doReturn(0).when(mapper).updateRequestStatus(
-                requestId, "RUNNING", "COMPLETED");
-
-        assertThrows(
-                ResponseStatusException.class,
-                () -> service.finish(batchId));
-
-        // 상태와 종료 시각 모두 롤백되어야 한다.
-        assertEquals("RUNNING", batchStatus());
-        assertEquals("RUNNING", requestStatus());
-
-        assertNull(jdbc.queryForObject("""
-                SELECT FINISHED_AT
-                FROM EXECUTION_BATCH
-                WHERE BATCH_ID = ?
-                """, java.sql.Timestamp.class, batchId));
-    }
-
+    
     private void createExecution(int order) {
         Long queryId = jdbc.queryForObject(
                 "SELECT SEQ_QUERY_ITEM.NEXTVAL FROM DUAL", Long.class);
