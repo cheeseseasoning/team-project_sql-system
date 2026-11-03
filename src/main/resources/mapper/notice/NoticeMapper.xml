@@ -42,5 +42,27 @@
         LEFT JOIN USERS UU ON UU.USER_ID = N.UPDATED_BY
         WHERE N.NOTICE_ID = #{noticeId}
     </select>
+    
+    <!-- 번호 발급은 기존 프로젝트의 Oracle 시퀀스 방식을 따른다. -->
+    <select id="nextNoticeId" resultType="java.lang.Long">
+        SELECT SEQ_NOTICE.NEXTVAL
+        FROM DUAL
+    </select>
+
+    <insert id="insertNotice">
+        INSERT INTO NOTICE (
+            NOTICE_ID,
+            TITLE,
+            CONTENT,
+            CREATED_BY,
+            CREATED_AT
+        ) VALUES (
+            #{noticeId},
+            #{title},
+            #{content, jdbcType=CLOB},
+            #{createdBy},
+            SYSTIMESTAMP
+        )
+    </insert>
 
 </mapper>

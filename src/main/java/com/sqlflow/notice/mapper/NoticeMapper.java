@@ -20,4 +20,14 @@ public interface NoticeMapper {
 
     // 존재하지 않는 공지 번호는 null을 반환한다.
     Notice selectNoticeById(@Param("noticeId") Long noticeId);
+    
+    /** 공지 등록에 사용할 고유 번호를 발급한다. */
+    Long nextNoticeId();
+
+    /** 공지를 저장하고, 저장된 행 수를 반환한다. */
+    int insertNotice(
+            @Param("noticeId") Long noticeId,
+            @Param("title") String title,
+            @Param("content") String content,
+            @Param("createdBy") Long createdBy);
 }
