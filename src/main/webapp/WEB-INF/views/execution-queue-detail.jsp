@@ -9,7 +9,9 @@
 			<div class="panel-heading">
 				<div>
 					<h2>실행 정보</h2>
-					<p class="caption">최종 승인된 요청의 저장 SQL을 서버에서 다시 검증한 뒤 실행합니다.</p>
+					<p class="caption">
+						최종 승인된 요청의 저장 SQL을 서버에서 다시 검증한 뒤 실행합니다.
+					</p>
 				</div><span id="detail-status" class="badge neutral">조회 중</span>
 			</div>
 			<dl id="request-info" class="queue-info"></dl>
@@ -20,7 +22,9 @@
 			<div class="panel-heading">
 				<div>
 					<h2>SQL 원문</h2>
-					<p class="caption">각 SQL을 개별 실행하거나 대기 상태인 전체 SQL을 한 번에 실행할 수 있습니다.</p>
+					<p class="caption">
+					    SQL을 개별 실행하거나 미실행 SQL을 요청 순서대로 한 번에 실행할 수 있습니다.
+					</p>
 				</div><span id="sql-count" class="caption"></span>
 			</div>
 			<div id="sql-items" class="queue-sql-list"></div>
@@ -96,37 +100,35 @@
 		            && item.executionStatus == null;
 		    }
 
-		    function canRegisterBatch(data) {
-		        const items = sqlItems(data);
+			function canRunWhole(data) {
+			    const items = sqlItems(data);
 
-		        return dataFresh
-		            && !posting
-		            && data.approvalStatus === 'APPROVED'
-		            && data.requestStatus === 'READY'
-		            && data.batchId == null
-		            && items.length > 0
-		            && items.every(item =>
-		                item.executionId == null
-		                && item.executionStatus == null
-		            );
-		    }
+			    if (!dataFresh
+			        || posting
+			        || !isRequestRunnable(data)
+			        || items.length === 0) {
+			        return false;
+			    }
 
-		    function canRunWhole(data) {
-		        const items = sqlItems(data);
+			    // 기존에 미리 등록해둔 배치는 기존 전체 실행으로 처리한다.
+			    if (data.batchId != null) {
+			        return data.batchStatus === 'PENDING'
+			            && data.requestStatus === 'READY'
+			            && items.every(item =>
+			                item.executionId != null
+			                && item.executionStatus === 'PENDING'
+			            );
+			    }
 
-		        return dataFresh
-		            && !posting
-		            && data.approvalStatus === 'APPROVED'
-		            && data.requestStatus === 'READY'
-		            && data.batchId != null
-		            && data.batchStatus === 'PENDING'
-		            && items.length > 0
-		            && items.every(item =>
-		                item.executionId != null
-		                && item.executionStatus === 'PENDING'
-		            );
-		    }
-
+			    // 새 전체 실행: 개별 실행이 끝난 뒤 남은 SQL도 실행할 수 있다.
+			    return data.batchStatus == null
+			        && !hasActiveSql(data)
+			        && items.some(item =>
+			            item.executionId == null
+			            && item.executionStatus == null
+			        );
+			}
+			
 		    function needsPolling(data) {
 		        if (!data || terminalStatuses.has(data.requestStatus)) {
 		            return false;
@@ -264,27 +266,26 @@
 		            + esc(data.purpose || '—')
 		            + '</dd></div>';
 
-		        let actions = '';
+					const hasExecutedSql = items.some(item =>
+					    item.executionStatus === 'SUCCESS'
+					    || item.executionStatus === 'FAILED'
+					);
 
-		        // 전체 실행 자동 등록 구현 전까지 기존 등록 기능을 유지한다.
-		        if (canRegisterBatch(data)) {
-		            actions += '<button id="register-batch"'
-		                + ' class="button primary" type="button">'
-		                + '실행 묶음 등록</button>';
-		        }
+					const wholeLabel = data.batchId == null && hasExecutedSql
+					    ? '남은 SQL 실행'
+					    : '전체 SQL 실행';
 
-		        if (data.batchId != null) {
-		            actions += '<button id="run-all"'
-		                + ' class="button primary" type="button"'
-		                + (canRunWhole(data) ? '' : ' disabled')
-		                + '>전체 SQL 실행</button>';
-		        }
+					let actions =
+					    '<button id="run-all"'
+					    + ' class="button primary" type="button"'
+					    + (canRunWhole(data) ? '' : ' disabled')
+					    + '>' + esc(wholeLabel) + '</button>';
 
-		        actions += '<a class="button" href="'
-		            + BASE + '/execution-results">'
-		            + '요청자 실행 결과 메뉴</a>';
+					actions += '<a class="button" href="'
+					    + BASE + '/execution-results">'
+					    + '요청자 실행 결과 메뉴</a>';
 
-		        $id('batch-actions').innerHTML = actions;
+					$id('batch-actions').innerHTML = actions;
 
 		        $id('sql-items').innerHTML = items.map(item => {
 					const label = item.executionStatus == null
@@ -404,83 +405,82 @@
 		        }
 		    }
 
-		    function bindActions() {
-		        const register = $id('register-batch');
+			function bindActions() {
+			    const whole = $id('run-all');
 
-		        if (register) {
-		            register.onclick = async () => {
-		                if (!canRegisterBatch(detail)) {
-		                    return;
-		                }
+			    if (whole) {
+			        whole.onclick = async () => {
+			            if (!canRunWhole(detail)) {
+			                return;
+			            }
 
-		                await submitAction(
-		                    () => post(
-		                        '/executions/requests/'
-		                        + encodeURIComponent(requestId)
-		                        + '/batches',
-		                        {}
-		                    ),
-		                    '실행 묶음을 등록했습니다.'
-		                );
-		            };
-		        }
+			            const legacyBatch = detail.batchId != null;
 
-		        const whole = $id('run-all');
+			            const targets = sqlItems(detail).filter(item =>
+			                legacyBatch
+			                    ? item.executionStatus === 'PENDING'
+			                    : item.executionId == null
+			                        && item.executionStatus == null
+			            );
 
-		        if (whole) {
-		            whole.onclick = async () => {
-		                if (!canRunWhole(detail)) {
-		                    return;
-		                }
+			            const targetLabel = legacyBatch
+			                ? '실행 대기 SQL'
+			                : '미실행 SQL';
 
-		                if (!confirm('등록된 전체 SQL을 실행할까요?')) {
-		                    return;
-		                }
+			            if (!confirm(
+			                targetLabel + ' ' + targets.length
+			                + '개를 요청 순서대로 실행할까요?'
+			            )) {
+			                return;
+			            }
 
-		                const batchId = detail.batchId;
+			            // 이미 등록된 과거 배치는 중복 생성하지 않고 실행만 한다.
+			            // 새 요청은 기안서 ID로 자동 배치 등록·실행을 접수한다.
+			            const path = legacyBatch
+			                ? '/executions/batches/'
+			                    + encodeURIComponent(detail.batchId)
+			                    + '/run'
+			                : '/executions/requests/'
+			                    + encodeURIComponent(requestId)
+			                    + '/run';
 
-		                await submitAction(
-		                    () => api(
-		                        '/executions/batches/'
-		                        + encodeURIComponent(batchId)
-		                        + '/run',
-		                        { method: 'POST' }
-		                    ),
-		                    '전체 실행을 접수했습니다.'
-		                );
-		            };
-		        }
+			            await submitAction(
+			                () => api(path, { method: 'POST' }),
+			                '전체 실행을 접수했습니다.'
+			            );
+			        };
+			    }
 
-		        document.querySelectorAll('.sql-run').forEach(button => {
-		            button.onclick = async () => {
-		                const queryId = button.dataset.query;
+			    document.querySelectorAll('.sql-run').forEach(button => {
+			        button.onclick = async () => {
+			            const queryId = button.dataset.query;
 
-		                const item = sqlItems(detail).find(row =>
-		                    String(row.queryId) === queryId
-		                );
+			            const item = sqlItems(detail).find(row =>
+			                String(row.queryId) === queryId
+			            );
 
-		                if (!item || !canRunIndividual(detail, item)) {
-		                    return;
-		                }
+			            if (!item || !canRunIndividual(detail, item)) {
+			                return;
+			            }
 
-		                if (!confirm('선택한 SQL을 실행할까요?')) {
-		                    return;
-		                }
+			            if (!confirm('선택한 SQL을 실행할까요?')) {
+			                return;
+			            }
 
-		                await submitAction(
-		                    () => api(
-		                        '/executions/requests/'
-		                        + encodeURIComponent(requestId)
-		                        + '/queries/'
-		                        + encodeURIComponent(queryId)
-		                        + '/run',
-		                        { method: 'POST' }
-		                    ),
-		                    'SQL 실행을 접수했습니다.'
-		                );
-		            };
-		        });
-		    }
+			            await submitAction(
+			                () => api(
+			                    '/executions/requests/'
+			                    + encodeURIComponent(requestId)
+			                    + '/queries/'
+			                    + encodeURIComponent(queryId)
+			                    + '/run',
+			                    { method: 'POST' }
+			                ),
+			                'SQL 실행을 접수했습니다.'
+			            );
+			        };
+			    });
+			}
 
 		    $id('detail-refresh').onclick = async () => {
 		        if (posting) {
