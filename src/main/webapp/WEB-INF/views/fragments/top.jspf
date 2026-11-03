@@ -190,7 +190,7 @@
                         <i></i>
                     </a>
 
-                    <a class="help-link" href="${pageContext.request.contextPath}/notices?id=guide">도움말</a>
+                    <a class="help-link" href="${pageContext.request.contextPath}/notices">도움말</a>
 
                     <div class="header-user">
                         <span class="avatar small"><c:out value="${userName.substring(0, 1)}"/></span>
