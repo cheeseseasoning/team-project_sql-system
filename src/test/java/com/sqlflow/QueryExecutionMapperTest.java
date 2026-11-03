@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
@@ -19,7 +20,12 @@ import com.sqlflow.auth.domain.UserAccount;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 import com.sqlflow.execution.domain.QueryExecution;
 import com.sqlflow.execution.domain.QueryExecutionTarget;
+import com.sqlflow.execution.domain.QueryResult;
+import com.sqlflow.execution.mapper.ExecutionQueueMapper;
+import com.sqlflow.execution.mapper.ExecutionResultMapper;
 import com.sqlflow.execution.mapper.QueryExecutionMapper;
+import com.sqlflow.execution.mapper.QueryResultMapper;
+import com.sqlflow.execution.mapper.ResultAccessLogMapper;
 import com.sqlflow.execution.service.ExecutionBatchService;
 
 /**
@@ -29,6 +35,18 @@ import com.sqlflow.execution.service.ExecutionBatchService;
 @SpringBootTest
 @Transactional
 class QueryExecutionMapperTest {
+	
+	@Autowired
+	private ExecutionResultMapper executionResultMapper;
+
+	@Autowired
+	private QueryResultMapper queryResultMapper;
+
+	@Autowired
+	private ResultAccessLogMapper resultAccessLogMapper;
+	
+	@Autowired
+	private ExecutionQueueMapper executionQueueMapper;
 
     private static final String TEST_SQL = "SELECT '조회 대상 확인' AS MESSAGE FROM DUAL";
 
@@ -51,6 +69,7 @@ class QueryExecutionMapperTest {
                 SELECT USER_ID, DEPT_ID
                 FROM USERS
                 WHERE DEPT_ID IS NOT NULL
+        		  AND ENABLED = 'Y'
                 ORDER BY USER_ID
                 FETCH FIRST 1 ROW ONLY
                 """);
@@ -161,6 +180,381 @@ class QueryExecutionMapperTest {
                         execution.getExecutionId());
 
         assertNull(target);
+    }
+    
+    @Test
+    void 배치_없는_결과도_목록과_상세와_파일과_접근로그에서_조회한다() {
+        Long requestId = createReadyRequest();
+        Long queryId = createQueryItem(requestId);
+
+        QueryExecution execution = new QueryExecution();
+        execution.setQueryId(queryId);
+        execution.setBatchId(null);
+        execution.setExecutedBy(userId);
+        execution.setAttemptNo(1);
+
+        queryExecutionMapper.insertExecution(execution);
+
+        assertEquals(
+                1,
+                queryExecutionMapper.markRunning(execution.getExecutionId()));
+
+        execution.setStatus("SUCCESS");
+        execution.setDurationMs(10L);
+
+        assertEquals(
+                1,
+                queryExecutionMapper.finishExecution(execution));
+
+        // 파일 정보만 저장하며 실제 CSV 파일은 생성하지 않는다.
+        QueryResult result = new QueryResult();
+        result.setExecutionId(execution.getExecutionId());
+        result.setFilePath("standalone-mapper-test.csv");
+        result.setRowCount(3L);
+        result.setFileSize(100L);
+
+        assertEquals(1, queryResultMapper.insertResult(result));
+
+        var rows = executionResultMapper.selectMyLatestResults(
+                userId, 0L, 100);
+
+        assertTrue(rows.stream().anyMatch(row ->
+                execution.getExecutionId().equals(row.getExecutionId())
+                        && row.getBatchId() == null));
+
+        var detail = executionResultMapper.selectMyResultDetail(
+                execution.getExecutionId(), userId);
+
+        assertNotNull(detail);
+        assertEquals(requestId, detail.getRequestId());
+        assertEquals(result.getResultId(), detail.getResultId());
+        assertNull(detail.getBatchId());
+
+        var file = executionResultMapper.selectMyResultFile(
+                execution.getExecutionId(), userId);
+
+        assertNotNull(file);
+        assertEquals(result.getResultId(), file.getResultId());
+        assertEquals("standalone-mapper-test.csv", file.getFilePath());
+
+        var context = resultAccessLogMapper.selectAccessContext(
+                execution.getExecutionId(), userId);
+
+        assertNotNull(context);
+        assertEquals(requestId, context.getRequestId());
+        assertEquals(result.getResultId(), context.getResultId());
+        assertEquals(userId, context.getUserId());
+    }
+
+    @Test
+    void 예전_배치_실행보다_새로운_개별_실행을_최신으로_조회한다() {
+        Long requestId = createReadyRequest();
+        Long queryId = createQueryItem(requestId);
+
+        Long batchId = executionBatchService.createInitialBatch(
+                requestId, createExecutor());
+
+        // 배치 시각을 크게 만들어도 최신 SQL 실행 선정에 영향을 주면 안 된다.
+        jdbcTemplate.update("""
+                UPDATE EXECUTION_BATCH
+                SET REQUESTED_AT = TIMESTAMP '2099-01-01 00:00:00'
+                WHERE BATCH_ID = ?
+                """, batchId);
+
+        QueryExecution execution = new QueryExecution();
+        execution.setQueryId(queryId);
+        execution.setBatchId(null);
+        execution.setExecutedBy(userId);
+        execution.setAttemptNo(2);
+
+        queryExecutionMapper.insertExecution(execution);
+
+        var rows = executionResultMapper.selectMyLatestResults(
+                userId, 0L, 100);
+
+        var queryRows = rows.stream()
+                .filter(row -> queryId.equals(row.getQueryId()))
+                .toList();
+
+        assertEquals(1, queryRows.size());
+        assertEquals(
+                execution.getExecutionId(),
+                queryRows.get(0).getExecutionId());
+        assertNull(queryRows.get(0).getBatchId());
+    }
+    
+    @Test
+    void SQL별로_기존_실행_이력을_확인한다() {
+        Long requestId = createReadyRequest();
+        Long queryId = createQueryItem(requestId);
+
+        assertEquals(
+                0,
+                queryExecutionMapper.countExecutionsByQueryId(queryId));
+
+        QueryExecution execution = createStandaloneExecution(queryId);
+
+        assertEquals(
+                1,
+                queryExecutionMapper.countExecutionsByQueryId(queryId));
+
+        // 실패한 이력도 이미 실행을 시도한 기록으로 취급한다.
+        assertEquals(
+                1,
+                queryExecutionMapper.markRunning(execution.getExecutionId()));
+
+        execution.setStatus("FAILED");
+        execution.setDurationMs(10L);
+
+        assertEquals(
+                1,
+                queryExecutionMapper.finishExecution(execution));
+
+        assertEquals(
+                1,
+                queryExecutionMapper.countExecutionsByQueryId(queryId));
+    }
+
+    @Test
+    void 같은_기안서의_대기와_실행중_이력만_집계한다() {
+        Long requestId = createReadyRequest();
+        Long queryId = createQueryItem(requestId);
+
+        Long otherRequestId = createReadyRequest();
+
+        assertEquals(
+                0,
+                queryExecutionMapper.countActiveExecutionsByRequestId(
+                        requestId));
+
+        QueryExecution execution = createStandaloneExecution(queryId);
+
+        // PENDING도 이미 접수된 실행이다.
+        assertEquals(
+                1,
+                queryExecutionMapper.countActiveExecutionsByRequestId(
+                        requestId));
+
+        // 다른 기안서에는 영향을 주지 않는다.
+        assertEquals(
+                0,
+                queryExecutionMapper.countActiveExecutionsByRequestId(
+                        otherRequestId));
+
+        assertEquals(
+                1,
+                queryExecutionMapper.markRunning(execution.getExecutionId()));
+
+        // RUNNING도 활성 실행으로 집계한다.
+        assertEquals(
+                1,
+                queryExecutionMapper.countActiveExecutionsByRequestId(
+                        requestId));
+
+        execution.setStatus("SUCCESS");
+        execution.setDurationMs(10L);
+
+        assertEquals(
+                1,
+                queryExecutionMapper.finishExecution(execution));
+
+        // 종료된 실행은 활성 실행에서 제외한다.
+        assertEquals(
+                0,
+                queryExecutionMapper.countActiveExecutionsByRequestId(
+                        requestId));
+    }
+    
+    @Test
+    void 접수_거절_예약은_소속과_상태가_맞을때만_제거한다() {
+        Long requestId = createReadyRequest();
+        Long queryId = createQueryItem(requestId);
+        Long otherRequestId = createReadyRequest();
+
+        QueryExecution execution = createStandaloneExecution(queryId);
+        Long executionId = execution.getExecutionId();
+
+        // PENDING 상태는 이 복구 메서드의 대상이 아니다.
+        assertEquals(
+                0,
+                queryExecutionMapper.deleteRejectedStandaloneReservation(
+                        requestId, queryId, executionId));
+
+        assertEquals(
+                1,
+                queryExecutionMapper.markRunning(executionId));
+
+        // 다른 기안서 ID로는 제거할 수 없다.
+        assertEquals(
+                0,
+                queryExecutionMapper.deleteRejectedStandaloneReservation(
+                        otherRequestId, queryId, executionId));
+
+        assertEquals(
+                1,
+                queryExecutionMapper.countExecutionsByRequestId(requestId));
+
+        assertEquals(
+                1,
+                queryExecutionMapper.deleteRejectedStandaloneReservation(
+                        requestId, queryId, executionId));
+
+        assertEquals(
+                0,
+                queryExecutionMapper.countExecutionsByRequestId(requestId));
+    }
+
+    @Test
+    void 종료된_실행은_접수거절_복구로_제거하지_않는다() {
+        Long requestId = createReadyRequest();
+        Long queryId = createQueryItem(requestId);
+
+        QueryExecution execution = createStandaloneExecution(queryId);
+        queryExecutionMapper.markRunning(execution.getExecutionId());
+
+        execution.setStatus("FAILED");
+        execution.setDurationMs(10L);
+        queryExecutionMapper.finishExecution(execution);
+
+        assertEquals(
+                0,
+                queryExecutionMapper.deleteRejectedStandaloneReservation(
+                        requestId, queryId, execution.getExecutionId()));
+
+        assertEquals(
+                1,
+                queryExecutionMapper.countExecutionsByRequestId(requestId));
+    }
+    
+    @Test
+    void 기안서_집계용_조회는_미실행_SQL과_최신_실행을_반환한다() {
+        Long requestId = createReadyRequest();
+        Long queryId = createQueryItem(requestId);
+
+        var before = queryExecutionMapper
+                .selectLatestExecutionsByRequestId(requestId);
+
+        assertEquals(1, before.size());
+        assertEquals(queryId, before.get(0).getQueryId());
+        assertNull(before.get(0).getExecutionId());
+        assertNull(before.get(0).getStatus());
+
+        QueryExecution first = createStandaloneExecution(queryId);
+        queryExecutionMapper.markRunning(first.getExecutionId());
+
+        first.setStatus("FAILED");
+        first.setDurationMs(10L);
+        queryExecutionMapper.finishExecution(first);
+
+        // 조회 검증용 재실행 이력. 실제 재실행 API는 별도로 구현한다.
+        QueryExecution retry = new QueryExecution();
+        retry.setQueryId(queryId);
+        retry.setBatchId(null);
+        retry.setExecutedBy(userId);
+        retry.setAttemptNo(2);
+        retry.setRetryOfExecutionId(first.getExecutionId());
+
+        queryExecutionMapper.insertExecution(retry);
+
+        var latest = queryExecutionMapper
+                .selectLatestExecutionsByRequestId(requestId);
+
+        assertEquals(1, latest.size());
+        assertEquals(
+                retry.getExecutionId(),
+                latest.get(0).getExecutionId());
+        assertEquals("PENDING", latest.get(0).getStatus());
+    }
+
+    /** 실제 SQL은 실행하지 않고 개별 실행 대기 이력만 만든다. */
+    private QueryExecution createStandaloneExecution(Long queryId) {
+        QueryExecution execution = new QueryExecution();
+        execution.setQueryId(queryId);
+        execution.setBatchId(null);
+        execution.setExecutedBy(userId);
+        execution.setAttemptNo(1);
+
+        assertEquals(
+                1,
+                queryExecutionMapper.insertExecution(execution));
+
+        return execution;
+    }
+    
+    @Test
+    void 실행_상세에_미실행_SQL도_표시한다() {
+        Long requestId = createReadyRequest();
+        Long queryId = createQueryItem(requestId);
+
+        var items = executionQueueMapper.selectRequestSqlItems(requestId);
+
+        assertEquals(1, items.size());
+
+        var item = items.get(0);
+        assertEquals(queryId, item.getQueryId());
+        assertEquals(1, item.getQueryOrder());
+        assertEquals(TEST_SQL, item.getSqlText());
+        assertNull(item.getExecutionId());
+        assertNull(item.getExecutionStatus());
+    }
+
+    @Test
+    void 실행_상세는_배치_이력과_새로운_개별_이력을_중복없이_조회한다() {
+        Long requestId = createReadyRequest();
+        Long queryId = createQueryItem(requestId);
+
+        Long batchId = executionBatchService.createInitialBatch(
+                requestId, createExecutor());
+
+        Long firstExecutionId = jdbcTemplate.queryForObject("""
+                SELECT EXECUTION_ID
+                FROM QUERY_EXECUTION
+                WHERE BATCH_ID = ?
+                  AND QUERY_ID = ?
+                """, Long.class, batchId, queryId);
+
+        // 기존 배치 이력이 정상적으로 조회되는지 확인한다.
+        var before = executionQueueMapper.selectRequestSqlItems(requestId);
+
+        assertEquals(1, before.size());
+        assertEquals(firstExecutionId, before.get(0).getExecutionId());
+        assertEquals("PENDING", before.get(0).getExecutionStatus());
+
+        queryExecutionMapper.markRunning(firstExecutionId);
+
+        QueryExecution failed = new QueryExecution();
+        failed.setExecutionId(firstExecutionId);
+        failed.setStatus("FAILED");
+        failed.setDurationMs(10L);
+        failed.setErrorCode("TEST_ERROR");
+        failed.setErrorMessage("테스트 실패");
+
+        assertEquals(1, queryExecutionMapper.finishExecution(failed));
+
+        // 최신 실행 선정 검증용 이력이며 실제 재실행 API는 호출하지 않는다.
+        QueryExecution retry = new QueryExecution();
+        retry.setQueryId(queryId);
+        retry.setBatchId(null);
+        retry.setExecutedBy(userId);
+        retry.setAttemptNo(2);
+        retry.setRetryOfExecutionId(firstExecutionId);
+
+        assertEquals(1, queryExecutionMapper.insertExecution(retry));
+        assertEquals(
+                1,
+                queryExecutionMapper.markRunning(retry.getExecutionId()));
+
+        var after = executionQueueMapper.selectRequestSqlItems(requestId);
+
+        // 같은 SQL이 과거 실행 횟수만큼 중복 표시되면 안 된다.
+        assertEquals(1, after.size());
+
+        var item = after.get(0);
+        assertEquals(queryId, item.getQueryId());
+        assertEquals(retry.getExecutionId(), item.getExecutionId());
+        assertEquals("RUNNING", item.getExecutionStatus());
+        assertNotNull(item.getStartedAt());
+        assertNull(item.getErrorMessage());
     }
 
     /** 실행 가능한 테스트용 요청을 생성한다. */

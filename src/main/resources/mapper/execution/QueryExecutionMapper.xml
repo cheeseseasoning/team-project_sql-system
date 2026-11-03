@@ -95,5 +95,94 @@
 	          OR B.BATCH_ID IS NOT NULL
 	      )
 	</select>
+	
+	<!-- 실패를 포함한 모든 실행 시도를 확인한다. -->
+	<select id="countExecutionsByQueryId"
+	        resultType="int"
+	        useCache="false"
+	        flushCache="true">
+	    SELECT COUNT(*)
+	    FROM QUERY_EXECUTION
+	    WHERE QUERY_ID = #{queryId}
+	</select>
+	
+	<!-- 배치 포함 여부와 관계없이 기안서의 대기·실행 중 이력을 확인한다. -->
+	<select id="countActiveExecutionsByRequestId"
+	        resultType="int"
+	        useCache="false"
+	        flushCache="true">
+	    SELECT COUNT(*)
+	    FROM QUERY_EXECUTION E
+	    JOIN QUERY_ITEM I
+	      ON I.QUERY_ID = E.QUERY_ID
+	    WHERE I.REQUEST_ID = #{requestId}
+	      AND E.STATUS IN ('PENDING', 'RUNNING')
+	</select>
+	
+	<select id="countExecutionsByRequestId"
+	        resultType="int"
+	        useCache="false"
+	        flushCache="true">
+	    SELECT COUNT(*)
+	    FROM QUERY_EXECUTION E
+	    JOIN QUERY_ITEM I
+	      ON I.QUERY_ID = E.QUERY_ID
+	    WHERE I.REQUEST_ID = #{requestId}
+	</select>
+	
+	<!--
+	    실제 실행기에 전달되지 않은 예약의 복구 전용.
+	    종료된 이력, 결과가 생성된 이력, 재시도에서 참조하는 이력은 제거하지 않는다.
+	-->
+	<delete id="deleteRejectedStandaloneReservation">
+	    DELETE FROM QUERY_EXECUTION E
+	    WHERE E.EXECUTION_ID = #{executionId}
+	      AND E.QUERY_ID = #{queryId}
+	      AND E.BATCH_ID IS NULL
+	      AND E.STATUS = 'RUNNING'
+	      AND EXISTS (
+	          SELECT 1
+	          FROM QUERY_ITEM I
+	          WHERE I.QUERY_ID = E.QUERY_ID
+	            AND I.REQUEST_ID = #{requestId}
+	      )
+	      AND NOT EXISTS (
+	          SELECT 1
+	          FROM QUERY_RESULT F
+	          WHERE F.EXECUTION_ID = E.EXECUTION_ID
+	      )
+	      AND NOT EXISTS (
+	          SELECT 1
+	          FROM QUERY_EXECUTION RETRY
+	          WHERE RETRY.RETRY_OF_EXECUTION_ID = E.EXECUTION_ID
+	      )
+	</delete>
+	
+	<!-- 미실행 SQL도 집계에 포함해야 조기 완료를 막을 수 있다. -->
+	<select id="selectLatestExecutionsByRequestId"
+	        resultType="com.sqlflow.execution.domain.QueryExecution"
+	        useCache="false"
+	        flushCache="true">
+	    SELECT I.QUERY_ID,
+	           E.EXECUTION_ID,
+	           E.BATCH_ID,
+	           E.STATUS
+	    FROM QUERY_ITEM I
+	    LEFT JOIN (
+	        SELECT EXECUTION_ID,
+	               QUERY_ID,
+	               BATCH_ID,
+	               STATUS,
+	               ROW_NUMBER() OVER (
+	                   PARTITION BY QUERY_ID
+	                   ORDER BY EXECUTION_ID DESC
+	               ) AS LATEST_RANK
+	        FROM QUERY_EXECUTION
+	    ) E
+	      ON E.QUERY_ID = I.QUERY_ID
+	     AND E.LATEST_RANK = 1
+	    WHERE I.REQUEST_ID = #{requestId}
+	    ORDER BY I.QUERY_ORDER, I.QUERY_ID
+	</select>
 
 </mapper>

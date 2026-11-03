@@ -51,7 +51,9 @@
     
 	<!-- 중복 등록을 막기 위해 요청 행을 잠그고 두 상태를 함께 확인한다. -->
 	<select id="selectRequestContextForUpdate"
-	        resultType="com.sqlflow.execution.domain.ExecutionRequestContext">
+	        resultType="com.sqlflow.execution.domain.ExecutionRequestContext"
+	        useCache="false"
+        	flushCache="true">
 	    SELECT REQUEST_ID,
 	           REQUEST_STATUS,
 	           APPROVAL_STATUS

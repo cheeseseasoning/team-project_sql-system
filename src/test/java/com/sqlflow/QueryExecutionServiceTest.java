@@ -1,8 +1,21 @@
 package com.sqlflow;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -11,11 +24,14 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -386,6 +402,116 @@ class QueryExecutionServiceTest {
                 saveFailure.getSuppressed());
 
         verify(mySqlService).deleteResultFile(fileResult);
+    }
+    
+    @Test
+    void 배치가_없는_예약된_SQL을_실행하고_결과를_저장한다()
+            throws Exception {
+        prepareTarget();
+
+        target.setBatchId(null);
+        target.setBatchStatus(null);
+        target.setExecutionStatus("RUNNING");
+
+        when(mySqlService.execute(SQL)).thenReturn(fileResult);
+
+        var outcome = service.executeStarted(EXECUTION_ID);
+
+        assertEquals(EXECUTION_ID, outcome.executionId());
+        assertTrue(outcome.success());
+
+        // 이미 예약된 이력이므로 시작 처리를 반복하지 않는다.
+        verify(recordService, never()).start(anyLong());
+
+        var order = inOrder(
+                validationService, mySqlService, recordService);
+
+        order.verify(validationService)
+                .validate(DRAFTER_ID, List.of(SQL));
+        order.verify(mySqlService).execute(SQL);
+        order.verify(recordService)
+                .complete(EXECUTION_ID, fileResult);
+
+        verify(recordService, never())
+                .fail(anyLong(), anyLong(), anyString(), anyString());
+    }
+
+    @Test
+    void 배치가_없는_SQL의_실패도_실행_이력에_기록한다()
+            throws Exception {
+        prepareTarget();
+
+        target.setBatchId(null);
+        target.setBatchStatus(null);
+        target.setExecutionStatus("RUNNING");
+
+        when(mySqlService.execute(SQL)).thenThrow(
+                new SQLException("없는 컬럼입니다.", "42S22", 1054));
+
+        var outcome = service.executeStarted(EXECUTION_ID);
+
+        assertFalse(outcome.success());
+
+        verify(recordService).fail(
+                eq(EXECUTION_ID),
+                anyLong(),
+                eq("MYSQL_1054"),
+                eq("없는 컬럼입니다."));
+
+        verify(recordService, never()).start(anyLong());
+        verify(recordService, never()).complete(anyLong(), any());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "PENDING, RUNNING, APPROVED",
+        "SUCCESS, RUNNING, APPROVED",
+        "FAILED, RUNNING, APPROVED",
+        "RUNNING, READY, APPROVED",
+        "RUNNING, COMPLETED, APPROVED",
+        "RUNNING, RUNNING, PENDING"
+    })
+    void 배치가_없어도_예약과_요청과_승인_상태가_유효해야_한다(
+            String executionStatus,
+            String requestStatus,
+            String approvalStatus) {
+        prepareTarget();
+
+        target.setBatchId(null);
+        target.setBatchStatus(null);
+        target.setExecutionStatus(executionStatus);
+        target.setRequestStatus(requestStatus);
+        target.setApprovalStatus(approvalStatus);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.executeStarted(EXECUTION_ID));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+
+        verifyNoInteractions(
+                validationService, mySqlService, recordService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "SUCCESS", "FAILED", "PARTIAL_FAILED"
+    })
+    void 종료된_배치의_SQL은_예약_상태여도_실행하지_않는다(
+            String batchStatus) {
+        prepareTarget();
+
+        target.setExecutionStatus("RUNNING");
+        target.setBatchStatus(batchStatus);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> service.executeStarted(EXECUTION_ID));
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+
+        verifyNoInteractions(
+                validationService, mySqlService, recordService);
     }
 
     private void prepareTarget() {
