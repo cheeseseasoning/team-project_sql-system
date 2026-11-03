@@ -16,6 +16,7 @@ import com.sqlflow.access.service.RequestSqlValidationService;
 
 import com.sqlflow.request.domain.QueryItem;
 import com.sqlflow.request.domain.QueryRequest;
+import com.sqlflow.request.dto.DmlDraftRequest;
 import com.sqlflow.request.dto.RequestDashboardResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
@@ -44,6 +45,8 @@ public class RequestService {
 	private final RequestSqlValidationService requestSqlValidationService;
 	
     private final ViewCreateSqlValidationService viewCreateSqlValidationService;
+    
+    private final DmlSqlValidationService dmlSqlValidationService;
 
 	@Transactional
 	public Long createDraft(RequestDraftCreateRequest input) {
@@ -104,6 +107,94 @@ public class RequestService {
 		saveViewSqlItems(requestId, input);
 		return requestId;
 	}
+	
+    /** 선택한 변경 유형과 SQL을 저장해 초안을 다시 열 때 복원할 수 있게 한다. */
+    @Transactional(transactionManager = "managementTransactionManager")
+    public Long createDmlDraft(DmlDraftRequest input, Long drafterId, Long deptId) {
+
+        validateDmlDraftItems(input);
+
+        Long requestId = requestMapper.selectNextRequestId();
+        QueryRequest request = new QueryRequest();
+
+        request.setRequestId(requestId);
+        request.setRequestNo(createRequestNo(requestId));
+        request.setRequestType(input.sqlType().name());
+        request.setDrafterId(drafterId);
+        request.setDeptId(deptId);
+        request.setTitle(input.title().strip());
+        request.setPurpose(input.purpose().strip());
+        request.setDetailContent(normalizeOptionalText(input.detailContent()));
+        request.setIsUrgent(input.isUrgent());
+        request.setDesiredDate(input.desiredDate());
+
+        if (requestMapper.insertRequest(request) != 1) {
+            throw new IllegalStateException("데이터 변경 초안을 저장하지 못했습니다.");
+        }
+
+        saveDraftItems(
+                requestId,
+                input.items().stream().map(DmlDraftRequest.SqlEntry::sqlText).toList(),
+                input.items().stream().map(DmlDraftRequest.SqlEntry::queryTitle).toList());
+
+        return requestId;
+    }
+
+    /** 작성자 본인의 DML 초안만 수정하며 기존 SQL 유형을 유지한다. */
+    @Transactional(transactionManager = "managementTransactionManager")
+    public void updateDmlDraft(Long requestId, DmlDraftRequest input, Long drafterId) {
+        String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
+        if (status == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청을 찾을 수 없습니다.");
+        }
+        if (!"DRAFT".equals(status)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 요청만 수정할 수 있습니다.");
+        }
+
+        RequestDetailResponse existing = requestMapper.selectMyRequestDetail(requestId, drafterId);
+        if (existing == null || !input.sqlType().name().equals(existing.getRequestType())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "초안의 변경 유형을 확인하세요.");
+        }
+
+        validateDmlDraftItems(input);
+        QueryRequest request = new QueryRequest();
+        request.setRequestId(requestId);
+        request.setDrafterId(drafterId);
+        request.setTitle(input.title().strip());
+        request.setPurpose(input.purpose().strip());
+        request.setDetailContent(normalizeOptionalText(input.detailContent()));
+        request.setIsUrgent(input.isUrgent());
+        request.setDesiredDate(input.desiredDate());
+
+        if (requestMapper.updateDraft(request) != 1) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 수정할 수 없습니다.");
+        }
+
+        requestMapper.deleteDraftItems(requestId, drafterId);
+        saveDraftItems(
+                requestId,
+                input.items().stream().map(DmlDraftRequest.SqlEntry::sqlText).toList(),
+                input.items().stream().map(DmlDraftRequest.SqlEntry::queryTitle).toList());
+
+    }
+
+    private void validateDmlDraftItems(DmlDraftRequest input) {
+        // 화면 검사 결과 대신 서버가 저장할 SQL을 직접 검사한다.
+        for (int index = 0; index < input.items().size(); index++) {
+            var item = input.items().get(index);
+            var result = dmlSqlValidationService.validate(input.sqlType(), item.sqlText());
+
+            if (result.status() == DmlSqlValidationService.Status.BLOCKED) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "SQL " + (index + 1) + " · " + result.message());
+            }
+        }
+    }
+
+    private boolean isDmlRequest(String type) {
+        return "INSERT".equals(type) || "UPDATE".equals(type) || "DELETE".equals(type);
+    }
 
 	@Transactional(transactionManager = "managementTransactionManager", rollbackFor = Exception.class)
 	public void updateViewDraft(Long requestId, ViewCreateDraftRequest input, Long drafterId) {
@@ -341,8 +432,9 @@ public class RequestService {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 요청만 수정할 수 있습니다.");
 		}
 		RequestDetailResponse draftType = requestMapper.selectMyRequestDetail(requestId, drafterId);
-		if (draftType != null && "CREATE_VIEW".equals(draftType.getRequestType())) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "뷰 생성 요청은 뷰 생성 화면에서 수정해야 합니다.");
+		if (draftType != null && ("CREATE_VIEW".equals(draftType.getRequestType())
+                || isDmlRequest(draftType.getRequestType()))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "DB 변경 요청은 DB 변경 화면에서 수정해야 합니다.");
 		}
 
 		// 3. 제목·목적 수정
@@ -488,11 +580,15 @@ public class RequestService {
 	        Long actorId) {
 
 	    // 1. 본인 초안 잠금 및 저장된 내용 확인
-	    RequestDetailResponse draft =
-	            loadDraftForSubmission(requestId, actorId);
+	    RequestDetailResponse draft = loadDraftForSubmission(requestId, actorId);
 
-	    ApprovalLineCreator approvalLineCreator =
-	            approvalLineCreatorProvider.getIfAvailable();
+        if (isDmlRequest(draft.getRequestType())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "데이터 변경 요청은 현재 초안까지만 사용할 수 있습니다.");
+        }
+
+	    ApprovalLineCreator approvalLineCreator = approvalLineCreatorProvider.getIfAvailable();
 
 	    if (approvalLineCreator == null) {
 	        throw new ResponseStatusException(

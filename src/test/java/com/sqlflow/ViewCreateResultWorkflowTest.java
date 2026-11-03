@@ -31,6 +31,7 @@ import com.sqlflow.request.mapper.RequestMapper;
 import com.sqlflow.request.service.ApprovalLineCreator;
 import com.sqlflow.request.service.DepartmentRequestService;
 import com.sqlflow.request.service.RequestService;
+import com.sqlflow.request.service.DmlSqlValidationService;
 import com.sqlflow.request.service.ViewCreateSqlValidationService;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,7 +58,8 @@ class ViewCreateResultWorkflowTest {
                 requestMapper,
                 approvalLineCreatorProvider,
                 requestSqlValidationService,
-                new ViewCreateSqlValidationService());
+                new ViewCreateSqlValidationService(),
+                new DmlSqlValidationService());
 
         departmentRequestService =
                 new DepartmentRequestService(departmentRequestMapper);

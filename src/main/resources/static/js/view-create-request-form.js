@@ -13,19 +13,19 @@
 	        guide: '테이블에 데이터를 추가하는 요청입니다.',
 	        sqlGuide: '항목마다 INSERT 문을 한 개씩 입력하세요.',
 	        placeholder: "INSERT INTO demo_product (product_id, product_name)\nVALUES (1, '상품명');",
-	        saveGuide: 'INSERT는 현재 구문 검사까지 사용할 수 있습니다.'
+	        saveGuide: '초안 저장 후 내 기안함에서 다시 열어 수정할 수 있습니다.'
 	    },
 	    UPDATE: {
 	        guide: '테이블의 기존 데이터를 수정하는 요청입니다.',
 	        sqlGuide: '항목마다 UPDATE 문을 한 개씩 입력하세요.',
 	        placeholder: "UPDATE demo_product\nSET product_name = '새 상품명'\nWHERE product_id = 1;",
-	        saveGuide: 'UPDATE는 현재 구문 검사까지 사용할 수 있습니다.'
+	        saveGuide: '초안 저장 후 내 기안함에서 다시 열어 수정할 수 있습니다.'
 	    },
 	    DELETE: {
 	        guide: '테이블에서 데이터를 삭제하는 요청입니다.',
 	        sqlGuide: '항목마다 DELETE 문을 한 개씩 입력하세요.',
 	        placeholder: 'DELETE FROM demo_product\nWHERE product_id = 1;',
-	        saveGuide: 'DELETE는 현재 구문 검사까지 사용할 수 있습니다.'
+	        saveGuide: '초안 저장 후 내 기안함에서 다시 열어 수정할 수 있습니다.'
 	    }
 	};
 
@@ -80,7 +80,7 @@
             editor.placeholder = type.placeholder;
         });
 
-        saveButton.disabled = saving || changeType.value !== 'CREATE_VIEW';
+        saveButton.disabled = saving;
     }
 
     // 입력, 유형, 순서가 바뀌면 이전 응답이 새 입력에 표시되지 않도록 한다.
@@ -224,12 +224,16 @@
     }
 
     async function saveDraft() {
-        if (saving || changeType.value !== 'CREATE_VIEW') return;
+        if (saving) return;
 
         message.textContent = '';
         if (!validateFields([title, purpose, ...items.querySelectorAll('.sql-editor')])) return;
 
         const request = readRequest();
+        const isView = changeType.value === 'CREATE_VIEW';
+        const draftPath = isView ? '/requests/view-create-drafts' : '/requests/dml-drafts';
+
+        if (!isView) request.sqlType = changeType.value;
         saving = true;
         changeType.disabled = true;
         saveButton.disabled = true;
@@ -239,12 +243,12 @@
             let savedId = requestId;
 
             if (editMode) {
-                await api('/requests/view-create-drafts/' + encodeURIComponent(requestId), {
+                await api(draftPath + '/' + encodeURIComponent(requestId), {
                     method: 'PUT',
                     body: JSON.stringify(request)
                 });
             } else {
-                const result = await post('/requests/view-create-drafts', request);
+                const result = await post(draftPath, request);
                 savedId = result.requestId;
             }
 
@@ -266,10 +270,11 @@
         try {
             const request = await api('/requests/mine/' + encodeURIComponent(requestId));
 
-            if (request.requestStatus !== 'DRAFT' || request.requestType !== 'CREATE_VIEW') {
-                throw new Error('수정할 수 있는 뷰 생성 초안이 아닙니다.');
+            if (request.requestStatus !== 'DRAFT' || !Object.hasOwn(TYPE, request.requestType)) {
+                throw new Error('수정할 수 있는 DB 변경 초안이 아닙니다.');
             }
 
+            changeType.value = request.requestType;
             title.value = request.title || '';
             purpose.value = request.purpose || '';
             detail.value = request.detailContent || '';

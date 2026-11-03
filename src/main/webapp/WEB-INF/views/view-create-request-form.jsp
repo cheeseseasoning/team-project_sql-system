@@ -143,7 +143,7 @@
     </section>
 </template>
 
-<script src="${pageContext.request.contextPath}/js/view-create-request-form.js?v=20261103-change-form"
+<script src="${pageContext.request.contextPath}/js/view-create-request-form.js?v=20261103-dml-draft"
         defer></script>
 
 <%@ include file="fragments/bottom.jspf" %>

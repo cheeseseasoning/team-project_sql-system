@@ -32,6 +32,7 @@ import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.dto.RequestPageResponse;
 import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.dto.RequestSubmitRequest;
+import com.sqlflow.request.dto.DmlDraftRequest;
 import com.sqlflow.request.dto.ViewCreateDraftRequest;
 import com.sqlflow.request.dto.ViewCreateResultRequest;
 import com.sqlflow.request.dto.ViewCreateSqlValidationRequestDTO;
@@ -146,6 +147,26 @@ public class RequestController {
 		return ResponseEntity.created(URI.create("/api/requests/mine/" + requestId))
 				.body(new DraftCreateResponse(requestId));
 	}
+
+    /** 로그인 사용자의 데이터 변경 초안을 생성한다. */
+    @PostMapping("/dml-drafts")
+    public ResponseEntity<DraftCreateResponse> createDmlDraft(
+            @Valid @RequestBody DmlDraftRequest input,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+        Long requestId = requestService.createDmlDraft(input, user.getUserId(), user.getDeptId());
+
+        return ResponseEntity.created(URI.create("/api/requests/mine/" + requestId))
+                .body(new DraftCreateResponse(requestId));
+    }
+
+    @PutMapping("/dml-drafts/{requestId}")
+    public ResponseEntity<Void> updateDmlDraft(
+            @PathVariable Long requestId,
+            @Valid @RequestBody DmlDraftRequest input,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+        requestService.updateDmlDraft(requestId, input, user.getUserId());
+        return ResponseEntity.noContent().build();
+    }
 
 	@PostMapping("/view-create-drafts")
 	public ResponseEntity<DraftCreateResponse> createViewDraft(

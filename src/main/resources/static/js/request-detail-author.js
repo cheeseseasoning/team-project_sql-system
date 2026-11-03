@@ -88,7 +88,7 @@ async function loadDetail() {
 		}
 
 		// 초안 수정 화면으로 이동할 주소
-		$('#draft-edit-link').href = request.requestType === 'CREATE_VIEW'
+		$('#draft-edit-link').href = ['CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE'].includes(request.requestType)
 			? BASE + '/view-create-requests/'
 				+ encodeURIComponent(request.requestId) + '/edit'
 			: BASE + '/requests/'
@@ -100,7 +100,8 @@ async function loadDetail() {
 		$('#draft-edit-link').hidden = false;
 
 		$('#approval-line-open').disabled =
-			request.requestStatus !== 'DRAFT';
+			request.requestStatus !== 'DRAFT'
+            || ['INSERT', 'UPDATE', 'DELETE'].includes(request.requestType);
 
 		// 회수 가능 여부는 화면 표시용이며 서버에서 다시 검사한다.
 		const approvals = Array.isArray(request.approvals)

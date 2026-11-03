@@ -3,6 +3,8 @@ package com.sqlflow.request.dto;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.sqlflow.request.service.DmlSqlValidationService.SqlType;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -12,6 +14,9 @@ import jakarta.validation.constraints.Size;
 
 /** 공통 작성 화면에서 보낸 데이터 변경 초안 입력을 받는다. */
 public record DmlDraftRequest(
+        @NotNull
+        SqlType sqlType,
+		
         @NotBlank @Size(max = 200)
         String title,
 
