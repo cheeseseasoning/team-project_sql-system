@@ -65,12 +65,15 @@
           AND #{status} IN ('SUCCESS', 'FAILED')
     </update>
     
-    <!-- 요청에 저장된 SQL 원문과 실행·요청·결재 상태를 함께 조회한다. -->
+    <!--
+	    실행 이력에서 SQL 항목을 통해 기안서를 조회한다.
+	    배치는 선택적으로 조회하되, 배치가 있으면 같은 기안서인지 확인한다.
+	-->
 	<select id="selectExecutionTarget"
 	        resultType="com.sqlflow.execution.domain.QueryExecutionTarget">
 	    SELECT E.EXECUTION_ID,
 	           E.BATCH_ID,
-	           B.REQUEST_ID,
+	           R.REQUEST_ID,
 	           R.DRAFTER_ID,
 	           E.QUERY_ID,
 	           E.STATUS AS EXECUTION_STATUS,
@@ -79,14 +82,18 @@
 	           R.APPROVAL_STATUS,
 	           I.SQL_TEXT
 	    FROM QUERY_EXECUTION E
-	    JOIN EXECUTION_BATCH B
-	        ON B.BATCH_ID = E.BATCH_ID
-	    JOIN QUERY_REQUEST R
-	        ON R.REQUEST_ID = B.REQUEST_ID
 	    JOIN QUERY_ITEM I
-	        ON I.QUERY_ID = E.QUERY_ID
-	       AND I.REQUEST_ID = B.REQUEST_ID
+	      ON I.QUERY_ID = E.QUERY_ID
+	    JOIN QUERY_REQUEST R
+	      ON R.REQUEST_ID = I.REQUEST_ID
+	    LEFT JOIN EXECUTION_BATCH B
+	      ON B.BATCH_ID = E.BATCH_ID
+	     AND B.REQUEST_ID = R.REQUEST_ID
 	    WHERE E.EXECUTION_ID = #{executionId}
+	      AND (
+	          E.BATCH_ID IS NULL
+	          OR B.BATCH_ID IS NOT NULL
+	      )
 	</select>
 
 </mapper>

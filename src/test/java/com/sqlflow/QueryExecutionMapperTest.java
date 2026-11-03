@@ -1,6 +1,9 @@
 package com.sqlflow;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.sqlflow.auth.domain.UserAccount;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
+import com.sqlflow.execution.domain.QueryExecution;
 import com.sqlflow.execution.domain.QueryExecutionTarget;
 import com.sqlflow.execution.mapper.QueryExecutionMapper;
 import com.sqlflow.execution.service.ExecutionBatchService;
@@ -92,6 +96,69 @@ class QueryExecutionMapperTest {
     void missingExecutionReturnsNull() {
         // 정상 ID는 양수 시퀀스로 발급하므로 존재하지 않는 음수 ID로 조회한다.
         QueryExecutionTarget target = queryExecutionMapper.selectExecutionTarget(-1L);
+
+        assertNull(target);
+    }
+    
+    @Test
+    void 배치가_없는_실행도_SQL과_기안서를_조회한다() {
+        Long requestId = createReadyRequest();
+        Long queryId = createQueryItem(requestId);
+
+        QueryExecution execution = new QueryExecution();
+        execution.setBatchId(null);
+        execution.setQueryId(queryId);
+        execution.setExecutedBy(userId);
+        execution.setAttemptNo(1);
+        execution.setRetryOfExecutionId(null);
+
+        assertEquals(1, queryExecutionMapper.insertExecution(execution));
+
+        QueryExecutionTarget target =
+                queryExecutionMapper.selectExecutionTarget(
+                        execution.getExecutionId());
+
+        assertNotNull(target);
+        assertEquals(execution.getExecutionId(), target.getExecutionId());
+        assertEquals(requestId, target.getRequestId());
+        assertEquals(queryId, target.getQueryId());
+        assertEquals(userId, target.getDrafterId());
+
+        assertNull(target.getBatchId());
+        assertNull(target.getBatchStatus());
+
+        assertEquals("PENDING", target.getExecutionStatus());
+        assertEquals("READY", target.getRequestStatus());
+        assertEquals("APPROVED", target.getApprovalStatus());
+        assertEquals(TEST_SQL, target.getSqlText());
+    }
+
+    @Test
+    void 배치와_SQL의_기안서가_다르면_조회하지_않는다() {
+        // 첫 번째 기안서와 그 배치를 생성한다.
+        Long firstRequestId = createReadyRequest();
+        createQueryItem(firstRequestId);
+
+        Long batchId = executionBatchService.createInitialBatch(
+                firstRequestId, createExecutor());
+
+        // 다른 기안서의 SQL을 생성한다.
+        Long secondRequestId = createReadyRequest();
+        Long secondQueryId = createQueryItem(secondRequestId);
+
+        // 서로 다른 기안서의 배치와 SQL을 연결한 잘못된 이력.
+        QueryExecution execution = new QueryExecution();
+        execution.setBatchId(batchId);
+        execution.setQueryId(secondQueryId);
+        execution.setExecutedBy(userId);
+        execution.setAttemptNo(1);
+        execution.setRetryOfExecutionId(null);
+
+        assertEquals(1, queryExecutionMapper.insertExecution(execution));
+
+        QueryExecutionTarget target =
+                queryExecutionMapper.selectExecutionTarget(
+                        execution.getExecutionId());
 
         assertNull(target);
     }
