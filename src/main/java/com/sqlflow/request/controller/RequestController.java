@@ -37,9 +37,14 @@ import com.sqlflow.request.dto.ViewCreateResultRequest;
 import com.sqlflow.request.dto.ViewCreateSqlValidationRequestDTO;
 import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO;
 import com.sqlflow.request.service.DepartmentRequestService;
+import com.sqlflow.request.service.DmlSqlValidationService;
 import com.sqlflow.request.service.RequestService;
+import com.sqlflow.request.service.DmlSqlValidationService.ValidationResult;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -50,6 +55,7 @@ public class RequestController {
 	private final RequestService requestService;
 	private final ApprovalService approvalService;
 	private final DepartmentRequestService departmentRequestService;
+	private final DmlSqlValidationService dmlSqlValidationService;
 
 	@PostMapping("/department/{requestId}/view-create-result")
 	public ResponseEntity<Void> registerViewCreateResult(
@@ -208,6 +214,23 @@ public class RequestController {
         return requestService.validateViewSqlTexts(input.getSqls());
     }
 	
+    /** 변경 SQL의 기본 검사 결과를 입력 순서대로 반환한다. */
+    @PostMapping("/dml-sql/validate")
+    public List<ValidationResult> validateDmlSqlTexts(
+            @Valid @RequestBody DmlSqlValidationRequest input) {
+
+        return input.sqls().stream()
+                .map(dmlSqlValidationService::validate)
+                .toList();
+    }
+
+    public record DmlSqlValidationRequest(
+            @NotEmpty
+            @Size(max = 5)
+            List<@NotNull @Size(max = 20000) String> sqls
+    ) {
+    }
+    
     /**
      * 로그인한 작성자의 저장된 뷰 생성 SQL을 검사한다.
      */

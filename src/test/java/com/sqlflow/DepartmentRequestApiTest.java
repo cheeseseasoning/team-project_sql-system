@@ -32,14 +32,25 @@ import com.sqlflow.request.controller.RequestController;
 import com.sqlflow.request.dto.DepartmentRequestPageResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.service.DepartmentRequestService;
+import com.sqlflow.request.service.DmlSqlValidationService;
 import com.sqlflow.request.service.RequestService;
+
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+
+import org.springframework.http.MediaType;
+
+import com.sqlflow.request.service.DmlSqlValidationService.Status;
+import com.sqlflow.request.service.DmlSqlValidationService.ValidationResult;
 
 @WebMvcTest(controllers = RequestController.class)
 @Import(SecurityConfig.class)
 class DepartmentRequestApiTest {
+	
+    @MockitoBean
+    private DmlSqlValidationService dmlSqlValidationService;
 
-    private static final String URL =
-            "/api/requests/department/page";
+    private static final String URL = "/api/requests/department/page";
 
     @TestConfiguration(proxyBeanMethods = false)
     @EnableWebSecurity
@@ -206,5 +217,26 @@ class DepartmentRequestApiTest {
                         "/api/requests/department/100/approval-history")
                         .with(authenticatedUser()))
                 .andExpect(status().isNotFound());
+    }
+    
+    @Test
+    void dmlValidationReturnsResultForSubmittedSql() throws Exception {
+        String sql = "DELETE FROM demo_product WHERE product_id = 1";
+
+        when(dmlSqlValidationService.validate(sql))
+                .thenReturn(new ValidationResult(Status.VALID, "기본 구문 검사 통과"));
+
+        mockMvc.perform(post("/api/requests/dml-sql/validate")
+                        .with(authenticatedUser())
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"sqls":["DELETE FROM demo_product WHERE product_id = 1"]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].status").value("VALID"))
+                .andExpect(jsonPath("$[0].message").value("기본 구문 검사 통과"));
+
+        verify(dmlSqlValidationService).validate(sql);
     }
 }
