@@ -3,34 +3,89 @@
 
 <div class="page-heading">
     <h1>공지사항</h1>
-    <span class="caption">운영 및 이용 안내</span>
+    <span class="caption">서비스 운영 소식과 이용 안내를 확인하세요.</span>
 </div>
 
+<section id="notice-list-view" hidden>
+    <div class="panel">
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">번호</th>
+                        <th scope="col">제목</th>
+                        <th scope="col">작성자</th>
+                        <th scope="col">등록일</th>
+                    </tr>
+                </thead>
+                <tbody id="notices-body">
+                    <tr><td colspan="4">공지사항을 불러오는 중입니다.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="section-gap" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <nav aria-label="공지사항 페이지">
+            <a id="notice-previous" class="button" hidden>이전</a>
+            <span id="notice-page-info" class="caption" aria-live="polite"></span>
+            <a id="notice-next" class="button" hidden>다음</a>
+        </nav>
+
+        <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
+            <button id="notice-create" type="button" class="button primary">
+                공지 등록
+            </button>
+        </c:if>
+    </div>
+</section>
+
+<section id="notice-detail-view" hidden>
+    <article class="panel">
+        <p id="notice-detail-status" role="status">공지사항을 불러오는 중입니다.</p>
+
+        <div id="notice-detail-content" hidden>
+            <h2 id="notice-title"></h2>
+            <p id="notice-meta" class="caption"></p>
+            <hr>
+            <div id="notice-body" class="notice-body section-gap"></div>
+        </div>
+    </article>
+
+    <div class="section-gap" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <a id="notice-back" class="button">목록</a>
+
+        <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
+            <div id="notice-detail-actions" hidden>
+                <button id="notice-edit" type="button" class="button">수정</button>
+                <button id="notice-delete" type="button" class="button">삭제</button>
+            </div>
+        </c:if>
+    </div>
+</section>
+
 <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
-    <button id="open-notice-create" type="button" class="button"
-            aria-controls="notice-create-panel" aria-expanded="false">
-        공지 등록
-    </button>
+    <section id="notice-editor" class="panel" hidden>
+        <h2 id="notice-editor-heading"></h2>
 
-    <section id="notice-create-panel" class="panel section-gap" hidden>
-        <h2>공지 등록</h2>
-
-        <form id="notice-create-form">
+        <form id="notice-form">
             <div class="section-gap">
-                <label for="notice-create-title">제목</label>
-                <input id="notice-create-title" name="title"
+                <label for="notice-form-title">제목</label>
+                <input id="notice-form-title" name="title"
                        type="text" maxlength="200" required>
             </div>
 
             <div class="section-gap">
-                <label for="notice-create-content">본문</label>
-                <textarea id="notice-create-content" name="content"
-                          rows="5" required></textarea>
+                <label for="notice-form-content">본문</label>
+                <textarea id="notice-form-content" name="content"
+                          rows="10" required></textarea>
             </div>
 
             <div class="section-gap">
-                <button type="submit" class="button">저장</button>
-                <button id="cancel-notice-create" type="button" class="button">
+                <button id="notice-save" type="submit" class="button primary">
+                    저장
+                </button>
+                <button id="notice-cancel" type="button" class="button">
                     취소
                 </button>
             </div>
@@ -38,227 +93,223 @@
     </section>
 </c:if>
 
-<section class="panel">
-    <div class="table-scroll">
-        <table>
-            <thead>
-                <tr>
-                    <th>번호</th>
-                    <th>제목</th>
-                    <th>작성자</th>
-                    <th>등록일</th>
-                </tr>
-            </thead>
-            <tbody id="notices-body">
-                <tr>
-                    <td colspan="4">공지사항을 불러오는 중입니다.</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <div class="section-gap">
-        <button id="previous-page" type="button" class="button" disabled>
-            이전
-        </button>
-        <span id="page-info" class="caption" aria-live="polite"></span>
-        <button id="next-page" type="button" class="button" disabled>
-            다음
-        </button>
-    </div>
-</section>
-
-<article id="notice-detail" class="panel section-gap" hidden>
-    <span id="notice-meta" class="caption"></span>
-    <h2 id="notice-title" class="section-gap"></h2>
-    <p id="notice-body" class="notice-body"></p>
-
-    <button id="close-notice" type="button" class="button">
-        목록만 보기
-    </button>
-</article>
-
 <script>
-    const noticePageSize = 10;
+    (() => {
+        const params = new URLSearchParams(location.search);
+        const requestedPage = Number(params.get('page') || 1);
+        const page = Number.isInteger(requestedPage)
+            && requestedPage >= 1 && requestedPage <= 2147483647
+            ? requestedPage : 1;
+        const noticeId = params.get('id');
+        const pageSize = 10;
 
-    let currentNoticePage = 1;
-    let noticeTotalPages = 0;
-    let noticeListLoading = false;
-    let noticeDetailVersion = 0;
+        const listView = $('#notice-list-view');
+        const detailView = $('#notice-detail-view');
+        const detailActions = $('#notice-detail-actions');
+        const editor = $('#notice-editor');
+        const form = $('#notice-form');
 
-    // Oracle TIMESTAMP의 날짜 부분을 표시한다.
-    function formatNoticeDate(value) {
-        return value ? value.substring(0, 10) : '-';
-    }
+        let selectedNotice = null;
 
-    function updateNoticePagination() {
-        $('#page-info').textContent = noticeTotalPages === 0
-            ? '등록된 공지사항이 없습니다.'
-            : currentNoticePage + ' / ' + noticeTotalPages + ' 페이지';
-
-        $('#previous-page').disabled = noticeListLoading || currentNoticePage <= 1;
-        $('#next-page').disabled = noticeListLoading || currentNoticePage >= noticeTotalPages;
-    }
-
-    async function loadNotices(page) {
-        if (noticeListLoading) {
-            return;
+        function listUrl(pageNumber) {
+            return BASE + '/notices?page=' + pageNumber;
         }
 
-        noticeListLoading = true;
-        updateNoticePagination();
+        function detailUrl(id, pageNumber) {
+            return listUrl(pageNumber) + '&id=' + encodeURIComponent(id);
+        }
 
-        try {
-            const data = await api('/notices?page=' + page + '&size=' + noticePageSize);
+        function formatDate(value) {
+            return value ? value.substring(0, 10) : '-';
+        }
 
-            currentNoticePage = data.page;
-            noticeTotalPages = data.totalPages;
+        function showView(view) {
+            listView.hidden = view !== listView;
+            detailView.hidden = view !== detailView;
 
-            if (data.notices.length === 0) {
+            if (editor) {
+                editor.hidden = view !== editor;
+            }
+        }
+
+        async function loadList() {
+            showView(listView);
+
+            try {
+                const data = await api('/notices?page=' + page + '&size=' + pageSize);
+
+                // 마지막 페이지의 마지막 공지를 삭제했으면 이전 페이지로 이동한다.
+                const lastPage = Math.max(1, data.totalPages);
+
+                if (page > lastPage) {
+                    location.replace(listUrl(lastPage));
+                    return;
+                }
+
+                $('#notices-body').innerHTML = data.notices.length
+                    ? data.notices.map(notice =>
+                        '<tr>' +
+                            '<td>' + esc(notice.noticeId) + '</td>' +
+                            '<td><a class="table-link" href="' +
+                                esc(detailUrl(notice.noticeId, page)) + '">' +
+                                esc(notice.title) + '</a></td>' +
+                            '<td>' + esc(notice.createdByName || '-') + '</td>' +
+                            '<td>' + esc(formatDate(notice.createdAt)) + '</td>' +
+                        '</tr>'
+                    ).join('')
+                    : '<tr><td colspan="4">등록된 공지사항이 없습니다.</td></tr>';
+
+                $('#notice-page-info').textContent = data.totalPages
+                    ? page + ' / ' + data.totalPages + ' 페이지'
+                    : '전체 0건';
+
+                const previous = $('#notice-previous');
+                previous.hidden = page <= 1;
+                previous.href = listUrl(page - 1);
+
+                const next = $('#notice-next');
+                next.hidden = page >= data.totalPages;
+                next.href = listUrl(page + 1);
+            } catch (error) {
                 $('#notices-body').innerHTML =
-                    '<tr><td colspan="4">표시할 공지사항이 없습니다.</td></tr>';
-                return;
-            }
-
-            // 제목과 작성자 이름은 HTML로 해석되지 않도록 이스케이프한다.
-            $('#notices-body').innerHTML = data.notices.map(notice =>
-                '<tr>' +
-                    '<td>' + esc(notice.noticeId) + '</td>' +
-                    '<td><button type="button" class="table-link" data-notice="' +
-                        esc(notice.noticeId) + '">' + esc(notice.title) + '</button></td>' +
-                    '<td>' + esc(notice.createdByName) + '</td>' +
-                    '<td>' + esc(formatNoticeDate(notice.createdAt)) + '</td>' +
-                '</tr>'
-            ).join('');
-        } catch (error) {
-            $('#notices-body').innerHTML =
-                '<tr><td colspan="4">공지사항을 불러오지 못했습니다. 새로고침해 주세요.</td></tr>';
-
-            notify(error.message, true);
-        } finally {
-            noticeListLoading = false;
-            updateNoticePagination();
-        }
-    }
-
-    async function openNotice(noticeId) {
-        // 빠르게 다른 공지를 선택해도 이전 응답이 화면을 덮어쓰지 않게 한다.
-        const version = ++noticeDetailVersion;
-        $('#notice-detail').hidden = true;
-
-        try {
-            const notice = await api('/notices/' + encodeURIComponent(noticeId));
-
-            if (version !== noticeDetailVersion) {
-                return;
-            }
-
-            $('#notice-meta').textContent =
-                notice.createdByName + ' · ' + formatNoticeDate(notice.createdAt);
-
-            $('#notice-title').textContent = notice.title;
-
-            // 본문에 HTML이나 스크립트가 있어도 일반 텍스트로 표시한다.
-            $('#notice-body').textContent = notice.content;
-            $('#notice-detail').hidden = false;
-
-            history.replaceState(null, '', BASE + '/notices?id=' + encodeURIComponent(noticeId));
-        } catch (error) {
-            if (version === noticeDetailVersion) {
+                    '<tr><td colspan="4">공지사항을 불러오지 못했습니다.</td></tr>';
                 notify(error.message, true);
             }
         }
-    }
 
-    // 목록 영역에 이벤트를 등록하면 페이지를 바꿔도 다시 등록할 필요가 없다.
-    $('#notices-body').addEventListener('click', event => {
-        const button = event.target.closest('[data-notice]');
+        async function loadDetail() {
+            showView(detailView);
+            $('#notice-back').href = listUrl(page);
 
-        if (button) {
-            openNotice(button.dataset.notice);
+            try {
+                const notice = await api('/notices/' + encodeURIComponent(noticeId));
+                selectedNotice = notice;
+
+                $('#notice-title').textContent = notice.title;
+
+                const metadata = [
+                    notice.createdByName || '-',
+                    '등록 ' + formatDate(notice.createdAt)
+                ];
+
+                if (notice.updatedAt) {
+                    metadata.push('수정 ' + formatDate(notice.updatedAt));
+                }
+
+                $('#notice-meta').textContent = metadata.join(' · ');
+
+                // 본문은 텍스트로 표시해 입력한 HTML이 실행되지 않도록 한다.
+                $('#notice-body').textContent = notice.content;
+                $('#notice-detail-status').hidden = true;
+                $('#notice-detail-content').hidden = false;
+
+                if (detailActions) {
+                    detailActions.hidden = false;
+                }
+            } catch (error) {
+                $('#notice-detail-status').textContent = error.message;
+            }
         }
-    });
 
-    $('#previous-page').addEventListener('click', () => {
-        loadNotices(currentNoticePage - 1);
-    });
+        if (form) {
+            const titleInput = $('#notice-form-title');
+            const contentInput = $('#notice-form-content');
+            const saveButton = $('#notice-save');
+            const cancelButton = $('#notice-cancel');
+            const deleteButton = $('#notice-delete');
 
-    $('#next-page').addEventListener('click', () => {
-        loadNotices(currentNoticePage + 1);
-    });
+            // 등록과 수정은 같은 폼을 사용한다. 수정할 때만 기존 값을 채운다.
+            function openEditor(notice) {
+                $('#notice-editor-heading').textContent = notice ? '공지 수정' : '공지 등록';
+                titleInput.value = notice ? notice.title : '';
+                contentInput.value = notice ? notice.content : '';
+                showView(editor);
+                titleInput.focus();
+            }
 
-    $('#close-notice').addEventListener('click', () => {
-        noticeDetailVersion++;
-        $('#notice-detail').hidden = true;
-        history.replaceState(null, '', BASE + '/notices');
-    });
-	
-	const noticeCreateForm = $('#notice-create-form');
+            $('#notice-create').addEventListener('click', () => openEditor(null));
 
-	// 일반 사용자 화면에는 폼이 없으므로 관리자가 볼 때만 연결한다.
-	if (noticeCreateForm) {
-		
-		const createPanel = $('#notice-create-panel');
-		const openButton = $('#open-notice-create');
+            $('#notice-edit').addEventListener('click', () => {
+                if (selectedNotice) {
+                    openEditor(selectedNotice);
+                }
+            });
 
-		function closeNoticeCreateForm() {
-		    createPanel.hidden = true;
-		    openButton.setAttribute('aria-expanded', 'false');
-		    openButton.focus();
-		}
+            cancelButton.addEventListener('click', () => {
+                showView(noticeId ? detailView : listView);
+                $(noticeId ? '#notice-edit' : '#notice-create').focus();
+            });
 
-		openButton.addEventListener('click', () => {
-		    createPanel.hidden = false;
-		    openButton.setAttribute('aria-expanded', 'true');
-		    $('#notice-create-title').focus();
-		});
+            form.addEventListener('submit', async event => {
+                event.preventDefault();
 
-		$('#cancel-notice-create').addEventListener('click', () => {
-		    closeNoticeCreateForm();
-		});
-		
-	    noticeCreateForm.addEventListener('submit', async event => {
-	        event.preventDefault();
+                if (saveButton.disabled) {
+                    return;
+                }
 
-	        const title = noticeCreateForm.elements.title.value.trim();
-	        const content = noticeCreateForm.elements.content.value;
-	        const submitButton = noticeCreateForm.querySelector('button[type="submit"]');
+                const title = titleInput.value.trim();
+                const content = contentInput.value;
 
-	        if (!title || !content.trim()) {
-	            notify('공지 제목과 본문을 입력하세요.', true);
-	            return;
-	        }
+                if (!title || !content.trim()) {
+                    notify('공지 제목과 본문을 입력하세요.', true);
+                    return;
+                }
 
-	        // 저장 중에는 등록 버튼을 잠가 중복 제출을 막는다.
-	        submitButton.disabled = true;
+                const path = noticeId
+                    ? '/admin/notices/' + encodeURIComponent(noticeId)
+                    : '/admin/notices';
 
-	        try {
-	            const result = await api('/admin/notices', {
-	                method: 'POST',
-	                body: JSON.stringify({ title, content })
-	            });
+                saveButton.disabled = true;
+                cancelButton.disabled = true;
 
-	            noticeCreateForm.reset();
-				closeNoticeCreateForm();
-	            notify(result.message);
-	            await loadNotices(1);
-	            await openNotice(result.noticeId);
-	        } catch (error) {
-	            notify(error.message, true);
-	        } finally {
-	            submitButton.disabled = false;
-	        }
-	    });
-	}
+                try {
+                    const result = await api(path, {
+                        method: noticeId ? 'PUT' : 'POST',
+                        body: JSON.stringify({ title, content })
+                    });
 
-    loadNotices(1);
+                    // 수정 후에는 보던 목록 페이지를 유지하고, 새 공지는 1페이지로 연결한다.
+                    location.assign(detailUrl(noticeId || result.noticeId, noticeId ? page : 1));
+                } catch (error) {
+                    notify(error.message, true);
+                } finally {
+                    saveButton.disabled = false;
+                    cancelButton.disabled = false;
+                }
+            });
 
-    // 상세 링크로 직접 접속한 경우 목록 페이지와 별개로 본문을 조회한다.
-    const initialNoticeId = new URLSearchParams(location.search).get('id');
+            deleteButton.addEventListener('click', async () => {
+                if (!selectedNotice || deleteButton.disabled) {
+                    return;
+                }
 
-    if (initialNoticeId) {
-        openNotice(initialNoticeId);
-    }
+                if (!window.confirm('이 공지사항을 삭제하시겠습니까?')) {
+                    return;
+                }
+
+                deleteButton.disabled = true;
+                $('#notice-edit').disabled = true;
+
+                try {
+                    await api('/admin/notices/' + encodeURIComponent(noticeId), {
+                        method: 'DELETE'
+                    });
+                    location.assign(listUrl(page));
+                } catch (error) {
+                    notify(error.message, true);
+                } finally {
+                    deleteButton.disabled = false;
+                    $('#notice-edit').disabled = false;
+                }
+            });
+        }
+
+        if (noticeId) {
+            loadDetail();
+        } else {
+            loadList();
+        }
+    })();
 </script>
 
 <%@ include file="fragments/bottom.jspf" %>

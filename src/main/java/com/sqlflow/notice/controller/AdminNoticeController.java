@@ -7,8 +7,11 @@ import java.util.Objects;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -42,12 +45,36 @@ public class AdminNoticeController {
                         "noticeId", noticeId,
                         "message", "공지사항이 등록되었습니다."));
     }
+    
+    /** 선택한 공지의 제목과 본문을 수정한다. */
+    @PutMapping("/{noticeId}")
+    public ResponseEntity<Map<String, String>> updateNotice(
+            @PathVariable("noticeId") Long noticeId,
+            @Valid @RequestBody NoticeCreateRequest request,
+            Principal principal) {
+
+        String loginId = principal == null ? null : principal.getName();
+        noticeService.updateNotice(noticeId, request, loginId);
+
+        return ResponseEntity.ok(Map.of("message", "공지사항이 수정되었습니다."));
+    }
+    
+    @DeleteMapping("/{noticeId}")
+    public ResponseEntity<Void> deleteNotice(
+            @PathVariable("noticeId") Long noticeId,
+            Principal principal) {
+
+        String loginId = principal == null ? null : principal.getName();
+        noticeService.deleteNotice(noticeId, loginId);
+
+        return ResponseEntity.noContent().build();
+    }
 
     /** 서비스에서 발생한 오류의 상태 코드와 안내 메시지를 유지한다. */
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, String>> handleError(ResponseStatusException exception) {
 
-        String message = Objects.requireNonNullElse(exception.getReason(), "공지사항을 등록하지 못했습니다.");
+        String message = Objects.requireNonNullElse(exception.getReason(), "공지사항을 처리하지 못했습니다.");
 
         return ResponseEntity.status(exception.getStatusCode()).body(Map.of("message", message));
     }

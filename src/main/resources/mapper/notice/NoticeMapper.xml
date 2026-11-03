@@ -64,5 +64,19 @@
             SYSTIMESTAMP
         )
     </insert>
+    
+	<update id="updateNotice">
+        UPDATE NOTICE
+        SET TITLE = #{title},
+            CONTENT = #{content, jdbcType=CLOB},
+            UPDATED_BY = #{updatedBy},
+            UPDATED_AT = SYSTIMESTAMP
+        WHERE NOTICE_ID = #{noticeId}
+    </update>
+    
+    <delete id="deleteNotice">
+	    DELETE FROM NOTICE
+	    WHERE NOTICE_ID = #{noticeId}
+	</delete>
 
 </mapper>

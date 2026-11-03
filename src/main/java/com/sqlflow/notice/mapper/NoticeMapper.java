@@ -30,4 +30,14 @@ public interface NoticeMapper {
             @Param("title") String title,
             @Param("content") String content,
             @Param("createdBy") Long createdBy);
+    
+    /** 공지 내용과 마지막 수정 정보를 저장하고, 수정된 행 수를 반환한다. */
+    int updateNotice(
+            @Param("noticeId") Long noticeId,
+            @Param("title") String title,
+            @Param("content") String content,
+            @Param("updatedBy") Long updatedBy);
+    
+    /** 공지 한 건을 삭제하고 삭제된 행 수를 반환한다. */
+    int deleteNotice(@Param("noticeId") Long noticeId);
 }

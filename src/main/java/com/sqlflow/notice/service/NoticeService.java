@@ -68,18 +68,7 @@ public class NoticeService {
 
         UserAccount admin = requireSystemAdmin(loginId);
 
-        if (request == null || request.title() == null || request.title().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "공지 제목을 입력하세요.");
-        }
-
-        // 공백 정리 전 길이를 검사해 DTO의 200자 제한과 기준을 맞춘다.
-        if (request.title().length() > 200) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "공지 제목은 200자 이하여야 합니다.");
-        }
-
-        if (request.content() == null || request.content().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "공지 본문을 입력하세요.");
-        }
+        validateNoticeInput(request);
 
         Long noticeId = noticeMapper.nextNoticeId();
 
@@ -94,6 +83,60 @@ public class NoticeService {
         }
 
         return noticeId;
+    }
+    
+    /** 기존 공지의 내용과 마지막 수정 정보를 저장한다. */
+    @Transactional(transactionManager = "managementTransactionManager")
+    public void updateNotice(Long noticeId, NoticeCreateRequest request, String loginId) {
+
+        UserAccount admin = requireSystemAdmin(loginId);
+
+        if (noticeId == null || noticeId < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "올바른 공지 번호를 입력하세요.");
+        }
+
+        validateNoticeInput(request);
+
+        int updated = noticeMapper.updateNotice(
+                noticeId,
+                request.title().strip(),
+                request.content(),
+                admin.getUserId());
+
+        if (updated == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "공지사항을 찾을 수 없습니다.");
+        }
+    }
+    
+    /** 시스템 관리자만 선택한 공지를 삭제할 수 있다. */
+    @Transactional(transactionManager = "managementTransactionManager")
+    public void deleteNotice(Long noticeId, String loginId) {
+
+        requireSystemAdmin(loginId);
+
+        if (noticeId == null || noticeId < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "올바른 공지 번호를 입력하세요.");
+        }
+
+        if (noticeMapper.deleteNotice(noticeId) == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "공지사항을 찾을 수 없습니다.");
+        }
+    }
+
+    /** 등록과 수정에 같은 제목·본문 검증 규칙을 적용한다. */
+    private void validateNoticeInput(NoticeCreateRequest request) {
+
+        if (request == null || request.title() == null || request.title().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "공지 제목을 입력하세요.");
+        }
+
+        if (request.title().length() > 200) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "공지 제목은 200자 이하여야 합니다.");
+        }
+
+        if (request.content() == null || request.content().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "공지 본문을 입력하세요.");
+        }
     }
 
     /** 세션 생성 이후 계정 비활성화나 역할 회수가 있었는지 DB에서 다시 확인한다. */
@@ -117,4 +160,5 @@ public class NoticeService {
 
         return account;
     }
+    
 }
