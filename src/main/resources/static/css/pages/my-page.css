@@ -1,0 +1,236 @@
+.my-page-intro {
+    margin: -8px 0 24px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.my-page-content {
+    max-width: 960px;
+}
+
+.profile-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 32px;
+    margin: 0;
+}
+
+.profile-info-grid > div {
+    display: grid;
+    grid-template-columns: 80px minmax(0, 1fr);
+    align-items: baseline;
+    gap: 16px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.profile-info-grid dt {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.profile-info-grid dd {
+    margin: 0;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+#profile-fields {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.profile-contact-grid {
+    margin: 20px 0 0;
+}
+
+.profile-contact-grid input {
+    margin-top: 8px;
+}
+
+.profile-field-help {
+    margin-top: 8px;
+    line-height: 1.6;
+}
+
+.profile-field-error {
+    margin-top: 8px;
+    color: var(--error);
+    font-size: 12px;
+}
+
+.profile-contact-grid input[aria-invalid="true"] {
+    border-color: var(--error);
+}
+
+.profile-contact-grid input:disabled {
+    background: var(--soft);
+    color: var(--muted);
+}
+
+.profile-footer .caption {
+    line-height: 1.7;
+}
+
+#profile-save:disabled {
+    opacity: .55;
+}
+
+#profile-load-error .button {
+    margin-top: 16px;
+}
+
+@media (max-width: 850px) {
+    .profile-info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .profile-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+.profile-account-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.profile-account-row .caption {
+    margin-top: 7px;
+    line-height: 1.7;
+}
+
+.profile-account-row > .button {
+    flex-shrink: 0;
+}
+
+#password-dialog {
+    width: min(480px, calc(100% - 32px));
+    max-height: calc(100dvh - 32px);
+    margin: auto;
+    padding: 28px;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 16px 48px rgb(0 0 0 / 16%);
+}
+
+#password-dialog::backdrop {
+    background: rgb(0 0 0 / 35%);
+}
+
+.password-dialog-heading {
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+}
+
+.password-dialog-heading h2 {
+    font-size: 18px;
+}
+
+.password-dialog-heading .caption {
+    margin-top: 8px;
+    line-height: 1.7;
+}
+
+#password-message {
+    margin: 20px 0 0;
+}
+
+#password-fields {
+    min-width: 0;
+    margin: 24px 0 20px;
+    padding: 0 4px;
+    border: 0;
+}
+
+.password-field + .password-field {
+    margin-top: 20px;
+}
+
+.password-field input {
+    margin-top: 8px;
+}
+
+.password-field input[aria-invalid="true"] {
+    border-color: var(--error);
+}
+
+.password-field input:disabled {
+    background: var(--soft);
+}
+
+.password-guide {
+    padding: 14px 16px;
+    border-radius: 5px;
+    background: var(--soft);
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.password-guide strong {
+    color: var(--text);
+    font-weight: 500;
+}
+
+@media (max-width: 560px) {
+    .profile-account-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    #password-dialog {
+        padding: 22px;
+    }
+
+    #password-fields {
+        padding: 0;
+    }
+}
+
+.password-guide-text {
+    margin-top: 8px;
+}
+
+.password-guide-text p {
+    margin: 0;
+    text-align: left;
+}
+
+.password-guide-text p + p {
+    margin-top: 4px;
+}
+
+#password-dialog .password-dialog-footer {
+    display: flex;
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+}
+
+#password-dialog .password-dialog-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+#password-dialog .password-dialog-actions .button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 80px;
+    min-height: 40px;
+    margin: 0;
+}

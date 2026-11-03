@@ -53,6 +53,11 @@ public class PageController {
 	public String home(Model model) {
 		return view(model, "home", "업무 현황");
 	}
+	
+	@GetMapping("/my-page")
+	public String myPage(Model model) {
+	    return view(model, "my-page", "마이페이지");
+	}
 
 	@GetMapping("/requests/new")
 	public String create(Model model,
@@ -224,8 +229,9 @@ public class PageController {
 		model.addAttribute("page", page);
 		model.addAttribute("pageTitle", title);
 		model.addAttribute("activeMenu",
-        page.equals("home") ? "home"
-        		: page.startsWith("view-create-request") ? "view-create-requests"
+			page.equals("home") ? "home"
+		        : page.equals("my-page") ? "my-page"
+		        : page.startsWith("view-create-request") ? "view-create-requests"
                 : page.startsWith("department-request") ? "department-requests"
                 : page.equals("notices") ? "notices"
                 : page.equals("views") || page.equals("view-detail") ? "views"

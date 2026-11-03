@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.auth.security.SqlFlowUserDetails;
+import com.sqlflow.execution.service.ExecutionBatchRecordService.BatchStartResult;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -115,5 +116,66 @@ public class ExecutionBatchDispatchService {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "현재 실행기가 바쁩니다. 잠시 후 다시 시도하세요.", exception);
         }
+    }
+    
+    /**
+     * 미실행 SQL의 배치를 자동 생성하고 백그라운드 실행을 접수한다.
+     */
+    @Transactional(
+            transactionManager = "managementTransactionManager",
+            propagation = Propagation.NEVER)
+    public BatchStartResult submitRemaining(
+            Long requestId,
+            SqlFlowUserDetails user) {
+
+        if (user == null || user.getUserId() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "로그인이 필요합니다.");
+        }
+
+        // 이 메서드가 반환되면 예약 트랜잭션이 커밋된 상태다.
+        var started = recordService.reserveRemaining(
+                requestId, user.getUserId());
+
+        try {
+            executor.execute(() -> {
+                try {
+                    // 이미 예약했으므로 start()를 다시 호출하지 않는다.
+                    // 일반 SQL 실패는 기록하고 다음 SQL을 계속 실행한다.
+                    runService.executeStarted(started);
+                } catch (RuntimeException exception) {
+                    // 이력·결과 저장 장애는 임의 재실행이나 실패 덮어쓰기를 하지 않는다.
+                    log.error(
+                            "전체 SQL 처리가 중단되었습니다. requestId={}, batchId={}",
+                            requestId, started.batchId(), exception);
+                }
+            });
+        } catch (RejectedExecutionException exception) {
+            try {
+                // 실제 실행기에 접수되지 않은 자동 생성 배치만 복구한다.
+                recordService.cancelRejectedRemainingStart(started);
+            } catch (RuntimeException restoreException) {
+                exception.addSuppressed(restoreException);
+
+                log.error(
+                        "전체 실행 접수 거절 후 복구 실패. requestId={}, batchId={}",
+                        requestId, started.batchId(), exception);
+
+                throw new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "실행 접수 실패 후 예약을 복구하지 못했습니다. "
+                                + "관리자 확인이 필요합니다.",
+                        exception);
+            }
+
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "현재 실행기가 다른 작업을 처리 중이거나 종료되었습니다. "
+                            + "잠시 후 다시 시도하세요.",
+                    exception);
+        }
+
+        return started;
     }
 }

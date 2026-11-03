@@ -105,7 +105,7 @@ class ExecutionFlowIntegrationTest {
         approver = loginUser(
                 approverId, approverDeptId, List.of("DB_APPROVER"));
 
-        // 활성 상품 뷰에 GENERAL 정책이 정확히 하나 있는 부서를 선택한다.
+        // 활성 상품 뷰에 SENSITIVE·ALLOW 정책이 정확히 하나 있는 부서를 선택한다.
         List<Long> departments = jdbc.queryForList("""
                 SELECT P.DEPT_ID
                 FROM DATA_RESOURCE R
@@ -117,14 +117,15 @@ class ExecutionFlowIntegrationTest {
                   AND P.ENABLED = 'Y'
                 GROUP BY P.DEPT_ID
                 HAVING COUNT(*) = 1
-                   AND MIN(P.ACCESS_LEVEL) = 'GENERAL'
+                   AND MIN(R.ACCESS_LEVEL) = 'SENSITIVE'
+                   AND MIN(P.ACCESS_DECISION) = 'ALLOW'
                 ORDER BY P.DEPT_ID
                 FETCH FIRST 1 ROW ONLY
                 """, Long.class);
 
         assertFalse(
                 departments.isEmpty(),
-                "v_active_product_catalog에 활성 GENERAL 접근 정책이 있는 부서가 필요합니다.");
+                "v_active_product_catalog에 활성 SENSITIVE·ALLOW 정책이 있는 부서가 필요합니다.");
 
         deptId = departments.get(0);
 
@@ -157,7 +158,23 @@ class ExecutionFlowIntegrationTest {
 
         // INSERT 성공 후에만 정리 대상으로 등록한다.
         requesterId = candidateId;
-        requester = loginUser(requesterId, deptId, List.of());
+
+        int roleInserted = jdbc.update("""
+                INSERT INTO USER_ROLE (USER_ID, ROLE_ID)
+                SELECT ?, ROLE_ID
+                FROM ROLE
+                WHERE ROLE_CODE = 'SENSITIVE_DATA_READER'
+                """, requesterId);
+
+        assertEquals(
+                1,
+                roleInserted,
+                "SENSITIVE_DATA_READER 역할이 정확히 하나 있어야 합니다.");
+
+        requester = loginUser(
+                requesterId,
+                deptId,
+                List.of("SENSITIVE_DATA_READER"));
     }
 
     @Test
@@ -412,7 +429,13 @@ class ExecutionFlowIntegrationTest {
         }
 
         if (requesterId != null) {
-            jdbc.update("DELETE FROM USERS WHERE USER_ID = ?", requesterId);
+            jdbc.update(
+                    "DELETE FROM USER_ROLE WHERE USER_ID = ?",
+                    requesterId);
+
+            jdbc.update(
+                    "DELETE FROM USERS WHERE USER_ID = ?",
+                    requesterId);
         }
     }
 }

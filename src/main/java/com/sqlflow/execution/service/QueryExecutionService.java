@@ -58,18 +58,51 @@ public class QueryExecutionService {
         return executeReserved(target);
     }
 
-    /** Execute an item previously atomically reserved by the DB-team single-run endpoint. */
-    @Transactional(transactionManager = "managementTransactionManager", propagation = Propagation.NEVER)
+    /**
+     * 상위 서비스에서 실행 권한을 확인하고
+     * RUNNING으로 예약한 SQL을 처리한다.
+     *
+     * 배치 없는 개별 실행과 기존 배치 소속 실행을 모두 지원한다.
+     */
+    @Transactional(
+            transactionManager = "managementTransactionManager",
+            propagation = Propagation.NEVER)
     public ExecutionOutcome executeStarted(Long executionId) {
         QueryExecutionTarget target = requireExecutionTarget(executionId);
+
         if (!"RUNNING".equals(target.getExecutionStatus())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "예약된 실행 대상이 아닙니다.");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "예약된 실행 대상이 아닙니다.");
         }
-        boolean singleRun = "PENDING".equals(target.getBatchStatus()) && "RUNNING".equals(target.getRequestStatus());
-        boolean batchRun = "RUNNING".equals(target.getBatchStatus()) && "RUNNING".equals(target.getRequestStatus());
-        if (!singleRun && !batchRun) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "실행 가능한 승인 상태가 아닙니다.");
+
+        if (!"RUNNING".equals(target.getRequestStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "실행 중인 요청의 SQL만 처리할 수 있습니다.");
         }
+
+        // 새로운 개별 실행: 배치 없이 실행한다.
+        boolean standaloneRun =
+                target.getBatchId() == null
+                        && target.getBatchStatus() == null;
+
+        // 기존 개별 실행 경로를 전환 기간 동안 유지한다.
+        boolean legacySingleRun =
+                target.getBatchId() != null
+                        && "PENDING".equals(target.getBatchStatus());
+
+        // 전체 실행 또는 실행 중 배치에 속한 SQL.
+        boolean batchRun =
+                target.getBatchId() != null
+                        && "RUNNING".equals(target.getBatchStatus());
+
+        if (!standaloneRun && !legacySingleRun && !batchRun) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "실행 가능한 배치 상태가 아닙니다.");
+        }
+
         return executeReserved(target);
     }
 
@@ -142,7 +175,7 @@ public class QueryExecutionService {
         return new ExecutionOutcome(executionId, true);
     }
 
-    /** 최종 승인된 실행 중 묶음에 속한 대기 SQL인지 확인한다. */
+    /** 최종 승인된 요청의 대기 또는 실행 중 SQL인지 확인한다. */
     private QueryExecutionTarget requireExecutionTarget(Long executionId) {
 
         if (executionId == null || executionId <= 0) {

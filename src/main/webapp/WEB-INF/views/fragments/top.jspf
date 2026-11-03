@@ -21,6 +21,11 @@
 	    <link rel="stylesheet"
 	          href="${pageContext.request.contextPath}/css/pages/dashboard.css">
 	</c:if>
+	
+	<c:if test="${page == 'my-page'}">
+	    <link rel="stylesheet"
+	          href="${pageContext.request.contextPath}/css/pages/my-page.css">
+	</c:if>
       
     <c:if test="${page == 'request-form'
 	           or page == 'request-review'
@@ -60,7 +65,7 @@
     <c:if test="${page == 'execution-result-detail'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/execution-result.css">
-    </c:if>
+    </c:if>    
 </head>
 <body>
     <div class="app-shell">
@@ -74,6 +79,13 @@
                    href="${pageContext.request.contextPath}/"
                    ${activeMenu == 'home' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/House.svg" alt="">업무 현황</a>
+                    
+                <a class="nav-item ${activeMenu == 'my-page' ? 'active' : ''}"
+				   href="${pageContext.request.contextPath}/my-page"
+				   ${activeMenu == 'my-page' ? 'aria-current="page"' : ''}>
+				    <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
+				    마이페이지
+				</a>
 
                 <a class="nav-item ${activeMenu == 'create' ? 'active' : ''}"
                    href="${pageContext.request.contextPath}/requests/new"
