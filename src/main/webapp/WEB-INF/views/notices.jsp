@@ -6,6 +6,38 @@
     <span class="caption">운영 및 이용 안내</span>
 </div>
 
+<c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
+    <button id="open-notice-create" type="button" class="button"
+            aria-controls="notice-create-panel" aria-expanded="false">
+        공지 등록
+    </button>
+
+    <section id="notice-create-panel" class="panel section-gap" hidden>
+        <h2>공지 등록</h2>
+
+        <form id="notice-create-form">
+            <div class="section-gap">
+                <label for="notice-create-title">제목</label>
+                <input id="notice-create-title" name="title"
+                       type="text" maxlength="200" required>
+            </div>
+
+            <div class="section-gap">
+                <label for="notice-create-content">본문</label>
+                <textarea id="notice-create-content" name="content"
+                          rows="5" required></textarea>
+            </div>
+
+            <div class="section-gap">
+                <button type="submit" class="button">저장</button>
+                <button id="cancel-notice-create" type="button" class="button">
+                    취소
+                </button>
+            </div>
+        </form>
+    </section>
+</c:if>
+
 <section class="panel">
     <div class="table-scroll">
         <table>
@@ -160,6 +192,64 @@
         $('#notice-detail').hidden = true;
         history.replaceState(null, '', BASE + '/notices');
     });
+	
+	const noticeCreateForm = $('#notice-create-form');
+
+	// 일반 사용자 화면에는 폼이 없으므로 관리자가 볼 때만 연결한다.
+	if (noticeCreateForm) {
+		
+		const createPanel = $('#notice-create-panel');
+		const openButton = $('#open-notice-create');
+
+		function closeNoticeCreateForm() {
+		    createPanel.hidden = true;
+		    openButton.setAttribute('aria-expanded', 'false');
+		    openButton.focus();
+		}
+
+		openButton.addEventListener('click', () => {
+		    createPanel.hidden = false;
+		    openButton.setAttribute('aria-expanded', 'true');
+		    $('#notice-create-title').focus();
+		});
+
+		$('#cancel-notice-create').addEventListener('click', () => {
+		    closeNoticeCreateForm();
+		});
+		
+	    noticeCreateForm.addEventListener('submit', async event => {
+	        event.preventDefault();
+
+	        const title = noticeCreateForm.elements.title.value.trim();
+	        const content = noticeCreateForm.elements.content.value;
+	        const submitButton = noticeCreateForm.querySelector('button[type="submit"]');
+
+	        if (!title || !content.trim()) {
+	            notify('공지 제목과 본문을 입력하세요.', true);
+	            return;
+	        }
+
+	        // 저장 중에는 등록 버튼을 잠가 중복 제출을 막는다.
+	        submitButton.disabled = true;
+
+	        try {
+	            const result = await api('/admin/notices', {
+	                method: 'POST',
+	                body: JSON.stringify({ title, content })
+	            });
+
+	            noticeCreateForm.reset();
+				closeNoticeCreateForm();
+	            notify(result.message);
+	            await loadNotices(1);
+	            await openNotice(result.noticeId);
+	        } catch (error) {
+	            notify(error.message, true);
+	        } finally {
+	            submitButton.disabled = false;
+	        }
+	    });
+	}
 
     loadNotices(1);
 
