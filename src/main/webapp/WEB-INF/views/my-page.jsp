@@ -112,7 +112,117 @@
             </button>
         </div>
     </form>
+	
+	<section class="panel section-gap"
+	         aria-labelledby="account-management-title">
+	    <div class="panel-heading">
+	        <h2 id="account-management-title">계정 관리</h2>
+	    </div>
+
+	    <div class="profile-account-row">
+	        <div>
+	            <h3>비밀번호 변경</h3>
+	        </div>
+
+	        <button id="password-open"
+	                class="button"
+	                type="button"
+	                aria-haspopup="dialog"
+	                aria-controls="password-dialog"
+	                disabled>
+	            비밀번호 변경
+	        </button>
+	    </div>
+	</section>
 </div>
+
+<dialog id="password-dialog"
+        aria-labelledby="password-dialog-title"
+        aria-describedby="password-dialog-description">
+
+    <form id="password-form" novalidate>
+        <div class="password-dialog-heading">
+            <h2 id="password-dialog-title">비밀번호 변경</h2>
+        </div>
+
+        <p id="password-message"
+           class="message error"
+           role="alert"
+           hidden></p>
+
+        <fieldset id="password-fields"
+                  aria-label="비밀번호 입력">
+            <div class="password-field">
+                <label for="password-current">현재 비밀번호</label>
+                <input id="password-current"
+                       name="currentPassword"
+                       type="password"
+                       autocomplete="current-password"
+                       maxlength="72"
+                       aria-describedby="password-current-error"
+                       autofocus>
+
+                <p id="password-current-error"
+                   class="profile-field-error"
+                   hidden></p>
+            </div>
+
+            <div class="password-field">
+                <label for="password-new">새 비밀번호</label>
+                <input id="password-new"
+                       name="newPassword"
+                       type="password"
+                       autocomplete="new-password"
+                       maxlength="72"
+                       aria-describedby="password-help password-new-error">
+
+                <p id="password-new-error"
+                   class="profile-field-error"
+                   hidden></p>
+            </div>
+
+            <div class="password-field">
+                <label for="password-confirm">새 비밀번호 확인</label>
+                <input id="password-confirm"
+                       name="newPasswordConfirm"
+                       type="password"
+                       autocomplete="new-password"
+                       maxlength="72"
+                       aria-describedby="password-help password-confirm-error">
+
+                <p id="password-confirm-error"
+                   class="profile-field-error"
+                   hidden></p>
+            </div>
+        </fieldset>
+
+		<div id="password-help" class="password-guide">
+		    <strong>비밀번호 설정 안내</strong>
+
+		    <div class="password-guide-text">
+		        <p>8자 이상, UTF-8 기준 72바이트 이하로 입력하세요.</p>
+		        <p>현재 비밀번호와 다른 비밀번호를 사용하세요.</p>
+		        <p>변경이 완료되면 로그아웃됩니다.</p>
+		    </div>
+		</div>
+
+		<div class="password-dialog-footer">
+		    <div class="password-dialog-actions">
+		        <button id="password-cancel"
+		                class="button"
+		                type="button">
+		            취소
+		        </button>
+
+		        <button id="password-submit"
+		                class="button primary"
+		                type="submit">
+		            변경
+		        </button>
+		    </div>
+		</div>
+    </form>
+</dialog>
 
 <script>
 (() => {
@@ -154,14 +264,17 @@
             || current.email !== original.email;
     }
 
-    function updateSaveButton() {
-        saveButton.disabled =
-            loading || saving || original === null || !hasChanges();
+	function updateSaveButton() {
+	    saveButton.disabled =
+	        loading || saving || original === null || !hasChanges();
 
-        saveButton.textContent = saving
-            ? '저장 중…'
-            : '변경사항 저장';
-    }
+	    saveButton.textContent = saving
+	        ? '저장 중…'
+	        : '변경사항 저장';
+
+	    $('#password-open').disabled =
+	        loading || saving || original === null;
+	}
 
     function setFieldError(input, errorElement, message) {
         errorElement.textContent = message;
@@ -331,6 +444,185 @@
     $('#profile-retry').addEventListener('click', loadProfile);
 
     loadProfile();
+})();
+</script>
+
+<script>
+(() => {
+    const dialog = $('#password-dialog');
+    const form = $('#password-form');
+    const fields = $('#password-fields');
+    const openButton = $('#password-open');
+    const cancelButton = $('#password-cancel');
+    const submitButton = $('#password-submit');
+    const message = $('#password-message');
+
+    const currentInput = $('#password-current');
+    const newInput = $('#password-new');
+    const confirmInput = $('#password-confirm');
+
+    const inputErrors = [
+        [currentInput, $('#password-current-error')],
+        [newInput, $('#password-new-error')],
+        [confirmInput, $('#password-confirm-error')]
+    ];
+
+    const encoder = new TextEncoder();
+
+    let submitting = false;
+    let completed = false;
+
+    function setError(input, errorElement, text) {
+        errorElement.textContent = text;
+        errorElement.hidden = !text;
+
+        if (text) {
+            input.setAttribute('aria-invalid', 'true');
+        } else {
+            input.removeAttribute('aria-invalid');
+        }
+    }
+
+    function clearErrors() {
+        inputErrors.forEach(([input, errorElement]) => {
+            setError(input, errorElement, '');
+        });
+
+        message.textContent = '';
+        message.hidden = true;
+    }
+
+    function updateControls() {
+        const locked = submitting || completed;
+
+        fields.disabled = locked;
+        cancelButton.disabled = locked;
+        submitButton.disabled = locked;
+        submitButton.textContent = submitting ? '변경 중…' : '변경';
+    }
+
+    function validatePassword() {
+        clearErrors();
+
+        const current = currentInput.value;
+        const next = newInput.value;
+        const confirm = confirmInput.value;
+
+        let firstInvalid = null;
+
+        function invalid(index, text) {
+            const [input, errorElement] = inputErrors[index];
+
+            setError(input, errorElement, text);
+            firstInvalid = firstInvalid || input;
+        }
+
+        // trim()은 빈 값 확인에만 사용한다.
+        // 서버로 보낼 비밀번호 자체는 변경하지 않는다.
+        if (!current.trim()) {
+            invalid(0, '현재 비밀번호를 입력하세요.');
+        } else if (encoder.encode(current).length > 72) {
+            invalid(0, '현재 비밀번호 입력값이 너무 깁니다.');
+        }
+
+        if (!next.trim()
+                || next.length < 8
+                || encoder.encode(next).length > 72) {
+            invalid(
+                1,
+                '새 비밀번호는 8자 이상, 72바이트 이하여야 합니다.'
+            );
+        } else if (next === current) {
+            invalid(1, '현재 비밀번호와 다른 비밀번호를 입력하세요.');
+        }
+
+        if (!confirm.trim()) {
+            invalid(2, '새 비밀번호 확인을 입력하세요.');
+        } else if (next !== confirm) {
+            invalid(2, '새 비밀번호 확인이 일치하지 않습니다.');
+        }
+
+        if (firstInvalid) {
+            firstInvalid.focus();
+            return false;
+        }
+
+        return true;
+    }
+
+    openButton.addEventListener('click', () => {
+        if (openButton.disabled || dialog.open || completed) return;
+
+        form.reset();
+        clearErrors();
+        updateControls();
+
+        dialog.showModal();
+        currentInput.focus();
+    });
+
+    function closeDialog() {
+        if (!submitting && !completed) {
+            dialog.close();
+        }
+    }
+
+    cancelButton.addEventListener('click', closeDialog);
+
+    // Esc로 닫는 것도 요청 처리 중에는 막는다.
+    dialog.addEventListener('cancel', event => {
+        if (submitting || completed) {
+            event.preventDefault();
+        }
+    });
+
+    dialog.addEventListener('close', () => {
+        form.reset();
+        clearErrors();
+
+        if (!completed) {
+            openButton.focus();
+        }
+    });
+
+    inputErrors.forEach(([input, errorElement]) => {
+        input.addEventListener('input', () => {
+            setError(input, errorElement, '');
+            message.hidden = true;
+        });
+    });
+
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        if (submitting || completed) return;
+        if (!validatePassword()) return;
+
+        submitting = true;
+        updateControls();
+
+        try {
+            await post('/me/password', {
+                currentPassword: currentInput.value,
+                newPassword: newInput.value,
+                newPasswordConfirm: confirmInput.value
+            });
+
+            completed = true;
+
+            form.reset();
+            dialog.close();
+
+            // 서버에서 세션 종료를 완료한 뒤 로그인 화면으로 이동한다.
+            location.replace(BASE + '/login?passwordChanged');
+        } catch (error) {
+            message.textContent = error.message;
+            message.hidden = false;
+        } finally {
+            submitting = false;
+            updateControls();
+        }
+    });
 })();
 </script>
 

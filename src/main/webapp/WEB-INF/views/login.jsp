@@ -25,9 +25,16 @@
         <c:if test="${param.error != null}">
             <p class="login-error" role="alert">아이디 또는 비밀번호를 확인하거나 계정 활성 상태를 확인하세요.</p>
         </c:if>
+		
         <c:if test="${param.logout != null}">
             <p class="muted" role="status">로그아웃했습니다.</p>
         </c:if>
+		
+		<c:if test="${param.passwordChanged != null}">
+		    <p class="muted" role="status">
+		        비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.
+		    </p>
+		</c:if>
 
         <form action="${pageContext.request.contextPath}/login" method="post">
             <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
