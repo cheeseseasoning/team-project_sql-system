@@ -58,20 +58,22 @@
                R.TITLE AS REQUEST_TITLE,
                I.QUERY_TITLE,
                ROW_NUMBER() OVER (
-                   PARTITION BY E.QUERY_ID
-                   ORDER BY B.REQUESTED_AT DESC NULLS LAST,
-                            B.BATCH_ID DESC,
-                            E.EXECUTION_ID DESC
-               ) AS LATEST_RANK
+				    PARTITION BY E.QUERY_ID
+				    ORDER BY E.EXECUTION_ID DESC
+			   ) AS LATEST_RANK
         FROM QUERY_EXECUTION E
-        JOIN EXECUTION_BATCH B
-          ON B.BATCH_ID = E.BATCH_ID
-        JOIN QUERY_REQUEST R
-          ON R.REQUEST_ID = B.REQUEST_ID
-        JOIN QUERY_ITEM I
-          ON I.QUERY_ID = E.QUERY_ID
-         AND I.REQUEST_ID = R.REQUEST_ID
+		JOIN QUERY_ITEM I
+		  ON I.QUERY_ID = E.QUERY_ID
+		JOIN QUERY_REQUEST R
+		  ON R.REQUEST_ID = I.REQUEST_ID
+		LEFT JOIN EXECUTION_BATCH B
+		  ON B.BATCH_ID = E.BATCH_ID
+		 AND B.REQUEST_ID = R.REQUEST_ID
         WHERE 1 = 1
+          AND (
+		    E.BATCH_ID IS NULL
+		    OR B.BATCH_ID IS NOT NULL
+		)
         <include refid="resultHistoryEligibility"/>
     </sql>
 
@@ -115,11 +117,9 @@
           ON F.EXECUTION_ID = E.EXECUTION_ID
          AND F.RESULT_RANK = 1
         WHERE E.LATEST_RANK = 1
-        ORDER BY E.REQUESTED_AT DESC NULLS LAST,
-                 E.BATCH_ID DESC,
-                 E.EXECUTION_ID DESC
-        OFFSET #{offset} ROWS
-        FETCH NEXT #{size} ROWS ONLY
+		ORDER BY E.EXECUTION_ID DESC
+		OFFSET #{offset} ROWS
+		FETCH NEXT #{size} ROWS ONLY
     </select>
     
     <select id="selectMyResultDetail"
@@ -146,13 +146,13 @@
 	           F.EXPIRES_AT,
 	           F.DELETED_AT
 	    FROM QUERY_EXECUTION E
-	    JOIN EXECUTION_BATCH B
-	      ON B.BATCH_ID = E.BATCH_ID
-	    JOIN QUERY_REQUEST R
-	      ON R.REQUEST_ID = B.REQUEST_ID
 	    JOIN QUERY_ITEM I
 	      ON I.QUERY_ID = E.QUERY_ID
-	     AND I.REQUEST_ID = R.REQUEST_ID
+	    JOIN QUERY_REQUEST R
+	      ON R.REQUEST_ID = I.REQUEST_ID
+	    LEFT JOIN EXECUTION_BATCH B
+	      ON B.BATCH_ID = E.BATCH_ID
+	     AND B.REQUEST_ID = R.REQUEST_ID
 	    LEFT JOIN (
 	        SELECT RESULT_ID,
 	               EXECUTION_ID,
@@ -170,45 +170,53 @@
 	      ON F.EXECUTION_ID = E.EXECUTION_ID
 	     AND F.RESULT_RANK = 1
 	    WHERE E.EXECUTION_ID = #{executionId}
-        <include refid="resultHistoryEligibility"/>
+	      AND (
+	          E.BATCH_ID IS NULL
+	          OR B.BATCH_ID IS NOT NULL
+	      )
+	    <include refid="resultHistoryEligibility"/>
 	</select>
 	
 	<!-- 이력 열람 자격이 있는 실행의 최신 결과 파일 정보 조회 -->
-    <select id="selectMyResultFile"
-            resultType="com.sqlflow.execution.domain.ExecutionResultFile">
-        SELECT E.EXECUTION_ID,
-        	   E.QUERY_ID,
-               E.STATUS,
-               F.RESULT_ID,
-               F.FILE_PATH,
-               F.EXPIRES_AT,
-               F.DELETED_AT
-        FROM QUERY_EXECUTION E
-        JOIN EXECUTION_BATCH B
-          ON B.BATCH_ID = E.BATCH_ID
-        JOIN QUERY_REQUEST R
-          ON R.REQUEST_ID = B.REQUEST_ID
-        JOIN QUERY_ITEM I
-          ON I.QUERY_ID = E.QUERY_ID
-         AND I.REQUEST_ID = R.REQUEST_ID
-        LEFT JOIN (
-            SELECT RESULT_ID,
-                   EXECUTION_ID,
-                   FILE_PATH,
-                   EXPIRES_AT,
-                   DELETED_AT,
-                   ROW_NUMBER() OVER (
-                       PARTITION BY EXECUTION_ID
-                       ORDER BY CREATED_AT DESC,
-                                RESULT_ID DESC
-                   ) AS RESULT_RANK
-            FROM QUERY_RESULT
-        ) F
-          ON F.EXECUTION_ID = E.EXECUTION_ID
-         AND F.RESULT_RANK = 1
-        WHERE E.EXECUTION_ID = #{executionId}
-        <include refid="resultHistoryEligibility"/>
-    </select>
+	<select id="selectMyResultFile"
+	        resultType="com.sqlflow.execution.domain.ExecutionResultFile">
+	    SELECT E.EXECUTION_ID,
+	           E.QUERY_ID,
+	           E.STATUS,
+	           F.RESULT_ID,
+	           F.FILE_PATH,
+	           F.EXPIRES_AT,
+	           F.DELETED_AT
+	    FROM QUERY_EXECUTION E
+	    JOIN QUERY_ITEM I
+	      ON I.QUERY_ID = E.QUERY_ID
+	    JOIN QUERY_REQUEST R
+	      ON R.REQUEST_ID = I.REQUEST_ID
+	    LEFT JOIN EXECUTION_BATCH B
+	      ON B.BATCH_ID = E.BATCH_ID
+	     AND B.REQUEST_ID = R.REQUEST_ID
+	    LEFT JOIN (
+	        SELECT RESULT_ID,
+	               EXECUTION_ID,
+	               FILE_PATH,
+	               EXPIRES_AT,
+	               DELETED_AT,
+	               ROW_NUMBER() OVER (
+	                   PARTITION BY EXECUTION_ID
+	                   ORDER BY CREATED_AT DESC,
+	                            RESULT_ID DESC
+	               ) AS RESULT_RANK
+	        FROM QUERY_RESULT
+	    ) F
+	      ON F.EXECUTION_ID = E.EXECUTION_ID
+	     AND F.RESULT_RANK = 1
+	    WHERE E.EXECUTION_ID = #{executionId}
+	      AND (
+	          E.BATCH_ID IS NULL
+	          OR B.BATCH_ID IS NOT NULL
+	      )
+	    <include refid="resultHistoryEligibility"/>
+	</select>
     
     <!--
         제출 시 저장한 SQL별 조회 대상.

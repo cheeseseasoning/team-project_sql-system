@@ -61,4 +61,12 @@ public interface ExecutionBatchMapper {
     ExecutionBatchStatusResponseDTO selectVisibleBatchStatus(
             @Param("batchId") Long batchId,
             @Param("actorId") Long actorId);
+    
+    /** 실행기에 접수되지 않은 배치의 미시작 실행 이력을 제거한다. */
+    int deleteRejectedBatchExecutions(
+            @Param("batchId") Long batchId);
+
+    /** 실행 이력이 모두 제거된 자동 생성 배치를 제거한다. */
+    int deleteRejectedBatch(
+            @Param("batchId") Long batchId);
 }

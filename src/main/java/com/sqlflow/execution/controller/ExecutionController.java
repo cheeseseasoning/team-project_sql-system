@@ -107,6 +107,24 @@ public class ExecutionController {
             @AuthenticationPrincipal SqlFlowUserDetails user) {
         return executionQueueService.getDetail(user, requestId);
     }
+    
+    /**
+     * 미실행 SQL만 대상으로 배치를 자동 생성하고 전체 실행을 접수한다.
+     */
+    @PostMapping("/requests/{requestId}/run")
+    public ResponseEntity<BatchAcceptedResponse> runRemaining(
+            @PathVariable("requestId") Long requestId,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+        var started =
+                executionBatchDispatchService.submitRemaining(
+                        requestId, user);
+
+        return ResponseEntity.accepted()
+                .body(new BatchAcceptedResponse(
+                        started.batchId(),
+                        "미실행 SQL의 전체 실행을 접수했습니다."));
+    }
 
     /** Service에서 발생한 업무 오류를 상태 코드와 안내 메시지로 전달한다. */
     @ExceptionHandler(ResponseStatusException.class)

@@ -140,10 +140,15 @@ class QueryExecutionRecordIntegrationTest {
 
         jdbc.update("""
                 INSERT INTO QUERY_EXECUTION (
-                    EXECUTION_ID, BATCH_ID, QUERY_ID, ATTEMPT_NO, STATUS
-                ) VALUES (?, ?, ?, 1, 'PENDING')
+                    EXECUTION_ID,
+                    BATCH_ID,
+                    QUERY_ID,
+                    EXECUTED_BY,
+                    ATTEMPT_NO,
+                    STATUS
+                ) VALUES (?, ?, ?, ?, 1, 'PENDING')
                 """,
-                executionId, batchId, queryId);
+                executionId, batchId, queryId, userId);
     }
 
     @AfterEach
