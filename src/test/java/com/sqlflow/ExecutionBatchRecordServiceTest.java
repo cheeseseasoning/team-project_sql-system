@@ -1,8 +1,15 @@
 package com.sqlflow;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 
@@ -23,6 +30,7 @@ import com.sqlflow.execution.domain.QueryExecution;
 import com.sqlflow.execution.mapper.ExecutionBatchMapper;
 import com.sqlflow.execution.mapper.QueryExecutionMapper;
 import com.sqlflow.execution.service.ExecutionBatchRecordService;
+import com.sqlflow.execution.service.RequestExecutionStatusService;
 
 /**
  * 실행 묶음의 시작 조건과 SQL별 결과 집계를 확인한다.
@@ -40,6 +48,9 @@ class ExecutionBatchRecordServiceTest {
 
     @Mock
     private QueryExecutionMapper queryExecutionMapper;
+    
+    @Mock
+    private RequestExecutionStatusService requestStatusService;
 
     @InjectMocks
     private ExecutionBatchRecordService service;
@@ -167,40 +178,6 @@ class ExecutionBatchRecordServiceTest {
                 anyLong(), anyString(), anyString());
     }
 
-    @ParameterizedTest
-    @CsvSource({
-            "SUCCESS, SUCCESS, SUCCESS, COMPLETED, 2, 0",
-            "SUCCESS, FAILED, PARTIAL_FAILED, PARTIAL_FAILED, 1, 1",
-            "FAILED, FAILED, FAILED, FAILED, 0, 2"
-    })
-    void aggregatesFinalStatuses(
-            String firstStatus,
-            String secondStatus,
-            String expectedBatchStatus,
-            String expectedRequestStatus,
-            int expectedSuccessCount,
-            int expectedFailureCount) {
-
-        prepareFinish(firstStatus, secondStatus);
-
-        when(mapper.updateStatus(
-                BATCH_ID, "RUNNING", expectedBatchStatus)).thenReturn(1);
-        when(mapper.updateRequestStatus(
-                REQUEST_ID, "RUNNING", expectedRequestStatus)).thenReturn(1);
-
-        var result = service.finish(BATCH_ID);
-
-        assertEquals(expectedBatchStatus, result.batchStatus());
-        assertEquals(expectedRequestStatus, result.requestStatus());
-        assertEquals(expectedSuccessCount, result.successCount());
-        assertEquals(expectedFailureCount, result.failureCount());
-
-        verify(mapper).updateStatus(
-                BATCH_ID, "RUNNING", expectedBatchStatus);
-        verify(mapper).updateRequestStatus(
-                REQUEST_ID, "RUNNING", expectedRequestStatus);
-    }
-
     @Test
     void unfinishedSqlPreventsBatchCompletion() {
         prepareFinish("SUCCESS", "PENDING");
@@ -221,27 +198,97 @@ class ExecutionBatchRecordServiceTest {
 
         when(mapper.updateStatus(
                 BATCH_ID, "RUNNING", "SUCCESS")).thenReturn(1);
-        when(mapper.updateRequestStatus(
-                REQUEST_ID, "RUNNING", "COMPLETED")).thenReturn(0);
 
-        assertThrows(
-                ResponseStatusException.class,
-                () -> service.finish(BATCH_ID));
+        var failure = new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "기안서 상태 갱신 실패");
 
-        // 이 테스트는 예외 전달만 확인한다.
-        // 묶음 SUCCESS 변경의 실제 롤백은 Oracle 연동 테스트에서 확인한다.
-        verify(mapper).updateStatus(BATCH_ID, "RUNNING", "SUCCESS");
+        when(requestStatusService.refresh(REQUEST_ID))
+                .thenThrow(failure);
+
+        assertSame(
+                failure,
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> service.finish(BATCH_ID)));
+
+        // 실제 롤백은 Oracle 통합 테스트에서 확인한다.
+        verify(mapper).updateStatus(
+                BATCH_ID, "RUNNING", "SUCCESS");
     }
+    
+    @Test
+    void 배치가_성공해도_기안서는_이전_개별실패를_포함해_집계한다() {
+        prepareFinish("SUCCESS", "SUCCESS");
 
+        when(mapper.updateStatus(
+                BATCH_ID, "RUNNING", "SUCCESS")).thenReturn(1);
+
+        when(requestStatusService.refresh(REQUEST_ID))
+                .thenReturn("PARTIAL_FAILED");
+
+        var result = service.finish(BATCH_ID);
+
+        assertEquals("SUCCESS", result.batchStatus());
+        assertEquals("PARTIAL_FAILED", result.requestStatus());
+        assertEquals(2, result.successCount());
+        assertEquals(0, result.failureCount());
+    }
+    
+    @ParameterizedTest
+    @CsvSource({
+        "SUCCESS, SUCCESS, SUCCESS, COMPLETED, 2, 0",
+        "SUCCESS, FAILED, PARTIAL_FAILED, PARTIAL_FAILED, 1, 1",
+        "FAILED, FAILED, FAILED, FAILED, 0, 2"
+    })
+    void aggregatesFinalStatuses(
+            String firstStatus,
+            String secondStatus,
+            String expectedBatchStatus,
+            String expectedRequestStatus,
+            int expectedSuccessCount,
+            int expectedFailureCount) {
+
+        prepareFinish(firstStatus, secondStatus);
+
+        when(mapper.updateStatus(
+                BATCH_ID, "RUNNING", expectedBatchStatus)).thenReturn(1);
+
+        when(requestStatusService.refresh(REQUEST_ID))
+                .thenReturn(expectedRequestStatus);
+
+        var result = service.finish(BATCH_ID);
+
+        assertEquals(expectedBatchStatus, result.batchStatus());
+        assertEquals(expectedRequestStatus, result.requestStatus());
+        assertEquals(expectedSuccessCount, result.successCount());
+        assertEquals(expectedFailureCount, result.failureCount());
+
+        var order = inOrder(mapper, requestStatusService);
+
+        order.verify(mapper).updateStatus(
+                BATCH_ID, "RUNNING", expectedBatchStatus);
+        order.verify(requestStatusService).refresh(REQUEST_ID);
+
+        // 기안서 갱신은 공통 집계 서비스에 위임한다.
+        verify(mapper, never()).updateRequestStatus(
+                anyLong(), anyString(), anyString());
+    }
+    
     private void prepareStart() {
-        when(mapper.isActiveDbApprover(ACTOR_ID)).thenReturn(true);
-        when(mapper.selectBatch(BATCH_ID)).thenReturn(batch);
+        when(mapper.isActiveDbApprover(ACTOR_ID))
+                .thenReturn(true);
+
+        when(mapper.selectBatch(BATCH_ID))
+                .thenReturn(batch);
+
         when(mapper.selectRequestContextForUpdate(REQUEST_ID))
                 .thenReturn(request);
 
-        when(mapper.selectExecutions(BATCH_ID)).thenReturn(List.of(
-                execution(501L, 301L, "PENDING"),
-                execution(502L, 302L, "PENDING")));
+        when(mapper.selectExecutions(BATCH_ID))
+                .thenReturn(List.of(
+                        execution(501L, 301L, "PENDING"),
+                        execution(502L, 302L, "PENDING")));
 
         when(mapper.selectQueryIdsByRequestId(REQUEST_ID))
                 .thenReturn(List.of(301L, 302L));

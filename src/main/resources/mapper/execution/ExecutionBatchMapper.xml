@@ -51,7 +51,9 @@
     
 	<!-- 중복 등록을 막기 위해 요청 행을 잠그고 두 상태를 함께 확인한다. -->
 	<select id="selectRequestContextForUpdate"
-	        resultType="com.sqlflow.execution.domain.ExecutionRequestContext">
+	        resultType="com.sqlflow.execution.domain.ExecutionRequestContext"
+	        useCache="false"
+        	flushCache="true">
 	    SELECT REQUEST_ID,
 	           REQUEST_STATUS,
 	           APPROVAL_STATUS
@@ -191,5 +193,36 @@
 	             Q.REQUEST_STATUS,
 	             B.FINISHED_AT
 	</select>
+	
+	<!-- 실제 실행기에 접수되지 않은 배치 예약의 복구 전용이다. -->
+	<delete id="deleteRejectedBatchExecutions">
+	    DELETE FROM QUERY_EXECUTION E
+	    WHERE E.BATCH_ID = #{batchId}
+	      AND E.STATUS = 'PENDING'
+	      AND E.STARTED_AT IS NULL
+	      AND E.FINISHED_AT IS NULL
+	      AND NOT EXISTS (
+	          SELECT 1
+	          FROM QUERY_RESULT F
+	          WHERE F.EXECUTION_ID = E.EXECUTION_ID
+	      )
+	      AND NOT EXISTS (
+	          SELECT 1
+	          FROM QUERY_EXECUTION RETRY
+	          WHERE RETRY.RETRY_OF_EXECUTION_ID = E.EXECUTION_ID
+	      )
+	</delete>
+	
+	<delete id="deleteRejectedBatch">
+	    DELETE FROM EXECUTION_BATCH B
+	    WHERE B.BATCH_ID = #{batchId}
+	      AND B.BATCH_TYPE = 'INITIAL'
+	      AND B.BATCH_STATUS = 'RUNNING'
+	      AND NOT EXISTS (
+	          SELECT 1
+	          FROM QUERY_EXECUTION E
+	          WHERE E.BATCH_ID = B.BATCH_ID
+	      )
+	</delete>
 
 </mapper>

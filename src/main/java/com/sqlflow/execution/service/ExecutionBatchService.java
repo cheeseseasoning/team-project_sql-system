@@ -89,11 +89,13 @@ public class ExecutionBatchService {
             QueryExecution execution = new QueryExecution();
             execution.setBatchId(batch.getBatchId());
             execution.setQueryId(queryId);
+            execution.setExecutedBy(user.getUserId());
             execution.setAttemptNo(1);
             execution.setRetryOfExecutionId(null);
 
             if (queryExecutionMapper.insertExecution(execution) != 1) {
-                throw new IllegalStateException("SQL 실행 이력 등록에 실패했습니다. queryId=" + queryId);
+                throw new IllegalStateException(
+                        "SQL 실행 이력 등록에 실패했습니다. queryId=" + queryId);
             }
         }
 

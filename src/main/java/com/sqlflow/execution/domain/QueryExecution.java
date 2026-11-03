@@ -16,6 +16,7 @@ public class QueryExecution {
     private Long executionId;
     private Long batchId;
     private Long queryId;
+    private Long executedBy;
 
     // 최초 실행은 null, 재실행은 이전 실행 이력의 ID를 저장한다.
     private Long retryOfExecutionId;
