@@ -123,7 +123,8 @@
         JOIN DEPARTMENT D ON D.DEPT_ID = R.DEPT_ID
         WHERE 1 = 1
         <include refid="pendingApprovalEligibility"/>
-        ORDER BY R.SUBMITTED_AT, R.REQUEST_ID
+        ORDER BY R.SUBMITTED_AT DESC NULLS LAST,
+        		 R.REQUEST_ID DESC
     </select>
 
     <select id="selectPendingApprovalDetail"
