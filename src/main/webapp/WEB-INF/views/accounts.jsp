@@ -84,7 +84,7 @@
 
         accounts.forEach(account => {
             const row = document.createElement("tr");
-            const loginCell = createCell("");
+            const loginCell = document.createElement("td");
 
             if (isSystemAdmin) {
                 const link = document.createElement("a");
