@@ -67,7 +67,7 @@ class ExecutionBatchAuthorizationTest {
     }
 
     @Test
-    void rejectsUserWithoutDbApproverRole() {
+    void rejectsUserWithoutDbApproverSessionRole() {
         SqlFlowUserDetails user = user(true, "DB_ADMIN");
 
         ResponseStatusException error = assertThrows(
@@ -79,18 +79,39 @@ class ExecutionBatchAuthorizationTest {
     }
 
     @Test
+    void rejectsDbApproverWhoseRoleWasRevokedInDatabase() {
+        SqlFlowUserDetails user = user(true, "DB_APPROVER");
+        when(executionBatchMapper.isActiveDbApprover(USER_ID))
+                .thenReturn(false);
+
+        ResponseStatusException error = assertThrows(
+                ResponseStatusException.class,
+                () -> executionBatchService.createInitialBatch(REQUEST_ID, user));
+
+        assertEquals(HttpStatus.FORBIDDEN, error.getStatusCode());
+        verify(executionBatchMapper).isActiveDbApprover(USER_ID);
+        verify(executionBatchMapper, never())
+                .selectRequestContextForUpdate(any());
+        verify(executionBatchMapper, never())
+                .insertBatch(any(ExecutionBatch.class));
+        verifyNoInteractions(queryExecutionMapper);
+    }
+
+    @Test
     void rejectsRequestThatIsNotApprovedAndReady() {
         SqlFlowUserDetails user = user(true, "DB_APPROVER");
-        ExecutionRequestContext request = requestContext("PENDING", "PENDING_APPROVAL");
+        when(executionBatchMapper.isActiveDbApprover(USER_ID))
+                .thenReturn(true);
         when(executionBatchMapper.selectRequestContextForUpdate(REQUEST_ID))
-                .thenReturn(request);
+                .thenReturn(requestContext("PENDING", "PENDING_APPROVAL"));
 
         ResponseStatusException error = assertThrows(
                 ResponseStatusException.class,
                 () -> executionBatchService.createInitialBatch(REQUEST_ID, user));
 
         assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
-        verify(executionBatchMapper, never()).insertBatch(any(ExecutionBatch.class));
+        verify(executionBatchMapper, never())
+                .insertBatch(any(ExecutionBatch.class));
         verifyNoInteractions(queryExecutionMapper);
     }
 
@@ -98,6 +119,8 @@ class ExecutionBatchAuthorizationTest {
     void activeDbApproverCreatesBatchAndSqlExecutionRows() {
         SqlFlowUserDetails user = user(true, "DB_APPROVER");
 
+        when(executionBatchMapper.isActiveDbApprover(USER_ID))
+                .thenReturn(true);
         when(executionBatchMapper.selectRequestContextForUpdate(REQUEST_ID))
                 .thenReturn(requestContext("APPROVED", "READY"));
         when(executionBatchMapper.selectQueryIdsByRequestId(REQUEST_ID))
@@ -116,6 +139,7 @@ class ExecutionBatchAuthorizationTest {
         Long result = executionBatchService.createInitialBatch(REQUEST_ID, user);
 
         assertEquals(BATCH_ID, result);
+        verify(executionBatchMapper).isActiveDbApprover(USER_ID);
 
         ArgumentCaptor<ExecutionBatch> batchCaptor =
                 ArgumentCaptor.forClass(ExecutionBatch.class);
@@ -131,11 +155,15 @@ class ExecutionBatchAuthorizationTest {
         ArgumentCaptor<QueryExecution> executionCaptor =
                 ArgumentCaptor.forClass(QueryExecution.class);
         verify(queryExecutionMapper,
-                org.mockito.Mockito.times(2)).insertExecution(executionCaptor.capture());
+                org.mockito.Mockito.times(2))
+                .insertExecution(executionCaptor.capture());
 
         List<QueryExecution> executions = executionCaptor.getAllValues();
-        assertEquals(List.of(501L, 502L),
-                executions.stream().map(QueryExecution::getQueryId).toList());
+        assertEquals(
+                List.of(501L, 502L),
+                executions.stream()
+                        .map(QueryExecution::getQueryId)
+                        .toList());
 
         for (QueryExecution execution : executions) {
             assertEquals(BATCH_ID, execution.getBatchId());
