@@ -735,59 +735,85 @@ public class RequestService {
 	            ? null
 	            : value.strip();
 	}
-    @Transactional(transactionManager = "managementTransactionManager")
-    public Long redraftRequest(
-            Long sourceRequestId,
-            RequestDraftCreateRequest input,
-            Long actorId,
-            Long deptId) {
 
-        // 본인 요청을 잠그고 반려되거나 회수된 요청인지 확인한다.
-        String status = requestMapper.selectMyRequestStatusForUpdate(
-                sourceRequestId, actorId);
+	@Transactional(transactionManager = "managementTransactionManager")
+	public Long redraftRequest(Long sourceRequestId, RequestDraftCreateRequest input,
+	        Long actorId, Long deptId) {
 
-        if (status == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "요청을 찾을 수 없습니다.");
-        }
-        if (!"REJECTED".equals(status) && !"WITHDRAWN".equals(status)) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "반려되거나 회수된 요청만 재기안할 수 있습니다.");
-        }
+	    // 본인 요청을 잠그고 반려되거나 회수된 요청인지 확인한다.
+	    String status = requestMapper.selectMyRequestStatusForUpdate(sourceRequestId, actorId);
+	    if (status == null) {
+	        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청을 찾을 수 없습니다.");
+	    }
+	    if (!"REJECTED".equals(status) && !"WITHDRAWN".equals(status)) {
+	        throw new ResponseStatusException(HttpStatus.CONFLICT, "반려되거나 회수된 요청만 재기안할 수 있습니다.");
+	    }
 
-        // 재기안 가능한 원본 요청과 SQL을 읽는다.
-        RequestDetailResponse source =
-                getMyRequestDetail(sourceRequestId, actorId);
-        Long newRequestId = requestMapper.selectNextRequestId();
+	    RequestDetailResponse source = getMyRequestDetail(sourceRequestId, actorId);
+	    String requestType = source.getRequestType();
+	    Long newRequestId = requestMapper.selectNextRequestId();
 
-        QueryRequest draft = new QueryRequest();
-        draft.setRequestId(newRequestId);
-        draft.setRequestNo(createRequestNo(newRequestId));
-        draft.setRequestType(source.getRequestType());
-        draft.setSourceRequestId(sourceRequestId);
-        draft.setDrafterId(actorId);
-        draft.setDeptId(deptId);
-        draft.setTitle(input.getTitle().strip());
-        draft.setPurpose(input.getPurpose().strip());
-        draft.setDetailContent(normalizeOptionalText(input.getDetailContent()));
-        draft.setIsUrgent(input.getIsUrgent());
-        draft.setDesiredDate(input.getDesiredDate());
+	    QueryRequest draft = new QueryRequest();
+	    draft.setRequestId(newRequestId);
+	    draft.setRequestNo(createRequestNo(newRequestId));
+	    draft.setRequestType(requestType);
+	    draft.setSourceRequestId(sourceRequestId);
+	    draft.setDrafterId(actorId);
+	    draft.setDeptId(deptId);
+	    draft.setTitle(input.getTitle().strip());
+	    draft.setPurpose(input.getPurpose().strip());
+	    draft.setDetailContent(normalizeOptionalText(input.getDetailContent()));
+	    draft.setIsUrgent(input.getIsUrgent());
+	    draft.setDesiredDate(input.getDesiredDate());
 
-        if (requestMapper.insertRequest(draft) != 1) {
-            throw new IllegalStateException("재기안 초안 생성에 실패했습니다.");
-        }
+	    if (requestMapper.insertRequest(draft) != 1) {
+	        throw new IllegalStateException("재기안 초안 생성에 실패했습니다.");
+	    }
 
-        if ("CREATE_VIEW".equals(source.getRequestType())) {
-            saveRedraftViewSqlItems(newRequestId, input.getSqls(), input.getSqlTitles());
-        } else {
-            saveDraftItems(newRequestId, input.getSqls(), input.getSqlTitles());
-        }
+	    if ("CREATE_VIEW".equals(requestType)) {
+	        saveRedraftViewSqlItems(newRequestId, input.getSqls(), input.getSqlTitles());
+	    } else if (isDmlRequest(requestType)) {
+	        saveRedraftDmlSqlItems(newRequestId, requestType, input);
+	    } else {
+	        saveDraftItems(newRequestId, input.getSqls(), input.getSqlTitles());
+	    }
 
-        // 결재선은 초안 제출 시 새로 등록한다.
-        return newRequestId;
-    }
+	    // 새 결재선은 새 초안을 제출할 때 생성한다.
+	    return newRequestId;
+	}
+
+	private void saveRedraftDmlSqlItems(Long requestId, String requestType, RequestDraftCreateRequest input) {
+	    List<String> sqls = input.getSqls();
+	    List<String> titles = input.getSqlTitles();
+
+	    if (sqls == null || sqls.isEmpty() || sqls.size() > 5) {
+	        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "변경 SQL은 1개 이상, 5개 이하로 입력하세요.");
+	    }
+	    if (titles != null && titles.size() != sqls.size()) {
+	        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SQL 목록과 SQL 제목 목록의 개수가 일치해야 합니다.");
+	    }
+
+	    List<DmlDraftRequest.SqlEntry> items = new java.util.ArrayList<>();
+	    for (int i = 0; i < sqls.size(); i++) {
+	        String sql = sqls.get(i);
+	        String title = titles == null ? null : titles.get(i);
+	        if (sql == null || sql.isBlank() || sql.length() > 20000) {
+	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "변경 SQL은 1~20000자로 입력하세요.");
+	        }
+	        if (title != null && title.strip().length() > 200) {
+	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SQL 제목은 200자 이하여야 합니다.");
+	        }
+	        items.add(new DmlDraftRequest.SqlEntry(title, sql));
+	    }
+
+	    // 원본 기안의 유형으로 검사하고, 기존 DML 초안과 같은 경로에 저장한다.
+	    DmlDraftRequest dmlDraft = new DmlDraftRequest(
+	            DmlSqlValidationService.SqlType.valueOf(requestType),
+	            input.getTitle(), input.getPurpose(), input.getDetailContent(),
+	            input.getIsUrgent(), input.getDesiredDate(), items);
+	    validateDmlDraftItems(dmlDraft);
+	    saveDmlSqlItems(requestId, dmlDraft);
+	}
 
     private void saveRedraftViewSqlItems(
             Long requestId,
