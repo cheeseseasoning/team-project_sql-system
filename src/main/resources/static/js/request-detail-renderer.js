@@ -84,12 +84,6 @@ window.RequestDetailRenderer = (() => {
 	        return '<p class="empty">등록된 SQL이 없습니다.</p>';
 	    }
 
-	    const changeResultNames = {
-	        COMPLETED: '성공',
-	        FAILED: '실패',
-	        CANCELLED: '취소'
-	    };
-
 	    return items.map(item => {
 	        const validationLabel = validationNames[item.validationStatus] || item.validationStatus || '-';
 	        const authoringLabel = authoringNames[item.authoringType] || item.authoringType || '-';
@@ -112,15 +106,6 @@ window.RequestDetailRenderer = (() => {
 	                + esc(validationMessage || defaultValidationMessage) + '</p>'
 	            : '';
 
-	        // 상세 API가 반환한 외부 처리 결과를 해당 SQL 아래에 표시한다.
-	        const resultLabel = changeResultNames[item.changeResultStatus];
-	        const resultNote = item.changeResultNote
-	            ? '<p class="caption">처리 메모 · ' + esc(item.changeResultNote) + '</p>'
-	            : '';
-	        const resultDetail = resultLabel
-	            ? '<p class="caption">외부 처리 결과 · ' + esc(resultLabel) + '</p>' + resultNote
-	            : '';
-
 	        return '<article class="result-item">'
 	            + '<div class="panel-heading">'
 	            + '<h3>' + esc(item.queryTitle || ('SQL ' + item.queryOrder)) + '</h3>'
@@ -129,9 +114,39 @@ window.RequestDetailRenderer = (() => {
 	            + '<p class="caption">순서 ' + esc(item.queryOrder) + ' · ' + esc(authoringLabel) + '</p>'
 	            + '<pre><code>' + esc(item.sqlText) + '</code></pre>'
 	            + validationDetail
-	            + resultDetail
+	            + renderChangeResult(item)
+	            + renderChangeResultHistory(item.changeResultHistory)
 	            + '</article>';
 	    }).join('');
+	}
+
+	function renderChangeResultHistory(history) {
+	    if (!Array.isArray(history) || history.length === 0) {
+	        return '';
+	    }
+
+	    const statusNames = { COMPLETED: '성공', FAILED: '실패', CANCELLED: '취소' };
+	    const changeNames = { CORRECTION: '결과 정정', REEXECUTION: '외부 재실행' };
+
+	    // 현재 결과는 카드에 표시하고, 변경 전 상태와 메모는 이력에서 보여준다.
+	    const rows = history.map(entry => {
+	        const change = changeNames[entry.changeType] || entry.changeType || '-';
+	        const previous = statusNames[entry.previousResultStatus] || entry.previousResultStatus || '-';
+	        const previousNote = entry.previousResultNote
+	            ? '<p class="caption">이전 메모 · ' + esc(entry.previousResultNote) + '</p>'
+	            : '';
+
+	        return '<li>'
+	            + '<p>' + esc(change) + ' · 이전 결과 ' + esc(previous) + '</p>'
+	            + previousNote
+	            + '<p class="caption">변경 사유 · ' + esc(entry.changeReason || '-') + '</p>'
+	            + '</li>';
+	    }).join('');
+
+	    return '<details>'
+	        + '<summary>외부 처리 이력 (' + history.length + '건)</summary>'
+	        + '<ul>' + rows + '</ul>'
+	        + '</details>';
 	}
 
     function renderHistory(items) {
