@@ -20,6 +20,7 @@ import com.sqlflow.access.service.ResourcePolicyAdminService;
 import com.sqlflow.auth.domain.UserAccount;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 import com.sqlflow.auth.service.AccountService;
+import com.sqlflow.execution.service.ExecutionQueueService;
 
 @ExtendWith(MockitoExtension.class)
 class PageControllerTest {
@@ -32,13 +33,17 @@ class PageControllerTest {
     @Mock
     private AccountService accountService;
 
+    @Mock
+    private ExecutionQueueService executionQueueService;
+
     private PageController pageController;
 
     @BeforeEach
     void setUp() {
         pageController = new PageController(
                 resourcePolicyAdminService,
-                accountService);
+                accountService,
+                executionQueueService);
     }
 
     @Test
@@ -71,6 +76,36 @@ class PageControllerTest {
         assertEquals(25L, model.getAttribute("userId"));
     }
 
+    @Test
+    void executionQueuePageRechecksCurrentDbApproverInDatabase() {
+        Model model = new ExtendedModelMap();
+        Authentication authentication = adminAuthentication();
+        SqlFlowUserDetails principal =
+                (SqlFlowUserDetails) authentication.getPrincipal();
+
+        String page = pageController.executionQueue(model, authentication);
+
+        verify(executionQueueService).assertCanAccess(principal);
+        assertEquals("execution-queue", page);
+    }
+
+    @Test
+    void executionQueueDetailPageRechecksCurrentDbApproverInDatabase() {
+        Model model = new ExtendedModelMap();
+        Authentication authentication = adminAuthentication();
+        SqlFlowUserDetails principal =
+                (SqlFlowUserDetails) authentication.getPrincipal();
+
+        String page = pageController.executionQueueDetail(
+                model,
+                42L,
+                authentication);
+
+        verify(executionQueueService).assertCanAccess(principal);
+        assertEquals("execution-queue-detail", page);
+        assertEquals(42L, model.getAttribute("requestId"));
+    }
+
     private Authentication adminAuthentication() {
         UserAccount account = new UserAccount();
         account.setUserId(1L);
@@ -81,11 +116,13 @@ class PageControllerTest {
 
         SqlFlowUserDetails principal = new SqlFlowUserDetails(
                 account,
-                List.of("SYSTEM_ADMIN"));
+                List.of("SYSTEM_ADMIN", "DB_APPROVER"));
 
         return UsernamePasswordAuthenticationToken.authenticated(
                 principal,
                 "test-password",
-                List.of(new SimpleGrantedAuthority("ROLE_SYSTEM_ADMIN")));
+                List.of(
+                        new SimpleGrantedAuthority("ROLE_SYSTEM_ADMIN"),
+                        new SimpleGrantedAuthority("ROLE_DB_APPROVER")));
     }
 }

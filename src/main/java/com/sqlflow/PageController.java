@@ -1,6 +1,5 @@
 package com.sqlflow;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -9,23 +8,26 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.access.service.ResourcePolicyAdminService;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 import com.sqlflow.auth.service.AccountService;
+import com.sqlflow.execution.service.ExecutionQueueService;
 
 @Controller
 public class PageController {
 
     private final ResourcePolicyAdminService resourcePolicyAdminService;
     private final AccountService accountService;
+    private final ExecutionQueueService executionQueueService;
 
     public PageController(
-    		ResourcePolicyAdminService resourcePolicyAdminService,
-    		AccountService accountService) {
+            ResourcePolicyAdminService resourcePolicyAdminService,
+            AccountService accountService,
+            ExecutionQueueService executionQueueService) {
         this.resourcePolicyAdminService = resourcePolicyAdminService;
         this.accountService = accountService;
+        this.executionQueueService = executionQueueService;
     }
 
     @ModelAttribute
@@ -53,18 +55,18 @@ public class PageController {
 
     @GetMapping("/admin/users/new")
     public String createUser(
-    		Model model,
-    		Authentication authentication) {
-    	accountService.assertActiveSystemAdmin(loginId(authentication));
+            Model model,
+            Authentication authentication) {
+        accountService.assertActiveSystemAdmin(loginId(authentication));
         return view(model, "admin-user-form", "계정 생성·역할 부여");
     }
 
     @GetMapping("/admin/users/{userId}")
     public String accountDetail(
-    		Model model, 
-    		@PathVariable Long userId,
-    		Authentication authentication) {
-    	accountService.assertActiveSystemAdmin(loginId(authentication));
+            Model model,
+            @PathVariable Long userId,
+            Authentication authentication) {
+        accountService.assertActiveSystemAdmin(loginId(authentication));
         model.addAttribute("userId", userId);
         return view(model, "admin-user-detail", "계정 상세");
     }
@@ -157,8 +159,10 @@ public class PageController {
     }
 
     @GetMapping("/execution-queue")
-    public String executionQueue(Model model, Authentication authentication) {
-        requireDbApprover(authentication);
+    public String executionQueue(
+            Model model,
+            Authentication authentication) {
+        executionQueueService.assertCanAccess(principal(authentication));
         return view(model, "execution-queue", "실행 목록");
     }
 
@@ -167,21 +171,9 @@ public class PageController {
             Model model,
             @PathVariable Long requestId,
             Authentication authentication) {
-        requireDbApprover(authentication);
+        executionQueueService.assertCanAccess(principal(authentication));
         model.addAttribute("requestId", requestId);
         return view(model, "execution-queue-detail", "실행 요청 상세");
-    }
-
-    private void requireDbApprover(Authentication authentication) {
-        if (authentication == null
-                || !(authentication.getPrincipal() instanceof SqlFlowUserDetails user)
-                || !user.isEnabled()
-                || user.getAuthorities().stream().noneMatch(
-                        authority -> "ROLE_DB_APPROVER".equals(authority.getAuthority()))) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "DB팀 실행 권한이 필요합니다.");
-        }
     }
 
     @GetMapping("/execution-results/{executionId}")
@@ -215,10 +207,7 @@ public class PageController {
     public String resourcePolicyAdmin(
             Model model,
             Authentication authentication) {
-        Long userId = authentication != null
-                && authentication.getPrincipal() instanceof SqlFlowUserDetails user
-                        ? user.getUserId()
-                        : null;
+        Long userId = userId(authentication);
         resourcePolicyAdminService.assertCanView(userId);
         return view(model, "db-resource-admin", "리소스·접근 정책 관리");
     }
@@ -228,10 +217,7 @@ public class PageController {
             Model model,
             Authentication authentication,
             @PathVariable Long resourceId) {
-        Long userId = authentication != null
-                && authentication.getPrincipal() instanceof SqlFlowUserDetails user
-                        ? user.getUserId()
-                        : null;
+        Long userId = userId(authentication);
         resourcePolicyAdminService.assertCanView(userId);
         model.addAttribute("resourceId", resourceId);
         return view(model, "db-resource-admin", "리소스 정책 상세");
@@ -247,15 +233,25 @@ public class PageController {
     public String viewDetail(Model model) {
         return view(model, "view-detail", "뷰 상세");
     }
-    
+
     private String loginId(Authentication authentication) {
-    	if (authentication != null
-    			&& authentication.isAuthenticated()
-    			&& !(authentication instanceof AnonymousAuthenticationToken)
-    			&& authentication.getPrincipal() instanceof SqlFlowUserDetails user) {
-    		return user.getLoginId();
-    	}
-    	return null;
+        SqlFlowUserDetails user = principal(authentication);
+        return user == null ? null : user.getLoginId();
+    }
+
+    private Long userId(Authentication authentication) {
+        SqlFlowUserDetails user = principal(authentication);
+        return user == null ? null : user.getUserId();
+    }
+
+    private SqlFlowUserDetails principal(Authentication authentication) {
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken)
+                && authentication.getPrincipal() instanceof SqlFlowUserDetails user) {
+            return user;
+        }
+        return null;
     }
 
     private String view(Model model, String page, String title) {

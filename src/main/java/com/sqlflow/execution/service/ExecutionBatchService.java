@@ -102,18 +102,24 @@ public class ExecutionBatchService {
         return batch.getBatchId();
     }
 
-    /** 로그인 상태와 SQL 실행에 필요한 권한을 확인한다. */
+    /** 세션 권한과 DB에 저장된 현재 계정·역할을 모두 확인한다. */
     private void validateExecutor(SqlFlowUserDetails user) {
 
-        if (user == null) {
+        if (user == null || user.getUserId() == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
         }
 
-        boolean hasExecutionAuthority = user.getAuthorities().stream()
+        boolean hasSessionAuthority = user.getAuthorities().stream()
                 .anyMatch(authority -> EXECUTION_AUTHORITY.equals(authority.getAuthority()));
 
-        if (!user.isEnabled() || !hasExecutionAuthority) {
+        if (!user.isEnabled() || !hasSessionAuthority) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "SQL 실행 권한이 없습니다.");
         }
+        
+        // 로그인 후 계정이 비활성화되거나 DB_APPROVER 역할이 회수된 경우도 반영한다.
+        if(!executionBatchMapper.isActiveDbApprover(user.getUserId()))
+        	throw new ResponseStatusException(
+        			HttpStatus.FORBIDDEN, 
+        			"현재 활성 DB팀 실행 승인 권한이 없습니다.");
     }
 }
