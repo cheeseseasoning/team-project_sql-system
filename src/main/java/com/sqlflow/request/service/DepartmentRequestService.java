@@ -97,7 +97,8 @@ public class DepartmentRequestService {
                     "조회 요청을 찾을 수 없습니다.");
         }
 
-        detail.setItems("CREATE_VIEW".equals(detail.getRequestType())
+        detail.setItems(java.util.Set.of("CREATE_VIEW", "INSERT", "UPDATE", "DELETE").contains(
+                detail.getRequestType() == null ? "SELECT" : detail.getRequestType())
                 ? departmentRequestMapper.selectVisibleViewSqlItems(requestId, actorId)
                 : departmentRequestMapper.selectVisibleRequestItems(requestId, actorId));
 

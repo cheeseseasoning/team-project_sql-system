@@ -72,10 +72,10 @@
     </insert>
 
     <insert id="insertViewSql">
-        INSERT INTO VIEW_CREATE_SQL (
+        INSERT INTO DB_CHANGE_SQL (
             QUERY_ID, REQUEST_ID, QUERY_ORDER, SQL_TITLE, SQL_CONTENT
         ) VALUES (
-            SEQ_VIEW_CREATE_SQL.NEXTVAL, #{requestId}, #{queryOrder},
+            SEQ_DB_CHANGE_SQL.NEXTVAL, #{requestId}, #{queryOrder},
             #{sqlTitle}, #{sqlContent, jdbcType=CLOB}
         )
     </insert>
@@ -83,12 +83,25 @@
     <select id="selectMyViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
         SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
                V.SQL_CONTENT AS SQL_TEXT
-        FROM VIEW_CREATE_SQL V
+        FROM DB_CHANGE_SQL V
         JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
         WHERE R.REQUEST_ID = #{requestId} AND R.DRAFTER_ID = #{drafterId}
         ORDER BY V.QUERY_ORDER, V.QUERY_ID
     </select>
 
+    <delete id="deleteDraftChangeSql">
+        DELETE FROM DB_CHANGE_SQL
+        WHERE REQUEST_ID = #{requestId}
+          AND EXISTS (
+              SELECT 1 FROM QUERY_REQUEST R
+              WHERE R.REQUEST_ID = DB_CHANGE_SQL.REQUEST_ID
+                AND R.DRAFTER_ID = #{drafterId}
+                AND R.REQUEST_STATUS = 'DRAFT'
+                AND R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
+          )
+    </delete>
+
+    <!-- 이관 전 원본에 남은 FK는 해당 초안을 삭제할 때 함께 정리한다. -->
     <delete id="deleteDraftViewSql">
         DELETE FROM VIEW_CREATE_SQL
         WHERE REQUEST_ID = #{requestId}
@@ -102,7 +115,7 @@
     <select id="selectApprovedViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
         SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
                V.SQL_CONTENT AS SQL_TEXT
-        FROM VIEW_CREATE_SQL V
+        FROM DB_CHANGE_SQL V
         JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
         WHERE R.REQUEST_ID = #{requestId}
           AND R.REQUEST_TYPE = 'CREATE_VIEW'
@@ -136,8 +149,8 @@
 	        R.APPROVAL_STATUS,
 	        R.CREATED_AT,
 	        R.DESIRED_DATE,
-	        CASE WHEN R.REQUEST_TYPE = 'CREATE_VIEW'
-	             THEN (SELECT COUNT(*) FROM VIEW_CREATE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
+	        CASE WHEN R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
+	             THEN (SELECT COUNT(*) FROM DB_CHANGE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
 	             ELSE (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID = R.REQUEST_ID)
 	        END AS SQL_COUNT
 	    FROM QUERY_REQUEST R
@@ -350,8 +363,8 @@
 	        R.APPROVAL_STATUS,
 	        R.CREATED_AT,
 	        R.DESIRED_DATE,
-	        CASE WHEN R.REQUEST_TYPE = 'CREATE_VIEW'
-	             THEN (SELECT COUNT(*) FROM VIEW_CREATE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
+	        CASE WHEN R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
+	             THEN (SELECT COUNT(*) FROM DB_CHANGE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
 	             ELSE (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID = R.REQUEST_ID)
 	        END AS SQL_COUNT
 	    FROM QUERY_REQUEST R

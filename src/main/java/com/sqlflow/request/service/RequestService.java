@@ -132,10 +132,7 @@ public class RequestService {
             throw new IllegalStateException("데이터 변경 초안을 저장하지 못했습니다.");
         }
 
-        saveDraftItems(
-                requestId,
-                input.items().stream().map(DmlDraftRequest.SqlEntry::sqlText).toList(),
-                input.items().stream().map(DmlDraftRequest.SqlEntry::queryTitle).toList());
+        saveDmlSqlItems(requestId, input);
 
         return requestId;
     }
@@ -170,12 +167,23 @@ public class RequestService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 수정할 수 없습니다.");
         }
 
-        requestMapper.deleteDraftItems(requestId, drafterId);
-        saveDraftItems(
-                requestId,
-                input.items().stream().map(DmlDraftRequest.SqlEntry::sqlText).toList(),
-                input.items().stream().map(DmlDraftRequest.SqlEntry::queryTitle).toList());
+        requestMapper.deleteDraftChangeSql(requestId, drafterId);
+        saveDmlSqlItems(requestId, input);
 
+    }
+
+    /** DML과 뷰 생성의 SQL 원문은 DB_CHANGE_SQL에 저장한다. */
+    private void saveDmlSqlItems(Long requestId, DmlDraftRequest input) {
+        for (int index = 0; index < input.items().size(); index++) {
+            var item = input.items().get(index);
+            int order = index + 1;
+            String title = item.queryTitle() == null || item.queryTitle().isBlank()
+                    ? "SQL " + order : item.queryTitle().strip();
+
+            if (requestMapper.insertViewSql(requestId, order, title, item.sqlText()) != 1) {
+                throw new IllegalStateException("데이터 변경 SQL 항목을 저장하지 못했습니다.");
+            }
+        }
     }
 
     private void validateDmlDraftItems(DmlDraftRequest input) {
@@ -221,7 +229,7 @@ public class RequestService {
 		if (requestMapper.updateDraft(request) != 1) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 수정할 수 없습니다.");
 		}
-		requestMapper.deleteDraftViewSql(requestId, drafterId);
+		requestMapper.deleteDraftChangeSql(requestId, drafterId);
 		saveViewSqlItems(requestId, input);
 	}
 
@@ -283,7 +291,7 @@ public class RequestService {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
 		}
 
-		detail.setItems("CREATE_VIEW".equals(detail.getRequestType())
+		detail.setItems(("CREATE_VIEW".equals(detail.getRequestType()) || isDmlRequest(detail.getRequestType()))
 		        ? requestMapper.selectMyViewSqlItems(requestId, drafterId)
 		        : requestMapper.selectMyRequestItems(requestId, drafterId));
 
@@ -394,7 +402,8 @@ public class RequestService {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 SQL만 검증할 수 있습니다.");
 		}
 		RequestDetailResponse request = requestMapper.selectMyRequestDetail(requestId, drafterId);
-		if (request != null && "CREATE_VIEW".equals(request.getRequestType())) {
+		if (request != null && ("CREATE_VIEW".equals(request.getRequestType())
+                || isDmlRequest(request.getRequestType()))) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "뷰 생성 요청은 일반 조회 SQL 검증 대상이 아닙니다.");
 		}
 
@@ -488,6 +497,7 @@ public class RequestService {
 		}
 
 		// 3. 연결된 SQL 항목 먼저 삭제
+		requestMapper.deleteDraftChangeSql(requestId, drafterId);
 		requestMapper.deleteDraftViewSql(requestId, drafterId);
 		requestMapper.deleteDraftItems(requestId, drafterId);
 
@@ -536,7 +546,7 @@ public class RequestService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "조회 목적을 입력하세요.");
 		}
 
-		List<RequestItemResponse> items = "CREATE_VIEW".equals(request.getRequestType())
+		List<RequestItemResponse> items = ("CREATE_VIEW".equals(request.getRequestType()) || isDmlRequest(request.getRequestType()))
 				? requestMapper.selectMyViewSqlItems(requestId, drafterId)
 				: requestMapper.selectMyRequestItems(requestId, drafterId);
 
@@ -929,4 +939,3 @@ public class RequestService {
         }
     }
 }
-

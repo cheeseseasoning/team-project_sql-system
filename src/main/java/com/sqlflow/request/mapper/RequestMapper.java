@@ -33,6 +33,9 @@ public interface RequestMapper {
             @Param("requestId") Long requestId,
             @Param("drafterId") Long drafterId);
 
+    int deleteDraftChangeSql(@Param("requestId") Long requestId,
+                             @Param("drafterId") Long drafterId);
+
     int deleteDraftViewSql(@Param("requestId") Long requestId,
                            @Param("drafterId") Long drafterId);
 
