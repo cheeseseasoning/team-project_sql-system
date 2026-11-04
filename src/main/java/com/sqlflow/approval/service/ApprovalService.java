@@ -196,38 +196,21 @@ public class ApprovalService implements ApprovalLineCreator {
     @Transactional(readOnly = true)
     public ApprovalCandidatesResponse getApprovalCandidates(
             Long requestId,
-            Long actorId) {
-        ApprovalRequestContext request = requireOwnedDraft(requestId, actorId);
+            Long actorId,
+            String keyword) {
 
-        List<ApprovalCandidateResponse> departmentApprovers =
-                approvalMapper.selectDepartmentApprovers(request.getDeptId())
-                        .stream()
-                        .toList();
+        // 본인이 작성한 초안에서만 결재자를 조회한다.
+        requireOwnedDraft(requestId, actorId);
 
-        if (departmentApprovers.size() > 1) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "소속 부서장이 여러 명이라 결재자를 확정할 수 없습니다.");
-        }
-
-        ApprovalCandidateResponse departmentApprover =
-                departmentApprovers.size() == 1
-                        ? departmentApprovers.get(0)
-                        : null;
-
-        List<ApprovalCandidateResponse> dbApprovers =
-                departmentApprover == null
-                        ? List.of()
-                        : approvalMapper
-                                .selectDbApprovers(departmentApprover.getUserId())
-                                .stream()
-                                .filter(candidate ->
-                                        !candidate.getUserId().equals(actorId))
-                                .toList();
+        String normalizedKeyword =
+                keyword == null || keyword.isBlank()
+                        ? null
+                        : keyword.trim();
 
         return new ApprovalCandidatesResponse(
-                departmentApprover,
-                dbApprovers);
+                approvalMapper.searchActiveCandidates(
+                        normalizedKeyword,
+                        actorId));
     }
     
     @Transactional(readOnly = true)

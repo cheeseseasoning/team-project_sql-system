@@ -208,6 +208,84 @@ class ApprovalServiceTest {
         assertEquals(HttpStatus.NOT_FOUND, error.getStatusCode());
         verifyNoApprovalInserted();
     }
+    
+    @Test
+    void candidateLookupReturnsActiveUsersWithoutFixedApprovers() {
+        stubOwnedDraft();
+        stubActiveCandidates();
+
+        var result = approvalService.getApprovalCandidates(
+                REQUEST_ID, ACTOR_ID, "");
+
+        assertEquals(
+                List.of(10L, 30L),
+                result.getCandidates().stream()
+                        .map(ApprovalCandidateResponse::getUserId)
+                        .toList());
+
+        verify(approvalMapper, never())
+                .selectDepartmentApprovers(anyLong());
+        verify(approvalMapper, never())
+                .selectDbApprovers(anyLong());
+    }
+
+    @Test
+    void candidateLookupTrimsSearchKeyword() {
+        stubOwnedDraft();
+
+        var expected = List.of(
+                new ApprovalCandidateResponse(
+                        10L, "김대리", "개발팀", "대리"));
+
+        when(approvalMapper.searchActiveCandidates("김", ACTOR_ID))
+                .thenReturn(expected);
+
+        var result = approvalService.getApprovalCandidates(
+                REQUEST_ID, ACTOR_ID, "  김  ");
+
+        assertEquals(expected, result.getCandidates());
+        verify(approvalMapper).searchActiveCandidates("김", ACTOR_ID);
+    }
+
+    @Test
+    void candidateLookupRejectsRequestNotOwnedByActor() {
+        stubOwnedDraft();
+
+        ResponseStatusException error = assertThrows(
+                ResponseStatusException.class,
+                () -> approvalService.getApprovalCandidates(
+                        REQUEST_ID, 999L, ""));
+
+        assertEquals(HttpStatus.NOT_FOUND, error.getStatusCode());
+
+        verify(approvalMapper, never())
+                .searchActiveCandidates(
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void candidateLookupRejectsSubmittedRequest() {
+        ApprovalRequestContext request = new ApprovalRequestContext();
+        request.setRequestId(REQUEST_ID);
+        request.setDrafterId(ACTOR_ID);
+        request.setRequestStatus("PENDING_APPROVAL");
+
+        when(approvalMapper.selectRequestContext(REQUEST_ID))
+                .thenReturn(request);
+
+        ResponseStatusException error = assertThrows(
+                ResponseStatusException.class,
+                () -> approvalService.getApprovalCandidates(
+                        REQUEST_ID, ACTOR_ID, ""));
+
+        assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
+
+        verify(approvalMapper, never())
+                .searchActiveCandidates(
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any());
+    }
 
     private void stubOwnedDraft() {
         ApprovalRequestContext request = new ApprovalRequestContext();
