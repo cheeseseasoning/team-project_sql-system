@@ -3,6 +3,7 @@ package com.sqlflow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.auth.controller.AdminUserController;
 import com.sqlflow.auth.domain.UserAccount;
+import com.sqlflow.auth.dto.AdminUserCreateRequest;
+import com.sqlflow.auth.dto.AdminUserDetailResponse;
 import com.sqlflow.auth.dto.AdminUserUpdateRequest;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 import com.sqlflow.auth.service.AccountService;
@@ -34,6 +37,76 @@ class AdminUserControllerTest {
 
     @InjectMocks
     private AdminUserController controller;
+
+    @Test
+    void optionsPassesCurrentLoginIdToService() {
+        String actorLoginId = "system-admin";
+        SqlFlowUserDetails currentUser = createUserDetails(actorLoginId);
+        Map<String, Object> options = Map.of(
+                "departments", List.of(),
+                "positions", List.of(),
+                "roles", List.of("SYSTEM_ADMIN"));
+
+        when(adminUserService.getOptions(actorLoginId))
+                .thenReturn(options);
+
+        Map<String, Object> response = controller.options(currentUser);
+
+        verify(adminUserService).getOptions(actorLoginId);
+        assertEquals(options, response);
+    }
+
+    @Test
+    void detailPassesCurrentLoginIdToAccountService() {
+        Long targetUserId = 25L;
+        String actorLoginId = "system-admin";
+        SqlFlowUserDetails currentUser = createUserDetails(actorLoginId);
+
+        AdminUserDetailResponse expected = new AdminUserDetailResponse(
+                targetUserId,
+                "target-user",
+                "대상 사용자",
+                2L,
+                "개발팀",
+                3L,
+                "사원",
+                "Y",
+                List.of());
+
+        when(accountService.getAccountDetail(
+                actorLoginId,
+                targetUserId)).thenReturn(expected);
+
+        AdminUserDetailResponse response =
+                controller.detail(targetUserId, currentUser);
+
+        verify(accountService).getAccountDetail(
+                actorLoginId,
+                targetUserId);
+        assertEquals(expected, response);
+    }
+
+    @Test
+    void createPassesCurrentLoginIdAndRequestToService() {
+        String actorLoginId = "system-admin";
+        SqlFlowUserDetails currentUser = createUserDetails(actorLoginId);
+
+        AdminUserCreateRequest request = new AdminUserCreateRequest();
+        Map<String, Object> result = Map.of(
+                "userId", 100L,
+                "loginId", "new-user",
+                "message", "계정이 생성되었습니다.");
+
+        when(adminUserService.create(actorLoginId, request))
+                .thenReturn(result);
+
+        ResponseEntity<Map<String, Object>> response =
+                controller.create(request, currentUser);
+
+        verify(adminUserService).create(actorLoginId, request);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(result, response.getBody());
+    }
 
     @Test
     void updatePassesCurrentLoginIdAndRequestToAccountService() {
@@ -84,26 +157,9 @@ class AdminUserControllerTest {
     }
 
     @Test
-    void updatePassesNullLoginIdWhenCurrentUserIsMissing() {
-        Long targetUserId = 25L;
-        AdminUserUpdateRequest request = new AdminUserUpdateRequest(
-                "테스트 사용자",
-                2L,
-                3L,
-                "Y",
-                List.of());
-
-        controller.update(targetUserId, request, null);
-
-        verify(accountService).updateAccount(
-                null,
-                targetUserId,
-                request);
-    }
-
-    @Test
     void exceptionHandlerReturnsStatusAndMessage() {
-        String message = "활성 시스템 관리자만 계정을 관리할 수 있습니다.";
+        String message =
+                "활성 시스템 관리자만 계정을 관리할 수 있습니다.";
         ResponseStatusException exception = new ResponseStatusException(
                 HttpStatus.FORBIDDEN,
                 message);

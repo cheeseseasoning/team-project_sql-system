@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.sqlflow.auth.domain.UserAccount;
 import com.sqlflow.auth.dto.AdminUserUpdateRequest;
 import com.sqlflow.auth.mapper.UserAccountMapper;
 import com.sqlflow.auth.service.AccountService;
@@ -37,6 +38,56 @@ class AccountServiceTest {
 
     @InjectMocks
     private AccountService accountService;
+
+    @Test
+    void loadsAccountDetailOnlyAfterCheckingCurrentAdminRole() {
+        Long targetUserId = 25L;
+        UserAccount account = new UserAccount();
+        account.setUserId(targetUserId);
+        account.setLoginId("target-user");
+        account.setUserName("테스트 사용자");
+        account.setDeptId(2L);
+        account.setDeptName("개발팀");
+        account.setPositionId(3L);
+        account.setPositionName("사원");
+        account.setEnabled("Y");
+
+        when(userAccountMapper.countActiveSystemAdminByLoginId(
+                ADMIN_LOGIN_ID)).thenReturn(1);
+        when(userAccountMapper.selectAccountDetailById(targetUserId))
+                .thenReturn(account);
+        when(userAccountMapper.selectRoleCodes(targetUserId))
+                .thenReturn(List.of("DB_APPROVER"));
+
+        accountService.getAccountDetail(ADMIN_LOGIN_ID, targetUserId);
+
+        verify(userAccountMapper).countActiveSystemAdminByLoginId(
+                ADMIN_LOGIN_ID);
+        verify(userAccountMapper).selectAccountDetailById(targetUserId);
+        verify(userAccountMapper).selectRoleCodes(targetUserId);
+    }
+
+    @Test
+    void rejectsAccountDetailWhenAdminRoleWasRevokedOrAccountDisabled() {
+        Long targetUserId = 25L;
+
+        when(userAccountMapper.countActiveSystemAdminByLoginId(
+                ADMIN_LOGIN_ID)).thenReturn(0);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> accountService.getAccountDetail(
+                        ADMIN_LOGIN_ID,
+                        targetUserId));
+
+        assertEquals(403, exception.getStatusCode().value());
+        assertEquals(
+                "활성 시스템 관리자만 계정을 관리할 수 있습니다.",
+                exception.getReason());
+
+        verify(userAccountMapper, never())
+                .selectAccountDetailById(targetUserId);
+    }
 
     @Test
     void updatesAccountFieldsAndReplacesRoles() {
@@ -89,7 +140,9 @@ class AccountServiceTest {
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> accountService.updateAccount(
-                        ADMIN_LOGIN_ID, userId, request));
+                        ADMIN_LOGIN_ID,
+                        userId,
+                        request));
 
         assertEquals(400, exception.getStatusCode().value());
         assertEquals(
@@ -123,14 +176,17 @@ class AccountServiceTest {
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> accountService.updateAccount(
-                        ADMIN_LOGIN_ID, userId, request));
+                        ADMIN_LOGIN_ID,
+                        userId,
+                        request));
 
         assertEquals(400, exception.getStatusCode().value());
         assertEquals(
                 "지원하지 않는 역할이 포함되어 있습니다.",
                 exception.getReason());
 
-        verify(userAccountMapper, never()).selectRoleIdsByCodes(anyList());
+        verify(userAccountMapper, never())
+                .selectRoleIdsByCodes(anyList());
         verify(userAccountMapper, never()).updateAccountInfo(
                 eq(userId), eq("준오"), eq(2L), eq(3L), eq("Y"));
     }
@@ -151,7 +207,9 @@ class AccountServiceTest {
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> accountService.updateAccount(
-                        ADMIN_LOGIN_ID, userId, request));
+                        ADMIN_LOGIN_ID,
+                        userId,
+                        request));
 
         assertEquals(403, exception.getStatusCode().value());
         assertEquals(
@@ -194,7 +252,8 @@ class AccountServiceTest {
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> accountService.resetInitialPassword(
-                        ADMIN_LOGIN_ID, userId));
+                        ADMIN_LOGIN_ID,
+                        userId));
 
         assertEquals(403, exception.getStatusCode().value());
         assertEquals(
@@ -218,7 +277,8 @@ class AccountServiceTest {
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> accountService.resetInitialPassword(
-                        ADMIN_LOGIN_ID, userId));
+                        ADMIN_LOGIN_ID,
+                        userId));
 
         assertEquals(404, exception.getStatusCode().value());
         assertEquals("계정을 찾을 수 없습니다.", exception.getReason());
@@ -226,5 +286,17 @@ class AccountServiceTest {
         verifyNoInteractions(passwordEncoder);
         verify(userAccountMapper, never()).updatePasswordHash(
                 eq(userId), anyString());
+    }
+
+    @Test
+    void rejectsMissingLoginIdForAdminOnlyOperation() {
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> accountService.assertActiveSystemAdmin(null));
+
+        assertEquals(401, exception.getStatusCode().value());
+        assertEquals("로그인이 필요합니다.", exception.getReason());
+
+        verifyNoInteractions(userAccountMapper);
     }
 }

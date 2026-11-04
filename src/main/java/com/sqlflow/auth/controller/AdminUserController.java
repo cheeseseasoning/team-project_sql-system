@@ -34,21 +34,28 @@ public class AdminUserController {
     private final AccountService accountService;
 
     @GetMapping("/options")
-    public Map<String, Object> options() {
-        return adminUserService.getOptions();
+    public Map<String, Object> options(
+    		@AuthenticationPrincipal SqlFlowUserDetails currentUser) {
+        return adminUserService.getOptions(loginId(currentUser));
     }
 
     @GetMapping("/{userId}")
     public AdminUserDetailResponse detail(
-            @PathVariable Long userId) {
-        return accountService.getAccountDetail(userId);
+            @PathVariable Long userId,
+            @AuthenticationPrincipal SqlFlowUserDetails currentUser) {
+        return accountService.getAccountDetail(
+        		loginId(currentUser),
+        		userId);
     }
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> create(
-            @RequestBody AdminUserCreateRequest request) {
+            @RequestBody AdminUserCreateRequest request,
+            @AuthenticationPrincipal SqlFlowUserDetails currentUser) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(adminUserService.create(request));
+                .body(adminUserService.create(
+                		loginId(currentUser),
+                		request));
     }
 
     @PutMapping("/{userId}")
@@ -58,7 +65,7 @@ public class AdminUserController {
             @AuthenticationPrincipal SqlFlowUserDetails currentUser) {
     	
         accountService.updateAccount(
-        		currentUser == null ? null : currentUser.getLoginId(),
+        		loginId(currentUser),
         		userId, 
         		request);
 
@@ -72,7 +79,7 @@ public class AdminUserController {
             @AuthenticationPrincipal SqlFlowUserDetails currentUser) {
     	
         accountService.resetInitialPassword(
-        		currentUser == null ? null : currentUser.getLoginId(),
+        		loginId(currentUser),
         		userId);
 
         return ResponseEntity.ok(Map.of(
@@ -82,12 +89,17 @@ public class AdminUserController {
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, String>> handleResponseStatusException(
     		ResponseStatusException exception) {
+    	
     	String message = Objects.requireNonNullElse(
     			exception.getReason(),
     			"요청을 처리할 수 없습니다.");
     	
     	return ResponseEntity.status(exception.getStatusCode())
     			.body(Map.of("message", message));
+    }
+    
+    private String loginId(SqlFlowUserDetails currentUser) {
+    	return currentUser == null ? null : currentUser.getLoginId();
     }
 }
 

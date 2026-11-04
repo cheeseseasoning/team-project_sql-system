@@ -37,7 +37,10 @@ public class AccountService {
 	}
 	
 	@Transactional(readOnly = true)
-	public AdminUserDetailResponse getAccountDetail(Long userId) {
+	public AdminUserDetailResponse getAccountDetail(
+			String actorLoginId, 
+			Long userId) {
+		requireActiveSystemAdmin(actorLoginId);
 		validateUserId(userId);
 		
 		UserAccount account = userAccountMapper.selectAccountDetailById(userId);
@@ -78,6 +81,7 @@ public class AccountService {
 		}
 		
 		String userName = trim(request.getUserName());
+		
 		if(userName == null 
 				|| userName.isBlank() 
 				|| userName.length() > 100) {
@@ -95,6 +99,7 @@ public class AccountService {
 		}
 		
 		String enabled = trim(request.getEnabled());
+		
 		if(!"Y".equals(enabled) && !"N".equals(enabled)) {
 			throw badRequest("계정 사용 여부는 Y 또는 N이어야 합니다.");
 		}
@@ -140,7 +145,9 @@ public class AccountService {
 	}
 	
 	@Transactional
-	public void resetInitialPassword(String actorLoginId, Long userId) {
+	public void resetInitialPassword(
+			String actorLoginId, 
+			Long userId) {
 		requireActiveSystemAdmin(actorLoginId);
 		validateUserId(userId);
 		
@@ -158,6 +165,11 @@ public class AccountService {
 					HttpStatus.CONFLICT, 
 					"초기 비밀번호를 재설정하지 못했습니다.");
 		}
+	}
+	
+	@Transactional(readOnly = true)
+	public void assertActiveSystemAdmin(String loginId) {
+		requireActiveSystemAdmin(loginId);
 	}
 	
 	private void requireActiveSystemAdmin(String loginId) {

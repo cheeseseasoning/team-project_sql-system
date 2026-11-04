@@ -28,7 +28,9 @@ public class AdminUserService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
-    public Map<String, Object> getOptions() {
+    public Map<String, Object> getOptions(String actorLoginId) {
+    	requireActiveSystemAdmin(actorLoginId);
+    	
         return Map.of(
                 "departments", userAccountMapper.selectDepartments(),
                 "positions", userAccountMapper.selectPositions(),
@@ -40,7 +42,11 @@ public class AdminUserService {
     }
 
     @Transactional
-    public Map<String, Object> create(AdminUserCreateRequest request) {
+    public Map<String, Object> create(
+    		String actorLoginId, 
+    		AdminUserCreateRequest request) {
+    	requireActiveSystemAdmin(actorLoginId);
+    	
         if (request == null) {
             throw badRequest("계정 정보를 확인하세요.");
         }
@@ -126,6 +132,20 @@ public class AdminUserService {
                 "loginId", loginId,
                 "userName", userName,
                 "message", "계정이 생성되었습니다.");
+    }
+    
+    private void requireActiveSystemAdmin(String loginId) {
+    	if(loginId == null || loginId.isBlank()) {
+    		throw new ResponseStatusException(
+    				HttpStatus.UNAUTHORIZED,
+    				"로그인이 필요합니다.");
+    	}
+    	
+    	if(userAccountMapper.countActiveSystemAdminByLoginId(loginId) != 1) {
+    		throw new ResponseStatusException(
+    				HttpStatus.FORBIDDEN, 
+    				"활성 시스템 관리자만 계정을 관리할 수 있습니다.");
+    	}
     }
     
     private boolean isLoginIdUniqueViolation(Throwable exception) {

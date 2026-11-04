@@ -13,14 +13,19 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.access.service.ResourcePolicyAdminService;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
+import com.sqlflow.auth.service.AccountService;
 
 @Controller
 public class PageController {
 
     private final ResourcePolicyAdminService resourcePolicyAdminService;
+    private final AccountService accountService;
 
-    public PageController(ResourcePolicyAdminService resourcePolicyAdminService) {
+    public PageController(
+    		ResourcePolicyAdminService resourcePolicyAdminService,
+    		AccountService accountService) {
         this.resourcePolicyAdminService = resourcePolicyAdminService;
+        this.accountService = accountService;
     }
 
     @ModelAttribute
@@ -47,12 +52,19 @@ public class PageController {
     }
 
     @GetMapping("/admin/users/new")
-    public String createUser(Model model) {
+    public String createUser(
+    		Model model,
+    		Authentication authentication) {
+    	accountService.assertActiveSystemAdmin(loginId(authentication));
         return view(model, "admin-user-form", "계정 생성·역할 부여");
     }
 
     @GetMapping("/admin/users/{userId}")
-    public String accountDetail(Model model, @PathVariable Long userId) {
+    public String accountDetail(
+    		Model model, 
+    		@PathVariable Long userId,
+    		Authentication authentication) {
+    	accountService.assertActiveSystemAdmin(loginId(authentication));
         model.addAttribute("userId", userId);
         return view(model, "admin-user-detail", "계정 상세");
     }
@@ -234,6 +246,16 @@ public class PageController {
     @GetMapping("/views/detail")
     public String viewDetail(Model model) {
         return view(model, "view-detail", "뷰 상세");
+    }
+    
+    private String loginId(Authentication authentication) {
+    	if (authentication != null
+    			&& authentication.isAuthenticated()
+    			&& !(authentication instanceof AnonymousAuthenticationToken)
+    			&& authentication.getPrincipal() instanceof SqlFlowUserDetails user) {
+    		return user.getLoginId();
+    	}
+    	return null;
     }
 
     private String view(Model model, String page, String title) {
