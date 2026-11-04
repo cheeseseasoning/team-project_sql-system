@@ -73,7 +73,7 @@
               )
         )
         AND (
-            A.APPROVAL_TYPE = 'INTERMEDIATE'
+            A.APPROVAL_TYPE IN ('APPROVER', 'INTERMEDIATE')
             OR (
                 A.APPROVAL_TYPE = 'DIRECTOR'
                 AND EXISTS (
@@ -301,7 +301,7 @@
                 )
           )
           AND (
-              A.APPROVAL_TYPE = 'INTERMEDIATE'
+              A.APPROVAL_TYPE IN ('APPROVER', 'INTERMEDIATE')
               OR (
                   A.APPROVAL_TYPE = 'DIRECTOR'
                   AND EXISTS (

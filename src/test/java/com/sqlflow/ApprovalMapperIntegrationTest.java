@@ -90,8 +90,13 @@ class ApprovalMapperIntegrationTest {
 
         Long requestId = requestService.createDraft(
                 draft, fixture.requesterId(), fixture.deptId());
+        
         RequestSubmitRequest submit = new RequestSubmitRequest();
-        submit.setDbApproverId(fixture.dbApprover().getUserId());
+        
+        submit.setApproverIds(List.of(
+                fixture.director().getUserId(),
+                fixture.dbApprover().getUserId()));
+        
         requestService.submitRequest(requestId, submit, fixture.requesterId());
 
         assertEquals("PENDING_APPROVAL", jdbcTemplate.queryForObject(
@@ -139,12 +144,12 @@ class ApprovalMapperIntegrationTest {
         assertEquals(2, history.size());
 
         assertEquals(1, history.get(0).getApprovalOrder());
-        assertEquals("DIRECTOR", history.get(0).getApprovalType());
+        assertEquals("APPROVER", history.get(0).getApprovalType());
         assertEquals("APPROVED", history.get(0).getStatus());
         assertNotNull(history.get(0).getDecidedAt());
 
         assertEquals(2, history.get(1).getApprovalOrder());
-        assertEquals("DB_EXECUTION", history.get(1).getApprovalType());
+        assertEquals("APPROVER", history.get(1).getApprovalType());
         assertEquals("APPROVED", history.get(1).getStatus());
         assertNotNull(history.get(1).getDecidedAt());
     }

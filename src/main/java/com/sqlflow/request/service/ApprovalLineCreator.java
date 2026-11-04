@@ -7,6 +7,5 @@ public interface ApprovalLineCreator {
     void createApprovalLine(
             Long requestId,
             Long actorId,
-            List<Long> intermediateApproverIds,
-            Long dbApproverId);
+            List<Long> approverIds);
 }

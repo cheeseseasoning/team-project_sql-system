@@ -138,7 +138,7 @@ class RequestSubmissionPersistenceTest {
 
             throw new IllegalStateException("테스트용 결재 실패");
         }).when(approvalService).createApprovalLine(
-                requestId, USER_ID, List.of(), 20L
+                requestId, USER_ID, List.of(20L)
         );
 
         IllegalStateException error = assertThrows(
@@ -253,7 +253,7 @@ class RequestSubmissionPersistenceTest {
 
     private RequestSubmitRequest submitInput() {
         RequestSubmitRequest input = new RequestSubmitRequest();
-        input.setDbApproverId(20L);
+        input.setApproverIds(List.of(20L));
         return input;
     }
 

@@ -487,6 +487,14 @@ public class RequestService {
 	        RequestSubmitRequest input,
 	        Long actorId) {
 
+	    if (input == null
+	            || input.getApproverIds() == null
+	            || input.getApproverIds().isEmpty()) {
+	        throw new ResponseStatusException(
+	                HttpStatus.BAD_REQUEST,
+	                "결재자를 1명 이상 지정하세요.");
+	    }
+
 	    // 1. 본인 초안 잠금 및 저장된 내용 확인
 	    RequestDetailResponse draft =
 	            loadDraftForSubmission(requestId, actorId);
@@ -512,18 +520,16 @@ public class RequestService {
                                     + ": " + result.getMessage());
                 }
             }
-
-            // WARNING은 제출을 허용한다.
-            // 경고 메시지는 다음 단계에서 화면에 연결한다.
-            ApprovalLineCreator creator = approvalLineCreatorProvider.getIfAvailable();
-	        if (creator == null) {
-	            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "결재 기능이 아직 연결되지 않았습니다.");
-	        }
-	        creator.createApprovalLine(requestId, actorId,
-	                input.getIntermediateApproverIds(), input.getDbApproverId());
+	        
+	        approvalLineCreator.createApprovalLine(
+	                requestId,
+	                actorId,
+	                input.getApproverIds());
+	        
 	        if (requestMapper.submitDraft(requestId, actorId) != 1) {
 	            throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 제출할 수 없습니다.");
 	        }
+	        
 	        return;
 	    }
 
@@ -591,13 +597,11 @@ public class RequestService {
 	        );
 	    }
 
-	    // 5. 기존 결재자 전달·결재선 생성 방식 유지
+	    // 5. 요청자가 지정한 순서대로 결재선 생성
 	    approvalLineCreator.createApprovalLine(
 	            requestId,
 	            actorId,
-	            input.getIntermediateApproverIds(),
-	            input.getDbApproverId()
-	    );
+	            input.getApproverIds());
 
 	    // 6. 제출 상태와 제출 시각 변경
 	    int submitted = requestMapper.submitDraft(requestId, actorId);

@@ -120,7 +120,7 @@ class RequestSubmissionServiceTest {
                 .updateRequestClass(2L, 1L, "GENERAL");
 
         order.verify(approvalLineCreator)
-                .createApprovalLine(2L, 1L, List.of(), 20L);
+                .createApprovalLine(2L, 1L, List.of(20L));
 
         order.verify(requestMapper).submitDraft(2L, 1L);
     }
@@ -137,7 +137,7 @@ class RequestSubmissionServiceTest {
         assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
 
         verify(approvalLineCreator, never())
-                .createApprovalLine(any(), any(), any(), any());
+        		.createApprovalLine(any(), any(), any());
 
         verify(requestMapper, never()).submitDraft(any(), any());
     }
@@ -182,7 +182,7 @@ class RequestSubmissionServiceTest {
 
     private RequestSubmitRequest submitInput() {
         RequestSubmitRequest input = new RequestSubmitRequest();
-        input.setDbApproverId(20L);
+        input.setApproverIds(List.of(20L));
         return input;
     }
     
