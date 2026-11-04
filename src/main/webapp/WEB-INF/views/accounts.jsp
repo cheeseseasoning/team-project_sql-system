@@ -1,6 +1,62 @@
 <%@ page pageEncoding="UTF-8" %>
 <%@ include file="fragments/top.jspf" %>
 
+<style>
+    .account-list-table {
+        width: 100%;
+        min-width: 960px;
+        table-layout: fixed;
+    }
+
+    .account-list-table col.account-login-column {
+        width: 16%;
+    }
+
+    .account-list-table col.account-name-column {
+        width: 18%;
+    }
+
+    .account-list-table col.account-department-column {
+        width: 14%;
+    }
+
+    .account-list-table col.account-position-column {
+        width: 10%;
+    }
+
+    .account-list-table col.account-role-column {
+        width: 28%;
+    }
+
+    .account-list-table col.account-status-column {
+        width: 14%;
+    }
+
+    .account-list-table th,
+    .account-list-table td {
+        overflow-wrap: anywhere;
+    }
+
+    .account-role-list {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .account-role-item {
+        display: block;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 700px) {
+        .account-list-table {
+            min-width: 900px;
+        }
+    }
+</style>
+
 <div class="page-heading">
     <div>
         <h1>계정 목록</h1>
@@ -22,8 +78,18 @@
     </div>
 
     <div class="table-scroll">
-        <table>
+        <table class="account-list-table">
             <caption class="sr-only">전체 사용자 계정 목록</caption>
+
+            <colgroup>
+                <col class="account-login-column">
+                <col class="account-name-column">
+                <col class="account-department-column">
+                <col class="account-position-column">
+                <col class="account-role-column">
+                <col class="account-status-column">
+            </colgroup>
+
             <thead>
                 <tr>
                     <th scope="col">로그인 ID</th>
@@ -34,6 +100,7 @@
                     <th scope="col">계정 상태</th>
                 </tr>
             </thead>
+
             <tbody id="account-rows" aria-busy="true">
                 <tr>
                     <td colspan="6" class="empty">계정 목록을 불러오는 중입니다.</td>
@@ -73,6 +140,32 @@
         return cell;
     }
 
+    function createRoleCell(roleNames) {
+        const cell = document.createElement("td");
+        const roles = (roleNames || "")
+            .split(",")
+            .map(role => role.trim())
+            .filter(Boolean);
+
+        if (roles.length === 0) {
+            cell.textContent = "-";
+            return cell;
+        }
+
+        const roleList = document.createElement("div");
+        roleList.className = "account-role-list";
+
+        roles.forEach(role => {
+            const roleItem = document.createElement("span");
+            roleItem.className = "account-role-item";
+            roleItem.textContent = role;
+            roleList.appendChild(roleItem);
+        });
+
+        cell.appendChild(roleList);
+        return cell;
+    }
+
     function renderAccounts(accounts) {
         if (accounts.length === 0) {
             showTableMessage("등록된 계정이 없습니다.");
@@ -101,7 +194,7 @@
                 createCell(account.userName),
                 createCell(account.deptName),
                 createCell(account.positionName),
-                createCell(account.roleNames)
+                createRoleCell(account.roleNames)
             );
 
             const statusCell = document.createElement("td");

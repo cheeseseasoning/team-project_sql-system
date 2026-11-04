@@ -122,6 +122,18 @@
     	FROM USERS 
     	WHERE USER_ID = #{userId}
     </select>
+    
+    <select id="countActiveSystemAdminByLoginId" resultType="int">
+    	SELECT COUNT(*)
+    	FROM USERS U
+    	JOIN USER_ROLE UR
+    	  ON UR.USER_ID = U.USER_ID 
+    	JOIN ROLE R
+    	  ON R.ROLE_ID = UR.ROLE_ID  
+    	WHERE U.LOGIN_ID = #{loginId} 
+    	  AND U.ENABLED = 'Y' 
+    	  AND R.ROLE_CODE = 'SYSTEM_ADMIN' 
+    </select>
 
     <select id="countDepartment" resultType="int">
         SELECT COUNT(*)

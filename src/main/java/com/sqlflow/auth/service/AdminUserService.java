@@ -1,9 +1,11 @@
 package com.sqlflow.auth.service;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,9 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class AdminUserService {
+	
+	private static final String DUPLICATE_LOGIN_ID_MESSAGE = 
+			"로그인 ID가 이미 사용 중입니다. 다른 ID를 입력해 주세요.";
 
     private final UserAccountMapper userAccountMapper;
     private final PasswordEncoder passwordEncoder;
@@ -68,6 +73,7 @@ public class AdminUserService {
                 ? List.of()
                 : request.getRoles().stream()
                         .filter(code -> code != null && !code.isBlank())
+                        .map(String::trim)
                         .distinct()
                         .toList();
 
@@ -82,9 +88,7 @@ public class AdminUserService {
         }
 
         if (userAccountMapper.countByLoginId(loginId) > 0) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "이미 사용 중인 아이디입니다.");
+            throw duplicateLoginId();
         }
 
         List<Long> roleIds = roleCodes.isEmpty()
@@ -97,7 +101,8 @@ public class AdminUserService {
 
         Long userId = userAccountMapper.nextUserId();
         String passwordHash = passwordEncoder.encode(password);
-
+        
+        try {
         userAccountMapper.insertUser(
                 userId,
                 request.getDeptId(),
@@ -105,6 +110,12 @@ public class AdminUserService {
                 loginId,
                 passwordHash,
                 userName);
+        } catch (DataIntegrityViolationException exception) {
+        	if(isLoginIdUniqueViolation(exception)) {
+        		throw duplicateLoginId();
+        	}
+        	throw exception;
+        }
 
         for (Long roleId : roleIds) {
             userAccountMapper.insertUserRole(userId, roleId);
@@ -115,6 +126,34 @@ public class AdminUserService {
                 "loginId", loginId,
                 "userName", userName,
                 "message", "계정이 생성되었습니다.");
+    }
+    
+    private boolean isLoginIdUniqueViolation(Throwable exception) {
+    	Throwable current = exception;
+    	
+    	while(current != null) {
+    		String message = current.getMessage();
+    		
+    		if(message != null
+    				&& message.toUpperCase().contains("UX_USERS_LOGIN_ID")) {
+    			return true;
+    		}
+    		
+    		if(current instanceof SQLException sqlException 
+    				&& sqlException.getErrorCode() == 1) {
+    			return true;
+    		}
+    		
+    		current = current.getCause();
+    	}
+    	
+    	return false;
+    }
+    
+    private ResponseStatusException duplicateLoginId() {
+    	return new ResponseStatusException(
+    			HttpStatus.CONFLICT,
+    			DUPLICATE_LOGIN_ID_MESSAGE);
     }
 
     private String trim(String value) {

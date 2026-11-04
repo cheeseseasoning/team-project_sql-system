@@ -27,6 +27,9 @@ public interface UserAccountMapper {
     int countByLoginId(@Param("loginId") String loginId);
     
     int countByUserId(@Param("userId") Long userId);
+    
+    int countActiveSystemAdminByLoginId(
+    		@Param("loginId") String loginId);
 
     int countDepartment(@Param("deptId") Long deptId);
 

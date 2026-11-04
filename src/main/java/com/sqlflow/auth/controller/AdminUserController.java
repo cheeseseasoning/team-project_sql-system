@@ -1,9 +1,12 @@
 package com.sqlflow.auth.controller;
 
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,10 +14,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.auth.dto.AdminUserCreateRequest;
 import com.sqlflow.auth.dto.AdminUserDetailResponse;
 import com.sqlflow.auth.dto.AdminUserUpdateRequest;
+import com.sqlflow.auth.security.SqlFlowUserDetails;
 import com.sqlflow.auth.service.AccountService;
 import com.sqlflow.auth.service.AdminUserService;
 
@@ -49,8 +54,13 @@ public class AdminUserController {
     @PutMapping("/{userId}")
     public ResponseEntity<Map<String, String>> update(
             @PathVariable Long userId,
-            @RequestBody AdminUserUpdateRequest request) {
-        accountService.updateAccount(userId, request);
+            @RequestBody AdminUserUpdateRequest request, 
+            @AuthenticationPrincipal SqlFlowUserDetails currentUser) {
+    	
+        accountService.updateAccount(
+        		currentUser == null ? null : currentUser.getLoginId(),
+        		userId, 
+        		request);
 
         return ResponseEntity.ok(Map.of(
                 "message", "계정 정보가 수정되었습니다."));
@@ -58,10 +68,33 @@ public class AdminUserController {
 
     @PostMapping("/{userId}/reset-password")
     public ResponseEntity<Map<String, String>> resetPassword(
-            @PathVariable Long userId) {
-        accountService.resetInitialPassword(userId);
+            @PathVariable Long userId,
+            @AuthenticationPrincipal SqlFlowUserDetails currentUser) {
+    	
+        accountService.resetInitialPassword(
+        		currentUser == null ? null : currentUser.getLoginId(),
+        		userId);
 
         return ResponseEntity.ok(Map.of(
                 "message", "초기 비밀번호가 kosa1004로 재설정되었습니다."));
     }
+    
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> handleResponseStatusException(
+    		ResponseStatusException exception) {
+    	String message = Objects.requireNonNullElse(
+    			exception.getReason(),
+    			"요청을 처리할 수 없습니다.");
+    	
+    	return ResponseEntity.status(exception.getStatusCode())
+    			.body(Map.of("message", message));
+    }
 }
+
+
+
+
+
+
+
+

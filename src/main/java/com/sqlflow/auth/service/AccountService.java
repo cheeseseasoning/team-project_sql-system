@@ -63,7 +63,8 @@ public class AccountService {
 	}
 	
 	@Transactional
-	public void updateAccount(Long userId, AdminUserUpdateRequest request) {
+	public void updateAccount(String actorLoginId, Long userId, AdminUserUpdateRequest request) {
+		requireActiveSystemAdmin(actorLoginId);
 		validateUserId(userId);
 		
 		if(request == null) {
@@ -77,7 +78,9 @@ public class AccountService {
 		}
 		
 		String userName = trim(request.getUserName());
-		if(userName == null || userName.length() > 100) {
+		if(userName == null 
+				|| userName.isBlank() 
+				|| userName.length() > 100) {
 			throw badRequest("이름을 입력하세요. 이름은 100자 이하여야 합니다.");
 		}
 		
@@ -137,7 +140,8 @@ public class AccountService {
 	}
 	
 	@Transactional
-	public void resetInitialPassword(Long userId) {
+	public void resetInitialPassword(String actorLoginId, Long userId) {
+		requireActiveSystemAdmin(actorLoginId);
 		validateUserId(userId);
 		
 		if(userAccountMapper.countByUserId(userId) == 0) {
@@ -156,8 +160,22 @@ public class AccountService {
 		}
 	}
 	
+	private void requireActiveSystemAdmin(String loginId) {
+		if (loginId == null || loginId.isBlank()) {
+			throw new ResponseStatusException(
+					HttpStatus.UNAUTHORIZED,
+					"로그인이 필요합니다.");
+		}
+		
+		if (userAccountMapper.countActiveSystemAdminByLoginId(loginId) != 1) {
+			throw new ResponseStatusException(
+					HttpStatus.FORBIDDEN, 
+					"활성 시스템 관리자만 계정을 관리할 수 있습니다.");
+		}
+	}
+	
 	private void validateUserId(Long userId) {
-		if(userId == null || userId <= 0) {
+		if (userId == null || userId <= 0) {
 			throw badRequest("계정 ID가 올바르지 않습니다.");
 		}
 	}
