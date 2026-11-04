@@ -78,40 +78,48 @@
     </select>
 
     <select id="selectVisibleRequestsPage"
-            resultType="com.sqlflow.request.dto.DepartmentRequestListResponse">
-        SELECT R.REQUEST_ID,
-               R.REQUEST_NO,
-               R.REQUEST_TYPE,
-               R.TITLE,
-               R.IS_URGENT,
-               R.REQUEST_CLASS,
-               R.REQUEST_STATUS,
-               R.APPROVAL_STATUS,
-               R.CREATED_AT,
-               R.DESIRED_DATE,
-               R.SUBMITTED_AT,
-               DRAFTER.USER_NAME AS DRAFTER_NAME,
-               REQUEST_DEPT.DEPT_NAME,
-               CASE WHEN R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
-                    THEN (SELECT COUNT(*) FROM DB_CHANGE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
-                    ELSE (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID = R.REQUEST_ID)
-               END AS SQL_COUNT,
-               CASE WHEN R.REQUEST_TYPE = 'CREATE_VIEW'
-                          AND R.REQUEST_STATUS = 'READY'
-                          AND R.APPROVAL_STATUS = 'APPROVED'
-                    THEN NVL((SELECT VR.RESULT_STATUS
-                              FROM VIEW_CREATE_RESULT VR
-                              WHERE VR.REQUEST_ID = R.REQUEST_ID), 'PENDING')
-                    ELSE NULL
-               END AS VIEW_RESULT_STATUS
-        <include refid="requestFrom"/>
-        WHERE
-            <include refid="visibilityConditions"/>
-            <include refid="searchConditions"/>
-        ORDER BY R.SUBMITTED_AT DESC, R.REQUEST_ID DESC
-        OFFSET #{offset} ROWS
-        FETCH NEXT #{size} ROWS ONLY
-    </select>
+        resultType="com.sqlflow.request.dto.DepartmentRequestListResponse">
+	    SELECT R.REQUEST_ID,
+	           R.REQUEST_NO,
+	           R.REQUEST_TYPE,
+	           R.TITLE,
+	           R.IS_URGENT,
+	           R.REQUEST_CLASS,
+	           R.REQUEST_STATUS,
+	           R.APPROVAL_STATUS,
+	           R.CREATED_AT,
+	           R.SUBMITTED_AT,
+	           R.DRAFTER_ID,
+	           DRAFTER.USER_NAME AS DRAFTER_NAME,
+	           REQUEST_DEPT.DEPT_NAME,
+	           CASE WHEN R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
+	                THEN (SELECT COUNT(*) FROM DB_CHANGE_SQL C WHERE C.REQUEST_ID = R.REQUEST_ID)
+	                ELSE (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID = R.REQUEST_ID)
+	           END AS SQL_COUNT,
+	           CASE WHEN R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
+	                      AND R.REQUEST_STATUS = 'READY'
+	                      AND R.APPROVAL_STATUS = 'APPROVED'
+	                THEN (
+	                    SELECT CASE
+	                               WHEN COUNT(*) = 0 OR COUNT(CR.QUERY_ID) &lt; COUNT(*) THEN 'PENDING'
+	                               WHEN COUNT(CASE WHEN CR.RESULT_STATUS = 'FAILED' THEN 1 END) > 0 THEN 'FAILED'
+	                               WHEN COUNT(CASE WHEN CR.RESULT_STATUS = 'COMPLETED' THEN 1 END) = COUNT(*)
+	                                   THEN 'COMPLETED'
+	                               ELSE NULL
+	                           END
+	                    FROM DB_CHANGE_SQL C
+	                    LEFT JOIN DB_CHANGE_SQL_RESULT CR ON CR.QUERY_ID = C.QUERY_ID
+	                    WHERE C.REQUEST_ID = R.REQUEST_ID
+	                )
+	                ELSE NULL
+	           END AS VIEW_RESULT_STATUS
+	    <include refid="requestFrom"/>
+	    WHERE
+	        <include refid="visibilityConditions"/>
+	        <include refid="searchConditions"/>
+	    ORDER BY R.SUBMITTED_AT DESC, R.REQUEST_ID DESC
+	    OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+	</select>
 
     <select id="selectVisibleRequestDetail"
 	        resultType="com.sqlflow.request.dto.RequestDetailResponse">
@@ -152,17 +160,52 @@
 	    ORDER BY I.QUERY_ORDER, I.QUERY_ID
 	</select>
 
-	<select id="selectVisibleViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
+		<resultMap id="visibleChangeSqlItemMap" type="com.sqlflow.request.dto.RequestItemResponse">
+	    <id property="queryId" column="QUERY_ID"/>
+	    <result property="queryOrder" column="QUERY_ORDER"/>
+	    <result property="queryTitle" column="QUERY_TITLE"/>
+	    <result property="sqlText" column="SQL_TEXT"/>
+	    <result property="changeResultStatus" column="CHANGE_RESULT_STATUS"/>
+	    <result property="changeResultNote" column="CHANGE_RESULT_NOTE"/>
+	    <result property="changeExecutedBy" column="CHANGE_EXECUTED_BY"/>
+	    <result property="changeRegisteredBy" column="CHANGE_REGISTERED_BY"/>
+	    <result property="changeRegisteredAt" column="CHANGE_REGISTERED_AT"/>
+	    <collection property="changeResultHistory" column="QUERY_ID"
+	                select="selectChangeSqlResultHistory" fetchType="eager"/>
+	</resultMap>
+
+	<select id="selectVisibleViewSqlItems" resultMap="visibleChangeSqlItemMap">
 	    SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
-	           V.SQL_CONTENT AS SQL_TEXT
+	           V.SQL_CONTENT AS SQL_TEXT,
+	           CR.RESULT_STATUS AS CHANGE_RESULT_STATUS,
+	           CR.RESULT_NOTE AS CHANGE_RESULT_NOTE,
+	           CR.EXECUTED_BY AS CHANGE_EXECUTED_BY,
+	           CR.REGISTERED_BY AS CHANGE_REGISTERED_BY,
+	           CR.REGISTERED_AT AS CHANGE_REGISTERED_AT
 	    FROM DB_CHANGE_SQL V
 	    JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
 	    JOIN USERS DRAFTER ON DRAFTER.USER_ID = R.DRAFTER_ID
 	    JOIN DEPARTMENT REQUEST_DEPT ON REQUEST_DEPT.DEPT_ID = R.DEPT_ID
+	    LEFT JOIN DB_CHANGE_SQL_RESULT CR ON CR.QUERY_ID = V.QUERY_ID
 	    WHERE R.REQUEST_ID = #{requestId}
 	      AND R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
 	      AND <include refid="visibilityConditions"/>
 	    ORDER BY V.QUERY_ORDER, V.QUERY_ID
+	</select>
+	
+	<select id="selectChangeSqlResultHistory" parameterType="long"
+	        resultType="com.sqlflow.request.dto.RequestItemResponse$ChangeResultHistoryItem">
+	    SELECT H.HISTORY_ID,
+	           H.PREVIOUS_RESULT_STATUS AS "previousResultStatus",
+	           H.PREVIOUS_RESULT_NOTE AS "previousResultNote",
+	           H.CHANGE_TYPE AS "changeType",
+	           H.CHANGE_REASON AS "changeReason",
+	           U.USER_NAME AS "changedByName",
+	           H.CHANGED_AT AS "changedAt"
+	    FROM DB_CHANGE_SQL_RESULT_HISTORY H
+	    JOIN USERS U ON U.USER_ID = H.CHANGED_BY
+	    WHERE H.QUERY_ID = #{queryId}
+	    ORDER BY H.CHANGED_AT DESC, H.HISTORY_ID DESC
 	</select>
 	
 	<select id="selectVisibleRequestApprovals"
@@ -222,121 +265,118 @@
 	    ORDER BY A.APPROVAL_ORDER, A.APPROVAL_ID
 	</select>
 
-    <select id="selectVisibleViewCreateResult"
-            resultType="com.sqlflow.request.dto.ViewCreateResultResponse">
-        SELECT VR.RESULT_STATUS,
-               VR.RESULT_CONTENT,
-               U.USER_NAME AS REGISTERED_BY_NAME,
-               VR.REGISTERED_AT
-        FROM VIEW_CREATE_RESULT VR
-        JOIN QUERY_REQUEST R ON R.REQUEST_ID = VR.REQUEST_ID
-        JOIN USERS DRAFTER ON DRAFTER.USER_ID = R.DRAFTER_ID
-        JOIN DEPARTMENT REQUEST_DEPT ON REQUEST_DEPT.DEPT_ID = R.DEPT_ID
-        JOIN USERS U ON U.USER_ID = VR.REGISTERED_BY
-        WHERE R.REQUEST_ID = #{requestId}
-          AND R.REQUEST_TYPE = 'CREATE_VIEW'
-          AND <include refid="visibilityConditions"/>
-    </select>
-
-    <select id="canRegisterViewCreateResult" resultType="int">
-        SELECT COUNT(*)
-        FROM QUERY_REQUEST R
-        WHERE R.REQUEST_ID = #{requestId}
-          AND R.REQUEST_TYPE = 'CREATE_VIEW'
-          AND R.REQUEST_STATUS = 'READY'
-          AND R.APPROVAL_STATUS = 'APPROVED'
-          AND EXISTS (
-              SELECT 1
-              FROM USERS U
-              JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
-              JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
-              JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID
-              WHERE U.USER_ID = #{actorId}
-                AND U.ENABLED = 'Y'
-                AND D.DEPT_NAME = 'DB팀'
-                AND RL.ROLE_CODE IN ('DB_APPROVER', 'DB_ADMIN')
-          )
-    </select>
-
-    <select id="lockEligibleViewCreateRequest" resultType="long">
-        SELECT R.REQUEST_ID
-        FROM QUERY_REQUEST R
-        WHERE R.REQUEST_ID = #{requestId}
-          AND R.REQUEST_TYPE = 'CREATE_VIEW'
-          AND R.REQUEST_STATUS = 'READY'
-          AND R.APPROVAL_STATUS = 'APPROVED'
-          AND EXISTS (
-              SELECT 1
-              FROM USERS U
-              JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
-              JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
-              JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID
-              WHERE U.USER_ID = #{actorId}
-                AND U.ENABLED = 'Y'
-                AND D.DEPT_NAME = 'DB팀'
-                AND RL.ROLE_CODE IN ('DB_APPROVER', 'DB_ADMIN')
-          )
-        FOR UPDATE OF R.REQUEST_ID
-    </select>
-
-    <insert id="insertViewCreateResultHistory">
-        INSERT INTO VIEW_CREATE_RESULT_HISTORY (
-            HISTORY_ID, REQUEST_ID, PREVIOUS_RESULT_STATUS,
-            PREVIOUS_RESULT_CONTENT, PREVIOUS_REGISTERED_BY,
-            PREVIOUS_REGISTERED_AT, CHANGED_BY, CHANGED_AT, CHANGE_REASON
-        )
-        SELECT SEQ_VIEW_CREATE_RESULT_HISTORY.NEXTVAL,
-               VR.REQUEST_ID,
-               VR.RESULT_STATUS,
-               VR.RESULT_CONTENT,
-               VR.REGISTERED_BY,
-               VR.REGISTERED_AT,
-               #{actorId},
-               SYSTIMESTAMP,
-               #{changeReason}
-        FROM VIEW_CREATE_RESULT VR
-        WHERE VR.REQUEST_ID = #{requestId}
-    </insert>
-
-    <insert id="insertViewCreateResult">
-        INSERT INTO VIEW_CREATE_RESULT (
-            REQUEST_ID, RESULT_STATUS, RESULT_CONTENT, REGISTERED_BY,
-            REGISTERED_AT, UPDATED_AT
-        ) VALUES (
-            #{requestId}, #{resultStatus}, #{resultContent, jdbcType=CLOB},
-            #{actorId}, SYSTIMESTAMP, SYSTIMESTAMP
-        )
-    </insert>
-
-    <update id="updateViewCreateResult">
-        UPDATE VIEW_CREATE_RESULT
-        SET RESULT_STATUS = #{resultStatus},
-            RESULT_CONTENT = #{resultContent, jdbcType=CLOB},
-            REGISTERED_BY = #{actorId},
-            REGISTERED_AT = SYSTIMESTAMP,
-            UPDATED_AT = SYSTIMESTAMP
-        WHERE REQUEST_ID = #{requestId}
-    </update>
-
-    <select id="selectVisibleViewCreateResultHistory"
-            resultType="com.sqlflow.request.dto.ViewCreateResultHistoryResponse">
-        SELECT H.PREVIOUS_RESULT_STATUS,
-               H.PREVIOUS_RESULT_CONTENT,
-               PREVIOUS_USER.USER_NAME AS PREVIOUS_REGISTERED_BY_NAME,
-               H.PREVIOUS_REGISTERED_AT,
-               CHANGED_USER.USER_NAME AS CHANGED_BY_NAME,
-               H.CHANGED_AT,
-               H.CHANGE_REASON
-        FROM VIEW_CREATE_RESULT_HISTORY H
-        JOIN QUERY_REQUEST R ON R.REQUEST_ID = H.REQUEST_ID
-        JOIN USERS DRAFTER ON DRAFTER.USER_ID = R.DRAFTER_ID
-        JOIN DEPARTMENT REQUEST_DEPT ON REQUEST_DEPT.DEPT_ID = R.DEPT_ID
-        JOIN USERS PREVIOUS_USER ON PREVIOUS_USER.USER_ID = H.PREVIOUS_REGISTERED_BY
-        JOIN USERS CHANGED_USER ON CHANGED_USER.USER_ID = H.CHANGED_BY
-        WHERE R.REQUEST_ID = #{requestId}
-          AND R.REQUEST_TYPE = 'CREATE_VIEW'
-          AND <include refid="visibilityConditions"/>
-        ORDER BY H.CHANGED_AT DESC, H.HISTORY_ID DESC
-    </select>
+    
+    <insert id="insertChangeSqlResult">
+	    INSERT INTO DB_CHANGE_SQL_RESULT (
+	        QUERY_ID, RESULT_STATUS, RESULT_NOTE, EXECUTED_BY, REGISTERED_BY
+	    )
+	    SELECT C.QUERY_ID, #{resultStatus}, #{resultNote, jdbcType=VARCHAR},
+	           #{executedBy, jdbcType=NUMERIC}, #{actorId}
+	    FROM DB_CHANGE_SQL C
+	    JOIN QUERY_REQUEST R ON R.REQUEST_ID = C.REQUEST_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND C.QUERY_ID = #{queryId}
+	      AND R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
+	      AND R.REQUEST_STATUS = 'READY'
+	      AND R.APPROVAL_STATUS = 'APPROVED'
+	      AND EXISTS (
+	          SELECT 1
+	          FROM USERS U
+	          JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+	          JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
+	          JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID
+	          WHERE U.USER_ID = #{actorId}
+	            AND U.ENABLED = 'Y'
+	            AND D.DEPT_NAME = 'DB팀'
+	            AND RL.ROLE_CODE IN ('DB_APPROVER', 'DB_ADMIN')
+	      )
+	      AND (
+	          #{executedBy, jdbcType=NUMERIC} IS NULL
+	          OR EXISTS (
+	              SELECT 1
+	              FROM USERS E
+	              JOIN DEPARTMENT D ON D.DEPT_ID = E.DEPT_ID
+	              WHERE E.USER_ID = #{executedBy, jdbcType=NUMERIC}
+	                AND D.DEPT_NAME = 'DB팀'
+	          )
+	      )
+	</insert>
+	
+	<select id="lockChangeSqlResult" resultType="string">
+	    SELECT CR.RESULT_STATUS
+	    FROM DB_CHANGE_SQL_RESULT CR
+	    JOIN DB_CHANGE_SQL C ON C.QUERY_ID = CR.QUERY_ID
+	    JOIN QUERY_REQUEST R ON R.REQUEST_ID = C.REQUEST_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND C.QUERY_ID = #{queryId}
+	      AND R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
+	      AND R.REQUEST_STATUS = 'READY'
+	      AND R.APPROVAL_STATUS = 'APPROVED'
+	      AND EXISTS (
+	          SELECT 1
+	          FROM USERS U
+	          JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+	          JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
+	          JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID
+	          WHERE U.USER_ID = #{actorId}
+	            AND U.ENABLED = 'Y'
+	            AND D.DEPT_NAME = 'DB팀'
+	            AND RL.ROLE_CODE IN ('DB_APPROVER', 'DB_ADMIN')
+	      )
+	    FOR UPDATE OF CR.RESULT_STATUS
+	</select>
+	
+	<insert id="insertChangeSqlResultHistory">
+	    INSERT INTO DB_CHANGE_SQL_RESULT_HISTORY (
+	        QUERY_ID, PREVIOUS_RESULT_STATUS, PREVIOUS_RESULT_NOTE,
+	        PREVIOUS_EXECUTED_BY, PREVIOUS_REGISTERED_BY, PREVIOUS_REGISTERED_AT,
+	        CHANGE_TYPE, CHANGE_REASON, CHANGED_BY
+	    )
+	    SELECT QUERY_ID, RESULT_STATUS, RESULT_NOTE,
+	           EXECUTED_BY, REGISTERED_BY, REGISTERED_AT,
+	           #{changeType}, #{changeReason}, #{actorId}
+	    FROM DB_CHANGE_SQL_RESULT
+	    WHERE QUERY_ID = #{queryId}
+	</insert>
+	
+	<update id="updateChangeSqlResult">
+	    UPDATE DB_CHANGE_SQL_RESULT
+	    SET RESULT_STATUS = #{resultStatus},
+	        RESULT_NOTE = #{resultNote, jdbcType=VARCHAR},
+	        EXECUTED_BY = #{executedBy, jdbcType=NUMERIC},
+	        REGISTERED_BY = #{actorId},
+	        REGISTERED_AT = SYSTIMESTAMP
+	    WHERE QUERY_ID = #{queryId}
+	      AND (
+	          #{executedBy, jdbcType=NUMERIC} IS NULL
+	          OR EXISTS (
+	              SELECT 1
+	              FROM USERS E
+	              JOIN DEPARTMENT D ON D.DEPT_ID = E.DEPT_ID
+	              WHERE E.USER_ID = #{executedBy, jdbcType=NUMERIC}
+	                AND D.DEPT_NAME = 'DB팀'
+	          )
+	      )
+	</update>
+	
+	<select id="canManageChangeSqlResult" resultType="int">
+	    SELECT COUNT(*)
+	    FROM QUERY_REQUEST R
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
+	      AND R.REQUEST_STATUS = 'READY'
+	      AND R.APPROVAL_STATUS = 'APPROVED'
+	      AND EXISTS (
+	          SELECT 1
+	          FROM USERS U
+	          JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+	          JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
+	          JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID
+	          WHERE U.USER_ID = #{actorId}
+	            AND U.ENABLED = 'Y'
+	            AND D.DEPT_NAME = 'DB팀'
+	            AND RL.ROLE_CODE IN ('DB_APPROVER', 'DB_ADMIN')
+	      )
+	</select>
 	
 </mapper>

@@ -45,74 +45,94 @@ window.RequestDetailRenderer = (() => {
             ? String(value).replace('T', ' ').substring(0, 19)
             : '-';
     }
+	
+	function renderChangeResult(item) {
+	    const statusNames = {
+	        COMPLETED: '성공',
+	        FAILED: '실패',
+	        CANCELLED: '취소'
+	    };
+	    const changeLabels = {
+	        CORRECTION: { name: '정정', reason: '정정 사유' },
+	        REEXECUTION: { name: '재실행', reason: '재실행 사유' }
+	    };
 
-	function renderItems(
-	    items,
-	    validationMessages = new Map(),
-	    { readOnly = false } = {}
-	  ) {
-        if (!Array.isArray(items) || items.length === 0) {
-            return '<p class="empty">등록된 SQL이 없습니다.</p>';
-        }
+	    const status = statusNames[item.changeResultStatus];
+	    if (!status) {
+	        return '';
+	    }
 
-        return items.map(item => {
-            const validationLabel =
-                validationNames[item.validationStatus]
-                || item.validationStatus
-                || '-';
+	    // 현재 메모는 결과에서, 현재 결과로 바뀐 사유는 최신 이력에서 읽는다.
+	    const latestChange = item.changeResultHistory?.[0];
+	    const change = changeLabels[latestChange?.changeType];
+	    const resultLabel = change ? change.name + '·' + status : status;
 
-            const authoringLabel =
-                authoringNames[item.authoringType]
-                || item.authoringType
-                || '-';
+	    const resultNote = item.changeResultNote
+	        ? '<p class="caption">처리 메모 · ' + esc(item.changeResultNote) + '</p>'
+	        : '';
+	    const changeReason = change && latestChange.changeReason
+	        ? '<p class="caption">' + esc(change.reason) + ' · ' + esc(latestChange.changeReason) + '</p>'
+	        : '';
 
-            const validationMessage =
-                validationMessages.get(item.queryId);
+	    return '<p class="caption">외부 처리 결과 · ' + esc(resultLabel) + '</p>'
+	        + resultNote
+	        + changeReason;
+	}
 
-				const showValidationDetail =
-				    Boolean(validationMessage)
-				    || ['INVALID', 'WARNING', 'BLOCKED']
-				        .includes(item.validationStatus);
+	function renderItems(items, validationMessages = new Map(), { readOnly = false } = {}) {
+	    if (!Array.isArray(items) || items.length === 0) {
+	        return '<p class="empty">등록된 SQL이 없습니다.</p>';
+	    }
 
-				const validationDetail = showValidationDetail
-				    ? '<p class="sql-validation-message'
-				        + (
-				            item.validationStatus === 'WARNING'
-				                ? ' is-warning'
-				                : item.validationStatus === 'VALID'
-				                    ? ' is-valid'
-				                    : ''
-				        )
-				        + '" role="status">'
-				        + esc(
-				            validationMessage
-				            || (
-				                readOnly
-				                    ? '저장된 SQL의 검증 상태를 확인해 주세요.'
-				                    : '전체 SQL 검증을 다시 실행해 안내를 확인하세요.'
-				            )
-				        )
-				        + '</p>'
-				    : '';
+	    const changeResultNames = {
+	        COMPLETED: '성공',
+	        FAILED: '실패',
+	        CANCELLED: '취소'
+	    };
 
-            return '<article class="result-item">'
-                + '<div class="panel-heading">'
-                + '<h3>'
-                + esc(item.queryTitle || ('SQL ' + item.queryOrder))
-                + '</h3>'
-                + badge(validationLabel)
-                + '</div>'
-                + '<p class="caption">'
-                + '순서 ' + esc(item.queryOrder)
-                + ' · ' + esc(authoringLabel)
-                + '</p>'
-                + '<pre><code>'
-                + esc(item.sqlText)
-                + '</code></pre>'
-                + validationDetail
-                + '</article>';
-        }).join('');
-    }
+	    return items.map(item => {
+	        const validationLabel = validationNames[item.validationStatus] || item.validationStatus || '-';
+	        const authoringLabel = authoringNames[item.authoringType] || item.authoringType || '-';
+	        const validationMessage = validationMessages.get(item.queryId);
+	        const showValidationDetail = Boolean(validationMessage)
+	            || ['INVALID', 'WARNING', 'BLOCKED'].includes(item.validationStatus);
+
+	        let validationClass = '';
+	        if (item.validationStatus === 'WARNING') {
+	            validationClass = ' is-warning';
+	        } else if (item.validationStatus === 'VALID') {
+	            validationClass = ' is-valid';
+	        }
+
+	        const defaultValidationMessage = readOnly
+	            ? '저장된 SQL의 검증 상태를 확인해 주세요.'
+	            : '전체 SQL 검증을 다시 실행해 안내를 확인하세요.';
+	        const validationDetail = showValidationDetail
+	            ? '<p class="sql-validation-message' + validationClass + '" role="status">'
+	                + esc(validationMessage || defaultValidationMessage) + '</p>'
+	            : '';
+
+	        // 상세 API가 반환한 외부 처리 결과를 해당 SQL 아래에 표시한다.
+	        const resultLabel = changeResultNames[item.changeResultStatus];
+	        const resultNote = item.changeResultNote
+	            ? '<p class="caption">처리 메모 · ' + esc(item.changeResultNote) + '</p>'
+	            : '';
+	        const resultDetail = resultLabel
+	            ? '<p class="caption">외부 처리 결과 · ' + esc(resultLabel) + '</p>' + resultNote
+	            : '';
+
+	        return '<article class="result-item">'
+	            + '<div class="panel-heading">'
+	            + '<h3>' + esc(item.queryTitle || ('SQL ' + item.queryOrder)) + '</h3>'
+	            + badge(validationLabel)
+	            + '</div>'
+	            + '<p class="caption">순서 ' + esc(item.queryOrder) + ' · ' + esc(authoringLabel) + '</p>'
+	            + '<pre><code>' + esc(item.sqlText) + '</code></pre>'
+	            + validationDetail
+	            + resultDetail
+	            + '</article>';
+	    }).join('');
+	}
 
     function renderHistory(items) {
         if (!Array.isArray(items) || items.length === 0) {
@@ -323,66 +343,6 @@ window.RequestDetailRenderer = (() => {
 	        '저장된 결재선과 현재 처리 상태입니다.';
 	}
 
-    function renderViewCreateResult(request) {
-        const panel = $('#view-create-result-panel');
-        if (!panel) return;
-        if (request.requestType !== 'CREATE_VIEW'
-                || request.requestStatus !== 'READY'
-                || request.approvalStatus !== 'APPROVED') {
-            panel.hidden = true;
-            return;
-        }
-        panel.hidden = false;
-        const result = request.viewCreateResult;
-        const status = $('#view-create-result-status');
-        const content = $('#view-create-result-content');
-        const meta = $('#view-create-result-meta');
-        const form = $('#view-create-result-form');
-        const historyList = $('#view-create-result-history');
-        const statusNames = { COMPLETED: '처리 완료', FAILED: '처리 실패' };
-        if (result) {
-            status.textContent = statusNames[result.resultStatus] || result.resultStatus || '등록됨';
-            content.textContent = result.resultContent || '';
-            meta.textContent = '등록자: ' + (result.registeredByName || '-')
-                + ' · 등록 시각: ' + formatDate(result.registeredAt);
-            $('#view-create-result-select').value = result.resultStatus || 'COMPLETED';
-            $('#view-create-result-input').value = result.resultContent || '';
-            $('#view-create-result-submit').textContent = '결과 수정';
-        } else {
-            status.textContent = '처리 대기';
-            content.textContent = '아직 DB팀 처리 결과가 등록되지 않았습니다.';
-            meta.textContent = '';
-            $('#view-create-result-input').value = '';
-            $('#view-create-result-submit').textContent = '결과 등록';
-        }
-        form.hidden = !request.canRegisterViewResult;
-        const reasonLabel = $('#view-create-result-reason-label');
-        const reasonInput = $('#view-create-result-reason');
-        const requiresReason = Boolean(result && request.canRegisterViewResult);
-        reasonLabel.hidden = !requiresReason;
-        reasonInput.hidden = !requiresReason;
-        reasonInput.required = requiresReason;
-        reasonInput.value = '';
-
-        const history = Array.isArray(request.viewCreateResultHistory)
-            ? request.viewCreateResultHistory
-            : [];
-        $('#view-create-result-history-title').hidden = history.length === 0;
-        historyList.innerHTML = history.map(item =>
-            '<li class="approval-history-item">'
-                + '<div class="panel-heading"><strong>수정 전 결과: '
-                + esc(statusNames[item.previousResultStatus] || item.previousResultStatus || '-')
-                + '</strong><span class="caption">'
-                + esc(formatDate(item.previousRegisteredAt)) + '</span></div>'
-                + '<p class="notice-body">' + esc(item.previousResultContent || '') + '</p>'
-                + '<p class="caption">수정자: ' + esc(item.changedByName || '-')
-                + ' · 수정 시각: ' + esc(formatDate(item.changedAt)) + '</p>'
-                + '<p class="caption">수정 사유: ' + esc(item.changeReason || '-') + '</p>'
-            + '</li>'
-        ).join('');
-        historyList.hidden = history.length === 0;
-    }
-
     return Object.freeze({
         statusNames,
         classNames,
@@ -392,7 +352,6 @@ window.RequestDetailRenderer = (() => {
         renderHistory,
         renderApprovalRows,
 		renderRequestInfo,
-		renderSavedApprovalLine,
-		renderViewCreateResult
+		renderSavedApprovalLine
     });
 })();

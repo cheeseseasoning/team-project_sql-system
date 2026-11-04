@@ -284,26 +284,22 @@ public class RequestService {
 
 	@Transactional(readOnly = true)
 	public RequestDetailResponse getMyRequestDetail(Long requestId, Long drafterId) {
+		
+	    RequestDetailResponse detail = requestMapper.selectMyRequestDetail(requestId, drafterId);
+	    
+	    if (detail == null) {
+	        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
+	    }
 
-		RequestDetailResponse detail = requestMapper.selectMyRequestDetail(requestId, drafterId);
+	    String requestType = detail.getRequestType();
+	    boolean changeRequest = "CREATE_VIEW".equals(requestType) || isDmlRequest(requestType);
 
-		if (detail == null) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
-		}
+	    detail.setItems(changeRequest
+	            ? requestMapper.selectMyViewSqlItems(requestId, drafterId)
+	            : requestMapper.selectMyRequestItems(requestId, drafterId));
+	    detail.setApprovals(requestMapper.selectMyRequestApprovals(requestId, drafterId));
 
-		detail.setItems(("CREATE_VIEW".equals(detail.getRequestType()) || isDmlRequest(detail.getRequestType()))
-		        ? requestMapper.selectMyViewSqlItems(requestId, drafterId)
-		        : requestMapper.selectMyRequestItems(requestId, drafterId));
-
-		detail.setApprovals(
-		        requestMapper.selectMyRequestApprovals(requestId, drafterId)
-		);
-		if ("CREATE_VIEW".equals(detail.getRequestType())) {
-			detail.setViewCreateResult(requestMapper.selectViewCreateResult(requestId));
-			detail.setViewCreateResultHistory(requestMapper.selectViewCreateResultHistory(requestId));
-		}
-
-		return detail;
+	    return detail;
 	}
 
 	@Transactional(readOnly = true, transactionManager = "managementTransactionManager")
@@ -495,30 +491,21 @@ public class RequestService {
 
 	@Transactional
 	public void deleteDraft(Long requestId, Long drafterId) {
+	    String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
+	    if (status == null) {
+	        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
+	    }
+	    if (!"DRAFT".equals(status)) {
+	        throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 요청만 삭제할 수 있습니다.");
+	    }
 
-		// 1. 본인 요청 확인 및 행 잠금
-		String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
+	    // 기안과 연결된 SQL을 먼저 삭제해야 기안의 외래 키 제약을 충족한다.
+	    requestMapper.deleteDraftChangeSql(requestId, drafterId);
+	    requestMapper.deleteDraftItems(requestId, drafterId);
 
-		if (status == null) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
-		}
-
-		// 2. 초안 상태인지 확인
-		if (!"DRAFT".equals(status)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 요청만 삭제할 수 있습니다.");
-		}
-
-		// 3. 연결된 SQL 항목 먼저 삭제
-		requestMapper.deleteDraftChangeSql(requestId, drafterId);
-		requestMapper.deleteDraftViewSql(requestId, drafterId);
-		requestMapper.deleteDraftItems(requestId, drafterId);
-
-		// 4. 요청서 삭제
-		int deletedCount = requestMapper.deleteDraftRequest(requestId, drafterId);
-
-		if (deletedCount != 1) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 삭제할 수 없습니다.");
-		}
+	    if (requestMapper.deleteDraftRequest(requestId, drafterId) != 1) {
+	        throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 삭제할 수 없습니다.");
+	    }
 	}
 
 	// 제출할 본인 초안을 조회하고 내용 검사
@@ -592,139 +579,73 @@ public class RequestService {
 	    submitRequest(requestId, input, 1L);
 	}
 
-	@Transactional(
-	        transactionManager = "managementTransactionManager",
-	        rollbackFor = Exception.class
-	)
-	public void submitRequest(
-	        Long requestId,
-	        RequestSubmitRequest input,
-	        Long actorId) {
-
-	    // 1. 본인 초안 잠금 및 저장된 내용 확인
+	@Transactional(transactionManager = "managementTransactionManager", rollbackFor = Exception.class)
+	public void submitRequest(Long requestId, RequestSubmitRequest input, Long actorId) {
+		
 	    RequestDetailResponse draft = loadDraftForSubmission(requestId, actorId);
-
-        if (isDmlRequest(draft.getRequestType())) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "데이터 변경 요청은 현재 초안까지만 사용할 수 있습니다.");
-        }
+	    String requestType = draft.getRequestType();
 
 	    ApprovalLineCreator approvalLineCreator = approvalLineCreatorProvider.getIfAvailable();
-
 	    if (approvalLineCreator == null) {
-	        throw new ResponseStatusException(
-	                HttpStatus.SERVICE_UNAVAILABLE,
-	                "결재 기능이 아직 연결되지 않았습니다."
-	        );
+	        throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "결재 기능이 아직 연결되지 않았습니다.");
 	    }
 
-        if ("CREATE_VIEW".equals(draft.getRequestType())) {
-
-            // 화면에서 전달한 검사 결과 대신 저장된 SQL을 다시 검사한다.
-            for (RequestItemResponse item : draft.getItems()) {
-                var result = viewCreateSqlValidationService.validate(item.getSqlText());
-
-                if (result.getStatus() == Status.BLOCKED) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SQL " + item.getQueryOrder()
-                                    + ": " + result.getMessage());
-                }
-            }
-
-            // WARNING은 제출을 허용한다.
-            // 경고 메시지는 다음 단계에서 화면에 연결한다.
-            ApprovalLineCreator creator = approvalLineCreatorProvider.getIfAvailable();
-	        if (creator == null) {
-	            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "결재 기능이 아직 연결되지 않았습니다.");
-	        }
-	        creator.createApprovalLine(requestId, actorId,
-	                input.getIntermediateApproverIds(), input.getDbApproverId());
-	        if (requestMapper.submitDraft(requestId, actorId) != 1) {
-	            throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 제출할 수 없습니다.");
-	        }
-	        return;
-	    }
-
-	    // 2. 저장된 모든 SQL 재검증
-	    // 하나라도 실패하면 아래 저장 단계로 진행하지 않는다.
-	    List<RequestSqlValidationResult> results =
-	            requestSqlValidationService.validateForSubmission(
-	                    actorId,
-	                    draft.getItems()
-	            );
-
-	    boolean requestSensitive = false;
-
-	    // 3. SQL별 검증 결과와 조회 대상 저장
-	    for (RequestSqlValidationResult result : results) {
-	        String itemClass = result.accessLevel();
-
-	        if (!"GENERAL".equals(itemClass)
-	                && !"SENSITIVE".equals(itemClass)) {
-	            throw new IllegalStateException(
-	                    "검증 결과의 SQL 분류가 올바르지 않습니다."
-	            );
-	        }
-
-	        int updated = requestMapper.updateSubmittedItemValidation(
-	                requestId,
-	                result.queryId(),
-	                itemClass
-	        );
-
-	        if (updated != 1) {
-	            throw new IllegalStateException(
-	                    "SQL 검증 결과 저장에 실패했습니다."
-	            );
-	        }
-
-	        requestMapper.deleteQueryResourceUsage(result.queryId());
-
-	        for (Long resourceId : result.resourceIds()) {
-	            int inserted = requestMapper.insertQueryResourceUsage(
-	                    result.queryId(),
-	                    resourceId
-	            );
-
-	            if (inserted != 1) {
-	                throw new IllegalStateException(
-	                        "SQL 조회 대상 저장에 실패했습니다."
-	                );
+	    // 화면 검사 이후 초안이 수정될 수 있으므로 잠근 초안의 SQL 원문을 다시 검사한다.
+	    if ("CREATE_VIEW".equals(requestType)) {
+	        for (RequestItemResponse item : draft.getItems()) {
+	            var result = viewCreateSqlValidationService.validate(item.getSqlText());
+	            if (result.getStatus() == Status.BLOCKED) {
+	                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+	                        "SQL " + item.getQueryOrder() + " · " + result.getMessage());
 	            }
 	        }
+	    } else if (isDmlRequest(requestType)) {
+	        var sqlType = DmlSqlValidationService.SqlType.valueOf(requestType);
+	        for (RequestItemResponse item : draft.getItems()) {
+	            var result = dmlSqlValidationService.validate(sqlType, item.getSqlText());
+	            if (result.status() == DmlSqlValidationService.Status.BLOCKED) {
+	                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+	                        "SQL " + item.getQueryOrder() + " · " + result.message());
+	            }
+	        }
+	    } else {
+	        // 조회 요청은 기존 검증 결과와 조회 대상 리소스를 제출 시점에 기록한다.
+	        List<RequestSqlValidationResult> results = 
+	                requestSqlValidationService.validateForSubmission(actorId, draft.getItems());
 
-	        requestSensitive |= "SENSITIVE".equals(itemClass);
+	        boolean requestSensitive = false;
+	        for (RequestSqlValidationResult result : results) {
+	            String itemClass = result.accessLevel();
+	            if (!"GENERAL".equals(itemClass) && !"SENSITIVE".equals(itemClass)) {
+	                throw new IllegalStateException("검증 결과의 SQL 분류가 올바르지 않습니다.");
+	            }
+
+	            if (requestMapper.updateSubmittedItemValidation(requestId, result.queryId(), itemClass) != 1) {
+	                throw new IllegalStateException("SQL 검증 결과 저장에 실패했습니다.");
+	            }
+
+	            requestMapper.deleteQueryResourceUsage(result.queryId());
+	            for (Long resourceId : result.resourceIds()) {
+	                if (requestMapper.insertQueryResourceUsage(result.queryId(), resourceId) != 1) {
+	                    throw new IllegalStateException("SQL 조회 대상 저장에 실패했습니다.");
+	                }
+	            }
+
+	            requestSensitive |= "SENSITIVE".equals(itemClass);
+	        }
+
+	        String requestClass = requestSensitive ? "SENSITIVE" : "GENERAL";
+	        if (requestMapper.updateRequestClass(requestId, actorId, requestClass) != 1) {
+	            throw new IllegalStateException("요청 분류 저장에 실패했습니다.");
+	        }
 	    }
 
-	    // 4. 하나라도 민감하면 전체 요청도 민감으로 분류
-	    int classified = requestMapper.updateRequestClass(
-	            requestId,
-	            actorId,
-	            requestSensitive ? "SENSITIVE" : "GENERAL"
-	    );
+	    // 결재선 생성과 제출 상태 변경을 같은 트랜잭션에서 처리한다.
+	    approvalLineCreator.createApprovalLine(requestId, actorId,
+	            input.getIntermediateApproverIds(), input.getDbApproverId());
 
-	    if (classified != 1) {
-	        throw new IllegalStateException(
-	                "요청 분류 저장에 실패했습니다."
-	        );
-	    }
-
-	    // 5. 기존 결재자 전달·결재선 생성 방식 유지
-	    approvalLineCreator.createApprovalLine(
-	            requestId,
-	            actorId,
-	            input.getIntermediateApproverIds(),
-	            input.getDbApproverId()
-	    );
-
-	    // 6. 제출 상태와 제출 시각 변경
-	    int submitted = requestMapper.submitDraft(requestId, actorId);
-
-	    if (submitted != 1) {
-	        throw new ResponseStatusException(
-	                HttpStatus.CONFLICT,
-	                "요청 상태가 변경되어 제출할 수 없습니다."
-	        );
+	    if (requestMapper.submitDraft(requestId, actorId) != 1) {
+	        throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 제출할 수 없습니다.");
 	    }
 	}
 

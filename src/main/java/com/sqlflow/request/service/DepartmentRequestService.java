@@ -2,6 +2,7 @@ package com.sqlflow.request.service;
 
 import java.util.List;
 
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,84 +77,32 @@ public class DepartmentRequestService {
                 totalPages);
     }
     
-    @Transactional(
-            transactionManager = "managementTransactionManager",
-            readOnly = true)
-    public RequestDetailResponse getRequestDetail(
-            Long requestId,
-            Long actorId) {
-
-    	validateDetailIds(requestId, actorId);
+    @Transactional(transactionManager = "managementTransactionManager", readOnly = true)
+    public RequestDetailResponse getRequestDetail(Long requestId, Long actorId) {
+        validateDetailIds(requestId, actorId);
 
         RequestDetailResponse detail =
-                departmentRequestMapper.selectVisibleRequestDetail(
-                        requestId,
-                        actorId);
-
-        // 존재하지 않는 경우와 열람 권한이 없는 경우를 구분해 노출하지 않는다.
+                departmentRequestMapper.selectVisibleRequestDetail(requestId, actorId);
         if (detail == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "조회 요청을 찾을 수 없습니다.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
         }
 
-        detail.setItems(java.util.Set.of("CREATE_VIEW", "INSERT", "UPDATE", "DELETE").contains(
-                detail.getRequestType() == null ? "SELECT" : detail.getRequestType())
+        String requestType = detail.getRequestType() == null ? "SELECT" : detail.getRequestType();
+        boolean changeRequest = java.util.Set.of("CREATE_VIEW", "INSERT", "UPDATE", "DELETE")
+                .contains(requestType);
+
+        detail.setItems(changeRequest
                 ? departmentRequestMapper.selectVisibleViewSqlItems(requestId, actorId)
                 : departmentRequestMapper.selectVisibleRequestItems(requestId, actorId));
+        detail.setApprovals(departmentRequestMapper.selectVisibleRequestApprovals(requestId, actorId));
 
-        detail.setApprovals(
-                departmentRequestMapper.selectVisibleRequestApprovals(
-                        requestId,
-                        actorId));
-        if ("CREATE_VIEW".equals(detail.getRequestType())) {
-            detail.setViewCreateResult(departmentRequestMapper.selectVisibleViewCreateResult(requestId, actorId));
-            detail.setViewCreateResultHistory(
-                    departmentRequestMapper.selectVisibleViewCreateResultHistory(requestId, actorId));
-            detail.setCanRegisterViewResult(departmentRequestMapper.canRegisterViewCreateResult(requestId, actorId) == 1);
-        }
+        // 결과 관리 버튼의 표시 여부는 서버가 로그인 계정과 기안 상태로 판단한다.
+        detail.setCanManageChangeSqlResult(changeRequest
+                && departmentRequestMapper.canManageChangeSqlResult(requestId, actorId) == 1);
 
         return detail;
     }
 
-    @Transactional(transactionManager = "managementTransactionManager")
-    public void registerViewCreateResult(
-            Long requestId, Long actorId, String status, String content, String changeReason) {
-        if (actorId == null || actorId <= 0) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
-        }
-        if (!"COMPLETED".equals(status) && !"FAILED".equals(status)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "처리 결과 상태가 올바르지 않습니다.");
-        }
-        if (content == null || content.isBlank() || content.strip().length() > 4000) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "처리 결과를 1~4000자로 입력해 주세요.");
-        }
-        if (departmentRequestMapper.lockEligibleViewCreateRequest(requestId, actorId) == null) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "최종 승인된 뷰 요청은 DB팀 결재자만 결과를 등록할 수 있습니다.");
-        }
-
-        boolean isUpdate = departmentRequestMapper.selectVisibleViewCreateResult(requestId, actorId) != null;
-        if (isUpdate && (changeReason == null || changeReason.isBlank()
-                || changeReason.strip().length() > 1000)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "결과 수정 사유를 1~1000자로 입력해 주세요.");
-        }
-
-        int changed;
-        if (isUpdate) {
-            changed = departmentRequestMapper.insertViewCreateResultHistory(
-                    requestId, actorId, changeReason.strip());
-            if (changed == 1) {
-                changed = departmentRequestMapper.updateViewCreateResult(
-                        requestId, actorId, status, content.strip());
-            }
-        } else {
-            changed = departmentRequestMapper.insertViewCreateResult(
-                    requestId, actorId, status, content.strip());
-        }
-        if (changed != 1) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "처리 결과를 저장하지 못했습니다. 요청 상태를 확인해 주세요.");
-        }
-    }
     
     private void validateDetailIds(Long requestId, Long actorId) {
         if (actorId == null || actorId <= 0) {
@@ -189,5 +138,95 @@ public class DepartmentRequestService {
         return departmentRequestMapper.selectVisibleRequestApprovalHistory(
                 requestId,
                 actorId);
+    }
+    
+    @Transactional(transactionManager = "managementTransactionManager")
+    public void registerChangeSqlResult(Long requestId, Long queryId, Long actorId,
+            String resultStatus, String resultNote, Long executedBy) {
+
+        boolean completed = "COMPLETED".equals(resultStatus);
+        boolean failed = "FAILED".equals(resultStatus);
+        boolean cancelled = "CANCELLED".equals(resultStatus);
+
+        if (!completed && !failed && !cancelled) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "처리 결과 상태를 확인해 주세요.");
+        }
+
+        String note = resultNote == null || resultNote.isBlank() ? null : resultNote.strip();
+        if (!completed && note == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "실패 또는 취소 사유를 입력해 주세요.");
+        }
+
+        if (cancelled && executedBy != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "취소한 SQL에는 실행자를 지정할 수 없습니다.");
+        }
+
+        if (!cancelled && (executedBy == null || executedBy <= 0)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "외부 실행자를 지정해 주세요.");
+        }
+
+        try {
+            int inserted = departmentRequestMapper.insertChangeSqlResult(
+                    requestId, queryId, actorId, resultStatus, note, executedBy);
+
+            if (inserted != 1) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "등록할 수 있는 승인된 변경 SQL인지, 실행자가 DB팀 계정인지 확인해 주세요.");
+            }
+        } catch (DuplicateKeyException exception) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 처리 결과가 등록된 SQL입니다.");
+        }
+    }
+    
+    @Transactional(transactionManager = "managementTransactionManager")
+    public void changeSqlResult(Long requestId, Long queryId, Long actorId,
+            String resultStatus, String resultNote, Long executedBy,
+            String changeType, String changeReason) {
+
+        boolean reexecution = "REEXECUTION".equals(changeType);
+        if (!reexecution && !"CORRECTION".equals(changeType)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "결과 변경 유형을 확인해 주세요.");
+        }
+
+        boolean completed = "COMPLETED".equals(resultStatus);
+        boolean failed = "FAILED".equals(resultStatus);
+        boolean cancelled = "CANCELLED".equals(resultStatus);
+        if (!completed && !failed && !cancelled) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "처리 결과 상태를 확인해 주세요.");
+        }
+
+        String note = resultNote == null || resultNote.isBlank() ? null : resultNote.strip();
+        if (!completed && note == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "실패 또는 취소 사유를 입력해 주세요.");
+        }
+        if (cancelled && executedBy != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "취소한 SQL에는 실행자를 지정할 수 없습니다.");
+        }
+        if (!cancelled && (executedBy == null || executedBy <= 0)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "외부 실행자를 지정해 주세요.");
+        }
+        if (changeReason == null || changeReason.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "결과 변경 사유를 입력해 주세요.");
+        }
+
+        String previousStatus = departmentRequestMapper.lockChangeSqlResult(requestId, queryId, actorId);
+        if (previousStatus == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "변경할 수 있는 SQL 처리 결과가 없습니다.");
+        }
+        if (reexecution && (!"FAILED".equals(previousStatus) || cancelled)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "실패한 SQL의 외부 재실행 결과는 성공 또는 실패로 등록해 주세요.");
+        }
+
+        // 현재 값이 바뀌기 전에 스냅샷을 남긴다. 갱신 실패 시 이력도 함께 롤백된다.
+        if (departmentRequestMapper.insertChangeSqlResultHistory(
+                queryId, actorId, changeType, changeReason.strip()) != 1) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이전 결과를 이력에 저장하지 못했습니다.");
+        }
+
+        if (departmentRequestMapper.updateChangeSqlResult(
+                queryId, actorId, resultStatus, note, executedBy) != 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "외부 실행자가 DB팀 계정인지 확인해 주세요.");
+        }
     }
 }

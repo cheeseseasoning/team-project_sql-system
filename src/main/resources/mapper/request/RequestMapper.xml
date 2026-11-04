@@ -80,14 +80,21 @@
         )
     </insert>
 
-    <select id="selectMyViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
-        SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
-               V.SQL_CONTENT AS SQL_TEXT
-        FROM DB_CHANGE_SQL V
-        JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
-        WHERE R.REQUEST_ID = #{requestId} AND R.DRAFTER_ID = #{drafterId}
-        ORDER BY V.QUERY_ORDER, V.QUERY_ID
-    </select>
+	<select id="selectMyViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
+	    SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
+	           V.SQL_CONTENT AS SQL_TEXT,
+	           CR.RESULT_STATUS AS CHANGE_RESULT_STATUS,
+	           CR.RESULT_NOTE AS CHANGE_RESULT_NOTE,
+	           CR.EXECUTED_BY AS CHANGE_EXECUTED_BY,
+	           CR.REGISTERED_BY AS CHANGE_REGISTERED_BY,
+	           CR.REGISTERED_AT AS CHANGE_REGISTERED_AT
+	    FROM DB_CHANGE_SQL V
+	    JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
+	    LEFT JOIN DB_CHANGE_SQL_RESULT CR ON CR.QUERY_ID = V.QUERY_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND R.DRAFTER_ID = #{drafterId}
+	    ORDER BY V.QUERY_ORDER, V.QUERY_ID
+	</select>
 
     <delete id="deleteDraftChangeSql">
         DELETE FROM DB_CHANGE_SQL
@@ -99,17 +106,6 @@
                 AND R.REQUEST_STATUS = 'DRAFT'
                 AND R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
           )
-    </delete>
-
-    <!-- 이관 전 원본에 남은 FK는 해당 초안을 삭제할 때 함께 정리한다. -->
-    <delete id="deleteDraftViewSql">
-        DELETE FROM VIEW_CREATE_SQL
-        WHERE REQUEST_ID = #{requestId}
-          AND EXISTS (SELECT 1 FROM QUERY_REQUEST R
-                      WHERE R.REQUEST_ID = VIEW_CREATE_SQL.REQUEST_ID
-                        AND R.DRAFTER_ID = #{drafterId}
-                        AND R.REQUEST_STATUS = 'DRAFT'
-                        AND R.REQUEST_TYPE = 'CREATE_VIEW')
     </delete>
 
     <!-- 승인 상태와 사용자 권한을 같은 조회에서 확인해 다운로드할 SQL만 반환한다. -->
@@ -227,32 +223,6 @@
 	
 	</select>
 
-    <select id="selectViewCreateResult"
-            resultType="com.sqlflow.request.dto.ViewCreateResultResponse">
-        SELECT VR.RESULT_STATUS,
-               VR.RESULT_CONTENT,
-               U.USER_NAME AS REGISTERED_BY_NAME,
-               VR.REGISTERED_AT
-        FROM VIEW_CREATE_RESULT VR
-        JOIN USERS U ON U.USER_ID = VR.REGISTERED_BY
-        WHERE VR.REQUEST_ID = #{requestId}
-    </select>
-
-    <select id="selectViewCreateResultHistory"
-            resultType="com.sqlflow.request.dto.ViewCreateResultHistoryResponse">
-        SELECT H.PREVIOUS_RESULT_STATUS,
-               H.PREVIOUS_RESULT_CONTENT,
-               PREVIOUS_USER.USER_NAME AS PREVIOUS_REGISTERED_BY_NAME,
-               H.PREVIOUS_REGISTERED_AT,
-               CHANGED_USER.USER_NAME AS CHANGED_BY_NAME,
-               H.CHANGED_AT,
-               H.CHANGE_REASON
-        FROM VIEW_CREATE_RESULT_HISTORY H
-        JOIN USERS PREVIOUS_USER ON PREVIOUS_USER.USER_ID = H.PREVIOUS_REGISTERED_BY
-        JOIN USERS CHANGED_USER ON CHANGED_USER.USER_ID = H.CHANGED_BY
-        WHERE H.REQUEST_ID = #{requestId}
-        ORDER BY H.CHANGED_AT DESC, H.HISTORY_ID DESC
-    </select>
 	
 	<!-- 본인 요청에 등록된 SQL 목록 -->
 	<select id="selectMyRequestItems"

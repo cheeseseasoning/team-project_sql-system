@@ -221,7 +221,7 @@
 			</footer>
 		</dialog>
 
-		<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261029-view-history"></script>
-		<script src="${pageContext.request.contextPath}/js/request-detail-author.js?v=20261029-view-history"></script>
+		<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261104-change-results"></script>
+		<script src="${pageContext.request.contextPath}/js/request-detail-author.js?v=20261104-change-results"></script>
 
 		<%@ include file="fragments/bottom.jspf" %>

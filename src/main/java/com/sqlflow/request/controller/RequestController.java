@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -34,7 +35,6 @@ import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.dto.RequestSubmitRequest;
 import com.sqlflow.request.dto.DmlDraftRequest;
 import com.sqlflow.request.dto.ViewCreateDraftRequest;
-import com.sqlflow.request.dto.ViewCreateResultRequest;
 import com.sqlflow.request.dto.ViewCreateSqlValidationRequestDTO;
 import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO;
 import com.sqlflow.request.service.DepartmentRequestService;
@@ -59,15 +59,6 @@ public class RequestController {
 	private final DepartmentRequestService departmentRequestService;
 	private final DmlSqlValidationService dmlSqlValidationService;
 
-	@PostMapping("/department/{requestId}/view-create-result")
-	public ResponseEntity<Void> registerViewCreateResult(
-			@PathVariable Long requestId,
-			@Valid @RequestBody ViewCreateResultRequest input,
-			@AuthenticationPrincipal SqlFlowUserDetails user) {
-		departmentRequestService.registerViewCreateResult(
-				requestId, user.getUserId(), input.getResultStatus(), input.getResultContent(), input.getChangeReason());
-		return ResponseEntity.noContent().build();
-	}
 	
 	@GetMapping("/dashboard")
 	public RequestDashboardResponse getMyDashboard(
@@ -311,5 +302,48 @@ public class RequestController {
 	            user == null ? null : user.getUserId());
 
 	    return ResponseEntity.noContent().build();
+	}
+	
+	@PostMapping("/department/{requestId}/change-sql/{queryId}/result")
+	public ResponseEntity<Void> registerChangeSqlResult(
+	        @PathVariable Long requestId,
+	        @PathVariable Long queryId,
+	        @Valid @RequestBody ChangeSqlResultRequest input,
+	        @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+	    departmentRequestService.registerChangeSqlResult(
+	            requestId, queryId, user.getUserId(),
+	            input.resultStatus(), input.resultNote(), input.executedBy());
+
+	    return ResponseEntity.noContent().build();
+	}
+
+	public record ChangeSqlResultRequest(
+	        @NotNull String resultStatus,
+	        @Size(max = 1000) String resultNote,
+	        Long executedBy) {
+	}
+	
+	@PatchMapping("/department/{requestId}/change-sql/{queryId}/result")
+	public ResponseEntity<Void> changeSqlResult(
+	        @PathVariable Long requestId,
+	        @PathVariable Long queryId,
+	        @Valid @RequestBody ChangeSqlResultUpdateRequest input,
+	        @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+	    departmentRequestService.changeSqlResult(
+	            requestId, queryId, user.getUserId(),
+	            input.resultStatus(), input.resultNote(), input.executedBy(),
+	            input.changeType(), input.changeReason());
+
+	    return ResponseEntity.noContent().build();
+	}
+
+	public record ChangeSqlResultUpdateRequest(
+	        @NotNull String resultStatus,
+	        @Size(max = 1000) String resultNote,
+	        Long executedBy,
+	        @NotNull String changeType,
+	        @NotNull @Size(max = 1000) String changeReason) {
 	}
 }
