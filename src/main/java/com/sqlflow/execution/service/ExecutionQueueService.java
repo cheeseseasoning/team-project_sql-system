@@ -11,32 +11,108 @@ import com.sqlflow.execution.dto.ExecutionQueuePageResponse;
 import com.sqlflow.execution.mapper.ExecutionQueueMapper;
 import lombok.RequiredArgsConstructor;
 
-@Service @RequiredArgsConstructor
+@Service 
+@RequiredArgsConstructor
 public class ExecutionQueueService {
+	
     private final ExecutionQueueMapper mapper;
 
-    @Transactional(transactionManager="managementTransactionManager", readOnly=true)
-    public ExecutionQueuePageResponse getQueue(SqlFlowUserDetails user, int page, int size, String keyword) {
+    @Transactional(
+    		transactionManager = "managementTransactionManager", 
+    		readOnly = true)
+    public ExecutionQueuePageResponse getQueue(
+    		SqlFlowUserDetails user, 
+    		int page, 
+    		int size, 
+    		String keyword) {
+    	
         requireApprover(user);
-        if (page < 1 || size < 1 || size > 50) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "페이지 값이 올바르지 않습니다.");
+        
+        if (page < 1 || size < 1 || size > 50) {
+        	throw new ResponseStatusException(
+        			HttpStatus.BAD_REQUEST, 
+        			"페이지 값이 올바르지 않습니다.");
+        }
+        
         String normalized = keyword == null ? "" : keyword.trim();
         long count = mapper.countReadyRequests(normalized);
         int pages = (int) ((count + size - 1) / size);
-        return new ExecutionQueuePageResponse(mapper.selectReadyRequests(normalized, (page - 1) * size, size), page, size, count, pages);
+        
+        return new ExecutionQueuePageResponse(
+        		mapper.selectReadyRequests(
+        				normalized, 
+        				(page - 1) * size, 
+        				size), 
+        		page, 
+        		size, 
+        		count, 
+        		pages);
     }
 
-    @Transactional(transactionManager="managementTransactionManager", readOnly=true)
-    public ExecutionQueueDetailResponse getDetail(SqlFlowUserDetails user, Long requestId) {
+    @Transactional(
+    		transactionManager = "managementTransactionManager", 
+    		readOnly=true)
+    public ExecutionQueueDetailResponse getDetail(
+    		SqlFlowUserDetails user, 
+    		Long requestId) {
+    	
         requireApprover(user);
-        if (requestId == null || requestId <= 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청 ID가 올바르지 않습니다.");
-        ExecutionQueueDetailResponse detail = mapper.selectRequestDetail(requestId);
-        if (detail == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "승인된 요청을 찾을 수 없습니다.");
+        
+        if (requestId == null || requestId <= 0) {
+        	throw new ResponseStatusException(
+        			HttpStatus.BAD_REQUEST, 
+        			"요청 ID가 올바르지 않습니다.");
+        }
+        
+        ExecutionQueueDetailResponse detail = 
+        		mapper.selectRequestDetail(requestId);
+        
+        if (detail == null) {
+        	throw new ResponseStatusException(
+        			HttpStatus.NOT_FOUND, 
+        			"승인된 요청을 찾을 수 없습니다.");
+        }
+        
         detail.setSqlItems(mapper.selectRequestSqlItems(requestId));
         return detail;
     }
+    
+    /**
+     * 화면 접근 검사에도 재사용한다.
+     * 권한은 세션 정보만으로 판단하지 않고 DB의 현재 상태를 조회한다.
+     */
+    @Transactional(
+    		transactionManager = "managementTransactionManager", 
+    		readOnly = true)
+    public void assertCanAccess(SqlFlowUserDetails user) {
+    	requireApprover(user);
+    }
 
     private void requireApprover(SqlFlowUserDetails user) {
-        if (user == null || user.getUserId() == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
-        if (!user.isEnabled() || !mapper.isActiveDbApprover(user.getUserId())) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "DB팀 실행 권한이 없습니다.");
+        if (user == null || user.getUserId() == null) {
+        	throw new ResponseStatusException(
+        			HttpStatus.UNAUTHORIZED, 
+        			"로그인이 필요합니다.");
+        }
+        
+        if (!user.isEnabled() 
+        		|| !mapper.isActiveDbApprover(user.getUserId())) {
+        	throw new ResponseStatusException(
+        			HttpStatus.FORBIDDEN, 
+        			"DB팀 실행 권한이 없습니다.");
+        }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
