@@ -93,7 +93,8 @@ public class ApprovalService implements ApprovalLineCreator {
         }
 
         boolean supportedApprovalType =
-                "INTERMEDIATE".equals(pending.getApprovalType())
+                "APPROVER".equals(pending.getApprovalType())
+                        || "INTERMEDIATE".equals(pending.getApprovalType())
                         || "DIRECTOR".equals(pending.getApprovalType())
                         || "DB_EXECUTION".equals(pending.getApprovalType());
 
@@ -110,21 +111,19 @@ public class ApprovalService implements ApprovalLineCreator {
                     "결재 상태가 변경되었습니다. 다시 확인하세요.");
         }
 
-        // DB팀 실행 승인 단계가 최종 승인
-        if ("DB_EXECUTION".equals(pending.getApprovalType())) {
-            if (approvalMapper.markRequestApproved(requestId) != 1) {
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT,
-                        "요청 상태를 최종 승인으로 변경할 수 없습니다.");
-            }
+        int activated = approvalMapper.activateNextApproval(requestId);
+
+        // 결재 유형과 관계없이 다음 순서의 대기 결재를 활성화한다.
+        if (activated == 1) {
             return;
         }
 
-        // 중간 결재 또는 부서장 결재 후 다음 순서의 결재자 한 명을 활성화
-        if (approvalMapper.activateNextApproval(requestId) != 1) {
+        // 다음 단계가 없으면, 모든 결재가 승인됐는지 SQL에서 확인한다.
+        if (activated != 0
+                || approvalMapper.markRequestApproved(requestId) != 1) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "다음 결재 단계를 활성화할 수 없습니다.");
+                    "결재 진행 상태를 확인할 수 없습니다. 다시 확인하세요.");
         }
     }
     
@@ -163,7 +162,8 @@ public class ApprovalService implements ApprovalLineCreator {
         }
 
         boolean supportedApprovalType =
-                "INTERMEDIATE".equals(pending.getApprovalType())
+                "APPROVER".equals(pending.getApprovalType())
+                        || "INTERMEDIATE".equals(pending.getApprovalType())
                         || "DIRECTOR".equals(pending.getApprovalType())
                         || "DB_EXECUTION".equals(pending.getApprovalType());
 

@@ -75,6 +75,9 @@ class ApprovalDecisionServiceTest {
     void dbFinalApprovalMarksApprovalAndRequestApprovedAndReady() {
         mapper.currentPending.setApprovalOrder(2);
         mapper.currentPending.setApprovalType("DB_EXECUTION");
+        
+        // 다음 결재 단계가 없는 상황
+        mapper.nextApprovalStatus = null;
 
         approvalService.approve(REQUEST_ID, APPROVER_ID);
 
@@ -264,12 +267,21 @@ class ApprovalDecisionServiceTest {
 
         @Override
         public int activateNextApproval(Long requestId) {
+            if (!"WAITING".equals(nextApprovalStatus)) {
+                return 0;
+            }
+
             nextApprovalStatus = "PENDING";
             return 1;
         }
 
         @Override
         public int markRequestApproved(Long requestId) {
+            if (!"APPROVED".equals(approvalStatus)
+                    || nextApprovalStatus != null) {
+                return 0;
+            }
+
             request.setApprovalStatus("APPROVED");
             request.setRequestStatus("READY");
             return 1;
@@ -297,6 +309,30 @@ class ApprovalDecisionServiceTest {
         	request.setRequestStatus("REJECTED");
         	return 1;
         }
+    }
+    
+    @Test
+    void ordinaryFinalApproverCompletesRequestWithoutDbApproval() {
+        mapper.currentPending.setApprovalType("APPROVER");
+        mapper.nextApprovalStatus = null;
+
+        approvalService.approve(REQUEST_ID, APPROVER_ID);
+
+        assertEquals("APPROVED", mapper.approvalStatus);
+        assertEquals("APPROVED", mapper.request.getApprovalStatus());
+        assertEquals("READY", mapper.request.getRequestStatus());
+    }
+
+    @Test
+    void dbApprovalDoesNotCompleteRequestWhenAnotherStageRemains() {
+        mapper.currentPending.setApprovalType("DB_EXECUTION");
+
+        approvalService.approve(REQUEST_ID, APPROVER_ID);
+
+        assertEquals("APPROVED", mapper.approvalStatus);
+        assertEquals("PENDING", mapper.nextApprovalStatus);
+        assertEquals("PENDING", mapper.request.getApprovalStatus());
+        assertEquals("PENDING_APPROVAL", mapper.request.getRequestStatus());
     }
 }
 

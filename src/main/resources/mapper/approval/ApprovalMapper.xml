@@ -359,14 +359,21 @@
         )
     </update>
 
-    <update id="markRequestApproved">
-        UPDATE QUERY_REQUEST
-        SET APPROVAL_STATUS = 'APPROVED',
-            REQUEST_STATUS = 'READY'
-        WHERE REQUEST_ID = #{requestId}
-          AND APPROVAL_STATUS = 'PENDING'
-          AND REQUEST_STATUS = 'PENDING_APPROVAL'
-    </update>
+    <!-- 모든 결재가 승인된 경우에만 요청을 실행 대기로 변경한다. -->
+	<update id="markRequestApproved">
+	    UPDATE QUERY_REQUEST Q
+	    SET APPROVAL_STATUS = 'APPROVED',
+	        REQUEST_STATUS = 'READY'
+	    WHERE Q.REQUEST_ID = #{requestId}
+	      AND Q.APPROVAL_STATUS = 'PENDING'
+	      AND Q.REQUEST_STATUS = 'PENDING_APPROVAL'
+	      AND NOT EXISTS (
+	          SELECT 1
+	          FROM APPROVAL A
+	          WHERE A.REQUEST_ID = Q.REQUEST_ID
+	            AND A.STATUS &lt;&gt; 'APPROVED'
+	      )
+	</update>
 
     <update id="rejectPendingApproval">
         UPDATE APPROVAL
