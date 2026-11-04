@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -32,14 +33,20 @@ import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.dto.RequestPageResponse;
 import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.dto.RequestSubmitRequest;
+import com.sqlflow.request.dto.DmlDraftRequest;
 import com.sqlflow.request.dto.ViewCreateDraftRequest;
-import com.sqlflow.request.dto.ViewCreateResultRequest;
 import com.sqlflow.request.dto.ViewCreateSqlValidationRequestDTO;
 import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO;
 import com.sqlflow.request.service.DepartmentRequestService;
+import com.sqlflow.request.service.DmlSqlValidationService;
 import com.sqlflow.request.service.RequestService;
+import com.sqlflow.request.service.DmlSqlValidationService.ValidationResult;
+import com.sqlflow.request.service.DmlSqlValidationService.SqlType;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -50,16 +57,8 @@ public class RequestController {
 	private final RequestService requestService;
 	private final ApprovalService approvalService;
 	private final DepartmentRequestService departmentRequestService;
+	private final DmlSqlValidationService dmlSqlValidationService;
 
-	@PostMapping("/department/{requestId}/view-create-result")
-	public ResponseEntity<Void> registerViewCreateResult(
-			@PathVariable Long requestId,
-			@Valid @RequestBody ViewCreateResultRequest input,
-			@AuthenticationPrincipal SqlFlowUserDetails user) {
-		departmentRequestService.registerViewCreateResult(
-				requestId, user.getUserId(), input.getResultStatus(), input.getResultContent(), input.getChangeReason());
-		return ResponseEntity.noContent().build();
-	}
 	
 	@GetMapping("/dashboard")
 	public RequestDashboardResponse getMyDashboard(
@@ -140,6 +139,26 @@ public class RequestController {
 				.body(new DraftCreateResponse(requestId));
 	}
 
+    /** 로그인 사용자의 데이터 변경 초안을 생성한다. */
+    @PostMapping("/dml-drafts")
+    public ResponseEntity<DraftCreateResponse> createDmlDraft(
+            @Valid @RequestBody DmlDraftRequest input,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+        Long requestId = requestService.createDmlDraft(input, user.getUserId(), user.getDeptId());
+
+        return ResponseEntity.created(URI.create("/api/requests/mine/" + requestId))
+                .body(new DraftCreateResponse(requestId));
+    }
+
+    @PutMapping("/dml-drafts/{requestId}")
+    public ResponseEntity<Void> updateDmlDraft(
+            @PathVariable Long requestId,
+            @Valid @RequestBody DmlDraftRequest input,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+        requestService.updateDmlDraft(requestId, input, user.getUserId());
+        return ResponseEntity.noContent().build();
+    }
+
 	@PostMapping("/view-create-drafts")
 	public ResponseEntity<DraftCreateResponse> createViewDraft(
 			@Valid @RequestBody ViewCreateDraftRequest input,
@@ -208,6 +227,23 @@ public class RequestController {
         return requestService.validateViewSqlTexts(input.getSqls());
     }
 	
+    /** 화면에서 선택한 유형을 SQL 목록 전체에 적용한다. */
+    @PostMapping("/dml-sql/validate")
+    public List<ValidationResult> validateDmlSqlTexts(
+            @Valid @RequestBody DmlSqlValidationRequest input) {
+
+        return input.sqls().stream()
+                .map(sql -> dmlSqlValidationService.validate(input.sqlType(), sql))
+                .toList();
+    }
+
+    public record DmlSqlValidationRequest(
+            @NotNull SqlType sqlType,
+            @NotEmpty @Size(max = 5)
+            List<@NotNull @Size(max = 20000) String> sqls
+    ) {
+    }
+    
     /**
      * 로그인한 작성자의 저장된 뷰 생성 SQL을 검사한다.
      */
@@ -266,5 +302,48 @@ public class RequestController {
 	            user == null ? null : user.getUserId());
 
 	    return ResponseEntity.noContent().build();
+	}
+	
+	@PostMapping("/department/{requestId}/change-sql/{queryId}/result")
+	public ResponseEntity<Void> registerChangeSqlResult(
+	        @PathVariable Long requestId,
+	        @PathVariable Long queryId,
+	        @Valid @RequestBody ChangeSqlResultRequest input,
+	        @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+	    departmentRequestService.registerChangeSqlResult(
+	            requestId, queryId, user.getUserId(),
+	            input.resultStatus(), input.resultNote(), input.executedBy());
+
+	    return ResponseEntity.noContent().build();
+	}
+
+	public record ChangeSqlResultRequest(
+	        @NotNull String resultStatus,
+	        @Size(max = 1000) String resultNote,
+	        Long executedBy) {
+	}
+	
+	@PatchMapping("/department/{requestId}/change-sql/{queryId}/result")
+	public ResponseEntity<Void> changeSqlResult(
+	        @PathVariable Long requestId,
+	        @PathVariable Long queryId,
+	        @Valid @RequestBody ChangeSqlResultUpdateRequest input,
+	        @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+	    departmentRequestService.changeSqlResult(
+	            requestId, queryId, user.getUserId(),
+	            input.resultStatus(), input.resultNote(), input.executedBy(),
+	            input.changeType(), input.changeReason());
+
+	    return ResponseEntity.noContent().build();
+	}
+
+	public record ChangeSqlResultUpdateRequest(
+	        @NotNull String resultStatus,
+	        @Size(max = 1000) String resultNote,
+	        Long executedBy,
+	        @NotNull String changeType,
+	        @NotNull @Size(max = 1000) String changeReason) {
 	}
 }

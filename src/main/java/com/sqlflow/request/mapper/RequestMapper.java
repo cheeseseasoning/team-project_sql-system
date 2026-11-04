@@ -12,8 +12,6 @@ import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.dto.RequestSummaryResponse;
-import com.sqlflow.request.dto.ViewCreateResultResponse;
-import com.sqlflow.request.dto.ViewCreateResultHistoryResponse;
 
 @Mapper
 public interface RequestMapper {
@@ -33,21 +31,17 @@ public interface RequestMapper {
             @Param("requestId") Long requestId,
             @Param("drafterId") Long drafterId);
 
-    int deleteDraftViewSql(@Param("requestId") Long requestId,
-                           @Param("drafterId") Long drafterId);
+    int deleteDraftChangeSql(@Param("requestId") Long requestId,
+                             @Param("drafterId") Long drafterId);
 
     int updateRequestType(@Param("requestId") Long requestId,
                           @Param("drafterId") Long drafterId,
                           @Param("requestType") String requestType);
 
-    List<RequestItemResponse> selectApprovedViewSqlItems(@Param("requestId") Long requestId);
+    List<RequestItemResponse> selectApprovedChangeSqlItems(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId);
 
-    int canDownloadApprovedViewSql(@Param("requestId") Long requestId,
-                                   @Param("actorId") Long actorId);
-
-    ViewCreateResultResponse selectViewCreateResult(@Param("requestId") Long requestId);
-
-    List<ViewCreateResultHistoryResponse> selectViewCreateResultHistory(@Param("requestId") Long requestId);
     
     List<RequestListResponse> selectMyRequests(
             @Param("drafterId") Long drafterId,

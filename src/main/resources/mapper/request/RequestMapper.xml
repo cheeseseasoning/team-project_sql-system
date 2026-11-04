@@ -72,53 +72,67 @@
     </insert>
 
     <insert id="insertViewSql">
-        INSERT INTO VIEW_CREATE_SQL (
+        INSERT INTO DB_CHANGE_SQL (
             QUERY_ID, REQUEST_ID, QUERY_ORDER, SQL_TITLE, SQL_CONTENT
         ) VALUES (
-            SEQ_VIEW_CREATE_SQL.NEXTVAL, #{requestId}, #{queryOrder},
+            SEQ_DB_CHANGE_SQL.NEXTVAL, #{requestId}, #{queryOrder},
             #{sqlTitle}, #{sqlContent, jdbcType=CLOB}
         )
     </insert>
 
-    <select id="selectMyViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
-        SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
-               V.SQL_CONTENT AS SQL_TEXT
-        FROM VIEW_CREATE_SQL V
-        JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
-        WHERE R.REQUEST_ID = #{requestId} AND R.DRAFTER_ID = #{drafterId}
-        ORDER BY V.QUERY_ORDER, V.QUERY_ID
-    </select>
+	<select id="selectMyViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
+	    SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
+	           V.SQL_CONTENT AS SQL_TEXT,
+	           CR.RESULT_STATUS AS CHANGE_RESULT_STATUS,
+	           CR.RESULT_NOTE AS CHANGE_RESULT_NOTE,
+	           CR.EXECUTED_BY AS CHANGE_EXECUTED_BY,
+	           CR.REGISTERED_BY AS CHANGE_REGISTERED_BY,
+	           CR.REGISTERED_AT AS CHANGE_REGISTERED_AT
+	    FROM DB_CHANGE_SQL V
+	    JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
+	    LEFT JOIN DB_CHANGE_SQL_RESULT CR ON CR.QUERY_ID = V.QUERY_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND R.DRAFTER_ID = #{drafterId}
+	    ORDER BY V.QUERY_ORDER, V.QUERY_ID
+	</select>
 
-    <delete id="deleteDraftViewSql">
-        DELETE FROM VIEW_CREATE_SQL
+    <delete id="deleteDraftChangeSql">
+        DELETE FROM DB_CHANGE_SQL
         WHERE REQUEST_ID = #{requestId}
-          AND EXISTS (SELECT 1 FROM QUERY_REQUEST R
-                      WHERE R.REQUEST_ID = VIEW_CREATE_SQL.REQUEST_ID
-                        AND R.DRAFTER_ID = #{drafterId}
-                        AND R.REQUEST_STATUS = 'DRAFT'
-                        AND R.REQUEST_TYPE = 'CREATE_VIEW')
+          AND EXISTS (
+              SELECT 1 FROM QUERY_REQUEST R
+              WHERE R.REQUEST_ID = DB_CHANGE_SQL.REQUEST_ID
+                AND R.DRAFTER_ID = #{drafterId}
+                AND R.REQUEST_STATUS = 'DRAFT'
+                AND R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
+          )
     </delete>
 
-    <select id="selectApprovedViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
-        SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
-               V.SQL_CONTENT AS SQL_TEXT
-        FROM VIEW_CREATE_SQL V
-        JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
+    <!-- 승인 상태와 사용자 권한을 같은 조회에서 확인해 다운로드할 SQL만 반환한다. -->
+    <select id="selectApprovedChangeSqlItems"
+            resultType="com.sqlflow.request.dto.RequestItemResponse">
+        SELECT C.QUERY_ID,
+               C.QUERY_ORDER,
+               C.SQL_TITLE AS QUERY_TITLE,
+               C.SQL_CONTENT AS SQL_TEXT
+        FROM DB_CHANGE_SQL C
+        JOIN QUERY_REQUEST R ON R.REQUEST_ID = C.REQUEST_ID
         WHERE R.REQUEST_ID = #{requestId}
-          AND R.REQUEST_TYPE = 'CREATE_VIEW'
+          AND R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
           AND R.REQUEST_STATUS = 'READY'
           AND R.APPROVAL_STATUS = 'APPROVED'
-        ORDER BY V.QUERY_ORDER, V.QUERY_ID
-    </select>
-
-    <select id="canDownloadApprovedViewSql" resultType="int">
-        SELECT COUNT(*) FROM QUERY_REQUEST R
-        JOIN USERS U ON U.USER_ID = #{actorId} AND U.ENABLED = 'Y'
-        JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID AND D.DEPT_NAME = 'DB팀'
-        JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
-        JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID AND RL.ROLE_CODE = 'DB_APPROVER'
-        WHERE R.REQUEST_ID = #{requestId} AND R.REQUEST_TYPE = 'CREATE_VIEW'
-          AND R.REQUEST_STATUS = 'READY' AND R.APPROVAL_STATUS = 'APPROVED'
+          AND EXISTS (
+              SELECT 1
+              FROM USERS U
+              JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+              JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
+              JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID
+              WHERE U.USER_ID = #{actorId}
+                AND U.ENABLED = 'Y'
+                AND D.DEPT_NAME = 'DB팀'
+                AND RL.ROLE_CODE = 'DB_APPROVER'
+          )
+        ORDER BY C.QUERY_ORDER, C.QUERY_ID
     </select>
     
     <!-- 작성자의 요청 목록 및 검색 -->
@@ -136,8 +150,8 @@
 	        R.APPROVAL_STATUS,
 	        R.CREATED_AT,
 	        R.DESIRED_DATE,
-	        CASE WHEN R.REQUEST_TYPE = 'CREATE_VIEW'
-	             THEN (SELECT COUNT(*) FROM VIEW_CREATE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
+	        CASE WHEN R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
+	             THEN (SELECT COUNT(*) FROM DB_CHANGE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
 	             ELSE (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID = R.REQUEST_ID)
 	        END AS SQL_COUNT
 	    FROM QUERY_REQUEST R
@@ -209,32 +223,6 @@
 	
 	</select>
 
-    <select id="selectViewCreateResult"
-            resultType="com.sqlflow.request.dto.ViewCreateResultResponse">
-        SELECT VR.RESULT_STATUS,
-               VR.RESULT_CONTENT,
-               U.USER_NAME AS REGISTERED_BY_NAME,
-               VR.REGISTERED_AT
-        FROM VIEW_CREATE_RESULT VR
-        JOIN USERS U ON U.USER_ID = VR.REGISTERED_BY
-        WHERE VR.REQUEST_ID = #{requestId}
-    </select>
-
-    <select id="selectViewCreateResultHistory"
-            resultType="com.sqlflow.request.dto.ViewCreateResultHistoryResponse">
-        SELECT H.PREVIOUS_RESULT_STATUS,
-               H.PREVIOUS_RESULT_CONTENT,
-               PREVIOUS_USER.USER_NAME AS PREVIOUS_REGISTERED_BY_NAME,
-               H.PREVIOUS_REGISTERED_AT,
-               CHANGED_USER.USER_NAME AS CHANGED_BY_NAME,
-               H.CHANGED_AT,
-               H.CHANGE_REASON
-        FROM VIEW_CREATE_RESULT_HISTORY H
-        JOIN USERS PREVIOUS_USER ON PREVIOUS_USER.USER_ID = H.PREVIOUS_REGISTERED_BY
-        JOIN USERS CHANGED_USER ON CHANGED_USER.USER_ID = H.CHANGED_BY
-        WHERE H.REQUEST_ID = #{requestId}
-        ORDER BY H.CHANGED_AT DESC, H.HISTORY_ID DESC
-    </select>
 	
 	<!-- 본인 요청에 등록된 SQL 목록 -->
 	<select id="selectMyRequestItems"
@@ -350,8 +338,8 @@
 	        R.APPROVAL_STATUS,
 	        R.CREATED_AT,
 	        R.DESIRED_DATE,
-	        CASE WHEN R.REQUEST_TYPE = 'CREATE_VIEW'
-	             THEN (SELECT COUNT(*) FROM VIEW_CREATE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
+	        CASE WHEN R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
+	             THEN (SELECT COUNT(*) FROM DB_CHANGE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
 	             ELSE (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID = R.REQUEST_ID)
 	        END AS SQL_COUNT
 	    FROM QUERY_REQUEST R
