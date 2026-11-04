@@ -1223,10 +1223,15 @@ $('#request-submit-open').addEventListener('click', function () {
 		return;
 	}
 
-	if (currentRequestType !== 'CREATE_VIEW'
-			&& detailItems.some(item => item.validationStatus !== 'VALID')) {
-		if (detailItems.some(item => item.validationStatus === 'INVALID')) {
-			window.alert('검증 실패한 SQL이 있습니다. 실패 원인을 수정한 뒤 전체 SQL을 다시 검증해 주세요.');
+	const isDmlRequest = ['INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType);
+	const hasUnsubmittableSql = detailItems.some(item =>
+		item.validationStatus !== 'VALID'
+		&& !(isDmlRequest && item.validationStatus === 'WARNING'));
+
+	// DML 경고는 결재 검토 대상으로 넘기고, 미검사·차단 항목은 제출을 막는다.
+	if (currentRequestType !== 'CREATE_VIEW' && hasUnsubmittableSql) {
+		if (detailItems.some(item => ['INVALID', 'BLOCKED'].includes(item.validationStatus))) {
+			window.alert('제출할 수 없는 SQL이 있습니다. 원인을 수정한 뒤 전체 SQL을 다시 검증해 주세요.');
 		} else {
 			window.alert('제출 전에 전체 SQL 검증을 먼저 진행해 주세요.');
 		}
