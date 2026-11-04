@@ -67,19 +67,25 @@ class ViewCreateResultWorkflowTest {
 
     @Test
     void downloadAddsOneTerminatorOnlyWhenSqlDoesNotAlreadyHaveOne() {
-        when(requestMapper.canDownloadApprovedViewSql(42L, 7L)).thenReturn(1);
-        RequestItemResponse first = sqlItem(1, "CREATE VIEW v_one AS SELECT 1 FROM DUAL");
-        RequestItemResponse second = sqlItem(2, "CREATE VIEW v_two AS SELECT 2 FROM DUAL;  \n");
-        when(requestMapper.selectApprovedViewSqlItems(42L))
+        RequestItemResponse first = sqlItem(
+                1, "CREATE VIEW v_one AS SELECT 1 FROM DUAL");
+        RequestItemResponse second = sqlItem(
+                2, "CREATE VIEW v_two AS SELECT 2 FROM DUAL;  \n");
+
+        // 공통 조회가 승인과 권한을 확인하고 SQL 두 건을 반환했다고 가정한다.
+        when(requestMapper.selectApprovedChangeSqlItems(42L, 7L))
                 .thenReturn(List.of(first, second));
 
         String file = new String(
                 requestService.downloadApprovedViewSql(42L, 7L),
                 StandardCharsets.UTF_8);
 
-        assertTrue(file.contains("CREATE VIEW v_one AS SELECT 1 FROM DUAL\n;\n\n-- SQL 2"));
-        assertTrue(file.contains("CREATE VIEW v_two AS SELECT 2 FROM DUAL;\n\n"));
-        assertEquals(2, file.chars().filter(character -> character == ';').count());
+        // 첫 SQL에만 세미콜론을 추가하고, 둘째 SQL의 세미콜론은 그대로 쓴다.
+        assertTrue(file.contains(
+                "CREATE VIEW v_one AS SELECT 1 FROM DUAL\n;\n\n-- SQL 2"));
+        assertTrue(file.contains(
+                "CREATE VIEW v_two AS SELECT 2 FROM DUAL;\n\n"));
+        assertEquals(2, file.chars().filter(ch -> ch == ';').count());
     }
 
     @Test

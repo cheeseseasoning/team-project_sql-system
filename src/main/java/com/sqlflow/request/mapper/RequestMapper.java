@@ -43,10 +43,9 @@ public interface RequestMapper {
                           @Param("drafterId") Long drafterId,
                           @Param("requestType") String requestType);
 
-    List<RequestItemResponse> selectApprovedViewSqlItems(@Param("requestId") Long requestId);
-
-    int canDownloadApprovedViewSql(@Param("requestId") Long requestId,
-                                   @Param("actorId") Long actorId);
+    List<RequestItemResponse> selectApprovedChangeSqlItems(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId);
 
     ViewCreateResultResponse selectViewCreateResult(@Param("requestId") Long requestId);
 

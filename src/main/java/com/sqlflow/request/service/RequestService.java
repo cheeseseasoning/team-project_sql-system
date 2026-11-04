@@ -307,27 +307,39 @@ public class RequestService {
 	}
 
 	@Transactional(readOnly = true, transactionManager = "managementTransactionManager")
-	public byte[] downloadApprovedViewSql(Long requestId, Long actorId) {
-		if (requestMapper.canDownloadApprovedViewSql(requestId, actorId) != 1) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "다운로드할 수 있는 승인된 뷰 SQL이 없습니다.");
-		}
-		List<RequestItemResponse> items = requestMapper.selectApprovedViewSqlItems(requestId);
-		if (items.isEmpty()) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "다운로드할 뷰 SQL이 없습니다.");
-		}
-		StringBuilder content = new StringBuilder("-- SQLFlow approved CREATE VIEW request ")
-				.append(requestId).append("\n\n");
-		for (RequestItemResponse item : items) {
-			content.append("-- ").append(item.getQueryTitle()).append("\n")
-					.append(item.getSqlText().stripTrailing()).append("\n");
-			String sql = item.getSqlText().stripTrailing();
-			if (!sql.endsWith(";")) {
-				content.append(';');
-			}
-			content.append("\n\n");
-		}
-		return content.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
-	}
+    public byte[] downloadApprovedViewSql(Long requestId, Long actorId) {
+        List<RequestItemResponse> items =
+                requestMapper.selectApprovedChangeSqlItems(requestId, actorId);
+
+        if (items.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "다운로드할 수 있는 승인된 변경 SQL이 없습니다.");
+        }
+
+        StringBuilder content = new StringBuilder(
+                "-- SQLFlow approved change request ")
+                .append(requestId)
+                .append("\n\n");
+
+        for (RequestItemResponse item : items) {
+            // 제목을 한 줄 주석으로 유지해 다음 줄이 SQL로 해석되지 않게 한다.
+            String title = java.util.Objects.toString(item.getQueryTitle(), "")
+                    .replace('\r', ' ')
+                    .replace('\n', ' ');
+            String sql = item.getSqlText().stripTrailing();
+
+            content.append("-- ").append(title).append('\n')
+                    .append(sql).append('\n');
+
+            if (!sql.endsWith(";")) {
+                // SQL 끝에 한 줄 주석이 있어도 세미콜론이 주석에 묻히지 않게 한다.
+                content.append(';');
+            }
+            content.append("\n\n");
+        }
+
+        return content.toString()
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
 	
     /**
      * 작성 중인 SQL을 입력 순서대로 검사한다.

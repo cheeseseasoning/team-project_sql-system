@@ -112,26 +112,31 @@
                         AND R.REQUEST_TYPE = 'CREATE_VIEW')
     </delete>
 
-    <select id="selectApprovedViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
-        SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
-               V.SQL_CONTENT AS SQL_TEXT
-        FROM DB_CHANGE_SQL V
-        JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
+    <!-- 승인 상태와 사용자 권한을 같은 조회에서 확인해 다운로드할 SQL만 반환한다. -->
+    <select id="selectApprovedChangeSqlItems"
+            resultType="com.sqlflow.request.dto.RequestItemResponse">
+        SELECT C.QUERY_ID,
+               C.QUERY_ORDER,
+               C.SQL_TITLE AS QUERY_TITLE,
+               C.SQL_CONTENT AS SQL_TEXT
+        FROM DB_CHANGE_SQL C
+        JOIN QUERY_REQUEST R ON R.REQUEST_ID = C.REQUEST_ID
         WHERE R.REQUEST_ID = #{requestId}
-          AND R.REQUEST_TYPE = 'CREATE_VIEW'
+          AND R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
           AND R.REQUEST_STATUS = 'READY'
           AND R.APPROVAL_STATUS = 'APPROVED'
-        ORDER BY V.QUERY_ORDER, V.QUERY_ID
-    </select>
-
-    <select id="canDownloadApprovedViewSql" resultType="int">
-        SELECT COUNT(*) FROM QUERY_REQUEST R
-        JOIN USERS U ON U.USER_ID = #{actorId} AND U.ENABLED = 'Y'
-        JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID AND D.DEPT_NAME = 'DB팀'
-        JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
-        JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID AND RL.ROLE_CODE = 'DB_APPROVER'
-        WHERE R.REQUEST_ID = #{requestId} AND R.REQUEST_TYPE = 'CREATE_VIEW'
-          AND R.REQUEST_STATUS = 'READY' AND R.APPROVAL_STATUS = 'APPROVED'
+          AND EXISTS (
+              SELECT 1
+              FROM USERS U
+              JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+              JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
+              JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID
+              WHERE U.USER_ID = #{actorId}
+                AND U.ENABLED = 'Y'
+                AND D.DEPT_NAME = 'DB팀'
+                AND RL.ROLE_CODE = 'DB_APPROVER'
+          )
+        ORDER BY C.QUERY_ORDER, C.QUERY_ID
     </select>
     
     <!-- 작성자의 요청 목록 및 검색 -->
