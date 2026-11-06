@@ -73,7 +73,7 @@
               )
         )
         AND (
-            A.APPROVAL_TYPE = 'INTERMEDIATE'
+            A.APPROVAL_TYPE IN ('APPROVER', 'INTERMEDIATE')
             OR (
                 A.APPROVAL_TYPE = 'DIRECTOR'
                 AND EXISTS (
@@ -123,7 +123,8 @@
         JOIN DEPARTMENT D ON D.DEPT_ID = R.DEPT_ID
         WHERE 1 = 1
         <include refid="pendingApprovalEligibility"/>
-        ORDER BY R.SUBMITTED_AT, R.REQUEST_ID
+        ORDER BY R.SUBMITTED_AT DESC NULLS LAST,
+        		 R.REQUEST_ID DESC
     </select>
 
     <select id="selectPendingApprovalDetail"
@@ -300,7 +301,7 @@
                 )
           )
           AND (
-              A.APPROVAL_TYPE = 'INTERMEDIATE'
+              A.APPROVAL_TYPE IN ('APPROVER', 'INTERMEDIATE')
               OR (
                   A.APPROVAL_TYPE = 'DIRECTOR'
                   AND EXISTS (
@@ -358,14 +359,21 @@
         )
     </update>
 
-    <update id="markRequestApproved">
-        UPDATE QUERY_REQUEST
-        SET APPROVAL_STATUS = 'APPROVED',
-            REQUEST_STATUS = 'READY'
-        WHERE REQUEST_ID = #{requestId}
-          AND APPROVAL_STATUS = 'PENDING'
-          AND REQUEST_STATUS = 'PENDING_APPROVAL'
-    </update>
+    <!-- 모든 결재가 승인된 경우에만 요청을 실행 대기로 변경한다. -->
+	<update id="markRequestApproved">
+	    UPDATE QUERY_REQUEST Q
+	    SET APPROVAL_STATUS = 'APPROVED',
+	        REQUEST_STATUS = 'READY'
+	    WHERE Q.REQUEST_ID = #{requestId}
+	      AND Q.APPROVAL_STATUS = 'PENDING'
+	      AND Q.REQUEST_STATUS = 'PENDING_APPROVAL'
+	      AND NOT EXISTS (
+	          SELECT 1
+	          FROM APPROVAL A
+	          WHERE A.REQUEST_ID = Q.REQUEST_ID
+	            AND A.STATUS &lt;&gt; 'APPROVED'
+	      )
+	</update>
 
     <update id="rejectPendingApproval">
         UPDATE APPROVAL

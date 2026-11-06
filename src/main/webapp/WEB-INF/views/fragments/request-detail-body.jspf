@@ -79,7 +79,7 @@
         </div>
 
         <p class="request-approval-description">
-            중간 결재자 → 소속 부서장 → DB팀 실행 승인 순서로 진행됩니다.
+            지정한 결재자 순서대로 진행되며, 마지막 결재자가 승인하면 결재가 완료됩니다.
         </p>
 
         <ol id="request-approval-list" class="request-approval-list"></ol>

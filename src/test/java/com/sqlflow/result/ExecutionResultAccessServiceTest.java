@@ -161,13 +161,31 @@ class ExecutionResultAccessServiceTest {
     }
 
     @Test
-    void dbAdminBypassesDataAndExportPolicies() {
-        assertPrivilegedRole("DB_ADMIN");
+    void dbTeamMemberWithoutRolesBypassesDataAndExportPolicies() {
+        when(dataAccessPolicyMapper.selectRequester(USER_ID))
+                .thenReturn(activeUser());
+
+        when(executionResultMapper.isActiveDbTeamMember(USER_ID))
+                .thenReturn(true);
+
+        assertDoesNotThrow(
+                () -> service.requirePreview(USER_ID, QUERY_ID));
+
+        assertDoesNotThrow(
+                () -> service.requireDownload(USER_ID, QUERY_ID));
+
+        // DB팀은 민감 데이터 역할 보유 여부를 검사하지 않는다.
+        verifyNoInteractions(userAccountMapper);
     }
 
     @Test
-    void dbApproverBypassesDataAndExportPolicies() {
-        assertPrivilegedRole("DB_APPROVER");
+    void dbAdminOutsideDbTeamDoesNotBypassPolicies() {
+        assertRoleDoesNotBypassPolicies("DB_ADMIN");
+    }
+
+    @Test
+    void dbApproverOutsideDbTeamDoesNotBypassPolicies() {
+        assertRoleDoesNotBypassPolicies("DB_APPROVER");
     }
 
     @Test
@@ -262,17 +280,22 @@ class ExecutionResultAccessServiceTest {
                 () -> service.requirePreview(USER_ID, QUERY_ID));
     }
 
-    private void assertPrivilegedRole(String role) {
+    private void assertRoleDoesNotBypassPolicies(String role) {
         prepareUser(List.of(role));
 
-        assertDoesNotThrow(
+        preparePolicies(
+                Set.of(CUSTOMERS),
+                policy(2L, CUSTOMERS, "SENSITIVE", "ALLOW"));
+
+        // DB팀 확인은 Mockito의 기본 반환값인 false를 사용한다.
+        // DB 역할만 있고 민감 데이터 역할은 없으므로 차단돼야 한다.
+        assertRejected(
+                HttpStatus.FORBIDDEN,
                 () -> service.requirePreview(USER_ID, QUERY_ID));
 
-        assertDoesNotThrow(
+        assertRejected(
+                HttpStatus.FORBIDDEN,
                 () -> service.requireDownload(USER_ID, QUERY_ID));
-
-        // 관리자 예외에서는 자원별 정책 조회 경로에 진입하지 않는다.
-        verifyNoInteractions(executionResultMapper);
     }
 
     private void prepareUser(List<String> roles) {

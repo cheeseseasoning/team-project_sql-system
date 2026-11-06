@@ -59,7 +59,8 @@
 				<h2 id="approval-line-dialog-title">결재선 등록</h2>
 
 				<p id="approval-line-dialog-description">
-					중간 결재자 → 소속 부서장 → DB팀 실행 승인 순서로 진행됩니다.
+				    결재자를 선택하고 순서를 지정하세요.
+				    마지막 결재자가 승인하면 최종 승인됩니다.
 				</p>
 			</header>
 
@@ -166,44 +167,17 @@
 							</thead>
 
 							<tbody id="approval-line-selected">
-								<tr data-line-role="DEPARTMENT_HEAD">
-									<td>1</td>
-									<td>소속 부서장</td>
-									<td id="approval-line-head-preview">
-										자동 지정 예정
-									</td>
-									<td id="approval-line-head-department">—</td>
-									<td id="approval-line-head-position">—</td>
-									<td>
-										<span class="approval-line-fixed">필수</span>
-									</td>
-								</tr>
-
-								<tr data-line-role="DB_FINAL">
-									<td>2</td>
-									<td>DB팀 실행 승인</td>
-									<td>
-									    <select id="approval-line-db-select"
-									            aria-label="DB팀 실행 승인 담당자"
-									            disabled>
-									        <option value="">선택</option>
-									    </select>
-									</td>
-									<td id="approval-line-db-department">DB팀</td>
-									<td id="approval-line-db-position">—</td>
-									<td>
-										<span class="approval-line-fixed">
-											필수·최종
-										</span>
-									</td>
-								</tr>
+							    <tr>
+							        <td colspan="6" class="empty">
+							            결재자를 1명 이상 추가하세요.
+							        </td>
+							    </tr>
 							</tbody>
 						</table>
 					</div>
 
 					<p class="approval-line-section-help">
-						중간 결재자는 부서장 앞에 추가됩니다.
-						부서장·DB팀 실행 승인은 필수입니다.
+						지정한 순서대로 결재가 진행됩니다.
 					</p>
 
 					<p id="approval-line-message" class="approval-line-section-help" role="status"></p>
@@ -221,7 +195,7 @@
 			</footer>
 		</dialog>
 
-		<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261104-change-result-history"></script>
-		<script src="${pageContext.request.contextPath}/js/request-detail-author.js?v=20261104-dml-warning-v2"></script>
+		<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261106-flexible-approval-dml"></script>
+		<script src="${pageContext.request.contextPath}/js/request-detail-author.js?v=20261106-flexible-approval-dml"></script>
 
 		<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

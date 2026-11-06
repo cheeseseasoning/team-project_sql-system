@@ -31,4 +31,6 @@ public interface ExecutionResultMapper {
     
     List<QueryObjectName> selectResultTargets(
             @Param("queryId") Long queryId);
+    
+    boolean isActiveDbTeamMember(@Param("actorId") Long actorId);
 }

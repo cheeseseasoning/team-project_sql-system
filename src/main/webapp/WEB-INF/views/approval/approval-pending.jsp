@@ -29,9 +29,9 @@
 </section>
 
 <script>
-    function approvalOrderName(order) {
-        return order === 1 ? '부서장 결재' : order === 2 ? 'DB팀 최종 결재' : '결재';
-    }
+	function approvalOrderName(order) {
+	    return order + '차 결재';
+	}
 
     function renderPendingApprovals(items) {
         if (!items.length) {

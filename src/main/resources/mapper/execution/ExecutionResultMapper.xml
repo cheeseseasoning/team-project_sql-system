@@ -5,44 +5,47 @@
 
 <mapper namespace="com.sqlflow.execution.mapper.ExecutionResultMapper">
 
-    <!--
-        실행이력 열람 자격.
-        R은 QUERY_REQUEST의 별칭이다.
-
-        현재 Java 메서드의 drafterId 파라미터에는
-        요청 작성자가 아니라 로그인 사용자 ID가 전달된다.
-    -->
-    <sql id="resultHistoryEligibility">
-        AND EXISTS (
-            SELECT 1
-            FROM USERS ACTOR
-            WHERE ACTOR.USER_ID = #{drafterId}
-              AND ACTOR.ENABLED = 'Y'
-              AND (
-                  R.DRAFTER_ID = ACTOR.USER_ID
-
-                  OR EXISTS (
-                      SELECT 1
-                      FROM APPROVAL A
-                      WHERE A.REQUEST_ID = R.REQUEST_ID
-                        AND A.APPROVER_ID = ACTOR.USER_ID
-                        AND A.APPROVAL_TYPE = 'DIRECTOR'
-                  )
-
-                  OR EXISTS (
-                      SELECT 1
-                      FROM USER_ROLE UR
-                      JOIN ROLE RL
-                        ON RL.ROLE_ID = UR.ROLE_ID
-                      WHERE UR.USER_ID = ACTOR.USER_ID
-                        AND RL.ROLE_CODE IN (
-                            'DB_ADMIN',
-                            'DB_APPROVER'
-                        )
-                  )
-              )
-        )
-    </sql>
+    <!-- ACTOR 사용자의 현재 소속이 DB팀인지 확인한다. -->
+	<sql id="dbTeamMembership">
+	    EXISTS (
+	        SELECT 1
+	        FROM DEPARTMENT D
+	        WHERE D.DEPT_ID = ACTOR.DEPT_ID
+	          AND D.DEPT_NAME = 'DB팀'
+	    )
+	</sql>
+	
+	<select id="isActiveDbTeamMember" resultType="boolean">
+	    SELECT CASE WHEN EXISTS (
+	        SELECT 1
+	        FROM USERS ACTOR
+	        WHERE ACTOR.USER_ID = #{actorId}
+	          AND ACTOR.ENABLED = 'Y'
+	          AND <include refid="dbTeamMembership"/>
+	    ) THEN 1 ELSE 0 END
+	    FROM DUAL
+	</select>
+	
+	<!--
+	    실행 이력 목록·상세·파일 조회의 공통 열람 자격.
+	    R은 QUERY_REQUEST의 별칭이다.
+	
+	    drafterId 파라미터에는 로그인한 열람자의 ID가 전달된다.
+	    부서는 요청자의 현재 부서가 아닌 기안서에 저장된 부서를 기준으로 한다.
+	-->
+	<sql id="resultHistoryEligibility">
+	    AND EXISTS (
+	        SELECT 1
+	        FROM USERS ACTOR
+	        WHERE ACTOR.USER_ID = #{drafterId}
+	          AND ACTOR.ENABLED = 'Y'
+	          AND (
+	              R.DRAFTER_ID = ACTOR.USER_ID
+	              OR R.DEPT_ID = ACTOR.DEPT_ID
+	              OR <include refid="dbTeamMembership"/>
+	          )
+	    )
+	</sql>
 
     <!-- 본인 요청의 SQL별 실행 이력에 최신 순위 부여 -->
     <sql id="myRankedExecutions">
