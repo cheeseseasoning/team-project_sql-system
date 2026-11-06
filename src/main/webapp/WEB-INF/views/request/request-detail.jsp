@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-	<%@ include file="fragments/top.jspf" %>
+	<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 		<div class="request-detail-page">
 
@@ -47,7 +47,7 @@
 			</div>
 
 			<c:set var="requestDetailReadOnly" value="${false}" />
-			<%@ include file="fragments/request-detail-body.jspf" %>
+			<%@ include file="/WEB-INF/views/fragments/request-detail-body.jspf" %>
 
 		</div><!-- request-detail-page 끝 -->
 
@@ -224,4 +224,4 @@
 		<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261104-change-result-history"></script>
 		<script src="${pageContext.request.contextPath}/js/request-detail-author.js?v=20261104-dml-warning-v2"></script>
 
-		<%@ include file="fragments/bottom.jspf" %>
+		<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

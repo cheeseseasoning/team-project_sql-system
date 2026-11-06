@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-	<%@ include file="fragments/top.jspf" %>
+	<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 		<div class="page-heading">
 			<h1>내 조회 요청</h1><a class="button primary" href="${pageContext.request.contextPath}/requests/new">새 조회 요청</a>
 		</div>
@@ -267,4 +267,4 @@
 
 			loadRequests(1);
 		</script>
-		<%@ include file="fragments/bottom.jspf" %>
+		<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

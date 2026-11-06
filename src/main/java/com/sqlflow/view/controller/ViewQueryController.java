@@ -16,7 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.sqlflow.access.dto.ViewDepartmentInfoDTO;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 import com.sqlflow.view.dto.ViewDetailResponseDTO;
-import com.sqlflow.view.dto.ViewSummaryResponseDTO;
+import com.sqlflow.view.dto.ViewPageResponse;
 import com.sqlflow.view.service.ViewQueryService;
 
 import lombok.RequiredArgsConstructor;
@@ -32,13 +32,15 @@ public class ViewQueryController {
 
     private final ViewQueryService viewQueryService;
 
-    /** 부서와 검색어 조건에 맞는 실제 뷰 목록을 반환한다. */
+    /** 부서와 검색어 조건에 맞는 뷰 목록을 페이지 단위로 반환한다. */
     @GetMapping
-    public List<ViewSummaryResponseDTO> getViews(
+    public ViewPageResponse getViews(
             @RequestParam(name = "deptId", required = false) Long deptId,
-            @RequestParam(name = "keyword", defaultValue = "") String keyword) {
+            @RequestParam(name = "keyword", defaultValue = "") String keyword,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
 
-        return viewQueryService.getViews(deptId, keyword);
+        return viewQueryService.getViewsPage(deptId, keyword, page, size);
     }
 
     /** 부서 드롭다운에 사용할 전체 부서를 반환한다. */
