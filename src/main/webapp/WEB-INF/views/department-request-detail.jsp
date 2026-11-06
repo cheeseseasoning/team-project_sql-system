@@ -31,7 +31,7 @@
 
 </div>
 
-<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261104-flexible-approval"></script>
-<script src="${pageContext.request.contextPath}/js/department-request-detail.js?v=20261029-view-history"></script>
+<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261106-flexible-approval-dml"></script>
+<script src="${pageContext.request.contextPath}/js/department-request-detail.js?v=20261106-flexible-approval-dml"></script>
 
 <%@ include file="fragments/bottom.jspf" %>

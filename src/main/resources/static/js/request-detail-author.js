@@ -66,7 +66,6 @@ async function loadDetail() {
 		);
 
 		RequestDetailRenderer.renderRequestInfo(request);
-	RequestDetailRenderer.renderViewCreateResult(request);
 		currentRequestType = request.requestType || 'SELECT';
 
 		const hasSource =
@@ -88,7 +87,7 @@ async function loadDetail() {
 		}
 
 		// 초안 수정 화면으로 이동할 주소
-		$('#draft-edit-link').href = request.requestType === 'CREATE_VIEW'
+		$('#draft-edit-link').href = ['CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE'].includes(request.requestType)
 			? BASE + '/view-create-requests/'
 				+ encodeURIComponent(request.requestId) + '/edit'
 			: BASE + '/requests/'
@@ -99,8 +98,7 @@ async function loadDetail() {
 			request.requestStatus !== 'DRAFT';
 		$('#draft-edit-link').hidden = false;
 
-		$('#approval-line-open').disabled =
-			request.requestStatus !== 'DRAFT';
+		$('#approval-line-open').disabled = request.requestStatus !== 'DRAFT';
 
 		// 회수 가능 여부는 화면 표시용이며 서버에서 다시 검사한다.
 		const approvals = Array.isArray(request.approvals)
@@ -181,84 +179,68 @@ $('#draft-delete').addEventListener('click', function () {
 });
 
 /**
- * 저장된 뷰 생성 SQL을 검사하고 항목별 결과를 표시한다.
- * 결과는 화면에만 유지하며, 제출 시 서버에서 다시 검사한다.
+ * DB 변경 요청의 SQL을 검사하고 항목별 결과를 표시한다.
+ * 화면 검사 결과는 안내에 사용하며, 제출 시 서버가 저장된 원문을 다시 검사한다.
  */
 async function validateSavedViewSqls() {
     sqlValidationInProgress = true;
 
-    // 이전 검사 결과가 새 검사 결과로 오인되지 않도록 초기화한다.
-    validationMessages = new Map();
-    detailItems = detailItems.map(item => ({
-        ...item,
-        validationStatus: 'PENDING'
-    }));
-
-    $('#detail-items').innerHTML = renderDetailItems(detailItems);
-
     try {
-        const results = await api(
-            '/requests/' + encodeURIComponent(requestId)
-                + '/view-sql/validate',
-            { method: 'POST', timeoutMs: 120000 }
-        );
+        const requestType = currentRequestType;
+        validationMessages = new Map();
+        detailItems = detailItems.map(item => ({
+            ...item,
+            validationStatus: 'PENDING'
+        }));
+        $('#detail-items').innerHTML = renderDetailItems(detailItems);
+
+        let results;
+        if (requestType === 'CREATE_VIEW') {
+            results = await api(
+                '/requests/' + encodeURIComponent(requestId) + '/view-sql/validate',
+                { method: 'POST', timeoutMs: 120000 }
+            );
+        } else {
+            const dmlResults = await post('/requests/dml-sql/validate', {
+                sqlType: requestType,
+                sqls: detailItems.map(item => item.sqlText)
+            });
+
+            // DML 검사 API는 SQL을 받은 순서대로 결과를 돌려준다.
+            if (!Array.isArray(dmlResults) || dmlResults.length !== detailItems.length) {
+                throw new Error('일부 SQL의 검사 결과를 확인하지 못했습니다. 다시 검사해 주세요.');
+            }
+
+            results = Object.fromEntries(
+                detailItems.map((item, index) => [item.queryId, dmlResults[index]])
+            );
+        }
 
         const allowedStatuses = ['VALID', 'WARNING', 'BLOCKED'];
-
-        // 일부 SQL의 결과가 누락돼도 전체 검사 완료로 표시하지 않는다.
-        const complete = detailItems.length > 0
-            && detailItems.every(item =>
-                allowedStatuses.includes(
-                    results?.[String(item.queryId)]?.status
-                )
-            );
+        const complete = detailItems.length > 0 && detailItems.every(item =>
+            allowedStatuses.includes(results?.[String(item.queryId)]?.status)
+        );
 
         if (!complete) {
-            throw new Error(
-                '일부 SQL의 검사 결과를 확인하지 못했습니다. 다시 검사해 주세요.'
-            );
+            throw new Error('일부 SQL의 검사 결과를 확인하지 못했습니다. 다시 검사해 주세요.');
         }
 
         detailItems = detailItems.map(item => {
             const result = results[String(item.queryId)];
-
-            validationMessages.set(
-                item.queryId,
-                result.message || '검사 결과 안내가 없습니다.'
-            );
-
-            return {
-                ...item,
-                validationStatus: result.status
-            };
+            validationMessages.set(item.queryId, result.message || '검사 결과 안내가 없습니다.');
+            return { ...item, validationStatus: result.status };
         });
-
         $('#detail-items').innerHTML = renderDetailItems(detailItems);
 
-        const blockedCount = detailItems.filter(
-            item => item.validationStatus === 'BLOCKED'
-        ).length;
-
-        const warningCount = detailItems.filter(
-            item => item.validationStatus === 'WARNING'
-        ).length;
+        const blockedCount = detailItems.filter(item => item.validationStatus === 'BLOCKED').length;
+        const warningCount = detailItems.filter(item => item.validationStatus === 'WARNING').length;
 
         if (blockedCount > 0) {
-            notify(
-                blockedCount + '개 SQL이 제출 차단 대상입니다. '
-                    + '각 SQL 아래 안내를 확인하세요.',
-                true
-            );
+            notify(blockedCount + '개 SQL이 제출 차단 대상입니다. 각 SQL 아래 안내를 확인하세요.', true);
         } else if (warningCount > 0) {
-            notify(
-                warningCount + '개 SQL은 검사 불확실 상태입니다. '
-                    + '제출은 가능하지만 DB팀 검토가 필요합니다.'
-            );
+            notify(warningCount + '개 SQL은 제출할 수 있으며 DB팀 검토가 필요합니다.');
         } else {
-            notify(
-                '전체 SQL이 기본 파싱을 통과했습니다. '
-                    + '실제 실행 성공을 보장하지는 않습니다.'
-            );
+            notify('전체 SQL이 기본 파싱을 통과했습니다.');
         }
     } finally {
         sqlValidationInProgress = false;
@@ -270,7 +252,7 @@ async function validateSavedSqls() {
 	    return;
 	}
 	
-	if (currentRequestType === 'CREATE_VIEW') {
+	if (['CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType)) {
 	    await validateSavedViewSqls();
 	    return;
 	}
@@ -762,14 +744,31 @@ $('#request-submit-open').addEventListener('click', function () {
         return;
     }
 
-    if (currentRequestType !== 'CREATE_VIEW'
-            && detailItems.some(item => item.validationStatus !== 'VALID')) {
-        window.alert('제출 전에 전체 SQL 검증을 완료해 주세요.');
+    const isDmlRequest =
+        ['INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType);
+
+    const hasUnsubmittableSql = detailItems.some(item =>
+        item.validationStatus !== 'VALID'
+        && !(isDmlRequest && item.validationStatus === 'WARNING')
+    );
+
+    // DML 경고는 제출할 수 있지만, 미검사·차단 항목은 제출하지 못한다.
+    if (currentRequestType !== 'CREATE_VIEW' && hasUnsubmittableSql) {
+        if (detailItems.some(item =>
+            ['INVALID', 'BLOCKED'].includes(item.validationStatus))) {
+            window.alert(
+                '제출할 수 없는 SQL이 있습니다. 원인을 수정한 뒤 전체 SQL을 다시 검증해 주세요.'
+            );
+        } else {
+            window.alert('제출 전에 전체 SQL 검증을 먼저 진행해 주세요.');
+        }
+
         $('#validate-sqls').focus();
         return;
     }
 
-    const error = getApprovalLineValidationMessage(appliedApprovalLine);
+    const error =
+        getApprovalLineValidationMessage(appliedApprovalLine);
 
     if (error) {
         window.alert(error);

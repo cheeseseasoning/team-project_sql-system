@@ -5,6 +5,20 @@
 
 <mapper namespace="com.sqlflow.auth.mapper.UserAccountMapper">
 
+	<resultMap id="accountListItemResponseMap"
+			   type="com.sqlflow.auth.dto.AccountListItemResponse">
+	
+		<constructor>
+			<idArg column="USER_ID" javaType="java.lang.Long"/>
+			<arg column="LOGIN_ID" javaType="java.lang.String"/>
+			<arg column="USER_NAME" javaType="java.lang.String"/>
+			<arg column="DEPT_NAME" javaType="java.lang.String"/>
+			<arg column="POSITION_NAME" javaType="java.lang.String"/>
+			<arg column="ROLE_NAMES" javaType="java.lang.String"/>
+			<arg column="ENABLED" javaType="java.lang.String"/>
+		</constructor>		   
+	</resultMap>
+
     <select id="selectByLoginId"
         	resultType="com.sqlflow.auth.domain.UserAccount">
 	    SELECT U.USER_ID,
@@ -23,6 +37,25 @@
 	    JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
 	    JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
 	    WHERE U.LOGIN_ID = #{loginId}
+	</select>
+	
+	<select id="selectAccountDetailById"
+			resultType="com.sqlflow.auth.domain.UserAccount">
+		SELECT U.USER_ID,
+			   U.LOGIN_ID,
+			   U.EMPLOYEE_NO,
+			   U.USER_NAME,
+			   U.PHONE_NUMBER,
+			   U.EMAIL,
+			   U.DEPT_ID,
+			   D.DEPT_NAME,
+			   U.POSITION_ID,
+			   P.POSITION_NAME,
+			   U.ENABLED
+		FROM USERS U
+		JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID 
+		JOIN POSITION P ON P.POSITION_ID =  U.POSITION_ID 
+		WHERE U.USER_ID = #{userId}
 	</select>
 
     <select id="selectRoleCodes" resultType="java.lang.String">
@@ -46,11 +79,60 @@
         FROM POSITION
         ORDER BY POSITION_LEVEL, POSITION_ID
     </select>
+    
+    <select id="selectAllAccountListItems"
+    		resultMap="accountListItemResponseMap">
+    	SELECT U.USER_ID,
+    		   U.LOGIN_ID,
+    		   U.USER_NAME,
+    		   D.DEPT_NAME,
+    		   P.POSITION_NAME,
+    		   NVL(
+				   LISTAGG(R.ROLE_CODE, ', ')
+				   	   WITHIN GROUP (ORDER BY R.ROLE_CODE),
+				   '일반 사용자'
+			   ) AS ROLE_NAMES,
+			   U.ENABLED
+		FROM USERS U
+		JOIN DEPARTMENT D
+		  ON D.DEPT_ID = U.DEPT_ID 
+		JOIN POSITION P 
+		  ON P.POSITION_ID = U.POSITION_ID 
+		LEFT JOIN USER_ROLE UR 
+		  ON UR.USER_ID = U.USER_ID 
+		LEFT JOIN ROLE R 
+		  ON R.ROLE_ID = UR.ROLE_ID
+		GROUP BY U.USER_ID,
+				 U.LOGIN_ID,
+				 U.USER_NAME,
+				 D.DEPT_NAME,
+				 P.POSITION_NAME,
+				 U.ENABLED
+		ORDER BY U.USER_ID
+    </select>
 
     <select id="countByLoginId" resultType="int">
         SELECT COUNT(*)
         FROM USERS
         WHERE LOGIN_ID = #{loginId}
+    </select>
+    
+    <select id="countByUserId" resultType="int">
+    	SELECT COUNT(*)
+    	FROM USERS 
+    	WHERE USER_ID = #{userId}
+    </select>
+    
+    <select id="countActiveSystemAdminByLoginId" resultType="int">
+    	SELECT COUNT(*)
+    	FROM USERS U
+    	JOIN USER_ROLE UR
+    	  ON UR.USER_ID = U.USER_ID 
+    	JOIN ROLE R
+    	  ON R.ROLE_ID = UR.ROLE_ID  
+    	WHERE U.LOGIN_ID = #{loginId} 
+    	  AND U.ENABLED = 'Y' 
+    	  AND R.ROLE_CODE = 'SYSTEM_ADMIN' 
     </select>
 
     <select id="countDepartment" resultType="int">
@@ -81,6 +163,26 @@
             #{roleCode}
         </foreach>
     </select>
+    
+    <update id="updateAccountInfo">
+    	UPDATE USERS
+    	SET USER_NAME = #{userName},
+    		DEPT_ID = #{deptId},
+    		POSITION_ID = #{positionId},
+    		ENABLED = #{enabled}
+    	WHERE USER_ID = #{userId}
+    </update>
+    
+    <delete id="deleteUserRoles">
+    	DELETE FROM USER_ROLE
+    	WHERE USER_ID = #{userId}
+    </delete>
+    
+    <update id="updatePasswordHash">
+    	UPDATE USERS
+    	SET PASSWORD_HASH = #{passwordHash}
+    	WHERE USER_ID = #{userId}
+    </update>
 
     <insert id="insertUser">
         INSERT INTO USERS (

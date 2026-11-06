@@ -1,0 +1,349 @@
+package com.sqlflow.approval;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.sqlflow.approval.domain.ApprovalActionContext;
+import com.sqlflow.approval.domain.ApprovalRequestContext;
+import com.sqlflow.approval.domain.PendingApproval;
+import com.sqlflow.approval.dto.ApprovalCandidateResponse;
+import com.sqlflow.approval.dto.ApprovalHistoryResponse;
+import com.sqlflow.approval.dto.PendingApprovalResponse;
+import com.sqlflow.approval.mapper.ApprovalMapper;
+import com.sqlflow.approval.service.ApprovalService;
+
+class ApprovalDecisionServiceTest {
+
+    private static final Long REQUEST_ID = 100L;
+    private static final Long APPROVER_ID = 20L;
+
+    private final FakeApprovalMapper mapper = new FakeApprovalMapper();
+    private ApprovalService approvalService;
+
+    @BeforeEach
+    void setUp() {
+        approvalService = new ApprovalService(mapper);
+        mapper.request.setRequestId(REQUEST_ID);
+        mapper.request.setDrafterId(1L);
+        mapper.request.setRequestStatus("PENDING_APPROVAL");
+        mapper.request.setApprovalStatus("PENDING");
+        mapper.currentPending.setApprovalId(200L);
+        mapper.currentPending.setApprovalOrder(1);
+        mapper.currentPending.setApprovalType("DIRECTOR");
+    }
+    
+    @Test
+    void requestAuthorCanReadApprovalHistory() {
+    	ApprovalHistoryResponse history = new ApprovalHistoryResponse();
+    	history.setApprovalOrder(1);
+    	history.setApprovalType("DIRECTOR");
+    	history.setStatus("APPROVED");
+    	
+    	mapper.approvalHistory = List.of(history);
+    	
+    	List<ApprovalHistoryResponse> result = 
+    			approvalService.getApprovalHistory(REQUEST_ID, 1L);
+    	
+    	assertSame(history, result.get(0));
+    }
+    
+    @Test
+    void unrelatedUserCannotReadApprovalHistory() {
+    	assertThrows(
+    			ResponseStatusException.class,
+    			() -> approvalService.getApprovalHistory(REQUEST_ID, 999L));
+    }
+
+    @Test
+    void departmentHeadApprovalActivatesDbApproval() {
+        approvalService.approve(REQUEST_ID, APPROVER_ID);
+
+        assertEquals("APPROVED", mapper.approvalStatus);
+        assertEquals("PENDING", mapper.nextApprovalStatus);
+        assertEquals("PENDING_APPROVAL", mapper.request.getRequestStatus());
+        assertEquals("PENDING", mapper.request.getApprovalStatus());
+    }
+
+    @Test
+    void dbFinalApprovalMarksApprovalAndRequestApprovedAndReady() {
+        mapper.currentPending.setApprovalOrder(2);
+        mapper.currentPending.setApprovalType("DB_EXECUTION");
+        
+        // 다음 결재 단계가 없는 상황
+        mapper.nextApprovalStatus = null;
+
+        approvalService.approve(REQUEST_ID, APPROVER_ID);
+
+        assertEquals("APPROVED", mapper.approvalStatus);
+        assertEquals("APPROVED", mapper.request.getApprovalStatus());
+        assertEquals("READY", mapper.request.getRequestStatus());
+    }
+
+    @Test
+    void rejectsApprovalWhenRequestIsNotPending() {
+        mapper.request.setRequestStatus("READY");
+        mapper.request.setApprovalStatus("APPROVED");
+
+        assertThrows(ResponseStatusException.class,
+                () -> approvalService.approve(REQUEST_ID, APPROVER_ID));
+        assertEquals("PENDING", mapper.approvalStatus);
+    }
+
+    @Test
+    void requesterCannotApproveOwnRequest() {
+        mapper.request.setDrafterId(APPROVER_ID);
+        mapper.currentPending.setApprovalType("INTERMEDIATE");
+
+        assertThrows(ResponseStatusException.class,
+                () -> approvalService.approve(REQUEST_ID, APPROVER_ID));
+        assertEquals("PENDING", mapper.approvalStatus);
+    }
+
+    @Test
+    void userWithoutEligibleCurrentApprovalCannotApprove() {
+        mapper.currentPending = null;
+
+        assertThrows(ResponseStatusException.class,
+                () -> approvalService.approve(REQUEST_ID, APPROVER_ID));
+        assertEquals("PENDING", mapper.approvalStatus);
+    }
+    
+    @Test
+    void departmentHeadRejectionMarksRequestRejectedAndCancelsNextApproval() {
+    	approvalService.reject(REQUEST_ID, APPROVER_ID, "SQL 범위를 확인해 주세요.");
+    	
+    	assertEquals("REJECTED", mapper.approvalStatus);
+    	assertEquals("CANCELLED", mapper.nextApprovalStatus);
+    	assertEquals("REJECTED", mapper.request.getApprovalStatus());
+    	assertEquals("REJECTED", mapper.request.getRequestStatus());
+    	assertEquals("SQL 범위를 확인해 주세요.", mapper.rejectionComment);
+    }
+    
+    @Test
+    void dbApproverCanRejectAtFinalApprovalStage() {
+    	mapper.currentPending.setApprovalOrder(2);
+		mapper.currentPending.setApprovalType("DB_EXECUTION");
+    	
+    	approvalService.reject(REQUEST_ID, APPROVER_ID, "재검토가 필요합니다.");
+    	
+    	assertEquals("REJECTED", mapper.approvalStatus);
+    	assertEquals("REJECTED", mapper.request.getApprovalStatus());
+    	assertEquals("REJECTED", mapper.request.getRequestStatus());
+    }
+    
+    @Test
+    void requesterCannotRejectOwnRequest() {
+    	mapper.request.setDrafterId(APPROVER_ID);
+		mapper.currentPending.setApprovalType("INTERMEDIATE");
+    	
+    	assertThrows(
+    			ResponseStatusException.class,
+    			() -> approvalService.reject(
+    					REQUEST_ID, APPROVER_ID, "반려 의견"));
+    	
+    	assertEquals("PENDING", mapper.approvalStatus);
+    }
+    
+    @Test
+    void userWithoutCurrentApprovalCannotReject() {
+    	mapper.currentPending = null;
+    	
+    	assertThrows(
+    			ResponseStatusException.class,
+    			() -> approvalService.reject(
+    					REQUEST_ID, APPROVER_ID, "반려 의견"));
+    	
+    	assertEquals("PENDING", mapper.approvalStatus);
+    }
+    
+    @Test
+    void rejectionRequiresNonBlankComment() {
+    	assertThrows(
+    			ResponseStatusException.class,
+    			() -> approvalService.reject(REQUEST_ID, APPROVER_ID, " "));
+    	
+    	assertEquals("PENDING", mapper.approvalStatus);
+    }
+
+    private static class FakeApprovalMapper implements ApprovalMapper {
+
+        private final ApprovalActionContext request = new ApprovalActionContext();
+        private PendingApproval currentPending = new PendingApproval();
+        private String approvalStatus = "PENDING";
+        private String nextApprovalStatus = "WAITING";
+        private String rejectionComment;
+        private List<ApprovalHistoryResponse> approvalHistory = List.of();
+
+        @Override
+        public List<PendingApprovalResponse> selectPendingApprovals(Long approverId) {
+            return List.of();
+        }
+        
+        @Override
+        public int canViewApprovalHistory(Long requestId, Long actorId) {
+        	if(!REQUEST_ID.equals(requestId)) {
+        		return 0;
+        	}
+        	
+        	return actorId.equals(request.getDrafterId())
+        			|| APPROVER_ID.equals(actorId)
+        			? 1
+        			: 0;
+        }
+        
+        @Override
+        public List<ApprovalHistoryResponse> selectApprovalHistory(Long requestId) {
+        	return approvalHistory;
+        }
+        
+        @Override
+        public List<ApprovalCandidateResponse> searchActiveCandidates(
+        		String keyword,
+        		Long excludedUserId){
+        	return List.of();
+        }
+
+        @Override
+        public com.sqlflow.request.dto.RequestDetailResponse selectPendingApprovalDetail(
+                Long requestId, Long approverId) {
+            return null;
+        }
+
+        @Override
+        public List<com.sqlflow.request.dto.RequestItemResponse> selectPendingApprovalItems(
+                Long requestId, Long approverId) {
+            return List.of();
+        }
+
+        @Override
+        public ApprovalRequestContext selectRequestContext(Long requestId) {
+            return null;
+        }
+
+        @Override
+        public List<ApprovalCandidateResponse> selectDepartmentApprovers(Long deptId) {
+            return List.of();
+        }
+
+        @Override
+        public List<ApprovalCandidateResponse> selectDbApprovers(Long departmentApproverId) {
+            return List.of();
+        }
+
+        @Override
+        public int insertApproval(
+                Long requestId, Long approverId, int approvalOrder,
+                String approvalType, String status) {
+            return 1;
+        }
+
+        @Override
+        public ApprovalActionContext selectApprovalRequestForUpdate(Long requestId) {
+            return request;
+        }
+
+        @Override
+        public PendingApproval selectPendingApprovalForUpdate(Long requestId, Long approverId) {
+            if (currentPending != null
+                    && approverId.equals(request.getDrafterId())
+                    && !"DIRECTOR".equals(currentPending.getApprovalType())) {
+                return null;
+            }
+            return currentPending;
+        }
+
+        @Override
+        public int approvePendingApproval(Long approvalId, Long approverId) {
+            approvalStatus = "APPROVED";
+            return 1;
+        }
+
+        @Override
+        public int activateNextApproval(Long requestId) {
+            if (!"WAITING".equals(nextApprovalStatus)) {
+                return 0;
+            }
+
+            nextApprovalStatus = "PENDING";
+            return 1;
+        }
+
+        @Override
+        public int markRequestApproved(Long requestId) {
+            if (!"APPROVED".equals(approvalStatus)
+                    || nextApprovalStatus != null) {
+                return 0;
+            }
+
+            request.setApprovalStatus("APPROVED");
+            request.setRequestStatus("READY");
+            return 1;
+        }
+        
+        @Override
+        public int rejectPendingApproval(
+        		Long approvalId,
+        		Long approverId,
+        		String commentText) {
+        	approvalStatus = "REJECTED";
+        	rejectionComment = commentText;
+        	return 1;
+        }
+        
+        @Override
+        public int cancelWaitingApprovals(Long requestId) {
+        	nextApprovalStatus = "CANCELLED";
+        	return 1;
+        }
+        
+        @Override
+        public int markRequestRejected(Long requestId) {
+        	request.setApprovalStatus("REJECTED");
+        	request.setRequestStatus("REJECTED");
+        	return 1;
+        }
+    }
+    
+    @Test
+    void ordinaryFinalApproverCompletesRequestWithoutDbApproval() {
+        mapper.currentPending.setApprovalType("APPROVER");
+        mapper.nextApprovalStatus = null;
+
+        approvalService.approve(REQUEST_ID, APPROVER_ID);
+
+        assertEquals("APPROVED", mapper.approvalStatus);
+        assertEquals("APPROVED", mapper.request.getApprovalStatus());
+        assertEquals("READY", mapper.request.getRequestStatus());
+    }
+
+    @Test
+    void dbApprovalDoesNotCompleteRequestWhenAnotherStageRemains() {
+        mapper.currentPending.setApprovalType("DB_EXECUTION");
+
+        approvalService.approve(REQUEST_ID, APPROVER_ID);
+
+        assertEquals("APPROVED", mapper.approvalStatus);
+        assertEquals("PENDING", mapper.nextApprovalStatus);
+        assertEquals("PENDING", mapper.request.getApprovalStatus());
+        assertEquals("PENDING_APPROVAL", mapper.request.getRequestStatus());
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+

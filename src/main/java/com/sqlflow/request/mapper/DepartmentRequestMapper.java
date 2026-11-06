@@ -10,8 +10,6 @@ import com.sqlflow.request.dto.DepartmentRequestListResponse;
 import com.sqlflow.request.dto.RequestApprovalResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestItemResponse;
-import com.sqlflow.request.dto.ViewCreateResultResponse;
-import com.sqlflow.request.dto.ViewCreateResultHistoryResponse;
 
 @Mapper
 public interface DepartmentRequestMapper {
@@ -52,36 +50,34 @@ public interface DepartmentRequestMapper {
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);
 
-    ViewCreateResultResponse selectVisibleViewCreateResult(
+    
+    int insertChangeSqlResult(
             @Param("requestId") Long requestId,
-            @Param("actorId") Long actorId);
-
-    int canRegisterViewCreateResult(
-            @Param("requestId") Long requestId,
-            @Param("actorId") Long actorId);
-
-    Long lockEligibleViewCreateRequest(
-            @Param("requestId") Long requestId,
-            @Param("actorId") Long actorId);
-
-    int insertViewCreateResultHistory(
-            @Param("requestId") Long requestId,
+            @Param("queryId") Long queryId,
             @Param("actorId") Long actorId,
+            @Param("resultStatus") String resultStatus,
+            @Param("resultNote") String resultNote,
+            @Param("executedBy") Long executedBy);
+    
+    String lockChangeSqlResult(
+            @Param("requestId") Long requestId,
+            @Param("queryId") Long queryId,
+            @Param("actorId") Long actorId);
+
+    int insertChangeSqlResultHistory(
+            @Param("queryId") Long queryId,
+            @Param("actorId") Long actorId,
+            @Param("changeType") String changeType,
             @Param("changeReason") String changeReason);
 
-    int insertViewCreateResult(
-            @Param("requestId") Long requestId,
+    int updateChangeSqlResult(
+            @Param("queryId") Long queryId,
             @Param("actorId") Long actorId,
             @Param("resultStatus") String resultStatus,
-            @Param("resultContent") String resultContent);
-
-    int updateViewCreateResult(
-            @Param("requestId") Long requestId,
-            @Param("actorId") Long actorId,
-            @Param("resultStatus") String resultStatus,
-            @Param("resultContent") String resultContent);
-
-    List<ViewCreateResultHistoryResponse> selectVisibleViewCreateResultHistory(
+            @Param("resultNote") String resultNote,
+            @Param("executedBy") Long executedBy);
+    
+    int canManageChangeSqlResult(
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);
 }
