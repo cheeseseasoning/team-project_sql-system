@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-<%@ include file="fragments/top.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div id="view-create-edit-config"
      data-request-id="<c:out value='${requestId}'/>"
@@ -146,4 +146,4 @@
 <script src="${pageContext.request.contextPath}/js/view-create-request-form.js?v=20261103-dml-draft"
         defer></script>
 
-<%@ include file="fragments/bottom.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

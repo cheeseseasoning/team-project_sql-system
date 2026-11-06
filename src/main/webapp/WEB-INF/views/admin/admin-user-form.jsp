@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-<%@ include file="fragments/top.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="page-heading">
     <h1>계정 생성·역할 부여</h1>
@@ -290,4 +290,4 @@
     })();
 </script>
 
-<%@ include file="fragments/bottom.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

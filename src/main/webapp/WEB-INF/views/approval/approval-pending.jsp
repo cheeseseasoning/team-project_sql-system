@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-<%@ include file="fragments/top.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="page-heading">
     <div>
@@ -70,4 +70,4 @@
     loadPendingApprovals();
 </script>
 
-<%@ include file="fragments/bottom.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>
