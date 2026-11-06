@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-<%@ include file="fragments/top.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="views-page">
     <div class="page-heading">
@@ -88,6 +88,12 @@
                 </tbody>
             </table>
         </div>
+		
+		<nav class="views-list-footer" aria-label="뷰 목록 페이지">
+		    <button id="view-prev-page" type="button" class="button" disabled>이전</button>
+		    <span id="view-page-info" class="caption" aria-live="polite"></span>
+		    <button id="view-next-page" type="button" class="button" disabled>다음</button>
+		</nav>
 
         <div class="views-list-footer">
             <p id="view-list-message"
@@ -165,31 +171,6 @@
         }
 
         return params;
-    }
-
-    function updateUrl(filters, mode) {
-        if (mode === 'none') {
-            return;
-        }
-
-        const url = new URL(window.location.href);
-
-        url.searchParams.delete('deptId');
-        url.searchParams.delete('keyword');
-
-        if (filters.deptId) {
-            url.searchParams.set('deptId', filters.deptId);
-        }
-
-        if (filters.keyword) {
-            url.searchParams.set('keyword', filters.keyword);
-        }
-
-        if (mode === 'replace') {
-            history.replaceState(null, '', url);
-        } else if (url.href !== window.location.href) {
-            history.pushState(null, '', url);
-        }
     }
 
     /**
@@ -346,56 +327,118 @@
         retryButton.hidden = false;
     }
 
-    async function loadViews(historyMode = 'push') {
-        const version = ++requestVersion;
-        const filters = readFilters();
-        const params = createSearchParams(filters);
-        const query = params.toString();
+	async function loadViews(historyMode = 'push', requestedPage) {
+	    const version = ++requestVersion;
+	    const previousButton = $('#view-prev-page');
+	    const nextButton = $('#view-next-page');
+	    const pageInfo = $('#view-page-info');
+	    const currentUrl = new URL(window.location.href);
 
-        updateUrl(filters, historyMode);
-        setLoading(true);
+	    const filters = requestedPage === undefined
+	        ? readFilters()
+	        : {
+	            deptId: currentUrl.searchParams.get('deptId') || '',
+	            keyword: currentUrl.searchParams.get('keyword') || ''
+	        };
 
-        retryButton.hidden = true;
-        countElement.textContent = '';
-        messageElement.textContent = '뷰 목록을 조회하고 있습니다.';
-        messageElement.classList.remove('views-error');
+	    const savedPage = Number(currentUrl.searchParams.get('page'));
+	    const pageFromUrl = Number.isInteger(savedPage) && savedPage >= 1 && savedPage <= 2147483647
+	        ? savedPage
+	        : 1;
+	    const page = requestedPage ?? (historyMode === 'push' ? 1 : pageFromUrl);
+	    const params = createSearchParams(filters);
 
-        showTableMessage('뷰 목록을 불러오는 중입니다.');
+	    params.set('page', String(page));
+	    params.set('size', '10');
 
-        try {
-            const views = await api(
-                '/views' + (query ? '?' + query : '')
-            );
+	    function saveListUrl(actualPage, mode) {
+	        const url = new URL(window.location.href);
 
-            // 이전 검색 응답이 나중에 도착해도 최신 목록을 덮지 않는다.
-            if (version !== requestVersion) {
-                return;
-            }
+	        for (const key of ['deptId', 'keyword', 'page']) {
+	            url.searchParams.delete(key);
+	        }
 
-            if (!Array.isArray(views)) {
-                throw new Error('뷰 목록 응답을 확인할 수 없습니다.');
-            }
+	        createSearchParams(filters).forEach((value, key) => url.searchParams.set(key, value));
 
-            if (views.length === 0) {
-                showTableMessage(
-                    '검색 조건에 맞는 뷰가 없습니다.'
-                );
-            } else {
-                renderRows(views);
-            }
+	        if (actualPage > 1) {
+	            url.searchParams.set('page', String(actualPage));
+	        }
 
-            countElement.textContent = '총 ' + views.length + '건';
-            messageElement.textContent = '';
-        } catch (error) {
-            if (version === requestVersion) {
-                showFailure(error);
-            }
-        } finally {
-            if (version === requestVersion) {
-                setLoading(false);
-            }
-        }
-    }
+	        if (url.href === window.location.href) {
+	            return;
+	        }
+
+	        if (mode === 'push') {
+	            history.pushState(null, '', url);
+	        } else {
+	            history.replaceState(null, '', url);
+	        }
+	    }
+
+	    if (historyMode !== 'none') {
+	        saveListUrl(page, historyMode);
+	    }
+
+	    setLoading(true);
+	    previousButton.disabled = true;
+	    nextButton.disabled = true;
+	    pageInfo.textContent = '';
+	    retryButton.hidden = true;
+	    countElement.textContent = '';
+	    messageElement.textContent = '뷰 목록을 조회하고 있습니다.';
+	    messageElement.classList.remove('views-error');
+	    showTableMessage('뷰 목록을 불러오는 중입니다.');
+
+	    try {
+	        const data = await api('/views?' + params.toString());
+
+	        // 이전 요청이 늦게 끝나도 현재 페이지를 덮어쓰지 않는다.
+	        if (version !== requestVersion) {
+	            return;
+	        }
+
+	        if (!Array.isArray(data?.items)) {
+	            throw new Error('뷰 목록 응답을 확인할 수 없습니다.');
+	        }
+
+	        // 요청한 페이지가 범위를 넘으면 서버가 실제 반환한 페이지를 URL에 남긴다.
+	        saveListUrl(data.page, 'replace');
+
+	        if (data.items.length === 0) {
+	            showTableMessage('검색 조건에 맞는 뷰가 없습니다.');
+	        } else {
+	            renderRows(data.items);
+
+	            // 기존 상세 링크에 목록 페이지를 넘겨 복귀 위치를 유지한다.
+	            if (data.page > 1) {
+	                rowsElement.querySelectorAll('a.views-object-name').forEach(function (link) {
+	                    const detailUrl = new URL(link.href);
+	                    detailUrl.searchParams.set('page', String(data.page));
+	                    link.href = detailUrl.href;
+	                });
+	            }
+	        }
+
+	        countElement.textContent = '총 ' + data.totalCount + '건';
+	        pageInfo.textContent = data.totalPages === 0
+	            ? '0 / 0 페이지'
+	            : data.page + ' / ' + data.totalPages + ' 페이지';
+
+	        previousButton.disabled = data.page <= 1;
+	        nextButton.disabled = data.page >= data.totalPages;
+	        previousButton.onclick = () => loadViews('push', data.page - 1);
+	        nextButton.onclick = () => loadViews('push', data.page + 1);
+	        messageElement.textContent = '';
+	    } catch (error) {
+	        if (version === requestVersion) {
+	            showFailure(error);
+	        }
+	    } finally {
+	        if (version === requestVersion) {
+	            setLoading(false);
+	        }
+	    }
+	}
 
     async function initialize() {
         setLoading(true);
@@ -463,4 +506,4 @@
 })();
 </script>
 
-<%@ include file="fragments/bottom.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

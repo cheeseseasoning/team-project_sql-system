@@ -63,7 +63,7 @@ class SecurityAuthenticationTest {
         mockMvc.perform(get("/admin/users/new").with(user(admin)))
                 .andExpect(status().isOk())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
-                        .view().name("admin-user-form"));
+                        .view().name("admin/admin-user-form"));
     }
 
     @Autowired

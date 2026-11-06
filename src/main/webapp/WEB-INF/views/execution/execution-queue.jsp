@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-<%@ include file="fragments/top.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 <div class="page-heading"><div><p class="caption">DB팀 실행 권한 계정</p><h1>실행 목록</h1></div><a class="button" href="${pageContext.request.contextPath}/execution-results">실행 결과</a></div>
 <section class="panel execution-queue-panel">
   <div class="panel-heading"><div><h2>승인된 요청</h2><p class="caption">최종 승인되어 실행 대기 중인 요청입니다.</p></div><button id="queue-refresh" class="button" type="button">새로고침</button></div>
@@ -25,4 +25,4 @@
  $id('queue-refresh').addEventListener('click',()=>load());$id('queue-prev').addEventListener('click',()=>load(page-1));$id('queue-next').addEventListener('click',()=>load(page+1));load();
 })();
 </script>
-<%@ include file="fragments/bottom.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

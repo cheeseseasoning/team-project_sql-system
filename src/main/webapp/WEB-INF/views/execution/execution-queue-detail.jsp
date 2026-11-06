@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-	<%@ include file="fragments/top.jspf" %>
+	<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 		<div class="page-heading">
 			<div><a class="back-link" href="${pageContext.request.contextPath}/execution-queue">← 실행 목록</a>
 				<h1 id="detail-title">실행 요청 상세</h1>
@@ -518,4 +518,4 @@
 		    load();
 		})();
 		</script>
-		<%@ include file="fragments/bottom.jspf" %>
+		<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

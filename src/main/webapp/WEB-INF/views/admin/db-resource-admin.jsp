@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-<%@ include file="fragments/top.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="page-heading resource-page-heading">
     <div><h1>리소스·접근 정책 관리</h1><p class="caption">테이블과 뷰의 조회 정책 및 접근 부서를 관리합니다.</p></div>
@@ -189,6 +189,6 @@
     load();
 })();
 </script>
-<%@ include file="fragments/bottom.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>
 
 

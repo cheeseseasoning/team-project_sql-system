@@ -50,7 +50,7 @@ public class PageController {
 
     @GetMapping("/login")
     public String login() {
-        return "login";
+        return "account/login";
     }
 
     @GetMapping("/admin/users/new")
@@ -274,6 +274,17 @@ public class PageController {
                         : page.equals("request-form") || page.equals("request-review")
                                 ? "create"
                                 : "requests");
-        return page;
+        return switch (page) {
+            case "home" -> "home/" + page;
+            case "my-page" -> "account/" + page;
+            case "accounts", "admin-user-detail", "admin-user-form", "db-resource-admin" -> "admin/" + page;
+            case "requests", "request-form", "request-edit", "request-detail", "view-create-request-form" -> "request/" + page;
+            case "department-requests", "department-request-detail" -> "department/" + page;
+            case "approval-pending", "approval-detail" -> "approval/" + page;
+            case "execution-queue", "execution-queue-detail", "execution-results", "execution-result-detail" -> "execution/" + page;
+            case "views", "view-detail" -> "view-catalog/" + page;
+            case "notices" -> "notice/" + page;
+            default -> page;
+        };
     }
 }
