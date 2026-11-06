@@ -50,6 +50,28 @@
         overflow-wrap: anywhere;
     }
 
+    .account-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        margin-top: 24px;
+    }
+
+    .account-pagination[hidden] {
+        display: none;
+    }
+
+    .account-pagination button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+    }
+
+    .account-page-status {
+        min-width: 160px;
+        text-align: center;
+    }
+
     @media (max-width: 700px) {
         .account-list-table {
             min-width: 900px;
@@ -79,7 +101,7 @@
 
     <div class="table-scroll">
         <table class="account-list-table">
-            <caption class="sr-only">전체 사용자 계정 목록</caption>
+            <caption class="sr-only">사용자 계정 목록</caption>
 
             <colgroup>
                 <col class="account-login-column">
@@ -109,6 +131,27 @@
         </table>
     </div>
 
+    <nav id="account-pagination"
+         class="account-pagination"
+         aria-label="계정 목록 페이지 이동"
+         hidden>
+        <button id="account-previous-page"
+                class="button"
+                type="button">
+            이전
+        </button>
+
+        <span id="account-page-status"
+              class="account-page-status caption"
+              aria-live="polite"></span>
+
+        <button id="account-next-page"
+                class="button"
+                type="button">
+            다음
+        </button>
+    </nav>
+
     <p id="account-list-message"
        class="caption"
        role="status"
@@ -120,8 +163,18 @@
     const rowsElement = $("#account-rows");
     const countElement = $("#account-count");
     const messageElement = $("#account-list-message");
+    const paginationElement = $("#account-pagination");
+    const previousButton = $("#account-previous-page");
+    const nextButton = $("#account-next-page");
+    const pageStatusElement = $("#account-page-status");
+
     const isSystemAdmin =
         ${pageContext.request.isUserInRole('SYSTEM_ADMIN')};
+
+    const pageSize = 10;
+    let currentPage = 1;
+    let totalPages = 0;
+    let isLoading = false;
 
     function showTableMessage(text) {
         const row = document.createElement("tr");
@@ -169,7 +222,6 @@
     function renderAccounts(accounts) {
         if (accounts.length === 0) {
             showTableMessage("등록된 계정이 없습니다.");
-            countElement.textContent = "총 0명";
             return;
         }
 
@@ -210,33 +262,72 @@
         });
 
         rowsElement.replaceChildren(fragment);
-        countElement.textContent = "총 " + accounts.length + "명";
-        messageElement.textContent = "";
     }
 
-    async function loadAccounts() {
+    function renderPagination(response) {
+        totalPages = response.totalPages || 0;
+        currentPage = response.page || 1;
+
+        countElement.textContent = "총 " + response.totalCount + "명";
+
+        if (totalPages <= 1) {
+            paginationElement.hidden = true;
+            return;
+        }
+
+        paginationElement.hidden = false;
+        previousButton.disabled = currentPage <= 1;
+        nextButton.disabled = currentPage >= totalPages;
+        pageStatusElement.textContent =
+            currentPage + " / " + totalPages + " 페이지";
+    }
+
+    async function loadAccounts(page) {
+        if (isLoading) {
+            return;
+        }
+
+        isLoading = true;
         rowsElement.setAttribute("aria-busy", "true");
         messageElement.textContent = "";
 
         try {
-            const accounts = await api("/accounts");
+            const response = await api(
+                "/accounts?page=" + encodeURIComponent(page)
+                + "&size=" + encodeURIComponent(pageSize)
+            );
 
-            if (!Array.isArray(accounts)) {
+            if (!response || !Array.isArray(response.items)) {
                 throw new Error("계정 목록 응답 형식이 올바르지 않습니다.");
             }
 
-            renderAccounts(accounts);
+            renderAccounts(response.items);
+            renderPagination(response);
         } catch (error) {
             countElement.textContent = "";
+            paginationElement.hidden = true;
             showTableMessage("계정 목록을 불러오지 못했습니다.");
             messageElement.textContent =
                 error.message || "잠시 후 다시 시도해 주세요.";
         } finally {
             rowsElement.setAttribute("aria-busy", "false");
+            isLoading = false;
         }
     }
 
-    loadAccounts();
+    previousButton.addEventListener("click", () => {
+        if (currentPage > 1) {
+            loadAccounts(currentPage - 1);
+        }
+    });
+
+    nextButton.addEventListener("click", () => {
+        if (currentPage < totalPages) {
+            loadAccounts(currentPage + 1);
+        }
+    });
+
+    loadAccounts(currentPage);
 })();
 </script>
 
