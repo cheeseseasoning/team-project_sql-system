@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-<%@ include file="fragments/top.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="page-heading">
     <div>
@@ -75,7 +75,7 @@
     const roleLabels = {
         SYSTEM_ADMIN: "시스템 관리자",
         DB_ADMIN: "DB 관리자",
-        DB_APPROVER: "DB팀 결재자",
+        DB_APPROVER: "SQL 실행 담당자",
         SENSITIVE_DATA_READER: "민감 데이터 조회자"
     };
 
@@ -208,4 +208,4 @@
 })();
 </script>
 
-<%@ include file="fragments/bottom.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

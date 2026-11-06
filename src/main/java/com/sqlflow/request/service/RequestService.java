@@ -579,73 +579,121 @@ public class RequestService {
 	    submitRequest(requestId, input, 1L);
 	}
 
-	@Transactional(transactionManager = "managementTransactionManager", rollbackFor = Exception.class)
-	public void submitRequest(Long requestId, RequestSubmitRequest input, Long actorId) {
-		
-	    RequestDetailResponse draft = loadDraftForSubmission(requestId, actorId);
-	    String requestType = draft.getRequestType();
+	@Transactional(
+	        transactionManager = "managementTransactionManager",
+	        rollbackFor = Exception.class
+	)
+	public void submitRequest(
+	        Long requestId,
+	        RequestSubmitRequest input,
+	        Long actorId) {
 
-	    ApprovalLineCreator approvalLineCreator = approvalLineCreatorProvider.getIfAvailable();
-	    if (approvalLineCreator == null) {
-	        throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "결재 기능이 아직 연결되지 않았습니다.");
+	    if (input == null
+	            || input.getApproverIds() == null
+	            || input.getApproverIds().isEmpty()) {
+	        throw new ResponseStatusException(
+	                HttpStatus.BAD_REQUEST,
+	                "결재자를 1명 이상 지정하세요.");
 	    }
 
-	    // 화면 검사 이후 초안이 수정될 수 있으므로 잠근 초안의 SQL 원문을 다시 검사한다.
+	    RequestDetailResponse draft =
+	            loadDraftForSubmission(requestId, actorId);
+	    String requestType = draft.getRequestType();
+
+	    ApprovalLineCreator approvalLineCreator =
+	            approvalLineCreatorProvider.getIfAvailable();
+
+	    if (approvalLineCreator == null) {
+	        throw new ResponseStatusException(
+	                HttpStatus.SERVICE_UNAVAILABLE,
+	                "결재 기능이 아직 연결되지 않았습니다.");
+	    }
+
+	    // 화면 검증 이후 수정됐을 수 있으므로 저장된 SQL을 다시 검사한다.
 	    if ("CREATE_VIEW".equals(requestType)) {
 	        for (RequestItemResponse item : draft.getItems()) {
-	            var result = viewCreateSqlValidationService.validate(item.getSqlText());
+	            var result =
+	                    viewCreateSqlValidationService.validate(item.getSqlText());
+
 	            if (result.getStatus() == Status.BLOCKED) {
-	                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-	                        "SQL " + item.getQueryOrder() + " · " + result.getMessage());
+	                throw new ResponseStatusException(
+	                        HttpStatus.BAD_REQUEST,
+	                        "SQL " + item.getQueryOrder()
+	                                + " · " + result.getMessage());
 	            }
 	        }
 	    } else if (isDmlRequest(requestType)) {
-	        var sqlType = DmlSqlValidationService.SqlType.valueOf(requestType);
+	        var sqlType =
+	                DmlSqlValidationService.SqlType.valueOf(requestType);
+
 	        for (RequestItemResponse item : draft.getItems()) {
-	            var result = dmlSqlValidationService.validate(sqlType, item.getSqlText());
+	            var result =
+	                    dmlSqlValidationService.validate(sqlType, item.getSqlText());
+
+	            // WARNING은 결재 검토 대상으로 제출할 수 있다.
 	            if (result.status() == DmlSqlValidationService.Status.BLOCKED) {
-	                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-	                        "SQL " + item.getQueryOrder() + " · " + result.message());
+	                throw new ResponseStatusException(
+	                        HttpStatus.BAD_REQUEST,
+	                        "SQL " + item.getQueryOrder()
+	                                + " · " + result.message());
 	            }
 	        }
 	    } else {
-	        // 조회 요청은 기존 검증 결과와 조회 대상 리소스를 제출 시점에 기록한다.
-	        List<RequestSqlValidationResult> results = 
-	                requestSqlValidationService.validateForSubmission(actorId, draft.getItems());
+	        List<RequestSqlValidationResult> results =
+	                requestSqlValidationService.validateForSubmission(
+	                        actorId, draft.getItems());
 
 	        boolean requestSensitive = false;
+
 	        for (RequestSqlValidationResult result : results) {
 	            String itemClass = result.accessLevel();
-	            if (!"GENERAL".equals(itemClass) && !"SENSITIVE".equals(itemClass)) {
-	                throw new IllegalStateException("검증 결과의 SQL 분류가 올바르지 않습니다.");
+
+	            if (!"GENERAL".equals(itemClass)
+	                    && !"SENSITIVE".equals(itemClass)) {
+	                throw new IllegalStateException(
+	                        "검증 결과의 SQL 분류가 올바르지 않습니다.");
 	            }
 
-	            if (requestMapper.updateSubmittedItemValidation(requestId, result.queryId(), itemClass) != 1) {
-	                throw new IllegalStateException("SQL 검증 결과 저장에 실패했습니다.");
+	            if (requestMapper.updateSubmittedItemValidation(
+	                    requestId, result.queryId(), itemClass) != 1) {
+	                throw new IllegalStateException(
+	                        "SQL 검증 결과 저장에 실패했습니다.");
 	            }
 
 	            requestMapper.deleteQueryResourceUsage(result.queryId());
+
 	            for (Long resourceId : result.resourceIds()) {
-	                if (requestMapper.insertQueryResourceUsage(result.queryId(), resourceId) != 1) {
-	                    throw new IllegalStateException("SQL 조회 대상 저장에 실패했습니다.");
+	                if (requestMapper.insertQueryResourceUsage(
+	                        result.queryId(), resourceId) != 1) {
+	                    throw new IllegalStateException(
+	                            "SQL 조회 대상 저장에 실패했습니다.");
 	                }
 	            }
 
 	            requestSensitive |= "SENSITIVE".equals(itemClass);
 	        }
 
-	        String requestClass = requestSensitive ? "SENSITIVE" : "GENERAL";
-	        if (requestMapper.updateRequestClass(requestId, actorId, requestClass) != 1) {
-	            throw new IllegalStateException("요청 분류 저장에 실패했습니다.");
+	        String requestClass =
+	                requestSensitive ? "SENSITIVE" : "GENERAL";
+
+	        if (requestMapper.updateRequestClass(
+	                requestId, actorId, requestClass) != 1) {
+	            throw new IllegalStateException(
+	                    "요청 분류 저장에 실패했습니다.");
 	        }
 	    }
 
-	    // 결재선 생성과 제출 상태 변경을 같은 트랜잭션에서 처리한다.
-	    approvalLineCreator.createApprovalLine(requestId, actorId,
-	            input.getIntermediateApproverIds(), input.getDbApproverId());
+	    // 요청자가 지정한 순서로 결재선을 생성한다.
+	    approvalLineCreator.createApprovalLine(
+	            requestId,
+	            actorId,
+	            input.getApproverIds());
 
+	    // 결재선 생성과 제출 상태 변경은 같은 트랜잭션에서 처리한다.
 	    if (requestMapper.submitDraft(requestId, actorId) != 1) {
-	        throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 제출할 수 없습니다.");
+	        throw new ResponseStatusException(
+	                HttpStatus.CONFLICT,
+	                "요청 상태가 변경되어 제출할 수 없습니다.");
 	    }
 	}
 

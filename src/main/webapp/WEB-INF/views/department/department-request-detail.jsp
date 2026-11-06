@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-<%@ include file="fragments/top.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="request-detail-page">
 
@@ -26,12 +26,12 @@
 
     <div id="department-detail-content" hidden>
         <c:set var="requestDetailReadOnly" value="${true}" />
-        <%@ include file="fragments/request-detail-body.jspf" %>
+        <%@ include file="/WEB-INF/views/fragments/request-detail-body.jspf" %>
     </div>
 
 </div>
 
-<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261104-change-result-history"></script>
-<script src="${pageContext.request.contextPath}/js/department-request-detail.js?v=20261104-change-results"></script>
+<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261106-flexible-approval-dml"></script>
+<script src="${pageContext.request.contextPath}/js/department-request-detail.js?v=20261106-flexible-approval-dml"></script>
 
-<%@ include file="fragments/bottom.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

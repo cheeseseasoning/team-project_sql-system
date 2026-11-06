@@ -93,7 +93,8 @@ public class ApprovalService implements ApprovalLineCreator {
         }
 
         boolean supportedApprovalType =
-                "INTERMEDIATE".equals(pending.getApprovalType())
+                "APPROVER".equals(pending.getApprovalType())
+                        || "INTERMEDIATE".equals(pending.getApprovalType())
                         || "DIRECTOR".equals(pending.getApprovalType())
                         || "DB_EXECUTION".equals(pending.getApprovalType());
 
@@ -110,21 +111,19 @@ public class ApprovalService implements ApprovalLineCreator {
                     "결재 상태가 변경되었습니다. 다시 확인하세요.");
         }
 
-        // DB팀 실행 승인 단계가 최종 승인
-        if ("DB_EXECUTION".equals(pending.getApprovalType())) {
-            if (approvalMapper.markRequestApproved(requestId) != 1) {
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT,
-                        "요청 상태를 최종 승인으로 변경할 수 없습니다.");
-            }
+        int activated = approvalMapper.activateNextApproval(requestId);
+
+        // 결재 유형과 관계없이 다음 순서의 대기 결재를 활성화한다.
+        if (activated == 1) {
             return;
         }
 
-        // 중간 결재 또는 부서장 결재 후 다음 순서의 결재자 한 명을 활성화
-        if (approvalMapper.activateNextApproval(requestId) != 1) {
+        // 다음 단계가 없으면, 모든 결재가 승인됐는지 SQL에서 확인한다.
+        if (activated != 0
+                || approvalMapper.markRequestApproved(requestId) != 1) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "다음 결재 단계를 활성화할 수 없습니다.");
+                    "결재 진행 상태를 확인할 수 없습니다. 다시 확인하세요.");
         }
     }
     
@@ -163,7 +162,8 @@ public class ApprovalService implements ApprovalLineCreator {
         }
 
         boolean supportedApprovalType =
-                "INTERMEDIATE".equals(pending.getApprovalType())
+                "APPROVER".equals(pending.getApprovalType())
+                        || "INTERMEDIATE".equals(pending.getApprovalType())
                         || "DIRECTOR".equals(pending.getApprovalType())
                         || "DB_EXECUTION".equals(pending.getApprovalType());
 
@@ -196,38 +196,21 @@ public class ApprovalService implements ApprovalLineCreator {
     @Transactional(readOnly = true)
     public ApprovalCandidatesResponse getApprovalCandidates(
             Long requestId,
-            Long actorId) {
-        ApprovalRequestContext request = requireOwnedDraft(requestId, actorId);
+            Long actorId,
+            String keyword) {
 
-        List<ApprovalCandidateResponse> departmentApprovers =
-                approvalMapper.selectDepartmentApprovers(request.getDeptId())
-                        .stream()
-                        .toList();
+        // 본인이 작성한 초안에서만 결재자를 조회한다.
+        requireOwnedDraft(requestId, actorId);
 
-        if (departmentApprovers.size() > 1) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "소속 부서장이 여러 명이라 결재자를 확정할 수 없습니다.");
-        }
-
-        ApprovalCandidateResponse departmentApprover =
-                departmentApprovers.size() == 1
-                        ? departmentApprovers.get(0)
-                        : null;
-
-        List<ApprovalCandidateResponse> dbApprovers =
-                departmentApprover == null
-                        ? List.of()
-                        : approvalMapper
-                                .selectDbApprovers(departmentApprover.getUserId())
-                                .stream()
-                                .filter(candidate ->
-                                        !candidate.getUserId().equals(actorId))
-                                .toList();
+        String normalizedKeyword =
+                keyword == null || keyword.isBlank()
+                        ? null
+                        : keyword.trim();
 
         return new ApprovalCandidatesResponse(
-                departmentApprover,
-                dbApprovers);
+                approvalMapper.searchActiveCandidates(
+                        normalizedKeyword,
+                        actorId));
     }
     
     @Transactional(readOnly = true)
@@ -249,106 +232,68 @@ public class ApprovalService implements ApprovalLineCreator {
     public void createApprovalLine(
             Long requestId,
             Long actorId,
-            List<Long> intermediateApproverIds,
-            Long dbApproverId) {
-        ApprovalRequestContext request = requireOwnedDraft(requestId, actorId);
+            List<Long> approverIds) {
 
-        // 요청의 DEPT_ID 기준으로 부서장을 찾음
-        // 요청자 본인이 부서장일 수 있으므로 요청자 제외 필터를 적용하지 않음
-        List<ApprovalCandidateResponse> departmentApprovers =
-                approvalMapper.selectDepartmentApprovers(request.getDeptId());
+        requireOwnedDraft(requestId, actorId);
 
-        if (departmentApprovers == null || departmentApprovers.isEmpty()) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "활성 상태의 소속 부서장이 없어 제출할 수 없습니다.");
-        }
-
-        if (departmentApprovers.size() > 1) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "소속 부서장이 여러 명이라 결재자를 확정할 수 없습니다.");
-        }
-
-        Long departmentApproverId = departmentApprovers.get(0).getUserId();
-
-        List<Long> intermediateIds = intermediateApproverIds == null
-                ? List.of()
-                : intermediateApproverIds;
-
-        if (dbApproverId == null
-                || dbApproverId.equals(actorId)
-                || dbApproverId.equals(departmentApproverId)) {
+        if (approverIds == null || approverIds.isEmpty()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "요청자 및 부서장과 다른 DB팀 실행 승인자를 선택하세요.");
+                    "결재자를 1명 이상 지정하세요.");
         }
 
-        // 중간 결재자는 활성 사용자여야 하며, 중복·본인·필수 결재자와의 중복을 금지
-        Set<Long> uniqueIntermediateIds = new HashSet<>();
-        List<ApprovalCandidateResponse> activeCandidates =
-                approvalMapper.searchActiveCandidates(null, actorId);
+        Set<Long> uniqueIds = new HashSet<>();
 
-        for (Long approverId : intermediateIds) {
-            boolean isActiveUser = approverId != null
-                    && activeCandidates.stream()
-                            .anyMatch(candidate ->
-                                    candidate.getUserId().equals(approverId));
-
-            if (approverId == null
-                    || !uniqueIntermediateIds.add(approverId)
-                    || approverId.equals(actorId)
-                    || approverId.equals(departmentApproverId)
-                    || approverId.equals(dbApproverId)
-                    || !isActiveUser) {
+        // 저장하기 전에 목록 전체의 형식·본인 포함·중복을 확인한다.
+        for (Long approverId : approverIds) {
+            if (approverId == null || approverId <= 0) {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
-                        "중간 결재자는 활성 사용자 중에서 중복 없이 선택해야 합니다.");
+                        "올바른 결재자를 선택하세요.");
+            }
+
+            if (approverId.equals(actorId)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "본인을 결재자로 지정할 수 없습니다.");
+            }
+
+            if (!uniqueIds.add(approverId)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "동일한 결재자를 중복 지정할 수 없습니다.");
             }
         }
 
-        boolean isEligibleDbApprover =
-                approvalMapper.selectDbApprovers(departmentApproverId)
-                        .stream()
-                        .anyMatch(candidate ->
-                                candidate.getUserId().equals(dbApproverId)
-                                        && !candidate.getUserId().equals(actorId));
+        Set<Long> activeIds = new HashSet<>();
 
-        if (!isEligibleDbApprover) {
+        // 제출 시점의 실제 활성 사용자 목록으로 다시 확인한다.
+        for (ApprovalCandidateResponse candidate :
+                approvalMapper.searchActiveCandidates(null, actorId)) {
+            activeIds.add(candidate.getUserId());
+        }
+
+        if (!activeIds.containsAll(uniqueIds)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "선택한 사용자는 현재 활성 DB팀 실행 승인 자격이 없습니다.");
+                    "선택한 결재자 중 사용할 수 없는 계정이 있습니다. "
+                            + "결재선을 다시 확인하세요.");
         }
 
-        int approvalOrder = 1;
-
-        // 중간 결재자를 전달된 순서대로 생성
-        for (Long approverId : intermediateIds) {
-            approvalMapper.insertApproval(
+        // 요청자가 지정한 순서를 그대로 보존한다.
+        for (int index = 0; index < approverIds.size(); index++) {
+            int inserted = approvalMapper.insertApproval(
                     requestId,
-                    approverId,
-                    approvalOrder,
-                    "INTERMEDIATE",
-                    approvalOrder == 1 ? "PENDING" : "WAITING");
-            approvalOrder++;
+                    approverIds.get(index),
+                    index + 1,
+                    "APPROVER",
+                    index == 0 ? "PENDING" : "WAITING");
+
+            if (inserted != 1) {
+                throw new IllegalStateException(
+                        "결재선 저장에 실패했습니다.");
+            }
         }
-
-        // 부서장은 본인 요청이어도 결재할 수 있음
-        approvalMapper.insertApproval(
-                requestId,
-                departmentApproverId,
-                approvalOrder,
-                "DIRECTOR",
-                approvalOrder == 1 ? "PENDING" : "WAITING");
-        approvalOrder++;
-
-        // DB팀 실행 승인자는 항상 마지막이며, 앞 단계가 끝나면 활성화
-        approvalMapper.insertApproval(
-                requestId,
-                dbApproverId,
-                approvalOrder,
-                "DB_EXECUTION",
-                "WAITING");
     }
 
     private ApprovalRequestContext requireOwnedDraft(

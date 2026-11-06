@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-<%@ include file="fragments/top.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="page-heading">
     <h1>계정 생성·역할 부여</h1>
@@ -125,9 +125,9 @@
             <label class="account-role">
                 <input type="checkbox" name="roles" value="DB_APPROVER">
                 <span>
-                    <strong>DB팀 결재자</strong>
+                    <strong>SQL 실행 담당자</strong>
                     <code>DB_APPROVER</code>
-                    <small>DB팀 최종 결재 및 SELECT 조회 실행</small>
+                    <small>SELECT 조회 실행</small>
                 </span>
             </label>
 
@@ -145,7 +145,8 @@
             선택한 역할이 없습니다. 일반 사용자 계정으로 생성됩니다.
         </p>
         <p class="caption">
-            부서·직급과 업무 역할은 별개입니다. 부서장 결재는 소속 부서와 직급을 기준으로 판단합니다.
+			부서·직급과 업무 역할은 별개입니다.
+			결재자는 기안 작성자가 지정하며, SQL 실행에는 별도 실행 권한이 필요합니다.
         </p>
     </fieldset>
 
@@ -290,4 +291,4 @@
     })();
 </script>
 
-<%@ include file="fragments/bottom.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

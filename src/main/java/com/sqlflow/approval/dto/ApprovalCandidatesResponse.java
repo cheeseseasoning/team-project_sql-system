@@ -12,7 +12,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApprovalCandidatesResponse {
-	
-	private ApprovalCandidateResponse departmentApprover;
-	private List<ApprovalCandidateResponse> dbApprovers;
+
+    private List<ApprovalCandidateResponse> candidates;
 }

@@ -90,10 +90,10 @@ class RequestSubmissionTransactionTest {
 
             throw new IllegalStateException("테스트용 결재 처리 실패");
         }).when(approvalService)
-          .createApprovalLine(requestId, 1L, List.of(), 20L);
+          .createApprovalLine(requestId, 1L, List.of(20L));
 
         RequestSubmitRequest input = new RequestSubmitRequest();
-        input.setDbApproverId(20L);
+        input.setApproverIds(List.of(20L));
 
         // 3. 실제 제출 Service 호출
         IllegalStateException error = assertThrows(

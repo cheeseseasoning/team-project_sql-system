@@ -196,9 +196,14 @@ public class RequestController {
 
 	@GetMapping("/{requestId}/approval-candidates")
 	public ApprovalCandidatesResponse getApprovalCandidates(
-			@PathVariable Long requestId,
-			@AuthenticationPrincipal SqlFlowUserDetails user) {
-		return approvalService.getApprovalCandidates(requestId, user.getUserId());
+	        @PathVariable Long requestId,
+	        @RequestParam(name = "keyword", defaultValue = "") String keyword,
+	        @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+	    return approvalService.getApprovalCandidates(
+	            requestId,
+	            user.getUserId(),
+	            keyword);
 	}
 
 	@PostMapping("/{requestId}/submit")

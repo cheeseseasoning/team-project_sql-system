@@ -154,11 +154,12 @@ window.RequestDetailRenderer = (() => {
             return '<li class="empty">등록된 결재 이력이 없습니다.</li>';
         }
 
-        const typeNames = {
-            INTERMEDIATE: '중간 결재',
-            DIRECTOR: '부서장 결재',
-            DB_EXECUTION: 'DB팀 실행 승인'
-        };
+		const typeNames = {
+		    APPROVER: '결재',
+		    INTERMEDIATE: '중간 결재',
+		    DIRECTOR: '부서장 결재',
+		    DB_EXECUTION: 'DB팀 실행 승인'
+		};
 
         const historyStatusNames = {
             WAITING: '대기',
@@ -321,11 +322,12 @@ window.RequestDetailRenderer = (() => {
 	        return;
 	    }
 
-	    const roleNames = {
-	        INTERMEDIATE: '중간 결재자',
-	        DIRECTOR: '소속 부서장',
-	        DB_EXECUTION: 'DB팀 실행 승인'
-	    };
+		const roleNames = {
+		    APPROVER: '결재자',
+		    INTERMEDIATE: '중간 결재자',
+		    DIRECTOR: '소속 부서장',
+		    DB_EXECUTION: 'DB팀 실행 승인'
+		};
 
 	    const rows = [...approvals]
 	        .sort((a, b) => a.approvalOrder - b.approvalOrder)

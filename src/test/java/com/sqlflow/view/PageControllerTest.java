@@ -59,7 +59,7 @@ class PageControllerTest {
         verify(accountService)
                 .assertActiveSystemAdmin(ADMIN_LOGIN_ID);
 
-        assertEquals("admin-user-form", page);
+        assertEquals("admin/admin-user-form", page);
     }
 
     @Test
@@ -74,7 +74,7 @@ class PageControllerTest {
         verify(accountService)
                 .assertActiveSystemAdmin(ADMIN_LOGIN_ID);
 
-        assertEquals("admin-user-detail", page);
+        assertEquals("admin/admin-user-detail", page);
         assertEquals(25L, model.getAttribute("userId"));
     }
 
@@ -88,7 +88,7 @@ class PageControllerTest {
         String page = pageController.executionQueue(model, authentication);
 
         verify(executionQueueService).assertCanAccess(principal);
-        assertEquals("execution-queue", page);
+        assertEquals("execution/execution-queue", page);
     }
 
     @Test
@@ -104,7 +104,7 @@ class PageControllerTest {
                 authentication);
 
         verify(executionQueueService).assertCanAccess(principal);
-        assertEquals("execution-queue-detail", page);
+        assertEquals("execution/execution-queue-detail", page);
         assertEquals(42L, model.getAttribute("requestId"));
     }
 

@@ -71,7 +71,7 @@ class RequestRedraftApiTest {
                         .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
-                .andExpect(view().name("request-edit"));
+                .andExpect(view().name("request/request-edit"));
 
         // 화면 진입은 원본 조회만 수행해야 한다.
         mockMvc.perform(
@@ -101,7 +101,7 @@ class RequestRedraftApiTest {
                         .with(authenticatedUser())
                 )
                 .andExpect(status().isOk())
-                .andExpect(view().name("request-detail"));
+                .andExpect(view().name("request/request-detail"));
 
         assertEquals(0, redraftCount(sourceId));
     }

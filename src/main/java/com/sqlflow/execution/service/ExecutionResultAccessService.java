@@ -83,15 +83,14 @@ public class ExecutionResultAccessService {
             throw forbidden("활성 사용자만 결과에 접근할 수 있습니다.");
         }
 
-        List<String> roles =
-                userAccountMapper.selectRoleCodes(actorId);
-
-        // 이번에 정한 관리자 예외.
-        // 이력 열람 자격과 파일 만료·삭제 검사를 생략한다는 뜻은 아니다.
-        if (roles.contains("DB_ADMIN")
-                || roles.contains("DB_APPROVER")) {
-            return;
-        }
+	    // DB팀 소속 사용자는 자원별 접근·민감 데이터·반출 정책 검사를 면제한다.
+	    // 이력 열람 자격과 파일 만료·삭제 검사는 기존 경로에서 적용한다.
+	    if (executionResultMapper.isActiveDbTeamMember(actorId)) {
+	        return;
+	    }
+	
+	    List<String> roles =
+	            userAccountMapper.selectRoleCodes(actorId);
 
         if (actor.getDeptId() == null) {
             throw forbidden("현재 소속 부서를 확인할 수 없습니다.");

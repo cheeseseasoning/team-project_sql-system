@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-<%@ include file="fragments/top.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="page-heading">
     <div>
@@ -29,9 +29,9 @@
 </section>
 
 <script>
-    function approvalOrderName(order) {
-        return order === 1 ? '부서장 결재' : order === 2 ? 'DB팀 최종 결재' : '결재';
-    }
+	function approvalOrderName(order) {
+	    return order + '차 결재';
+	}
 
     function renderPendingApprovals(items) {
         if (!items.length) {
@@ -70,4 +70,4 @@
     loadPendingApprovals();
 </script>
 
-<%@ include file="fragments/bottom.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

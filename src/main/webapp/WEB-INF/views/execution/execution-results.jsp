@@ -1,5 +1,5 @@
 <%@ page pageEncoding="UTF-8" %>
-<%@ include file="fragments/top.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="page-heading">
     <h1>실행 결과</h1>
@@ -13,7 +13,7 @@
         <div>
             <h2>SQL 실행 목록</h2>
             <p class="caption">
-                내가 작성한 요청의 SQL별 최신 실행을 표시합니다.
+                열람 가능한 요청의 SQL별 최신 실행 결과를 표시합니다.
             </p>
         </div>
         <span id="execution-count" class="caption" aria-live="polite"></span>
@@ -219,4 +219,4 @@
     loadExecutionResults();
 </script>
 
-<%@ include file="fragments/bottom.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>
