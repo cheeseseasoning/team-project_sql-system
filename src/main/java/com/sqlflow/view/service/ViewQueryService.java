@@ -21,7 +21,9 @@ import com.sqlflow.mysql.dto.MySqlViewColumnDTO;
 import com.sqlflow.mysql.dto.MySqlViewDefinitionDTO;
 import com.sqlflow.mysql.dto.MySqlViewSummaryDTO;
 import com.sqlflow.mysql.mapper.MySqlViewMapper;
+import com.sqlflow.request.service.RequestSearchValidator;
 import com.sqlflow.view.dto.ViewDetailResponseDTO;
+import com.sqlflow.view.dto.ViewPageResponse;
 import com.sqlflow.view.dto.ViewSummaryResponseDTO;
 
 import lombok.RequiredArgsConstructor;
@@ -75,6 +77,31 @@ public class ViewQueryService {
         }
 
         return List.copyOf(result);
+    }
+    
+    /**
+     * 부서와 검색어를 적용한 뒤 페이지를 나눈다.
+     * Oracle 등록명이나 설명으로 검색한 결과도 전체 건수에 포함한다.
+     */
+    public ViewPageResponse getViewsPage(Long deptId, String keyword, int page, int size) {
+
+        RequestSearchValidator.validatePage(page, size);
+
+        List<ViewSummaryResponseDTO> matchingViews = getViews(deptId, keyword);
+
+        int totalCount = matchingViews.size();
+        int totalPages = totalCount == 0 ? 0 : (totalCount - 1) / size + 1;
+        int actualPage = totalPages == 0 ? 1 : Math.min(page, totalPages);
+
+        int fromIndex = (actualPage - 1) * size;
+        int toIndex = fromIndex + Math.min(size, totalCount - fromIndex);
+
+        return new ViewPageResponse(
+                matchingViews.subList(fromIndex, toIndex),
+                actualPage,
+                size,
+                totalCount,
+                totalPages);
     }
 
     /** 부서 드롭다운에 사용할 목록을 반환한다. */

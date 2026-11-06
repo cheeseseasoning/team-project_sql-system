@@ -157,24 +157,24 @@
 
     let loading = false;
 
-    /** 목록으로 돌아갈 때 부서·검색 조건을 복원한다. */
-    function configureBackLinks() {
-        const listParams = new URLSearchParams();
+	/** 목록으로 돌아갈 때 부서, 검색어, 페이지를 복원한다. */
+	function configureBackLinks() {
+	    const listParams = new URLSearchParams();
 
-        if (params.get('deptId')) {
-            listParams.set('deptId', params.get('deptId'));
-        }
+	    for (const key of ['deptId', 'keyword', 'page']) {
+	        const value = params.get(key);
 
-        if (params.get('keyword')) {
-            listParams.set('keyword', params.get('keyword'));
-        }
+	        if (value) {
+	            listParams.set(key, value);
+	        }
+	    }
 
-        const query = listParams.toString();
-        const url = BASE + '/views' + (query ? '?' + query : '');
+	    const query = listParams.toString();
+	    const url = BASE + '/views' + (query ? '?' + query : '');
 
-        $('#view-back-link').href = url;
-        $('#view-error-back-link').href = url;
-    }
+	    $('#view-back-link').href = url;
+	    $('#view-error-back-link').href = url;
+	}
 
     /** DB에서 받은 문자열은 HTML이 아닌 텍스트로 표시한다. */
     function appendCell(row, value, className = '') {
