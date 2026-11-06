@@ -1,12 +1,11 @@
 package com.sqlflow.auth.controller;
 
-import java.util.List;
-
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.sqlflow.auth.dto.AccountListItemResponse;
+import com.sqlflow.auth.dto.AccountListPageResponse;
 import com.sqlflow.auth.service.AccountService;
 
 import lombok.RequiredArgsConstructor;
@@ -15,11 +14,13 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class AccountController {
-	
-	private final AccountService accountService;
-	
-	@GetMapping("/accounts")
-	public List<AccountListItemResponse> getAccountList(){
-		return accountService.getAccountList();
-	}
+
+    private final AccountService accountService;
+
+    @GetMapping("/accounts")
+    public AccountListPageResponse getAccountList(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return accountService.getAccountList(page, size);
+    }
 }

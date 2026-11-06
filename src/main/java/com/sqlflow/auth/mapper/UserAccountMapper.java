@@ -23,6 +23,12 @@ public interface UserAccountMapper {
     List<Map<String, Object>> selectPositions();
     
     List<AccountListItemResponse> selectAllAccountListItems();
+    
+    List<AccountListItemResponse> selectAccountListItems(
+    		@Param("offset") long offset,
+    		@Param("size") int size);
+    
+    long countAllAccounts();
 
     int countByLoginId(@Param("loginId") String loginId);
     
