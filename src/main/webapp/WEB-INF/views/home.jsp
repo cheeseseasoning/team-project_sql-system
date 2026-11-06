@@ -77,7 +77,7 @@
 		<section class="panel section-gap">
 			<h2>요청 진행 안내</h2>
 			<p class="caption section-gap">
-				초안 작성·저장 → 제출 → 부서 결재 → DB팀 승인
+				초안 작성·저장 → 결재선 지정·제출 → 순차 결재
 				→ DB팀 실행 → 결과 확인
 			</p>
 		</section>
