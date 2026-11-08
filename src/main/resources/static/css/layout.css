@@ -471,3 +471,42 @@ html {
         display: none;
     }
 }
+
+/* ==================================================
+   새로 고침 버튼
+================================================== */
+
+.refresh-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 10px;
+}
+
+.refresh-button img {
+    width: 20px;
+    height: 20px;
+    transition: transform 180ms ease;
+}
+
+.refresh-button:hover:not(:disabled) img {
+    transform: rotate(30deg);
+}
+
+.refresh-button:disabled {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .refresh-button img {
+        transition: none;
+    }
+
+    .refresh-button:hover:not(:disabled) img {
+        transform: none;
+    }
+}
