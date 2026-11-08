@@ -33,7 +33,8 @@
                or page == 'requests'
                or page == 'department-requests'
                or page == 'department-request-detail'
-               or page == 'view-create-request-form'}">
+               or page == 'view-create-request-form'
+               or page == 'execution-results'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/request.css?v=20261029-view-history">
     </c:if>

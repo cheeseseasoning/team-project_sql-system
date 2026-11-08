@@ -236,12 +236,12 @@ class ExecutionResultVisibilityIntegrationTest {
 
     private void assertResultVisibility(Long actorId, boolean allowed) {
         long beforeCount =
-                resultMapper.countMyLatestResults(actorId);
+                resultMapper.countMyLatestResults(actorId, "", "");
 
         createResult();
 
         long afterCount =
-                resultMapper.countMyLatestResults(actorId);
+                resultMapper.countMyLatestResults(actorId, "", "");
 
         assertEquals(
                 beforeCount + (allowed ? 1 : 0),
@@ -250,7 +250,8 @@ class ExecutionResultVisibilityIntegrationTest {
 
         // 방금 생성한 실행은 EXECUTION_ID 내림차순 목록의 최신 건이다.
         var rows =
-                resultMapper.selectMyLatestResults(actorId, 0L, 100);
+                resultMapper.selectMyLatestResults(
+                        actorId, 0L, 100, "", "");
 
         boolean listed = rows.stream().anyMatch(
                 row -> executionId.equals(row.getExecutionId()));
