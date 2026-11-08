@@ -215,8 +215,12 @@
                         <i></i>
                     </a>
 
-                    <a class="help-link"
-                       href="${pageContext.request.contextPath}/notices?id=guide">도움말</a>
+                    <button id="help-button"
+					        class="help-link"
+					        type="button"
+					        popovertarget="help-popover">
+					    도움말
+					</button>
 
                     <div class="header-user">
                         <span class="avatar small">
