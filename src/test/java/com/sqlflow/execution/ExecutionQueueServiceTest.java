@@ -28,9 +28,13 @@ class ExecutionQueueServiceTest {
         SqlFlowUserDetails user = user(List.of());
         when(mapper.isActiveDbApprover(10L)).thenReturn(false);
         ResponseStatusException error = assertThrows(ResponseStatusException.class,
-                () -> service.getQueue(user, 1, 10, null));
+        		() -> service.getQueue(user, 1, 10, null, null));
         assertEquals(HttpStatus.FORBIDDEN, error.getStatusCode());
-        verify(mapper, never()).selectReadyRequests(anyString(), anyInt(), anyInt());
+        verify(mapper, never()).selectReadyRequests(
+                anyString(),
+                anyInt(),
+                anyInt(),
+                nullable(Long.class));
     }
 
     @Test

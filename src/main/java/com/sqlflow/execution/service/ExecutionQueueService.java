@@ -18,35 +18,50 @@ public class ExecutionQueueService {
     private final ExecutionQueueMapper mapper;
 
     @Transactional(
-    		transactionManager = "managementTransactionManager", 
-    		readOnly = true)
+            transactionManager = "managementTransactionManager",
+            readOnly = true)
     public ExecutionQueuePageResponse getQueue(
-    		SqlFlowUserDetails user, 
-    		int page, 
-    		int size, 
-    		String keyword) {
-    	
+            SqlFlowUserDetails user,
+            int page,
+            int size,
+            String keyword,
+            Long deptId) {
+
         requireApprover(user);
-        
+
         if (page < 1 || size < 1 || size > 50) {
-        	throw new ResponseStatusException(
-        			HttpStatus.BAD_REQUEST, 
-        			"페이지 값이 올바르지 않습니다.");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "페이지 값이 올바르지 않습니다.");
         }
-        
+
+        if (deptId != null && deptId <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "부서 값이 올바르지 않습니다.");
+        }
+
         String normalized = keyword == null ? "" : keyword.trim();
-        long count = mapper.countReadyRequests(normalized);
+
+        if (normalized.length() > 120) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "검색어는 120자 이하여야 합니다.");
+        }
+
+        long count = mapper.countReadyRequests(normalized, deptId);
         int pages = (int) ((count + size - 1) / size);
-        
+
         return new ExecutionQueuePageResponse(
-        		mapper.selectReadyRequests(
-        				normalized, 
-        				(page - 1) * size, 
-        				size), 
-        		page, 
-        		size, 
-        		count, 
-        		pages);
+                mapper.selectReadyRequests(
+                        normalized,
+                        (page - 1) * size,
+                        size,
+                        deptId),
+                page,
+                size,
+                count,
+                pages);
     }
 
     @Transactional(

@@ -95,10 +95,13 @@ public class ExecutionController {
     @GetMapping("/ready")
     public ExecutionQueuePageResponse getReadyRequests(
             @AuthenticationPrincipal SqlFlowUserDetails user,
-            @RequestParam(name="page", defaultValue="1") int page,
-            @RequestParam(name="size", defaultValue="10") int size,
-            @RequestParam(name="keyword", required=false) String keyword) {
-        return executionQueueService.getQueue(user, page, size, keyword);
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "deptId", required = false) Long deptId) {
+
+        return executionQueueService.getQueue(
+                user, page, size, keyword, deptId);
     }
 
     @GetMapping("/requests/{requestId}")

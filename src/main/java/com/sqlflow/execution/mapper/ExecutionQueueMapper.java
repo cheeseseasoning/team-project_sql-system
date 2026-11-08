@@ -9,10 +9,19 @@ import com.sqlflow.execution.dto.ExecutionQueueSqlResponse;
 
 @Mapper
 public interface ExecutionQueueMapper {
-    boolean isActiveDbApprover(@Param("userId") Long userId);
-    long countReadyRequests(@Param("keyword") String keyword);
-    List<ExecutionQueueItemResponse> selectReadyRequests(@Param("keyword") String keyword,
-            @Param("offset") int offset, @Param("size") int size);
-    ExecutionQueueDetailResponse selectRequestDetail(@Param("requestId") Long requestId);
-    List<ExecutionQueueSqlResponse> selectRequestSqlItems(@Param("requestId") Long requestId);
+	boolean isActiveDbApprover(@Param("userId") Long userId);
+
+	long countReadyRequests(
+	        @Param("keyword") String keyword,
+	        @Param("deptId") Long deptId);
+
+	List<ExecutionQueueItemResponse> selectReadyRequests(
+	        @Param("keyword") String keyword,
+	        @Param("offset") int offset,
+	        @Param("size") int size,
+	        @Param("deptId") Long deptId);
+
+	ExecutionQueueDetailResponse selectRequestDetail(@Param("requestId") Long requestId);
+
+	List<ExecutionQueueSqlResponse> selectRequestSqlItems(@Param("requestId") Long requestId);
 }
