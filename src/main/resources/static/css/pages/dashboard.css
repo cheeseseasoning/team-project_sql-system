@@ -1,29 +1,41 @@
 /* ==================================================
-   1. 요청 현황 카드
+   1. 내 업무 현황
    ================================================== */
 
 #dashboard-counts {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 #dashboard-counts .request-count-card {
-    display: block;
-    padding: 18px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 108px;
+    padding: 16px 20px;
 }
 
-#dashboard-counts .request-count-card:hover {
+#dashboard-counts .request-count-card:nth-child(even) {
+    border-left: 1px solid var(--line);
+}
+
+#dashboard-counts .request-count-card:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+}
+
+#dashboard-counts .request-count-card:hover,
+#dashboard-counts .request-count-card:focus-visible {
     background: var(--tint);
     text-decoration: none;
 }
 
-#dashboard-counts strong {
+#dashboard-counts .request-count-card span {
+    color: var(--muted);
+}
+
+#dashboard-counts .request-count-card strong {
     display: block;
-    margin-top: 8px;
+    margin-top: 4px;
     font-size: 28px;
     color: var(--accent);
 }
@@ -81,4 +93,264 @@
     .shortcuts > a {
         padding: 18px 8px;
     }
+}
+
+/* 대시보드 본문은 왼쪽 업무 영역과 오른쪽 일정·공지 영역으로 배치한다. */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr);
+    gap: 16px;
+}
+
+/* Home의 네 패널은 같은 열 너비와 행 간격을 사용한다. */
+.home-heading {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.home-heading .home-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.home-title-icon {
+    display: grid;
+    flex: 0 0 34px;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: var(--tint);
+}
+
+.home-title-icon > img {
+    display: block;
+    width: 16px;
+    height: 16px;
+}
+
+.home-dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 12px;
+}
+
+.home-dashboard-grid > .panel {
+    min-width: 0;
+    margin: 0;
+    padding: 14px 16px;
+}
+
+.home-dashboard-grid > .panel > .panel-heading {
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.home-dashboard-grid > .panel:first-child {
+    display: flex;
+    flex-direction: column;
+}
+
+.home-dashboard-grid #dashboard-counts {
+    flex: 1;
+    grid-auto-rows: 1fr;
+}
+
+.home-dashboard-grid #dashboard-counts .request-count-card {
+    box-sizing: border-box;
+    min-height: 72px;
+    padding: 10px 16px;
+}
+
+.dashboard-calendar-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.dashboard-calendar-heading h2 {
+    margin: 0;
+}
+
+.dashboard-dept-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--tint);
+    color: var(--accent);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.home-dashboard-grid #dashboard-schedule-open {
+    min-height: 34px;
+    padding: 5px 10px;
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    .home-dashboard-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.dashboard-grid > .panel {
+    min-width: 0;
+    margin: 0;
+}
+
+.dashboard-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 공지 제목과 등록일을 한 줄에 정렬한다. */
+.dashboard-notice-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.home-dashboard-grid [aria-labelledby="dashboard-recent-title"] th,
+.home-dashboard-grid [aria-labelledby="dashboard-recent-title"] td {
+    padding-block: 6px;
+}
+
+.dashboard-notice-list > li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+    border-top: 1px solid var(--line);
+}
+
+.dashboard-notice-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dashboard-notice-list .caption {
+    flex-shrink: 0;
+}
+
+.dashboard-calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dashboard-calendar-nav > .button {
+    min-height: 26px;
+    padding: 2px 8px;
+}
+
+.dashboard-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+    text-align: center;
+}
+
+.dashboard-calendar > button {
+    position: relative;
+    min-height: 26px;
+    padding: 2px 0 6px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.dashboard-calendar > button:hover,
+.dashboard-calendar > button[aria-pressed="true"] {
+    background: var(--tint);
+    color: var(--accent);
+}
+
+.calendar-dot {
+    position: absolute;
+    bottom: 4px;
+    left: calc(50% - 2px);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+
+.dashboard-calendar-detail {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+}
+
+.dashboard-calendar-detail p,
+.dashboard-calendar-detail ul {
+    margin: 6px 0 0;
+}
+
+.dashboard-calendar-detail ul {
+    padding: 0;
+    list-style: none;
+}
+
+.dashboard-calendar-detail li + li {
+    margin-top: 4px;
+}
+
+.dashboard-calendar-month-nav {
+    justify-content: center;
+    margin-bottom: 6px;
+}
+
+.dashboard-schedule-dialog {
+    width: min(420px, calc(100% - 32px));
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+}
+
+.dashboard-schedule-dialog::backdrop {
+    background: rgb(0 0 0 / 32%);
+}
+
+.dashboard-schedule-dialog form,
+.dashboard-schedule-dialog label {
+    display: grid;
+    gap: 8px;
+}
+
+.dashboard-schedule-dialog form {
+    gap: 14px;
+}
+
+.dashboard-schedule-dialog h2,
+#dashboard-schedule-error {
+    margin: 0;
+}
+
+#dashboard-schedule-error:empty {
+    display: none;
+}
+
+#dashboard-schedule-error {
+    color: #9f2929;
+}
+
+.dashboard-schedule-dialog .dashboard-actions {
+    justify-content: flex-end;
 }

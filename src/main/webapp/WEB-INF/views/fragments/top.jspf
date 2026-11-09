@@ -81,7 +81,7 @@
                    href="${pageContext.request.contextPath}/"
                    ${activeMenu == 'home' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/House.svg" alt="">
-                    업무 현황
+                    HOME
                 </a>
 
                 <a class="nav-item ${activeMenu == 'my-page' ? 'active' : ''}"
@@ -236,11 +236,13 @@
             </header>
 
             <main class="main">
-                <div class="demo-strip">
-                    <span>개발 환경</span>
-                    로그인 계정 기준으로 요청과 결재 권한을 확인합니다.
-                </div>
-
+				<c:if test="${page ne 'home'}">
+				    <div class="demo-strip">
+				        <span>개발 환경</span>
+				        로그인 계정 기준으로 요청과 결재 권한을 확인합니다.
+				    </div>
+				</c:if>
+				
                 <div id="page-message" class="message" role="status" hidden></div>
 
                 <script>

@@ -78,7 +78,7 @@ public class PageController {
 
     @GetMapping("/")
     public String home(Model model) {
-        return view(model, "home", "업무 현황");
+        return view(model, "home", "Home");
     }
 
     @GetMapping("/my-page")
