@@ -169,15 +169,6 @@
                     <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
                     계정 목록
                 </a>
-
-                <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
-                    <a class="nav-item ${activeMenu == 'admin-users' ? 'active' : ''}"
-                       href="${pageContext.request.contextPath}/admin/users/new"
-                       ${activeMenu == 'admin-users' ? 'aria-current="page"' : ''}>
-                        <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
-                        관리자 페이지
-                    </a>
-                </c:if>
             </nav>
 
             <div class="sidebar-foot">

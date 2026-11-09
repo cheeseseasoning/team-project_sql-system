@@ -4,12 +4,12 @@
 <style>
     .account-list-table {
         width: 100%;
-        min-width: 960px;
+        min-width: 900px;
         table-layout: fixed;
     }
 
     .account-list-table col.account-login-column {
-        width: 16%;
+        width: 18%;
     }
 
     .account-list-table col.account-name-column {
@@ -29,7 +29,7 @@
     }
 
     .account-list-table col.account-status-column {
-        width: 14%;
+        width: 12%;
     }
 
     .account-list-table th,
@@ -74,7 +74,7 @@
 
     @media (max-width: 700px) {
         .account-list-table {
-            min-width: 900px;
+            min-width: 850px;
         }
     }
 </style>
@@ -86,8 +86,9 @@
     </div>
 
     <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
-        <a class="button primary"
-           href="${pageContext.request.contextPath}/admin/users/new">
+        <a
+            class="button primary"
+            href="${pageContext.request.contextPath}/admin/users/new">
             계정 생성
         </a>
     </c:if>
@@ -109,7 +110,9 @@
                 <col class="account-department-column">
                 <col class="account-position-column">
                 <col class="account-role-column">
-                <col class="account-status-column">
+                <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
+                    <col class="account-status-column">
+                </c:if>
             </colgroup>
 
             <thead>
@@ -119,43 +122,54 @@
                     <th scope="col">부서</th>
                     <th scope="col">직급</th>
                     <th scope="col">역할</th>
-                    <th scope="col">계정 상태</th>
+                    <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
+                        <th scope="col">계정 상태</th>
+                    </c:if>
                 </tr>
             </thead>
 
             <tbody id="account-rows" aria-busy="true">
                 <tr>
-                    <td colspan="6" class="empty">계정 목록을 불러오는 중입니다.</td>
+                    <td
+                        colspan="${pageContext.request.isUserInRole('SYSTEM_ADMIN') ? 6 : 5}"
+                        class="empty">
+                        계정 목록을 불러오는 중입니다.
+                    </td>
                 </tr>
             </tbody>
         </table>
     </div>
 
-    <nav id="account-pagination"
-         class="account-pagination"
-         aria-label="계정 목록 페이지 이동"
-         hidden>
-        <button id="account-previous-page"
-                class="button"
-                type="button">
+    <nav
+        id="account-pagination"
+        class="account-pagination"
+        aria-label="계정 목록 페이지 이동"
+        hidden>
+        <button
+            id="account-previous-page"
+            class="button"
+            type="button">
             이전
         </button>
 
-        <span id="account-page-status"
-              class="account-page-status caption"
-              aria-live="polite"></span>
+        <span
+            id="account-page-status"
+            class="account-page-status caption"
+            aria-live="polite"></span>
 
-        <button id="account-next-page"
-                class="button"
-                type="button">
+        <button
+            id="account-next-page"
+            class="button"
+            type="button">
             다음
         </button>
     </nav>
 
-    <p id="account-list-message"
-       class="caption"
-       role="status"
-       aria-live="polite"></p>
+    <p
+        id="account-list-message"
+        class="caption"
+        role="status"
+        aria-live="polite"></p>
 </section>
 
 <script>
@@ -171,7 +185,16 @@
     const isSystemAdmin =
         ${pageContext.request.isUserInRole('SYSTEM_ADMIN')};
 
+    const columnCount = isSystemAdmin ? 6 : 5;
     const pageSize = 10;
+
+    const roleLabels = {
+        SYSTEM_ADMIN: "시스템 관리자",
+        DB_ADMIN: "DB 관리자",
+        DB_APPROVER: "DB 결재자",
+        SENSITIVE_DATA_READER: "민감 데이터 조회자"
+    };
+
     let currentPage = 1;
     let totalPages = 0;
     let isLoading = false;
@@ -180,9 +203,10 @@
         const row = document.createElement("tr");
         const cell = document.createElement("td");
 
-        cell.colSpan = 6;
+        cell.colSpan = columnCount;
         cell.className = "empty";
         cell.textContent = text;
+
         row.appendChild(cell);
         rowsElement.replaceChildren(row);
     }
@@ -211,7 +235,7 @@
         roles.forEach(role => {
             const roleItem = document.createElement("span");
             roleItem.className = "account-role-item";
-            roleItem.textContent = role;
+            roleItem.textContent = roleLabels[role] || role;
             roleList.appendChild(roleItem);
         });
 
@@ -249,14 +273,19 @@
                 createRoleCell(account.roleNames)
             );
 
-            const statusCell = document.createElement("td");
-            const badge = document.createElement("span");
-            const enabled = account.enabled === "Y";
+            if (isSystemAdmin) {
+                const statusCell = document.createElement("td");
+                const badge = document.createElement("span");
+                const enabled = account.enabled === "Y";
 
-            badge.className = enabled ? "badge success" : "badge neutral";
-            badge.textContent = enabled ? "활성" : "비활성";
-            statusCell.appendChild(badge);
-            row.appendChild(statusCell);
+                badge.className = enabled
+                    ? "badge success"
+                    : "badge neutral";
+                badge.textContent = enabled ? "활성" : "비활성";
+
+                statusCell.appendChild(badge);
+                row.appendChild(statusCell);
+            }
 
             fragment.appendChild(row);
         });
@@ -268,16 +297,20 @@
         totalPages = response.totalPages || 0;
         currentPage = response.page || 1;
 
-        countElement.textContent = "총 " + response.totalCount + "명";
+        countElement.textContent =
+            "총 " + response.totalCount + "명";
 
         if (totalPages <= 1) {
             paginationElement.hidden = true;
+            pageStatusElement.textContent =
+                totalPages === 0 ? "0 페이지" : "1 / 1 페이지";
             return;
         }
 
         paginationElement.hidden = false;
         previousButton.disabled = currentPage <= 1;
         nextButton.disabled = currentPage >= totalPages;
+
         pageStatusElement.textContent =
             currentPage + " / " + totalPages + " 페이지";
     }
