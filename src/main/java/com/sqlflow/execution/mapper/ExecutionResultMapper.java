@@ -13,13 +13,17 @@ import com.sqlflow.execution.dto.ExecutionResultListResponse;
 @Mapper
 public interface ExecutionResultMapper {
 
-    long countMyLatestResults(
-            @Param("drafterId") Long drafterId);
+	long countMyLatestResults(
+            @Param("drafterId") Long drafterId,
+            @Param("keyword") String keyword,
+            @Param("status") String status);
 
     List<ExecutionResultListResponse> selectMyLatestResults(
             @Param("drafterId") Long drafterId,
             @Param("offset") long offset,
-            @Param("size") int size);
+            @Param("size") int size,
+            @Param("keyword") String keyword,
+            @Param("status") String status);
     
     ExecutionResultDetailResponse selectMyResultDetail(
             @Param("executionId") Long executionId,
@@ -33,4 +37,5 @@ public interface ExecutionResultMapper {
             @Param("queryId") Long queryId);
     
     boolean isActiveDbTeamMember(@Param("actorId") Long actorId);
+    
 }

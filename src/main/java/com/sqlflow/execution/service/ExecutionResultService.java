@@ -25,13 +25,14 @@ public class ExecutionResultService {
     private final ExecutionResultAccessService executionResultAccessService;
 
     @Transactional(
-        transactionManager = "managementTransactionManager",
-        readOnly = true
-    )
+            transactionManager = "managementTransactionManager",
+            readOnly = true)
     public ExecutionResultPageResponse getMyResults(
             Long drafterId,
             int page,
-            int size) {
+            int size,
+            String keyword,
+            String status) {
 
         if (drafterId == null || drafterId <= 0) {
             throw new ResponseStatusException(
@@ -51,8 +52,27 @@ public class ExecutionResultService {
                     "페이지 크기는 1~100 사이여야 합니다.");
         }
 
-        long totalCount =
-                executionResultMapper.countMyLatestResults(drafterId);
+        String searchKeyword = keyword == null ? "" : keyword.strip();
+        String searchStatus = status == null ? "" : status.strip();
+
+        if (searchKeyword.length() > 120) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "검색어는 120자 이하여야 합니다.");
+        }
+
+        if (!searchStatus.isEmpty()
+                && !"SUCCESS".equals(searchStatus)
+                && !"FAILED".equals(searchStatus)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "올바르지 않은 실행 상태입니다.");
+        }
+
+        long totalCount = executionResultMapper.countMyLatestResults(
+                drafterId,
+                searchKeyword,
+                searchStatus);
 
         long totalPages =
                 totalCount / size + (totalCount % size == 0 ? 0 : 1);
@@ -65,7 +85,9 @@ public class ExecutionResultService {
                         : executionResultMapper.selectMyLatestResults(
                                 drafterId,
                                 offset,
-                                size);
+                                size,
+                                searchKeyword,
+                                searchStatus);
 
         return new ExecutionResultPageResponse(
                 items,

@@ -33,7 +33,8 @@
                or page == 'requests'
                or page == 'department-requests'
                or page == 'department-request-detail'
-               or page == 'view-create-request-form'}">
+               or page == 'view-create-request-form'
+               or page == 'execution-results'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/request.css?v=20261029-view-history">
     </c:if>
@@ -214,8 +215,12 @@
                         <i></i>
                     </a>
 
-                    <a class="help-link"
-                       href="${pageContext.request.contextPath}/notices?id=guide">도움말</a>
+                    <button id="help-button"
+					        class="help-link"
+					        type="button"
+					        popovertarget="help-popover">
+					    도움말
+					</button>
 
                     <div class="header-user">
                         <span class="avatar small">

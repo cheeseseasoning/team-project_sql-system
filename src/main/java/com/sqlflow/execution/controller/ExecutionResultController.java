@@ -35,17 +35,21 @@ public class ExecutionResultController {
 	private final ExecutionResultService executionResultService;
 	private final ExecutionResultDeliveryService executionResultDeliveryService;
 	
-    @GetMapping("/mine")
-    public ExecutionResultPageResponse getMyResults(
-            @AuthenticationPrincipal SqlFlowUserDetails user,
-            @RequestParam(name = "page", defaultValue = "1") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size) {
+	@GetMapping("/mine")
+	public ExecutionResultPageResponse getMyResults(
+	        @AuthenticationPrincipal SqlFlowUserDetails user,
+	        @RequestParam(name = "page", defaultValue = "1") int page,
+	        @RequestParam(name = "size", defaultValue = "10") int size,
+	        @RequestParam(name = "keyword", defaultValue = "") String keyword,
+	        @RequestParam(name = "status", defaultValue = "") String status) {
 
-        return executionResultService.getMyResults(
-                user == null ? null : user.getUserId(),
-                page,
-                size);
-    }
+	    return executionResultService.getMyResults(
+	            user == null ? null : user.getUserId(),
+	            page,
+	            size,
+	            keyword,
+	            status);
+	}
     
     @GetMapping("/mine/{executionId}")
     public ExecutionResultDetailResponse getMyResultDetail(

@@ -80,14 +80,30 @@
         <include refid="resultHistoryEligibility"/>
     </sql>
 
+	<!-- SQL별 최신 실행을 선택한 뒤 적용하는 검색 조건 -->
+	<sql id="latestResultSearchConditions">
+	    <if test="keyword != null and keyword != ''">
+	        AND (
+	            INSTR(UPPER(E.REQUEST_NO), UPPER(#{keyword})) &gt; 0
+	            OR INSTR(UPPER(E.REQUEST_TITLE), UPPER(#{keyword})) &gt; 0
+	            OR INSTR(UPPER(E.QUERY_TITLE), UPPER(#{keyword})) &gt; 0
+	        )
+	    </if>
+	
+	    <if test="status != null and status != ''">
+	        AND E.STATUS = #{status}
+	    </if>
+	</sql>
+	
     <!-- SQL item별 최신 실행 건수 -->
     <select id="countMyLatestResults" resultType="long">
-        SELECT COUNT(*)
-        FROM (
-            <include refid="myRankedExecutions"/>
-        ) E
-        WHERE E.LATEST_RANK = 1
-    </select>
+	    SELECT COUNT(*)
+	    FROM (
+	        <include refid="myRankedExecutions"/>
+	    ) E
+	    WHERE E.LATEST_RANK = 1
+	    <include refid="latestResultSearchConditions"/>
+	</select>
 
     <!-- 결과 파일이 없어도 실행 이력은 목록에 표시 -->
     <select id="selectMyLatestResults"
@@ -120,6 +136,7 @@
           ON F.EXECUTION_ID = E.EXECUTION_ID
          AND F.RESULT_RANK = 1
         WHERE E.LATEST_RANK = 1
+        <include refid="latestResultSearchConditions"/>
 		ORDER BY E.EXECUTION_ID DESC
 		OFFSET #{offset} ROWS
 		FETCH NEXT #{size} ROWS ONLY
@@ -235,5 +252,7 @@
           ON D.RESOURCE_ID = U.RESOURCE_ID
         WHERE U.QUERY_ID = #{queryId}
     </select>
+    
+    
 
 </mapper>

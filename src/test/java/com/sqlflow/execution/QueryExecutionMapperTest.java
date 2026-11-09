@@ -223,7 +223,7 @@ class QueryExecutionMapperTest {
         assertEquals(1, queryResultMapper.insertResult(result));
 
         var rows = executionResultMapper.selectMyLatestResults(
-                userId, 0L, 100);
+                userId, 0L, 100, "", "");
 
         assertTrue(rows.stream().anyMatch(row ->
                 execution.getExecutionId().equals(row.getExecutionId())
@@ -277,7 +277,7 @@ class QueryExecutionMapperTest {
         queryExecutionMapper.insertExecution(execution);
 
         var rows = executionResultMapper.selectMyLatestResults(
-                userId, 0L, 100);
+                userId, 0L, 100, "", "");
 
         var queryRows = rows.stream()
                 .filter(row -> queryId.equals(row.getQueryId()))

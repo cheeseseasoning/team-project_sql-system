@@ -6,5 +6,120 @@
 				</footer>
 			</div>
 		</div>
+		<aside id="help-popover"
+		       class="help-popover"
+		       popover="auto"
+		       aria-labelledby="help-popover-title">
+		
+		    <div class="help-popover-heading">
+		        <h2 id="help-popover-title">SQLFlow 이용 안내</h2>
+		
+		        <button class="help-popover-close"
+		                type="button"
+		                popovertarget="help-popover"
+		                popovertargetaction="hide"
+		                aria-label="도움말 닫기">
+		            <span aria-hidden="true">×</span>
+		        </button>
+		    </div>
+		
+		    <div class="help-popover-body">
+			    <section>
+			        <h3>① 요청 작성</h3>
+			        <p>목적과 SQL을 입력하고 초안을 저장하세요.</p>
+			    </section>
+			
+			    <section>
+			        <h3>② 검증·제출</h3>
+			        <p>SQL을 검증하고 결재자를 지정해 제출하세요.</p>
+			    </section>
+				
+				<section>
+			        <h3>③ 승인·반려</h3>
+			        <p>결재자는 결재 요청을 검토하고 승인하거나 반려합니다.</p>
+			    </section>
+				
+			    <section>
+			        <h3>④ 실행</h3>
+			        <p>최종 승인 후 DB팀 실행 담당자가 SQL을 실행합니다.</p>
+			    </section>
+			
+			    <section>
+			        <h3>⑤ 결과 확인</h3>
+			        <p>실행 결과에서 상태와 조회 데이터를 확인하세요.</p>
+			    </section>
+			  	
+			</div>
+		</aside>
+		
+		<script>
+		(() => {
+		    const button = document.getElementById('help-button');
+		    const popover = document.getElementById('help-popover');
+		
+		    if (!button || !popover) {
+		        return;
+		    }
+		
+		    function positionHelp() {
+		        const rect = button.getBoundingClientRect();
+		        const margin = 12;
+		        const width = Math.min(360, window.innerWidth - margin * 2);
+		
+		        const left = Math.max(
+		            margin,
+		            Math.min(
+		                rect.right - width,
+		                window.innerWidth - width - margin
+		            )
+		        );
+		
+		        const top = rect.bottom + 12;
+		        const arrowLeft = Math.max(
+		            20,
+		            Math.min(
+		                rect.left + rect.width / 2 - left,
+		                width - 20
+		            )
+		        );
+		
+		        popover.style.left = left + 'px';
+		        popover.style.top = top + 'px';
+		
+		        popover.style.setProperty(
+		            '--help-arrow-left',
+		            arrowLeft + 'px'
+		        );
+		
+		        popover.style.setProperty(
+		            '--help-max-height',
+		            Math.max(0, window.innerHeight - top - margin) + 'px'
+		        );
+		    }
+		
+		    popover.addEventListener('beforetoggle', function (event) {
+		        if (event.newState === 'open') {
+		            positionHelp();
+		        }
+		    });
+		
+		    window.addEventListener('resize', function () {
+		        if (popover.matches(':popover-open')) {
+		            positionHelp();
+		        }
+		    });
+		
+		    // 페이지를 스크롤하면 닫고, 도움말 내부 스크롤은 유지한다.
+		    window.addEventListener('scroll', function (event) {
+		        if (popover.contains(event.target)) {
+		            return;
+		        }
+		
+		        if (popover.matches(':popover-open')) {
+		            popover.hidePopover();
+		        }
+		    }, true);
+		})();
+		</script>
 	</body>
 </html>

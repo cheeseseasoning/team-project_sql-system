@@ -378,7 +378,6 @@ html {
         padding: 14px 18px;
     }
 
-    .help-link,
     .header-user {
         display: none;
     }
@@ -470,4 +469,175 @@ html {
     .footer span {
         display: none;
     }
+}
+
+/* ==================================================
+   새로 고침 버튼
+================================================== */
+
+.refresh-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 10px;
+}
+
+.refresh-button img {
+    width: 20px;
+    height: 20px;
+    transition: transform 180ms ease;
+}
+
+.refresh-button:hover:not(:disabled) img {
+    transform: rotate(30deg);
+}
+
+.refresh-button:disabled {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .refresh-button img {
+        transition: none;
+    }
+
+    .refresh-button:hover:not(:disabled) img {
+        transform: none;
+    }
+}
+
+/* 도움말 버튼 */
+button.help-link {
+    padding: 6px 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+button.help-link:hover {
+    color: var(--accent);
+}
+
+button.help-link:focus-visible,
+.help-popover-close:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+}
+
+/* 말풍선 도움말 */
+.help-popover {
+    position: fixed;
+    inset: auto;
+    width: min(360px, calc(100vw - 24px));
+    max-height: var(--help-max-height, calc(100dvh - 100px));
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 12px 36px rgb(25 45 65 / 16%);
+    white-space: normal;
+}
+
+.help-popover:popover-open {
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* 도움말 버튼을 가리키는 꼬리 */
+.help-popover::before {
+    content: "";
+    position: absolute;
+    top: -7px;
+    left: var(--help-arrow-left, 50%);
+    width: 12px;
+    height: 12px;
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    transform: translateX(-50%) rotate(45deg);
+}
+
+.help-popover-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px 12px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.help-popover-heading h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.help-popover-close {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.help-popover-close:hover {
+    background: var(--soft);
+    color: var(--text);
+}
+
+.help-popover-body {
+    min-height: 0;
+    padding: 16px 20px;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    overscroll-behavior: contain;
+    text-align: left;
+    word-break: keep-all;
+}
+
+.help-popover-body section + section {
+    margin-top: 14px;
+}
+
+.help-popover-body h3 {
+    margin: 0 0 6px;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.help-popover-body p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.help-popover-body p + p {
+    margin-top: 4px;
+}
+
+.help-popover-body strong {
+    color: var(--text);
+    font-weight: 600;
 }

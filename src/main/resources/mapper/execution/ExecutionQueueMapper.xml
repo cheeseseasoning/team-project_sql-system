@@ -10,13 +10,22 @@
 		) THEN 1 ELSE 0 END FROM DUAL
 	</select>
 	
-	<sql id="readyWhere"> WHERE R.REQUEST_TYPE='SELECT' AND
-		R.APPROVAL_STATUS='APPROVED' AND R.REQUEST_STATUS IN ('READY','RUNNING') <if
-			test="keyword != null and keyword != ''">
-			AND (INSTR(UPPER(R.REQUEST_NO), UPPER(#{keyword})) &gt; 0
-			OR INSTR(UPPER(R.TITLE), UPPER(#{keyword})) &gt; 0
-			OR INSTR(UPPER(U.USER_NAME), UPPER(#{keyword})) &gt; 0)
-		</if>
+	<sql id="readyWhere">
+	    WHERE R.REQUEST_TYPE = 'SELECT'
+	      AND R.APPROVAL_STATUS = 'APPROVED'
+	      AND R.REQUEST_STATUS IN ('READY', 'RUNNING')
+	
+	    <if test="deptId != null">
+	        AND R.DEPT_ID = #{deptId}
+	    </if>
+	
+	    <if test="keyword != null and keyword != ''">
+	        AND (
+	            INSTR(UPPER(R.REQUEST_NO), UPPER(#{keyword})) &gt; 0
+	            OR INSTR(UPPER(R.TITLE), UPPER(#{keyword})) &gt; 0
+	            OR INSTR(UPPER(U.USER_NAME), UPPER(#{keyword})) &gt; 0
+	        )
+	    </if>
 	</sql>
 	
 	<select id="countReadyRequests" resultType="long"> SELECT COUNT(*) FROM

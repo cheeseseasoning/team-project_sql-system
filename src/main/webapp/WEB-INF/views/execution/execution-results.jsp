@@ -9,15 +9,36 @@
 </div>
 
 <section class="panel">
-    <div class="panel-heading">
-        <div>
-            <h2>SQL 실행 목록</h2>
-            <p class="caption">
-                열람 가능한 요청의 SQL별 최신 실행 결과를 표시합니다.
-            </p>
-        </div>
-        <span id="execution-count" class="caption" aria-live="polite"></span>
-    </div>
+	<form id="execution-filter-form" class="filter-bar">
+	    <label>
+	        결과 검색
+	        <input id="execution-keyword"
+	               name="keyword"
+	               placeholder="기안서 번호 또는 제목"
+	               maxlength="120">
+	    </label>
+
+	    <label>
+	        처리 상태
+	        <select id="execution-status" name="status">
+	            <option value="">전체</option>
+	            <option value="SUCCESS">성공</option>
+	            <option value="FAILED">실패</option>
+	        </select>
+	    </label>
+
+	    <button class="button primary" type="submit">검색</button>
+	    <button id="execution-clear-filter"
+	            class="button"
+	            type="button">초기화</button>
+	</form>
+
+	<div class="panel-heading">
+	    <h2>SQL 실행 목록</h2>
+	    <span id="execution-count"
+	          class="caption"
+	          aria-live="polite"></span>
+	</div>
 
     <div class="table-scroll">
         <table>
@@ -61,6 +82,11 @@
     let executionListVersion = 0;
     let executionCurrentPage = 1;
     const executionPageSize = 10;
+	
+	let executionActiveFilters = {
+	    keyword: '',
+	    status: ''
+	};
 
     function formatExecutionDate(value) {
         return value
@@ -139,10 +165,12 @@
         showExecutionListMessage('실행 목록을 불러오는 중입니다.');
 
         try {
-            const params = new URLSearchParams({
-                page: String(page),
-                size: String(executionPageSize)
-            });
+			const params = new URLSearchParams({
+			    page: String(page),
+			    size: String(executionPageSize),
+			    keyword: executionActiveFilters.keyword,
+			    status: executionActiveFilters.status
+			});
 
             const data = await api(
                 '/execution-results/mine?' + params.toString()
@@ -164,12 +192,20 @@
 
             executionCurrentPage = data.totalPages === 0 ? 1 : data.page;
 
-            if (data.items.length > 0) {
-                $('#execution-rows').innerHTML =
-                    renderExecutionRows(data.items);
-            } else {
-                showExecutionListMessage('실행 이력이 없습니다.');
-            }
+			if (data.items.length > 0) {
+			    $('#execution-rows').innerHTML =
+			        renderExecutionRows(data.items);
+			} else {
+			    const filtered =
+			        executionActiveFilters.keyword !== ''
+			        || executionActiveFilters.status !== '';
+
+			    showExecutionListMessage(
+			        filtered
+			            ? '검색 조건에 맞는 실행 결과가 없습니다.'
+			            : '실행 이력이 없습니다.'
+			    );
+			}
 
             $('#execution-count').textContent =
                 '총 ' + data.totalCount + '건';
@@ -201,6 +237,28 @@
             }
         }
     }
+	
+	$('#execution-filter-form').addEventListener('submit', function (event) {
+	    event.preventDefault();
+
+	    executionActiveFilters = {
+	        keyword: $('#execution-keyword').value.trim(),
+	        status: $('#execution-status').value
+	    };
+
+	    loadExecutionResults(1);
+	});
+
+	$('#execution-clear-filter').addEventListener('click', function () {
+	    $('#execution-filter-form').reset();
+
+	    executionActiveFilters = {
+	        keyword: '',
+	        status: ''
+	    };
+
+	    loadExecutionResults(1);
+	});
 
     $('#execution-refresh').addEventListener('click', function () {
         loadExecutionResults(executionCurrentPage);
