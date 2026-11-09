@@ -35,7 +35,7 @@ public record DmlDraftRequest(
 ) {
     /** SQL 항목은 배열 순서대로 저장한다. */
     public record SqlEntry(
-            @Size(max = 200)
+            @NotBlank(message = "SQL 제목을 입력하세요.") @Size(max = 200)
             String queryTitle,
 
             @NotBlank @Size(max = 20000)
