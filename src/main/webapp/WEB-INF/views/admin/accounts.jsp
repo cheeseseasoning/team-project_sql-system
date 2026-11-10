@@ -2,22 +2,69 @@
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <style>
+    .account-list-page {
+        width: 100%;
+    }
+
+    .account-list-heading {
+        margin-bottom: 20px;
+    }
+
+    .account-list-heading h1 {
+        color: #263d4c;
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .account-list-heading p {
+        margin-top: 2px;
+        color: #607487;
+        font-size: 13px;
+    }
+
+    .account-list-heading .button {
+        min-width: 112px;
+    }
+
+    .account-list-panel {
+        padding: 24px 26px 18px;
+        border: 1px solid #cbd9e3;
+        border-radius: 7px;
+        background: #fff;
+    }
+
+    .account-list-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .account-count {
+        color: #607487;
+        font-size: 13px;
+        text-align: right;
+    }
+
     .account-list-table {
         width: 100%;
         min-width: 900px;
         table-layout: fixed;
+        border-collapse: collapse;
+        text-align: left;
     }
 
     .account-list-table col.account-login-column {
-        width: 18%;
+        width: 12%;
     }
 
     .account-list-table col.account-name-column {
-        width: 18%;
+        width: 12%;
     }
 
     .account-list-table col.account-department-column {
-        width: 14%;
+        width: 16%;
     }
 
     .account-list-table col.account-position-column {
@@ -25,11 +72,11 @@
     }
 
     .account-list-table col.account-role-column {
-        width: 28%;
+        width: 34%;
     }
 
     .account-list-table col.account-status-column {
-        width: 12%;
+        width: 16%;
     }
 
     .account-list-table th,
@@ -37,140 +84,265 @@
         overflow-wrap: anywhere;
     }
 
+    .account-list-table th {
+        padding: 13px 10px;
+        background: #edf3f6;
+        color: #425d70;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .account-list-table td {
+        height: 57px;
+        padding: 11px 10px;
+        border-bottom: 1px solid #cbd9e3;
+        color: #263d4c;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+
+    .account-login-link {
+        color: #263d4c;
+        font-size: 14px;
+    }
+
+    .account-login-link:hover {
+        color: #1e627f;
+    }
+
     .account-role-list {
         display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px 8px;
     }
 
     .account-role-item {
-        display: block;
-        max-width: 100%;
-        overflow-wrap: anywhere;
+        display: inline;
+        color: #263d4c;
+        font-size: 13px;
+    }
+
+    .account-role-item + .account-role-item::before {
+        content: "·";
+        margin-right: 8px;
+        color: #607487;
+    }
+
+    .account-status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 64px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        background: #e7f2ec;
+        color: #326446;
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .account-status-badge.is-disabled {
+        background: #f0f3f5;
+        color: #607487;
     }
 
     .account-pagination {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 16px;
-        margin-top: 24px;
+        gap: 12px;
+        margin-top: 18px;
     }
 
     .account-pagination[hidden] {
         display: none;
     }
 
-    .account-pagination button:disabled {
-        cursor: not-allowed;
-        opacity: 0.55;
+    .account-page-numbers {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
     }
 
-    .account-page-status {
-        min-width: 160px;
-        text-align: center;
+    .account-page-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 40px;
+        height: 40px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: #536c7e;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    .account-page-button:hover:not(:disabled):not(.is-current) {
+        background: #f1f4f6;
+    }
+
+    .account-page-button.is-current {
+        background: #e2f0f4;
+        color: #21627b;
+        font-weight: 700;
+    }
+
+    .account-page-button:disabled {
+        cursor: not-allowed;
+        color: #b9c2c9;
+    }
+
+    .account-page-button:focus-visible {
+        outline: 2px solid #276b84;
+        outline-offset: 2px;
+    }
+
+    .account-list-message {
+        margin-top: 10px;
     }
 
     @media (max-width: 700px) {
+        .account-list-heading {
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .account-list-heading h1 {
+            font-size: 21px;
+        }
+
+        .account-list-heading .button {
+            min-width: 94px;
+            padding-right: 10px;
+            padding-left: 10px;
+        }
+
+        .account-list-panel {
+            padding: 17px 14px 14px;
+        }
+
         .account-list-table {
             min-width: 850px;
+        }
+
+        .account-pagination {
+            gap: 6px;
+        }
+
+        .account-page-numbers {
+            gap: 2px;
+        }
+
+        .account-page-button {
+            min-width: 36px;
+            height: 38px;
+            padding: 0 6px;
         }
     }
 </style>
 
-<div class="page-heading">
-    <div>
-        <h1>계정 목록</h1>
-        <p class="caption">등록된 사용자 계정을 확인합니다.</p>
+<div class="account-list-page">
+    <div class="page-heading account-list-heading">
+        <div>
+            <h1>계정 목록</h1>
+            <p>사용자 계정과 부여된 역할을 확인합니다.</p>
+        </div>
+
+        <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
+            <a
+                class="button primary"
+                href="${pageContext.request.contextPath}/admin/users/new">
+                계정 생성
+            </a>
+        </c:if>
     </div>
 
-    <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
-        <a
-            class="button primary"
-            href="${pageContext.request.contextPath}/admin/users/new">
-            계정 생성
-        </a>
-    </c:if>
-</div>
+    <section class="panel account-list-panel" aria-labelledby="account-list-title">
+        <div class="account-list-toolbar">
+            <h2 id="account-list-title" class="sr-only">계정</h2>
+            <span id="account-count" class="account-count" aria-live="polite"></span>
+        </div>
 
-<section class="panel" aria-labelledby="account-list-title">
-    <div class="panel-heading">
-        <h2 id="account-list-title">계정</h2>
-        <span id="account-count" class="caption" aria-live="polite"></span>
-    </div>
+        <div class="table-scroll">
+            <table class="account-list-table">
+                <caption class="sr-only">사용자 계정 목록</caption>
 
-    <div class="table-scroll">
-        <table class="account-list-table">
-            <caption class="sr-only">사용자 계정 목록</caption>
-
-            <colgroup>
-                <col class="account-login-column">
-                <col class="account-name-column">
-                <col class="account-department-column">
-                <col class="account-position-column">
-                <col class="account-role-column">
-                <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
-                    <col class="account-status-column">
-                </c:if>
-            </colgroup>
-
-            <thead>
-                <tr>
-                    <th scope="col">로그인 ID</th>
-                    <th scope="col">이름</th>
-                    <th scope="col">부서</th>
-                    <th scope="col">직급</th>
-                    <th scope="col">역할</th>
+                <colgroup>
+                    <col class="account-login-column">
+                    <col class="account-name-column">
+                    <col class="account-department-column">
+                    <col class="account-position-column">
+                    <col class="account-role-column">
                     <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
-                        <th scope="col">계정 상태</th>
+                        <col class="account-status-column">
                     </c:if>
-                </tr>
-            </thead>
+                </colgroup>
 
-            <tbody id="account-rows" aria-busy="true">
-                <tr>
-                    <td
-                        colspan="${pageContext.request.isUserInRole('SYSTEM_ADMIN') ? 6 : 5}"
-                        class="empty">
-                        계정 목록을 불러오는 중입니다.
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+                <thead>
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">이름</th>
+                        <th scope="col">부서</th>
+                        <th scope="col">직급</th>
+                        <th scope="col">역할</th>
+                        <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
+                            <th scope="col">계정 상태</th>
+                        </c:if>
+                    </tr>
+                </thead>
 
-    <nav
-        id="account-pagination"
-        class="account-pagination"
-        aria-label="계정 목록 페이지 이동"
-        hidden>
-        <button
-            id="account-previous-page"
-            class="button"
-            type="button">
-            이전
-        </button>
+                <tbody id="account-rows" aria-busy="true">
+                    <tr>
+                        <td
+                            colspan="${pageContext.request.isUserInRole('SYSTEM_ADMIN') ? 6 : 5}"
+                            class="empty">
+                            계정 목록을 불러오는 중입니다.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
-        <span
-            id="account-page-status"
-            class="account-page-status caption"
-            aria-live="polite"></span>
+        <nav
+            id="account-pagination"
+            class="account-pagination"
+            aria-label="계정 목록 페이지 이동"
+            hidden>
+            <button
+                id="account-previous-page"
+                class="account-page-button"
+                type="button"
+                aria-label="이전 페이지">
+                ‹ 이전
+            </button>
 
-        <button
-            id="account-next-page"
-            class="button"
-            type="button">
-            다음
-        </button>
-    </nav>
+            <div
+                id="account-page-numbers"
+                class="account-page-numbers"
+                aria-label="페이지 번호"></div>
 
-    <p
-        id="account-list-message"
-        class="caption"
-        role="status"
-        aria-live="polite"></p>
-</section>
+            <button
+                id="account-next-page"
+                class="account-page-button"
+                type="button"
+                aria-label="다음 페이지">
+                다음 ›
+            </button>
+        </nav>
+
+        <p
+            id="account-list-message"
+            class="account-list-message caption"
+            role="status"
+            aria-live="polite"></p>
+    </section>
+</div>
 
 <script>
 (() => {
@@ -180,20 +352,14 @@
     const paginationElement = $("#account-pagination");
     const previousButton = $("#account-previous-page");
     const nextButton = $("#account-next-page");
-    const pageStatusElement = $("#account-page-status");
+    const pageNumbersElement = $("#account-page-numbers");
 
     const isSystemAdmin =
         ${pageContext.request.isUserInRole('SYSTEM_ADMIN')};
 
     const columnCount = isSystemAdmin ? 6 : 5;
     const pageSize = 10;
-
-    const roleLabels = {
-        SYSTEM_ADMIN: "시스템 관리자",
-        DB_ADMIN: "DB 관리자",
-        DB_APPROVER: "DB 결재자",
-        SENSITIVE_DATA_READER: "민감 데이터 조회자"
-    };
+    const pageBlockSize = 10;
 
     let currentPage = 1;
     let totalPages = 0;
@@ -235,7 +401,7 @@
         roles.forEach(role => {
             const roleItem = document.createElement("span");
             roleItem.className = "account-role-item";
-            roleItem.textContent = roleLabels[role] || role;
+            roleItem.textContent = role;
             roleList.appendChild(roleItem);
         });
 
@@ -257,6 +423,7 @@
 
             if (isSystemAdmin) {
                 const link = document.createElement("a");
+                link.className = "account-login-link";
                 link.href = BASE + "/admin/users/"
                     + encodeURIComponent(account.userId);
                 link.textContent = account.loginId || "-";
@@ -279,8 +446,8 @@
                 const enabled = account.enabled === "Y";
 
                 badge.className = enabled
-                    ? "badge success"
-                    : "badge neutral";
+                    ? "account-status-badge"
+                    : "account-status-badge is-disabled";
                 badge.textContent = enabled ? "활성" : "비활성";
 
                 statusCell.appendChild(badge);
@@ -293,26 +460,67 @@
         rowsElement.replaceChildren(fragment);
     }
 
-    function renderPagination(response) {
-        totalPages = response.totalPages || 0;
-        currentPage = response.page || 1;
+    function renderPageNumbers() {
+        pageNumbersElement.replaceChildren();
 
-        countElement.textContent =
-            "총 " + response.totalCount + "명";
-
-        if (totalPages <= 1) {
-            paginationElement.hidden = true;
-            pageStatusElement.textContent =
-                totalPages === 0 ? "0 페이지" : "1 / 1 페이지";
+        if (totalPages <= 0) {
             return;
         }
 
-        paginationElement.hidden = false;
+        const firstPageInBlock =
+            Math.floor((currentPage - 1) / pageBlockSize)
+            * pageBlockSize
+            + 1;
+
+        const lastPageInBlock = Math.min(
+            firstPageInBlock + pageBlockSize - 1,
+            totalPages
+        );
+
+        for (
+            let page = firstPageInBlock;
+            page <= lastPageInBlock;
+            page += 1
+        ) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "account-page-button";
+            button.textContent = String(page);
+            button.setAttribute("aria-label", page + "페이지");
+
+            if (page === currentPage) {
+                button.classList.add("is-current");
+                button.setAttribute("aria-current", "page");
+            }
+
+            button.addEventListener("click", () => {
+                if (page !== currentPage) {
+                    loadAccounts(page);
+                }
+            });
+
+            pageNumbersElement.appendChild(button);
+        }
+    }
+
+    function renderPagination(response) {
+        totalPages = Number(response.totalPages) || 0;
+        currentPage = Number(response.page) || 1;
+
+        countElement.textContent =
+            "총 " + (Number(response.totalCount) || 0) + "건";
+
+        paginationElement.hidden = totalPages === 0;
+
+        if (totalPages === 0) {
+            pageNumbersElement.replaceChildren();
+            return;
+        }
+
         previousButton.disabled = currentPage <= 1;
         nextButton.disabled = currentPage >= totalPages;
 
-        pageStatusElement.textContent =
-            currentPage + " / " + totalPages + " 페이지";
+        renderPageNumbers();
     }
 
     async function loadAccounts(page) {
@@ -339,6 +547,7 @@
         } catch (error) {
             countElement.textContent = "";
             paginationElement.hidden = true;
+            pageNumbersElement.replaceChildren();
             showTableMessage("계정 목록을 불러오지 못했습니다.");
             messageElement.textContent =
                 error.message || "잠시 후 다시 시도해 주세요.";

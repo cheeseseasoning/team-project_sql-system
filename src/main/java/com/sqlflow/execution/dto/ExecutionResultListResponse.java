@@ -17,6 +17,9 @@ public class ExecutionResultListResponse {
     private String requestNo;
     private String requestTitle;
     private String queryTitle;
+    
+    private String departmentName;
+    private String drafterName;
 
     private Long batchId;
     private String status;
@@ -24,5 +27,7 @@ public class ExecutionResultListResponse {
 
     private LocalDateTime requestedAt;
     private LocalDateTime startedAt;
+    private LocalDateTime resultCreatedAt;
+    
     private Long durationMs;
 }

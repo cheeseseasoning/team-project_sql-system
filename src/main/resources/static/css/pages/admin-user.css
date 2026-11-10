@@ -1,22 +1,568 @@
-.account-intro { color: var(--muted); margin: -4px 0 20px; }
-.account-notice { background: var(--banner); border: 1px solid var(--line); border-radius: 6px; padding: 14px 18px; margin-bottom: 20px; }
-#account-form { width: 100%; max-width: none; }
-.account-fields { margin: 20px 0 12px; }
-.account-fields label { display: flex; flex-direction: column; gap: 8px; }
-.account-label-text { display: block; }
-.account-fields select:disabled { background: var(--soft); color: var(--muted); opacity: 1; }
-.account-password-toggle { display: flex; align-items: center; gap: 8px; margin: 12px 0 8px; }
-#account-form input[type="checkbox"] { width: 17px; height: 17px; margin: 0; accent-color: var(--accent); flex-shrink: 0; }
-.account-roles { border: 0; border-top: 1px solid var(--line); padding: 24px 0 0; margin: 28px 0 0; min-width: 0; }
-.account-roles legend { font-size: 15px; font-weight: 600; padding: 0 12px 0 0; }
-.account-role-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
-.account-role { display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 18px; cursor: pointer; }
-.account-role:has(input:checked) { background: var(--tint); border-color: var(--accent); }
-.account-role span { display: grid; gap: 5px; min-width: 0; }
-.account-role code { color: var(--accent); font-size: 12px; overflow-wrap: anywhere; }
-.account-role small { color: var(--muted); font-weight: 400; }
-.account-roles > p + p { margin-top: 8px; }
-#account-form button:disabled { cursor: not-allowed; }
-.account-review { padding: 18px; margin-top: 20px; border: 1px solid var(--line); border-radius: 6px; background: var(--soft); overflow-wrap: anywhere; }
-.account-review p { margin-top: 10px; }
-@media (max-width: 760px) { .account-role-grid { grid-template-columns: 1fr; } #account-form .form-footer { align-items: stretch; flex-direction: column; } #account-form .form-footer > div { display: flex; flex-wrap: wrap; gap: 8px; } }
+/* 계정 생성 */
+
+.account-create-page {
+    width: 100%;
+}
+
+.account-create-heading {
+    max-width: 1045px;
+    margin-bottom: 20px;
+}
+
+.account-create-heading h1 {
+    margin: 0;
+    color: #263d4c;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.account-create-heading p {
+    margin: 4px 0 0;
+    color: #607487;
+    font-size: 13px;
+}
+
+.account-create-form {
+    display: grid;
+    justify-items: start;
+    gap: 18px;
+    width: 100%;
+    max-width: 1045px;
+}
+
+.account-create-panel {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 18px;
+    border: 1px solid #cbd9e3;
+    border-radius: 7px;
+    background: #fff;
+}
+
+.account-create-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.account-create-section-heading h2 {
+    margin: 0;
+    color: #263d4c;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.account-create-section-heading .caption {
+    margin: 0;
+    color: #607487;
+    white-space: nowrap;
+}
+
+.account-create-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 18px;
+}
+
+.account-create-field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.account-create-label {
+    color: #263d4c;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.account-create-label .required,
+.account-create-section-heading .required {
+    color: #a33c3c;
+}
+
+.account-create-field input,
+.account-create-field select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    margin: 0;
+    padding: 9px 12px;
+    border: 1px solid #cbd9e3;
+    border-radius: 6px;
+    background: #fff;
+    color: #263d4c;
+    font: inherit;
+}
+
+.account-create-field input::placeholder {
+    color: #81909c;
+}
+
+.account-create-field input:focus,
+.account-create-field select:focus {
+    border-color: #1e627f;
+    outline: 2px solid rgb(30 98 127 / 14%);
+}
+
+.account-create-field select:disabled {
+    background: #f2f6f8;
+    color: #607487;
+    opacity: 1;
+}
+
+.account-create-field small {
+    color: #607487;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.account-create-help {
+    margin: 10px 0 0;
+    color: #607487;
+    font-size: 12px;
+}
+
+#organization-help {
+	margin-bottom: 12px;
+}
+
+.account-create-password-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    color: #263d4c;
+    font-size: 13px;
+}
+
+.account-create-password-toggle input {
+    width: 17px;
+    height: 17px;
+    margin: 0;
+    accent-color: #1e627f;
+    flex: 0 0 auto;
+}
+
+.account-create-roles {
+    padding-bottom: 18px;
+}
+
+.account-create-role-add {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 112px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.account-create-role-add select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    margin: 0;
+    padding: 9px 12px;
+    border: 1px solid #cbd9e3;
+    border-radius: 6px;
+    background: #fff;
+    color: #607487;
+    font: inherit;
+}
+
+.account-create-role-add select:focus {
+    border-color: #1e627f;
+    outline: 2px solid rgb(30 98 127 / 14%);
+}
+
+.account-create-role-add .button {
+    min-height: 42px;
+    padding: 9px 12px;
+    white-space: nowrap;
+}
+
+.account-create-form button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.account-create-role-list {
+    display: grid;
+    gap: 8px;
+}
+
+.account-create-role-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 42px;
+    padding: 8px 10px;
+    background: #f2f6f8;
+}
+
+.account-create-role-name {
+    min-width: 0;
+    color: #263d4c;
+    font-size: 14px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.account-create-role-remove {
+    flex: 0 0 auto;
+    padding: 4px 6px;
+    border: 0;
+    background: transparent;
+    color: #607487;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.account-create-role-remove:hover {
+    color: #1e627f;
+    text-decoration: underline;
+}
+
+.account-create-role-empty {
+    margin: 0;
+    padding: 12px 10px;
+    background: #f2f6f8;
+    color: #607487;
+    font-size: 13px;
+}
+
+.account-create-role-note {
+    margin: 12px 0 0;
+    color: #607487;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.account-create-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    width: 100%;
+}
+
+.account-create-actions .button {
+    min-height: 42px;
+    padding: 9px 16px;
+    white-space: nowrap;
+}
+
+/* 계정 상세 */
+
+.account-detail-page {
+    width: 100%;
+}
+
+.account-detail-heading {
+    max-width: 1045px;
+    margin-bottom: 18px;
+}
+
+.account-detail-heading h1 {
+    color: #263d4c;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.account-detail-heading .caption {
+    margin-top: 2px;
+    color: #607487;
+    font-size: 13px;
+}
+
+.account-detail-form {
+    display: grid;
+    justify-items: start;
+    gap: 18px;
+    width: 100%;
+    max-width: 1045px;
+}
+
+.account-info-panel,
+.account-role-panel {
+    width: 100%;
+    margin: 0;
+    padding: 18px;
+    border: 1px solid #cbd9e3;
+    border-radius: 7px;
+    background: #fff;
+}
+
+.account-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.account-section-heading h2 {
+    color: #263d4c;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.account-section-heading .button {
+    min-height: 42px;
+    padding: 9px 16px;
+    border-color: #cbd9e3;
+    color: #1e627f;
+    font-weight: 600;
+}
+
+.account-info-list {
+    display: grid;
+    gap: 10px;
+    max-width: 630px;
+}
+
+.account-info-row {
+    display: grid;
+    grid-template-columns: 185px minmax(0, 1fr);
+    align-items: stretch;
+    min-height: 36px;
+}
+
+.account-info-label {
+    display: flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 7px 10px;
+    background: #edf3f6;
+    color: #263d4c;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.account-info-value {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 36px;
+    margin: 0;
+    padding: 6px 8px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: #263d4c;
+    font-size: 14px;
+}
+
+.account-info-value[readonly] {
+    cursor: default;
+}
+
+select.account-info-value {
+    appearance: none;
+    background-image: none;
+    cursor: pointer;
+}
+
+.account-info-value:hover:not([readonly]) {
+    border-color: #d6e0e7;
+}
+
+.account-info-value:focus-visible {
+    border-color: var(--accent);
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.account-role-panel {
+    padding-bottom: 20px;
+}
+
+.account-role-panel .account-section-heading {
+    margin-bottom: 12px;
+}
+
+.account-role-add {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 112px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.account-role-add select {
+    min-height: 42px;
+    margin: 0;
+    padding: 9px 12px;
+    border: 1px solid #cbd9e3;
+    border-radius: 6px;
+    background: #fff;
+    color: #607487;
+    font-size: 13px;
+}
+
+.account-role-add .button {
+    min-height: 42px;
+    padding: 9px 12px;
+    white-space: nowrap;
+}
+
+.account-role-list {
+    display: grid;
+    gap: 10px;
+}
+
+.account-role-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 44px;
+    padding: 9px 10px;
+    background: #f2f6f8;
+}
+
+.account-role-name {
+    color: #263d4c;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.account-role-remove {
+    flex: none;
+    padding: 4px 6px;
+    border: 0;
+    background: transparent;
+    color: #607487;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.account-role-remove:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.account-role-empty {
+    margin: 0;
+    padding: 12px 10px;
+    background: #f2f6f8;
+    color: #607487;
+    font-size: 13px;
+}
+
+.account-detail-actions {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.account-detail-actions .button {
+    min-height: 42px;
+    padding: 9px 16px;
+}
+
+.account-detail-form button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.account-detail-page .account-notice {
+    max-width: 1045px;
+    margin: 0 0 14px;
+}
+
+@media (max-width: 760px) {
+    .account-create-heading h1 {
+        font-size: 22px;
+    }
+
+    .account-create-panel {
+        padding: 14px;
+    }
+
+    .account-create-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .account-create-role-add {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .account-create-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .account-create-actions .button {
+        width: 100%;
+    }
+
+    .account-detail-heading h1 {
+        font-size: 22px;
+    }
+
+    .account-info-panel,
+    .account-role-panel {
+        padding: 14px;
+    }
+
+    .account-info-row {
+        grid-template-columns: minmax(105px, 36%) minmax(0, 1fr);
+    }
+
+    .account-role-add {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .account-create-section-heading {
+        align-items: flex-start;
+    }
+
+    .account-create-role-add {
+        grid-template-columns: 1fr;
+    }
+
+    .account-create-role-add .button {
+        width: 100%;
+    }
+
+    .account-detail-heading {
+        margin-bottom: 14px;
+    }
+
+    .account-section-heading {
+        align-items: flex-start;
+    }
+
+    .account-section-heading .button {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .account-info-row {
+        grid-template-columns: 112px minmax(0, 1fr);
+    }
+
+    .account-info-label,
+    .account-info-value {
+        font-size: 12px;
+    }
+
+    .account-role-add {
+        grid-template-columns: 1fr;
+    }
+
+    .account-role-add .button {
+        width: 100%;
+    }
+}

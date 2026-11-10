@@ -1,521 +1,691 @@
 <%@ page pageEncoding="UTF-8" %>
-	<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
-		<div class="page-heading">
-			<div><a class="back-link" href="${pageContext.request.contextPath}/execution-queue">← 실행 목록</a>
-				<h1 id="detail-title">실행 요청 상세</h1>
-			</div><button id="detail-refresh" class="button" type="button">상태 새로고침</button>
-		</div>
-		<section class="panel">
-			<div class="panel-heading">
-				<div>
-					<h2>실행 정보</h2>
-					<p class="caption">
-						최종 승인된 요청의 저장 SQL을 서버에서 다시 검증한 뒤 실행합니다.
-					</p>
-				</div><span id="detail-status" class="badge neutral">조회 중</span>
-			</div>
-			<dl id="request-info" class="queue-info"></dl>
-			<div id="batch-actions" class="execution-queue-actions"></div>
-			<p id="detail-message" class="execution-queue-message" role="status"></p>
-		</section>
-		<section class="panel section-gap">
-			<div class="panel-heading">
-				<div>
-					<h2>SQL 원문</h2>
-					<p class="caption">
-					    SQL을 개별 실행하거나 미실행 SQL을 요청 순서대로 한 번에 실행할 수 있습니다.
-					</p>
-				</div><span id="sql-count" class="caption"></span>
-			</div>
-			<div id="sql-items" class="queue-sql-list"></div>
-		</section>
-		<script>
-		(function () {
-		    const requestId = '${requestId}';
-		    const $id = id => document.getElementById(id);
-
-		    let detail = null;
-		    let posting = false;
-		    let dataFresh = false;
-		    let timer = null;
-		    let loadVersion = 0;
-		    let disposed = false;
-
-			// 기안서 전체의 처리 상태
-			const requestStateLabel = {
-			    READY: '실행 대기',
-			    RUNNING: '처리 중',
-			    COMPLETED: '실행 완료',
-			    PARTIAL_FAILED: '일부 실패',
-			    FAILED: '실패'
-			};
-
-			// SQL 한 번의 실행 상태
-			const sqlStateLabel = {
-			    PENDING: '실행 대기',
-			    RUNNING: '실행 중',
-			    SUCCESS: '성공',
-			    FAILED: '실패'
-			};
-
-		    const terminalStatuses = new Set([
-		        'COMPLETED', 'PARTIAL_FAILED', 'FAILED'
-		    ]);
-
-		    const dt = value => value
-		        ? new Date(value).toLocaleString('ko-KR', {
-		            timeZone: 'Asia/Seoul'
-		        })
-		        : '—';
-
-		    function showMessage(message, error = false) {
-		        const element = $id('detail-message');
-		        element.textContent = message || '';
-		        element.classList.toggle('error-text', error);
-		    }
-
-		    function sqlItems(data) {
-		        return Array.isArray(data.sqlItems) ? data.sqlItems : [];
-		    }
-
-		    function isRequestRunnable(data) {
-		        return data.approvalStatus === 'APPROVED'
-		            && ['READY', 'RUNNING'].includes(data.requestStatus);
-		    }
-
-		    function hasActiveSql(data) {
-		        return sqlItems(data).some(item =>
-		            item.executionStatus === 'PENDING'
-		            || item.executionStatus === 'RUNNING'
-		        );
-		    }
-
-		    function canRunIndividual(data, item) {
-		        return dataFresh
-		            && !posting
-		            && isRequestRunnable(data)
-		            && data.batchStatus !== 'RUNNING'
-		            && !hasActiveSql(data)
-		            && item.executionId == null
-		            && item.executionStatus == null;
-		    }
-
-			function canRunWhole(data) {
-			    const items = sqlItems(data);
-
-			    if (!dataFresh
-			        || posting
-			        || !isRequestRunnable(data)
-			        || items.length === 0) {
-			        return false;
-			    }
-
-			    // 기존에 미리 등록해둔 배치는 기존 전체 실행으로 처리한다.
-			    if (data.batchId != null) {
-			        return data.batchStatus === 'PENDING'
-			            && data.requestStatus === 'READY'
-			            && items.every(item =>
-			                item.executionId != null
-			                && item.executionStatus === 'PENDING'
-			            );
-			    }
-
-			    // 새 전체 실행: 개별 실행이 끝난 뒤 남은 SQL도 실행할 수 있다.
-			    return data.batchStatus == null
-			        && !hasActiveSql(data)
-			        && items.some(item =>
-			            item.executionId == null
-			            && item.executionStatus == null
-			        );
-			}
-			
-		    function needsPolling(data) {
-		        if (!data || terminalStatuses.has(data.requestStatus)) {
-		            return false;
-		        }
-
-		        const items = sqlItems(data);
-
-		        const running = data.batchStatus === 'RUNNING'
-		            || items.some(item => item.executionStatus === 'RUNNING');
-
-		        // SQL 저장 직후, 기안서 완료 집계가 아직 반영되지 않은 구간.
-		        const aggregating = data.requestStatus === 'RUNNING'
-		            && items.length > 0
-		            && items.every(item =>
-		                item.executionStatus === 'SUCCESS'
-		                || item.executionStatus === 'FAILED'
-		            );
-
-		        return running || aggregating;
-		    }
-
-		    function stopPolling() {
-		        if (timer != null) {
-		            clearTimeout(timer);
-		            timer = null;
-		        }
-		    }
-
-		    function schedulePolling() {
-		        if (disposed || posting || !dataFresh || !needsPolling(detail)) {
-		            stopPolling();
-		            return;
-		        }
-
-		        if (timer != null) {
-		            return;
-		        }
-
-		        timer = setTimeout(() => {
-		            timer = null;
-		            load();
-		        }, 1500);
-		    }
-
-			function requestLabel(data) {
-			    if (terminalStatuses.has(data.requestStatus)) {
-			        return requestStateLabel[data.requestStatus];
-			    }
-
-			    const items = sqlItems(data);
-
-			    if (data.batchStatus === 'RUNNING') {
-			        return '전체 SQL 실행 중';
-			    }
-
-			    if (items.some(item => item.executionStatus === 'RUNNING')) {
-			        return '개별 SQL 실행 중';
-			    }
-
-			    if (data.requestStatus === 'RUNNING') {
-			        const allFinished = items.length > 0
-			            && items.every(item =>
-			                item.executionStatus === 'SUCCESS'
-			                || item.executionStatus === 'FAILED'
-			            );
-
-			        return allFinished
-			            ? '결과 집계 중'
-			            : '일부 SQL 처리 완료';
-			    }
-
-			    return requestStateLabel[data.requestStatus]
-			        || data.requestStatus;
-			}
-
-		    function statusKind(status) {
-		        if (status === 'SUCCESS' || status === 'COMPLETED') {
-		            return 'success';
-		        }
-
-		        if (status === 'FAILED' || status === 'PARTIAL_FAILED') {
-		            return 'danger';
-		        }
-
-		        if (status === 'RUNNING' || status === 'PENDING') {
-		            return 'waiting';
-		        }
-
-		        return 'neutral';
-		    }
-
-		    function runButton(data, item) {
-		        const enabled = canRunIndividual(data, item);
-
-		        return '<button type="button" class="button sql-run"'
-		            + ' data-query="' + esc(item.queryId) + '"'
-		            + (enabled ? '' : ' disabled')
-		            + '>SQL 실행</button>';
-		    }
-
-		    function render(data) {
-		        const items = sqlItems(data);
-
-		        $id('detail-title').textContent =
-		            (data.requestNo || '요청')
-		            + ' · '
-		            + (data.title || '제목 없음');
-
-		        $id('sql-count').textContent = 'SQL ' + items.length + '건';
-
-		        const status = $id('detail-status');
-		        status.textContent = requestLabel(data);
-		        status.className = 'badge ' + statusKind(data.requestStatus);
-
-		        $id('request-info').innerHTML =
-		            '<div><dt>요청자</dt><dd>'
-		            + esc(data.drafterName) + ' · ' + esc(data.deptName)
-		            + '</dd></div>'
-		            + '<div><dt>요청 ID</dt><dd>'
-		            + esc(data.requestId)
-		            + '</dd></div>'
-		            + '<div><dt>요청 상태</dt><dd>'
-					+ esc(
-					    requestStateLabel[data.requestStatus]
-					    || data.requestStatus
-					)
-		            + '</dd></div>'
-		            + '<div><dt>최종 승인</dt><dd>'
-		            + esc(data.approvalStatus)
-		            + '</dd></div>'
-		            + '<div><dt>제출 시각</dt><dd>'
-		            + esc(dt(data.submittedAt))
-		            + '</dd></div>'
-		            + '<div><dt>목적</dt><dd>'
-		            + esc(data.purpose || '—')
-		            + '</dd></div>';
-
-					const hasExecutedSql = items.some(item =>
-					    item.executionStatus === 'SUCCESS'
-					    || item.executionStatus === 'FAILED'
-					);
-
-					const wholeLabel = data.batchId == null && hasExecutedSql
-					    ? '남은 SQL 실행'
-					    : '전체 SQL 실행';
-
-					let actions =
-					    '<button id="run-all"'
-					    + ' class="button primary" type="button"'
-					    + (canRunWhole(data) ? '' : ' disabled')
-					    + '>' + esc(wholeLabel) + '</button>';
-
-					actions += '<a class="button" href="'
-					    + BASE + '/execution-results">'
-					    + '요청자 실행 결과 메뉴</a>';
-
-					$id('batch-actions').innerHTML = actions;
-
-		        $id('sql-items').innerHTML = items.map(item => {
-					const label = item.executionStatus == null
-						? '미실행'
-						: sqlStateLabel[item.executionStatus]
-						    || item.executionStatus;
-
-		            const error = item.errorMessage
-		                ? '<p class="queue-error"><strong>실패 원인:</strong> '
-		                    + esc(item.errorMessage) + '</p>'
-		                : '';
-
-		            return '<article class="queue-sql-card">'
-		                + '<div class="panel-heading"><div>'
-		                + '<h3>' + esc(item.queryOrder) + '. '
-		                + esc(item.queryTitle || 'SQL') + '</h3>'
-		                + '<span class="caption">실행 ID: '
-		                + esc(item.executionId == null ? '—' : item.executionId)
-		                + '</span></div>'
-		                + badge(label, statusKind(item.executionStatus))
-		                + '</div>'
-		                + '<pre><code>' + esc(item.sqlText) + '</code></pre>'
-		                + '<div class="queue-sql-footer">'
-		                + error
-		                + runButton(data, item)
-		                + '</div></article>';
-		        }).join('') || '<p class="empty">등록된 SQL이 없습니다.</p>';
-
-		        $id('detail-refresh').disabled = posting;
-
-		        bindActions();
-		    }
-
-		    async function load() {
-		        const version = ++loadVersion;
-
-		        try {
-		            const data = await api(
-		                '/executions/requests/' + encodeURIComponent(requestId)
-		            );
-
-		            // 늦게 도착한 이전 조회 응답으로 화면을 덮어쓰지 않는다.
-		            if (disposed || version !== loadVersion) {
-		                return false;
-		            }
-
-		            if (!data || !Array.isArray(data.sqlItems)) {
-		                throw new Error('실행 상태 응답을 확인할 수 없습니다.');
-		            }
-
-		            detail = data;
-		            dataFresh = true;
-		            render(detail);
-		            schedulePolling();
-
-		            return true;
-		        } catch (error) {
-		            if (disposed || version !== loadVersion) {
-		                return false;
-		            }
-
-		            dataFresh = false;
-		            stopPolling();
-
-		            if (detail) {
-		                render(detail);
-		            }
-
-		            showMessage(
-		                error.message
-		                + ' 상태 새로고침으로 다시 확인하세요.',
-		                true
-		            );
-
-		            return false;
-		        }
-		    }
-
-		    async function submitAction(action, successMessage) {
-		        if (posting || !dataFresh || !detail) {
-		            return;
-		        }
-
-		        posting = true;
-		        stopPolling();
-		        render(detail);
-
-		        let requestError = null;
-
-		        try {
-		            await action();
-		            showMessage(successMessage);
-		        } catch (error) {
-		            requestError = error;
-		            showMessage(error.message, true);
-		        } finally {
-		            // 성공·실패 모두 서버 상태를 다시 읽고 버튼 상태를 결정한다.
-		            const refreshed = await load();
-
-		            posting = false;
-
-		            if (!disposed && detail) {
-		                render(detail);
-		            }
-
-		            if (!disposed && requestError) {
-		                showMessage(
-		                    requestError.message
-		                    + (refreshed
-		                        ? ''
-		                        : ' 상태 새로고침으로 처리 상태를 확인하세요.'),
-		                    true
-		                );
-		            }
-
-		            schedulePolling();
-		        }
-		    }
-
-			function bindActions() {
-			    const whole = $id('run-all');
-
-			    if (whole) {
-			        whole.onclick = async () => {
-			            if (!canRunWhole(detail)) {
-			                return;
-			            }
-
-			            const legacyBatch = detail.batchId != null;
-
-			            const targets = sqlItems(detail).filter(item =>
-			                legacyBatch
-			                    ? item.executionStatus === 'PENDING'
-			                    : item.executionId == null
-			                        && item.executionStatus == null
-			            );
-
-			            const targetLabel = legacyBatch
-			                ? '실행 대기 SQL'
-			                : '미실행 SQL';
-
-			            if (!confirm(
-			                targetLabel + ' ' + targets.length
-			                + '개를 요청 순서대로 실행할까요?'
-			            )) {
-			                return;
-			            }
-
-			            // 이미 등록된 과거 배치는 중복 생성하지 않고 실행만 한다.
-			            // 새 요청은 기안서 ID로 자동 배치 등록·실행을 접수한다.
-			            const path = legacyBatch
-			                ? '/executions/batches/'
-			                    + encodeURIComponent(detail.batchId)
-			                    + '/run'
-			                : '/executions/requests/'
-			                    + encodeURIComponent(requestId)
-			                    + '/run';
-
-			            await submitAction(
-			                () => api(path, { method: 'POST' }),
-			                '전체 실행을 접수했습니다.'
-			            );
-			        };
-			    }
-
-			    document.querySelectorAll('.sql-run').forEach(button => {
-			        button.onclick = async () => {
-			            const queryId = button.dataset.query;
-
-			            const item = sqlItems(detail).find(row =>
-			                String(row.queryId) === queryId
-			            );
-
-			            if (!item || !canRunIndividual(detail, item)) {
-			                return;
-			            }
-
-			            if (!confirm('선택한 SQL을 실행할까요?')) {
-			                return;
-			            }
-
-			            await submitAction(
-			                () => api(
-			                    '/executions/requests/'
-			                    + encodeURIComponent(requestId)
-			                    + '/queries/'
-			                    + encodeURIComponent(queryId)
-			                    + '/run',
-			                    { method: 'POST' }
-			                ),
-			                'SQL 실행을 접수했습니다.'
-			            );
-			        };
-			    });
-			}
-
-		    $id('detail-refresh').onclick = async () => {
-		        if (posting) {
-		            return;
-		        }
-
-		        const refreshed = await load();
-
-		        if (refreshed) {
-		            showMessage('실행 상태를 갱신했습니다.');
-		        }
-		    };
-
-		    window.addEventListener('pagehide', () => {
-		        disposed = true;
-		        loadVersion++;
-		        stopPolling();
-		    });
-			
-			window.addEventListener('pageshow', event => {
-			    if (!event.persisted) {
-			        return;
-			    }
-
-			    disposed = false;
-			    dataFresh = false;
-
-			    if (detail) {
-			        render(detail);
-			    }
-
-			    load();
-			});
-
-		    load();
-		})();
-		</script>
-		<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
+
+<div class="execution-detail-page">
+    <nav class="execution-detail-breadcrumb" aria-label="현재 위치">
+        <a href="${pageContext.request.contextPath}/execution-queue">실행 목록</a>
+        <span aria-hidden="true">/</span>
+        <span>실행 요청 상세</span>
+    </nav>
+
+    <section class="execution-document" aria-labelledby="document-title">
+        <div class="execution-document-heading">
+            <h1 id="document-title">기안서</h1>
+            <button id="detail-refresh" class="button" type="button">
+                상태 새로고침
+            </button>
+        </div>
+
+        <div class="execution-document-overview">
+            <dl id="request-info" class="execution-document-meta"></dl>
+
+            <section class="execution-approval-section"
+                     aria-labelledby="approval-history-title">
+                <div class="execution-approval-heading">
+                    <h2 id="approval-history-title">결재란</h2>
+                    <span id="approval-overall-status" class="badge neutral">조회 중</span>
+                </div>
+                <ol id="approval-history" class="execution-approval-list">
+                    <li class="execution-approval-empty">결재 이력을 불러오는 중입니다.</li>
+                </ol>
+            </section>
+        </div>
+
+        <div class="execution-document-title-row">
+            <span>제목</span>
+            <strong id="request-title">불러오는 중</strong>
+        </div>
+
+        <section class="execution-document-section">
+            <h2>1. 요청 목적</h2>
+            <p id="request-purpose">불러오는 중</p>
+        </section>
+
+        <section class="execution-document-section">
+            <h2>2. 상세 내용</h2>
+            <p id="request-description">불러오는 중</p>
+        </section>
+
+        <section class="execution-sql-section" aria-labelledby="execution-sql-title">
+            <div class="execution-sql-heading">
+                <div>
+                    <h2 id="execution-sql-title">3. 실행 대상 SQL</h2>
+                    <p id="sql-summary" class="caption"></p>
+                </div>
+                <div id="batch-actions" class="execution-queue-actions"></div>
+            </div>
+
+            <div id="sql-items" class="queue-sql-list">
+                <p class="execution-sql-empty">SQL 목록을 불러오는 중입니다.</p>
+            </div>
+        </section>
+
+        <p id="detail-message"
+           class="execution-queue-message"
+           role="status"
+           aria-live="polite"></p>
+    </section>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    const requestId = '${requestId}';
+    const $id = id => document.getElementById(id);
+
+    let detail = null;
+    let approvalHistory = [];
+    let posting = false;
+    let dataFresh = false;
+    let timer = null;
+    let loadVersion = 0;
+    let disposed = false;
+
+    const requestStateLabel = {
+        READY: '실행 대기',
+        RUNNING: '처리 중',
+        COMPLETED: '실행 완료',
+        PARTIAL_FAILED: '일부 실패',
+        FAILED: '실패'
+    };
+
+    const sqlStateLabel = {
+        PENDING: '실행 대기',
+        RUNNING: '실행 중',
+        SUCCESS: '성공',
+        FAILED: '실패'
+    };
+
+    const approvalTypeLabel = {
+        INTERMEDIATE: '중간 결재',
+        DIRECTOR: '부서장 결재',
+        DB_EXECUTION: 'DB팀 결재',
+        DB_APPROVAL: 'DB팀 결재'
+    };
+
+    const approvalStateLabel = {
+        APPROVED: '승인',
+        PENDING: '결재 대기',
+        REJECTED: '반려',
+        CANCELED: '취소',
+        WITHDRAWN: '회수'
+    };
+
+    const terminalStatuses = new Set([
+        'COMPLETED',
+        'PARTIAL_FAILED',
+        'FAILED'
+    ]);
+
+    function formatDateTime(value) {
+        if (!value) {
+            return '—';
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return String(value).replace('T', ' ');
+        }
+
+        return date.toLocaleString('ko-KR', {
+            timeZone: 'Asia/Seoul',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function formatShortDateTime(value) {
+        if (!value) {
+            return '';
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return String(value).replace('T', ' ');
+        }
+
+        return date.toLocaleString('ko-KR', {
+            timeZone: 'Asia/Seoul',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function showMessage(message, error) {
+        const element = $id('detail-message');
+        element.textContent = message || '';
+        element.classList.toggle('error-text', Boolean(error));
+    }
+
+    function sqlItems(data) {
+        return Array.isArray(data && data.sqlItems)
+            ? data.sqlItems
+            : [];
+    }
+
+    function isRequestRunnable(data) {
+        return data.approvalStatus === 'APPROVED'
+            && ['READY', 'RUNNING'].includes(data.requestStatus);
+    }
+
+    function hasActiveSql(data) {
+        return sqlItems(data).some(item =>
+            item.executionStatus === 'PENDING'
+            || item.executionStatus === 'RUNNING'
+        );
+    }
+
+    function canRunIndividual(data, item) {
+        return dataFresh
+            && !posting
+            && isRequestRunnable(data)
+            && data.batchStatus !== 'RUNNING'
+            && !hasActiveSql(data)
+            && item.executionId == null
+            && item.executionStatus == null;
+    }
+
+    function canRunWhole(data) {
+        const items = sqlItems(data);
+
+        if (!dataFresh
+            || posting
+            || !isRequestRunnable(data)
+            || items.length === 0) {
+            return false;
+        }
+
+        if (data.batchId != null) {
+            return data.batchStatus === 'PENDING'
+                && data.requestStatus === 'READY'
+                && items.every(item =>
+                    item.executionId != null
+                    && item.executionStatus === 'PENDING'
+                );
+        }
+
+        return data.batchStatus == null
+            && !hasActiveSql(data)
+            && items.some(item =>
+                item.executionId == null
+                && item.executionStatus == null
+            );
+    }
+
+    function needsPolling(data) {
+        if (!data || terminalStatuses.has(data.requestStatus)) {
+            return false;
+        }
+
+        const items = sqlItems(data);
+        const running = data.batchStatus === 'RUNNING'
+            || items.some(item => item.executionStatus === 'RUNNING');
+
+        const aggregating = data.requestStatus === 'RUNNING'
+            && items.length > 0
+            && items.every(item =>
+                item.executionStatus === 'SUCCESS'
+                || item.executionStatus === 'FAILED'
+            );
+
+        return running || aggregating;
+    }
+
+    function stopPolling() {
+        if (timer !== null) {
+            clearTimeout(timer);
+            timer = null;
+        }
+    }
+
+    function schedulePolling() {
+        if (disposed || posting || !dataFresh || !needsPolling(detail)) {
+            stopPolling();
+            return;
+        }
+
+        if (timer !== null) {
+            return;
+        }
+
+        timer = setTimeout(function () {
+            timer = null;
+            load();
+        }, 1500);
+    }
+
+    function requestStatusLabel(data) {
+        if (terminalStatuses.has(data.requestStatus)) {
+            return requestStateLabel[data.requestStatus]
+                || data.requestStatus;
+        }
+
+        const items = sqlItems(data);
+
+        if (data.batchStatus === 'RUNNING') {
+            return '전체 SQL 실행 중';
+        }
+
+        if (items.some(item => item.executionStatus === 'RUNNING')) {
+            return '개별 SQL 실행 중';
+        }
+
+        if (data.requestStatus === 'RUNNING') {
+            const allFinished = items.length > 0
+                && items.every(item =>
+                    item.executionStatus === 'SUCCESS'
+                    || item.executionStatus === 'FAILED'
+                );
+
+            return allFinished ? '결과 집계 중' : '일부 SQL 처리 완료';
+        }
+
+        return requestStateLabel[data.requestStatus]
+            || data.requestStatus
+            || '상태 확인 중';
+    }
+
+    function statusKind(status) {
+        if (status === 'SUCCESS'
+            || status === 'COMPLETED'
+            || status === 'APPROVED') {
+            return 'success';
+        }
+
+        if (status === 'FAILED'
+            || status === 'PARTIAL_FAILED'
+            || status === 'REJECTED') {
+            return 'danger';
+        }
+
+        if (status === 'RUNNING' || status === 'PENDING') {
+            return 'waiting';
+        }
+
+        return 'neutral';
+    }
+
+    function approvalLabel(type) {
+        return approvalTypeLabel[type] || type || '결재';
+    }
+
+    function approvalStatusLabel(status) {
+        return approvalStateLabel[status] || status || '상태 미확인';
+    }
+
+    function renderApprovalHistory() {
+        const list = $id('approval-history');
+        const overallStatus = $id('approval-overall-status');
+
+        if (!approvalHistory.length) {
+            list.innerHTML =
+                '<li class="execution-approval-empty">'
+                + '등록된 결재 이력이 없습니다.'
+                + '</li>';
+            return;
+        }
+
+        overallStatus.textContent =
+            detail && detail.approvalStatus === 'APPROVED'
+                ? '최종 승인'
+                : approvalStatusLabel(
+                    approvalHistory[approvalHistory.length - 1].status
+                );
+
+        overallStatus.className =
+            'badge '
+            + statusKind(
+                detail && detail.approvalStatus === 'APPROVED'
+                    ? 'APPROVED'
+                    : approvalHistory[approvalHistory.length - 1].status
+            );
+
+        list.innerHTML = approvalHistory.map(function (item, index) {
+            const person = [
+                item.approverName,
+                item.deptName,
+                item.positionName
+            ].filter(Boolean).join(' · ');
+
+            const decidedAt = item.decidedAt
+                ? formatShortDateTime(item.decidedAt)
+                : '';
+
+            return '<li class="execution-approval-card'
+                + (item.status === 'APPROVED'
+                    && index === approvalHistory.length - 1
+                    ? ' is-current'
+                    : '')
+                + '">'
+                + '<span class="execution-approval-type">'
+                + esc(approvalLabel(item.approvalType))
+                + '</span>'
+                + '<strong class="execution-approval-person">'
+                + esc(person || '결재자 미지정')
+                + '</strong>'
+                + '<span class="execution-approval-status '
+                + 'status-' + esc(statusKind(item.status)) + '">'
+                + esc(approvalStatusLabel(item.status))
+                + '</span>'
+                + (decidedAt
+                    ? '<time>' + esc(decidedAt) + '</time>'
+                    : '')
+                + '</li>';
+        }).join('');
+    }
+
+    function runButton(data, item) {
+        const enabled = canRunIndividual(data, item);
+
+        return '<button type="button" class="button sql-run"'
+            + ' data-query="' + esc(item.queryId) + '"'
+            + (enabled ? '' : ' disabled')
+            + '>이 SQL 실행</button>';
+    }
+
+    function render(data) {
+        const items = sqlItems(data);
+
+        $id('request-title').textContent = data.title || '제목 없음';
+        $id('request-purpose').textContent =
+            data.purpose || '요청 목적이 입력되지 않았습니다.';
+        $id('request-description').textContent =
+            data.detailContent || '상세 내용이 입력되지 않았습니다.';
+
+        $id('request-info').innerHTML =
+            '<div><dt>문서번호</dt><dd>'
+            + esc(data.requestNo || '—')
+            + '</dd></div>'
+            + '<div><dt>기안 부서</dt><dd>'
+            + esc(data.deptName || '—')
+            + '</dd></div>'
+            + '<div><dt>기안자</dt><dd>'
+            + esc(data.drafterName || '—')
+            + '</dd></div>'
+            + '<div><dt>작성일</dt><dd>'
+            + esc(formatDateTime(data.submittedAt))
+            + '</dd></div>'
+            + '<div><dt>처리 상태</dt><dd>'
+            + esc(requestStatusLabel(data))
+            + '</dd></div>';
+
+        $id('sql-summary').textContent =
+            '총 ' + items.length + '건 · 대기 '
+            + items.filter(item =>
+                item.executionId == null
+                && item.executionStatus == null
+            ).length
+            + '건';
+
+        const hasExecutedSql = items.some(item =>
+            item.executionStatus === 'SUCCESS'
+            || item.executionStatus === 'FAILED'
+        );
+
+        const wholeLabel =
+            data.batchId == null && hasExecutedSql
+                ? '남은 SQL 전체 실행'
+                : '전체 실행';
+
+        $id('batch-actions').innerHTML =
+            '<button id="run-all" class="button primary" type="button"'
+            + (canRunWhole(data) ? '' : ' disabled')
+            + '>' + esc(wholeLabel) + '</button>';
+
+        $id('sql-items').innerHTML = items.map(function (item, index) {
+            const rawStatus = item.executionStatus;
+            const label = rawStatus == null
+                ? '실행 대기'
+                : sqlStateLabel[rawStatus] || rawStatus;
+
+            const error = item.errorMessage
+                ? '<p class="queue-error"><strong>실패 원인:</strong> '
+                    + esc(item.errorMessage)
+                    + '</p>'
+                : '';
+
+            return '<details class="execution-sql-card"'
+                + (index === 0 ? ' open' : '')
+                + '>'
+                + '<summary class="execution-sql-summary">'
+                + '<span class="execution-sql-name">'
+                + esc(String(item.queryOrder || index + 1).padStart(2, '0'))
+                + '　'
+                + esc(item.queryTitle || 'SQL')
+                + '</span>'
+                + '<span class="execution-sql-status '
+                + 'status-' + esc(statusKind(rawStatus))
+                + '">' + esc(label) + '</span>'
+                + '</summary>'
+                + '<div class="execution-sql-body">'
+                + '<pre><code>' + esc(item.sqlText || '') + '</code></pre>'
+                + '<div class="queue-sql-footer">'
+                + error
+                + runButton(data, item)
+                + '</div>'
+                + '</div>'
+                + '</details>';
+        }).join('') || '<p class="execution-sql-empty">등록된 SQL이 없습니다.</p>';
+
+        renderApprovalHistory();
+
+        $id('detail-refresh').disabled = posting;
+        bindActions();
+    }
+
+    async function loadApprovalHistory() {
+        try {
+            const history = await api(
+                '/approvals/' + encodeURIComponent(requestId) + '/history'
+            );
+            approvalHistory = Array.isArray(history) ? history : [];
+        } catch (error) {
+            approvalHistory = [];
+            $id('approval-history').innerHTML =
+                '<li class="execution-approval-empty">'
+                + '결재 이력을 불러오지 못했습니다.'
+                + '</li>';
+        }
+    }
+
+    async function load() {
+        const version = ++loadVersion;
+
+        try {
+            const results = await Promise.all([
+                api('/executions/requests/' + encodeURIComponent(requestId)),
+                loadApprovalHistory()
+            ]);
+
+            if (disposed || version !== loadVersion) {
+                return false;
+            }
+
+            const data = results[0];
+
+            if (!data || !Array.isArray(data.sqlItems)) {
+                throw new Error('실행 상태 응답을 확인할 수 없습니다.');
+            }
+
+            detail = data;
+            dataFresh = true;
+            render(detail);
+            schedulePolling();
+
+            return true;
+        } catch (error) {
+            if (disposed || version !== loadVersion) {
+                return false;
+            }
+
+            dataFresh = false;
+            stopPolling();
+
+            if (detail) {
+                render(detail);
+            }
+
+            showMessage(
+                error.message + ' 상태 새로고침으로 다시 확인하세요.',
+                true
+            );
+
+            return false;
+        }
+    }
+
+    async function submitAction(action, successMessage) {
+        if (posting || !dataFresh || !detail) {
+            return;
+        }
+
+        posting = true;
+        stopPolling();
+        render(detail);
+
+        let requestError = null;
+
+        try {
+            await action();
+            showMessage(successMessage, false);
+        } catch (error) {
+            requestError = error;
+            showMessage(error.message, true);
+        } finally {
+            const refreshed = await load();
+
+            posting = false;
+
+            if (!disposed && detail) {
+                render(detail);
+            }
+
+            if (!disposed && requestError) {
+                showMessage(
+                    requestError.message
+                    + (refreshed
+                        ? ''
+                        : ' 상태 새로고침으로 처리 상태를 확인하세요.'),
+                    true
+                );
+            }
+
+            schedulePolling();
+        }
+    }
+
+    function bindActions() {
+        const runAllButton = $id('run-all');
+
+        if (runAllButton) {
+            runAllButton.onclick = async function () {
+                if (!canRunWhole(detail)) {
+                    return;
+                }
+
+                const legacyBatch = detail.batchId != null;
+                const targets = sqlItems(detail).filter(item =>
+                    legacyBatch
+                        ? item.executionStatus === 'PENDING'
+                        : item.executionId == null
+                            && item.executionStatus == null
+                );
+
+                if (!confirm(
+                    'SQL ' + targets.length
+                    + '건을 요청 순서대로 전체 실행할까요?'
+                )) {
+                    return;
+                }
+
+                const path = legacyBatch
+                    ? '/executions/batches/'
+                        + encodeURIComponent(detail.batchId)
+                        + '/run'
+                    : '/executions/requests/'
+                        + encodeURIComponent(requestId)
+                        + '/run';
+
+                await submitAction(
+                    () => api(path, { method: 'POST' }),
+                    '전체 실행을 접수했습니다.'
+                );
+            };
+        }
+
+        document.querySelectorAll('.sql-run').forEach(function (button) {
+            button.onclick = async function () {
+                const queryId = button.dataset.query;
+                const item = sqlItems(detail).find(row =>
+                    String(row.queryId) === queryId
+                );
+
+                if (!item || !canRunIndividual(detail, item)) {
+                    return;
+                }
+
+                if (!confirm('선택한 SQL을 실행할까요?')) {
+                    return;
+                }
+
+                await submitAction(
+                    () => api(
+                        '/executions/requests/'
+                            + encodeURIComponent(requestId)
+                            + '/queries/'
+                            + encodeURIComponent(queryId)
+                            + '/run',
+                        { method: 'POST' }
+                    ),
+                    'SQL 실행을 접수했습니다.'
+                );
+            };
+        });
+    }
+
+    $id('detail-refresh').addEventListener('click', async function () {
+        if (posting) {
+            return;
+        }
+
+        const refreshed = await load();
+
+        if (refreshed) {
+            showMessage('실행 상태를 갱신했습니다.', false);
+        }
+    });
+
+    window.addEventListener('pagehide', function () {
+        disposed = true;
+        loadVersion++;
+        stopPolling();
+    });
+
+    window.addEventListener('pageshow', function (event) {
+        if (!event.persisted) {
+            return;
+        }
+
+        disposed = false;
+        dataFresh = false;
+
+        if (detail) {
+            render(detail);
+        }
+
+        load();
+    });
+
+    load();
+})();
+</script>
+
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

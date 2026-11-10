@@ -68,6 +68,11 @@
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/execution-result.css">
     </c:if>
+    
+    <c:if test="${page == 'approval-pending' or page == 'approval-detail'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/approval.css">
+    </c:if>
 </head>
 <body>
     <div class="app-shell">
@@ -236,11 +241,6 @@
             </header>
 
             <main class="main">
-                <div class="demo-strip">
-                    <span>개발 환경</span>
-                    로그인 계정 기준으로 요청과 결재 권한을 확인합니다.
-                </div>
-
                 <div id="page-message" class="message" role="status" hidden></div>
 
                 <script>
