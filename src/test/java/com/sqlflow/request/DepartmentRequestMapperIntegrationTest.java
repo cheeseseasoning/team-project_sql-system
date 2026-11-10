@@ -164,6 +164,7 @@ class DepartmentRequestMapperIntegrationTest {
                 mapper.countVisibleRequests(
                         dbMemberId,
                         prefix + "업무부서",
+                        "",
                         "READY"));
 
         assertEquals(
@@ -171,13 +172,14 @@ class DepartmentRequestMapperIntegrationTest {
                 mapper.countVisibleRequests(
                         dbMemberId,
                         prefix,
+                        "",
                         "DRAFT"));
 
         var first = mapper.selectVisibleRequestsPage(
-                dbMemberId, prefix, "", 0, 1);
+                dbMemberId, prefix, "", "", 0, 1);
 
         var second = mapper.selectVisibleRequestsPage(
-                dbMemberId, prefix, "", 1, 1);
+                dbMemberId, prefix, "", "", 1, 1);
 
         assertEquals(1, first.size());
         assertEquals(1, second.size());
@@ -279,10 +281,10 @@ class DepartmentRequestMapperIntegrationTest {
     private void assertVisible(Long actorId, Set<Long> expectedIds) {
         assertEquals(
                 (long) expectedIds.size(),
-                mapper.countVisibleRequests(actorId, prefix, ""));
+                mapper.countVisibleRequests(actorId, prefix, "", ""));
 
         var items = mapper.selectVisibleRequestsPage(
-                actorId, prefix, "", 0, 50);
+                actorId, prefix, "", "", 0, 50);
 
         assertEquals(
                 expectedIds,

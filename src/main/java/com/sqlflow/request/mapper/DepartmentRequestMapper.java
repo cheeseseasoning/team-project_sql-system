@@ -17,15 +17,17 @@ public interface DepartmentRequestMapper {
     long countVisibleRequests(
             @Param("actorId") Long actorId,
             @Param("keyword") String keyword,
+            @Param("type") String type,
             @Param("status") String status);
 
     List<DepartmentRequestListResponse> selectVisibleRequestsPage(
             @Param("actorId") Long actorId,
             @Param("keyword") String keyword,
+            @Param("type") String type,
             @Param("status") String status,
             @Param("offset") long offset,
             @Param("size") int size);
-    
+
     RequestDetailResponse selectVisibleRequestDetail(
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);
@@ -41,7 +43,7 @@ public interface DepartmentRequestMapper {
     List<RequestApprovalResponse> selectVisibleRequestApprovals(
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);
-    
+
     int countVisibleRequest(
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);
@@ -50,7 +52,6 @@ public interface DepartmentRequestMapper {
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);
 
-    
     int insertChangeSqlResult(
             @Param("requestId") Long requestId,
             @Param("queryId") Long queryId,
@@ -58,7 +59,7 @@ public interface DepartmentRequestMapper {
             @Param("resultStatus") String resultStatus,
             @Param("resultNote") String resultNote,
             @Param("executedBy") Long executedBy);
-    
+
     String lockChangeSqlResult(
             @Param("requestId") Long requestId,
             @Param("queryId") Long queryId,
@@ -76,7 +77,7 @@ public interface DepartmentRequestMapper {
             @Param("resultStatus") String resultStatus,
             @Param("resultNote") String resultNote,
             @Param("executedBy") Long executedBy);
-    
+
     int canManageChangeSqlResult(
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);

@@ -1,78 +1,87 @@
 <%@ page pageEncoding="UTF-8" %>
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
-<div class="page-heading">
-    <div>
-        <h1>부서 기안함</h1>
-        <p class="caption">열람 권한이 있는 제출된 기안을 확인합니다.</p>
-    </div>
-</div>
+<main class="department-requests-page">
+    <div class="department-requests-heading">
+        <div>
+            <h1>부서 요청 내역</h1>
+            <p class="caption">
+                <c:out value="${deptName}"/>에서 제출한 요청과 처리 상태를 확인하세요.
+            </p>
+        </div>
 
-<section class="panel">
-    <form id="department-filter-form" class="filter-bar">
-        <label>
-            기안 검색
+        <span class="department-scope">
+            조회 범위 · <c:out value="${deptName}"/>
+        </span>
+    </div>
+
+    <form id="department-filter-form" class="department-filter">
+        <label class="department-filter-keyword" for="department-keyword">
+            요청 검색
             <input id="department-keyword"
                    name="keyword"
                    maxlength="120"
-                   placeholder="요청번호, 제목, 작성자 또는 부서">
+                   placeholder="제목 또는 요청번호">
         </label>
 
-        <label>
-            처리 상태
-            <select id="department-status" name="status">
-                <option value="">전체</option>
+        <label for="department-type">
+            요청 유형
+            <select id="department-type" name="type">
+                <option value="">전체 유형</option>
+                <option value="SELECT">조회</option>
+                <option value="CREATE_VIEW">뷰 생성</option>
+                <option value="INSERT">데이터 등록</option>
+                <option value="UPDATE">데이터 수정</option>
+                <option value="DELETE">데이터 삭제</option>
             </select>
         </label>
 
-        <button type="submit" class="button primary">검색</button>
+        <label for="department-status">
+            처리 상태
+            <select id="department-status" name="status">
+                <option value="">전체 상태</option>
+            </select>
+        </label>
 
-        <button id="department-clear" type="button" class="button">
-            초기화
-        </button>
+        <div class="department-filter-actions">
+            <button type="submit" class="button primary">검색</button>
+            <button id="department-clear" type="button" class="button">
+                초기화
+            </button>
+        </div>
     </form>
 
-    <div class="panel-heading">
-        <h2>기안 목록</h2>
-        <span id="department-count" class="caption"></span>
+    <div class="department-list-heading">
+        <h2>요청 목록</h2>
+        <span id="department-count" class="caption" aria-live="polite"></span>
     </div>
 
-    <div class="table-scroll">
-        <table>
+    <div class="department-table-wrap">
+        <table class="department-table">
             <thead>
                 <tr>
-                    <th>요청명 / 요청번호</th>
-                    <th>작성자</th>
-                    <th>부서</th>
-                    <th>처리 현황</th>
-                    <th>제출 시각</th>
-                    <th>희망일</th>
+                    <th scope="col">요청번호</th>
+                    <th scope="col">요청명</th>
+                    <th scope="col">유형</th>
+                    <th scope="col">작성자</th>
+                    <th scope="col">부서</th>
+                    <th scope="col">처리 현황</th>
+                    <th scope="col">요청일</th>
                 </tr>
             </thead>
-            <tbody id="department-rows"></tbody>
+            <tbody id="department-rows">
+                <tr>
+                    <td colspan="7" class="empty">불러오는 중입니다.</td>
+                </tr>
+            </tbody>
         </table>
     </div>
 
-    <nav class="form-footer" aria-label="부서 기안함 페이지 이동">
-        <button id="department-previous"
-                type="button"
-                class="button"
-                disabled>
-            이전
-        </button>
-
-        <span id="department-page-info"
-              class="caption"
-              aria-live="polite"></span>
-
-        <button id="department-next"
-                type="button"
-                class="button"
-                disabled>
-            다음
-        </button>
+    <nav id="department-pagination"
+         class="department-pagination"
+         aria-label="부서 기안함 페이지 이동">
     </nav>
-</section>
+</main>
 
 <script src="${pageContext.request.contextPath}/js/department-requests.js"></script>
 

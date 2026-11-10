@@ -36,7 +36,7 @@
                or page == 'view-create-request-form'
                or page == 'execution-results'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261029-view-history">
+              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261110-department-requests">
     </c:if>
 
     <c:if test="${page == 'execution-queue' or page == 'execution-queue-detail'}">

@@ -45,15 +45,15 @@ class DepartmentRequestServiceTest {
         var item = new DepartmentRequestListResponse();
         item.setRequestId(100L);
 
-        when(mapper.countVisibleRequests(1L, "매출", "READY"))
+        when(mapper.countVisibleRequests(1L, "매출", "", "READY"))
                 .thenReturn(21L);
 
         when(mapper.selectVisibleRequestsPage(
-                1L, "매출", "READY", 20L, 10))
+                1L, "매출", "", "READY", 20L, 10))
                 .thenReturn(List.of(item));
 
         var response = service.getRequestsPage(
-                1L, " 매출 ", " READY ", 99, 10);
+                1L, " 매출 ", "", " READY ", 99, 10);
 
         assertEquals(3, response.page());
         assertEquals(3L, response.totalPages());
@@ -63,18 +63,18 @@ class DepartmentRequestServiceTest {
 
     @Test
     void emptyResultDoesNotQueryPageItems() {
-        when(mapper.countVisibleRequests(1L, "", ""))
+        when(mapper.countVisibleRequests(1L, "", "", ""))
                 .thenReturn(0L);
 
         var response = service.getRequestsPage(
-                1L, null, null, 99, 10);
+                1L, null, null, null, 99, 10);
 
         assertEquals(1, response.page());
         assertEquals(0L, response.totalCount());
         assertEquals(0L, response.totalPages());
         assertTrue(response.items().isEmpty());
 
-        verify(mapper).countVisibleRequests(1L, "", "");
+        verify(mapper).countVisibleRequests(1L, "", "", "");
         verifyNoMoreInteractions(mapper);
     }
 
@@ -82,7 +82,7 @@ class DepartmentRequestServiceTest {
     void missingActorIsRejectedBeforeQuery() {
         var error = assertThrows(
                 ResponseStatusException.class,
-                () -> service.getRequestsPage(null, "", "", 1, 10));
+                () -> service.getRequestsPage(null, "", "", "", 1, 10));
 
         assertEquals(HttpStatus.UNAUTHORIZED, error.getStatusCode());
         verifyNoInteractions(mapper);
@@ -99,7 +99,7 @@ class DepartmentRequestServiceTest {
         var error = assertThrows(
                 ResponseStatusException.class,
                 () -> service.getRequestsPage(
-                        1L, keyword, status, page, size));
+                        1L, keyword, "", status, page, size));
 
         assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
         verifyNoInteractions(mapper);
