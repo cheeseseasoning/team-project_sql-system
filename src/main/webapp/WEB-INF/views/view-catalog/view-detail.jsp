@@ -95,12 +95,10 @@
             <div class="panel-heading">
 				<div class="view-column-heading">
 				    <h2>컬럼 목록</h2>
-				    <c:if test="${deptName eq 'DB팀' and pageContext.request.isUserInRole('DB_ADMIN')}">
-				        <button id="view-column-edit" class="button" type="button"
+				        <button id="view-column-edit" class="button" type="button" hidden
 				                aria-haspopup="dialog" aria-controls="view-column-dialog">
 				            컬럼 정보 편집
 				        </button>
-				    </c:if>
 				</div>
                 <span id="view-column-count" class="caption"></span>
             </div>
@@ -125,7 +123,6 @@
             </div>
         </section>
 
-		<c:if test="${deptName eq 'DB팀' and pageContext.request.isUserInRole('DB_ADMIN')}">
 		    <dialog id="view-column-dialog" class="view-column-dialog" aria-labelledby="view-column-dialog-title">
 		        <div class="view-column-editor">
 		            <header class="view-column-editor-header">
@@ -142,12 +139,13 @@
 		                <div id="view-column-editor-rows"></div>
 		            </div>
 
-		            <form method="dialog" class="view-column-editor-footer">
-		                <button class="button" type="submit">닫기</button>
+		            <form id="view-column-editor-form" class="view-column-editor-footer">
+		                <p id="view-column-editor-status" class="caption" role="status"></p>
+		                <button class="button" type="submit" formmethod="dialog" formnovalidate>닫기</button>
+		                <button id="view-column-save" class="button primary" type="submit">저장</button>
 		            </form>
 		        </div>
 		    </dialog>
-		</c:if>
 
         <section class="panel view-panel">
             <div class="panel-heading">
@@ -358,7 +356,7 @@
         body.replaceChildren(fragment);
     }
 
-	function renderColumns(columns) {
+	function renderColumns(columns, metadata = new Map()) {
 	    const body = $('#view-column-rows');
 	    $('#view-column-count').textContent = '총 ' + columns.length + '개';
 
@@ -376,12 +374,12 @@
 	        const row = document.createElement('tr');
 
 	        appendCell(row, column.ordinalPosition);
-	        // 현재 컬럼 응답에는 논리명이 없으므로 자리만 표시한다.
-	        appendCell(row, '—');
+	        const entry = metadata.get(column.columnName);
+	        appendCell(row, entry?.logicalName || '미등록');
 	        appendCell(row, column.columnName, 'view-column-name');
 	        appendCell(row, column.columnType, 'view-column-type');
 	        appendCell(row, nullableNames[column.isNullable] || '확인 필요');
-	        appendCell(row, column.columnComment);
+	        appendCell(row, entry?.description || column.columnComment);
 
 	        fragment.appendChild(row);
 	    });
@@ -410,16 +408,36 @@
 	    }
 	}
 
-	function bindColumnEditor(detail) {
+	async function bindColumnEditor(detail) {
 	    const button = $('#view-column-edit');
-	    if (!button) {
+	    const url = '/views/column-metadata?' + new URLSearchParams({
+	        schemaName: detail.schemaName, objectName: detail.objectName
+	    });
+	    button.hidden = true;
+	    let response;
+	    try {
+	        response = await api(url);
+	    } catch (error) {
+	        notify('컬럼 메타데이터를 불러오지 못했습니다.', true);
 	        return;
 	    }
+	    const metadata = new Map(response.columns.map(entry => [entry.columnName, entry]));
+	    renderColumns(detail.columns, metadata);
+	    if (!response.canEdit || detail.columns.length === 0) {
+	        return;
+	    }
+	    button.hidden = false;
 
 	    const dialog = $('#view-column-dialog');
 	    const rows = $('#view-column-editor-rows');
+	    const form = $('#view-column-editor-form');
+	    const save = $('#view-column-save');
+	    const status = $('#view-column-editor-status');
+	    let inputs = [];
 
 	    button.onclick = function () {
+	        inputs = [];
+	        status.textContent = '';
 	        const fragment = document.createDocumentFragment();
 	        $('#view-column-dialog-name').textContent = detail.objectName;
 
@@ -449,6 +467,10 @@
 	            description.maxLength = 1000;
 	            description.placeholder = '설명';
 	            description.setAttribute('aria-label', column.columnName + ' 설명');
+	            const entry = metadata.get(column.columnName);
+	            logicalName.value = entry?.logicalName || '';
+	            description.value = entry?.description || '';
+	            inputs.push({ columnName: column.columnName, logicalName, description });
 
 	            row.append(identity, logicalName, description);
 	            fragment.appendChild(row);
@@ -458,7 +480,39 @@
 	        dialog.showModal();
 	    };
 
-	    button.disabled = detail.columns.length === 0;
+	    dialog.oncancel = function (event) {
+	        if (save.disabled) event.preventDefault();
+	    };
+	    form.onsubmit = async function (event) {
+	        if (save.disabled || event.submitter?.formMethod !== 'dialog') event.preventDefault();
+	        if (save.disabled || event.submitter?.formMethod === 'dialog') return;
+
+	        const changes = inputs.map(input => ({
+	            columnName: input.columnName,
+	            logicalName: input.logicalName.value.trim(),
+	            description: input.description.value.trim()
+	        })).filter(entry => {
+	            const previous = metadata.get(entry.columnName);
+	            return entry.logicalName !== (previous?.logicalName || '')
+	                || entry.description !== (previous?.description || '');
+	        });
+	        if (changes.length === 0) {
+	            dialog.close();
+	            return;
+	        }
+	        save.disabled = true;
+	        status.textContent = '';
+	        try {
+	            await api(url, { method: 'PUT', body: JSON.stringify(changes) });
+	            changes.forEach(entry => metadata.set(entry.columnName, entry));
+	            renderColumns(detail.columns, metadata);
+	            dialog.close();
+	        } catch (error) {
+	            status.textContent = error.message;
+	        } finally {
+	            save.disabled = false;
+	        }
+	    };
 	}
 
 	function renderDetail(detail) {

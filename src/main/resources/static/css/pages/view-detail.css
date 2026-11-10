@@ -317,6 +317,13 @@
 .view-detail-page .view-column-editor-footer {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+}
+
+.view-detail-page #view-column-editor-status {
+    margin-inline-end: auto;
+    overflow-wrap: anywhere;
 }
 
 .view-detail-page .view-column-editor-footer .button {
