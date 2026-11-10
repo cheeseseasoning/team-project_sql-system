@@ -93,7 +93,15 @@
 
         <section class="panel view-panel">
             <div class="panel-heading">
-                <h2>컬럼 목록</h2>
+				<div class="view-column-heading">
+				    <h2>컬럼 목록</h2>
+				    <c:if test="${deptName eq 'DB팀' and pageContext.request.isUserInRole('DB_ADMIN')}">
+				        <button id="view-column-edit" class="button" type="button"
+				                aria-haspopup="dialog" aria-controls="view-column-dialog">
+				            컬럼 정보 편집
+				        </button>
+				    </c:if>
+				</div>
                 <span id="view-column-count" class="caption"></span>
             </div>
 
@@ -116,6 +124,30 @@
                 </table>
             </div>
         </section>
+
+		<c:if test="${deptName eq 'DB팀' and pageContext.request.isUserInRole('DB_ADMIN')}">
+		    <dialog id="view-column-dialog" class="view-column-dialog" aria-labelledby="view-column-dialog-title">
+		        <div class="view-column-editor">
+		            <header class="view-column-editor-header">
+		                <h2 id="view-column-dialog-title">컬럼 정보 편집</h2>
+		                <p id="view-column-dialog-name" class="caption view-column-editor-name"></p>
+		            </header>
+
+		            <div class="view-column-editor-body">
+		                <div class="view-column-editor-labels" aria-hidden="true">
+		                    <span>컬럼명 · 자료형</span>
+		                    <span>논리명</span>
+		                    <span>설명</span>
+		                </div>
+		                <div id="view-column-editor-rows"></div>
+		            </div>
+
+		            <form method="dialog" class="view-column-editor-footer">
+		                <button class="button" type="submit">닫기</button>
+		            </form>
+		        </div>
+		    </dialog>
+		</c:if>
 
         <section class="panel view-panel">
             <div class="panel-heading">
@@ -378,6 +410,57 @@
 	    }
 	}
 
+	function bindColumnEditor(detail) {
+	    const button = $('#view-column-edit');
+	    if (!button) {
+	        return;
+	    }
+
+	    const dialog = $('#view-column-dialog');
+	    const rows = $('#view-column-editor-rows');
+
+	    button.onclick = function () {
+	        const fragment = document.createDocumentFragment();
+	        $('#view-column-dialog-name').textContent = detail.objectName;
+
+	        // 실제 뷰 컬럼을 기준으로 입력 행을 만들고, 컬럼명과 자료형은 텍스트로 표시한다.
+	        detail.columns.forEach(function (column) {
+	            const row = document.createElement('div');
+	            row.className = 'view-column-editor-row';
+
+	            const identity = document.createElement('div');
+	            identity.className = 'view-column-editor-identity';
+	            const columnName = document.createElement('strong');
+	            columnName.textContent = column.columnName;
+
+	            const columnType = document.createElement('span');
+	            columnType.className = 'caption';
+	            columnType.textContent = column.columnType;
+	            identity.append(columnName, columnType);
+
+	            const logicalName = document.createElement('input');
+	            logicalName.type = 'text';
+	            logicalName.maxLength = 255;
+	            logicalName.placeholder = '논리명';
+	            logicalName.setAttribute('aria-label', column.columnName + ' 논리명');
+
+	            const description = document.createElement('textarea');
+	            description.rows = 1;
+	            description.maxLength = 1000;
+	            description.placeholder = '설명';
+	            description.setAttribute('aria-label', column.columnName + ' 설명');
+
+	            row.append(identity, logicalName, description);
+	            fragment.appendChild(row);
+	        });
+
+	        rows.replaceChildren(fragment);
+	        dialog.showModal();
+	    };
+
+	    button.disabled = detail.columns.length === 0;
+	}
+
 	function renderDetail(detail) {
 	    $('#view-detail-title').textContent = detail.objectName;
 	    $('#view-info-schema').textContent = detail.schemaName;
@@ -387,6 +470,7 @@
 	    renderRegistration(detail);
 	    renderPolicies(detail);
 	    renderColumns(detail.columns);
+		bindColumnEditor(detail);
 
 	    // 화면 표시용으로 정렬하며, 실패하면 원문을 표시한다.
 	    $('#view-create-statement').textContent = formatCreateStatement(detail.createStatement);
