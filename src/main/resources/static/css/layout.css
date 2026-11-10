@@ -641,3 +641,93 @@ button.help-link:focus-visible,
     color: var(--text);
     font-weight: 600;
 }
+
+
+/* 공통 알림: 화면 오른쪽 아래 고정 */
+#page-message.page-toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1000;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+
+    width: min(400px, calc(100vw - 32px));
+    max-height: min(320px, 50vh);
+    overflow-y: auto;
+
+    margin: 0;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 6px 24px rgb(0 0 0 / 14%);
+}
+
+/* display:flex가 기본 hidden 동작을 덮지 않도록 명시 */
+#page-message.page-toast[hidden] {
+    display: none;
+}
+
+#page-message .page-toast-content {
+    display: grid;
+    flex: 1;
+    gap: 6px;
+    min-width: 0;
+}
+
+#page-message-title {
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#page-message-text {
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+#page-message .page-toast-close {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+#page-message .page-toast-close:hover {
+    background: var(--soft);
+    color: var(--text);
+}
+
+/* 오류 알림 */
+#page-message.page-toast.is-error {
+    border-left-color: var(--error);
+}
+
+#page-message.is-error #page-message-title {
+    color: var(--error);
+}
+
+@media (max-width: 600px) {
+    #page-message.page-toast {
+        right: 16px;
+        bottom: 16px;
+    }
+}

@@ -245,12 +245,23 @@
             </header>
 
             <main class="main">
-                <div class="demo-strip">
-                    <span>개발 환경</span>
-                    로그인 계정 기준으로 요청과 결재 권한을 확인합니다.
-                </div>
-
-                <div id="page-message" class="message" role="status" hidden></div>
+                <div id="page-message"
+				     class="page-toast"
+				     role="status"
+				     aria-atomic="true"
+				     hidden>
+				    <div class="page-toast-content">
+				        <strong id="page-message-title">알림</strong>
+				        <span id="page-message-text"></span>
+				    </div>
+				
+				    <button id="page-message-close"
+				            class="page-toast-close"
+				            type="button"
+				            aria-label="알림 닫기">
+				        <span aria-hidden="true">×</span>
+				    </button>
+				</div>
 
                 <script>
                     'use strict';
@@ -267,13 +278,47 @@
                         "'": '&#39;'
                     }[char]));
 
-                    function notify(message, error = false) {
-                        const element = $('#page-message');
-                        element.textContent = message;
-                        element.hidden = false;
-                        element.classList.toggle('error', error);
-                        element.setAttribute('role', error ? 'alert' : 'status');
-                    }
+                    let pageMessageTimer = null;
+
+					function closePageMessage() {
+					    clearTimeout(pageMessageTimer);
+					    pageMessageTimer = null;
+					
+					    $('#page-message').hidden = true;
+					}
+					
+					function notify(message, error = false) {
+					    const element = $('#page-message');
+					
+					    // 이전 안내의 타이머가 새 오류 알림을 닫지 않도록 초기화한다.
+					    clearTimeout(pageMessageTimer);
+					    pageMessageTimer = null;
+					
+					    element.classList.toggle('is-error', error);
+					    element.setAttribute('role', error ? 'alert' : 'status');
+					    element.hidden = false;
+					
+					    $('#page-message-title').textContent =
+					        error ? '확인이 필요합니다' : '알림';
+					
+					    $('#page-message-text').textContent =
+					        message || '처리 결과를 확인해 주세요.';
+					
+					    // 오류는 자동으로 닫지 않는다.
+					    if (!error) {
+					        pageMessageTimer = setTimeout(function () {
+					            // 닫기 버튼에 키보드 포커스가 있으면 자동으로 숨기지 않는다.
+					            if (!element.contains(document.activeElement)) {
+					                closePageMessage();
+					            }
+					        }, 5000);
+					    }
+					}
+					
+					$('#page-message-close').addEventListener(
+					    'click',
+					    closePageMessage
+					);
 
                     async function api(path, options = {}) {
                         const { timeoutMs = 15000, ...fetchOptions } = options;

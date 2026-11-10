@@ -746,36 +746,48 @@ public class RequestService {
 		return new RequestDashboardResponse(summary, recentRequests);
 	}
 
-	private void saveDraftItems(Long requestId, List<String> sqls, List<String> sqlTitles) {
+	private void saveDraftItems(
+	        Long requestId,
+	        List<String> sqls,
+	        List<String> sqlTitles) {
 
-		if (sqlTitles != null && sqlTitles.size() != sqls.size()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SQL 목록과 SQL 제목 목록의 개수가 일치해야 합니다.");
-		}
+	    if (sqls == null
+	            || sqlTitles == null
+	            || sqlTitles.size() != sqls.size()) {
+	        throw new ResponseStatusException(
+	                HttpStatus.BAD_REQUEST,
+	                "SQL 목록과 SQL 제목 목록의 개수가 일치해야 합니다.");
+	    }
 
-		for (int index = 0; index < sqls.size(); index++) {
-			String title = sqlTitles == null ? null : sqlTitles.get(index);
+	    for (int index = 0; index < sqls.size(); index++) {
+	        String title = sqlTitles.get(index);
 
-			if (title == null || title.isBlank()) {
-				title = "SQL " + (index + 1);
-			} else {
-				title = title.strip();
-			}
+	        if (title == null || title.isBlank()) {
+	            throw new ResponseStatusException(
+	                    HttpStatus.BAD_REQUEST,
+	                    "SQL " + (index + 1) + "의 제목을 입력하세요.");
+	        }
 
-			if (title.length() > 200) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SQL 제목은 200자 이하여야 합니다.");
-			}
+	        title = title.strip();
 
-			QueryItem item = new QueryItem();
-			item.setRequestId(requestId);
-			item.setQueryOrder(index + 1);
-			item.setQueryTitle(title);
-			item.setSqlText(sqls.get(index));
-			item.setAuthoringType("MANUAL");
+	        if (title.length() > 200) {
+	            throw new ResponseStatusException(
+	                    HttpStatus.BAD_REQUEST,
+	                    "SQL 제목은 200자 이하여야 합니다.");
+	        }
 
-			if (requestMapper.insertItem(item) != 1) {
-			    throw new IllegalStateException("SQL 항목 저장에 실패했습니다.");
-			}
-		}
+	        QueryItem item = new QueryItem();
+	        item.setRequestId(requestId);
+	        item.setQueryOrder(index + 1);
+	        item.setQueryTitle(title);
+	        item.setSqlText(sqls.get(index));
+	        item.setAuthoringType("MANUAL");
+
+	        if (requestMapper.insertItem(item) != 1) {
+	            throw new IllegalStateException(
+	                    "SQL 항목 저장에 실패했습니다.");
+	        }
+	    }
 	}
 	
 	private String normalizeOptionalText(String value) {

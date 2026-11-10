@@ -160,13 +160,14 @@
 	        head.append(label, remove);
 
 	        const titleLabel = document.createElement('label');
-	        titleLabel.textContent = 'SQL 제목';
+	        titleLabel.textContent = 'SQL 제목 *';
 
 	        const titleInput = document.createElement('input');
 	        titleInput.type = 'text';
 	        titleInput.className = 'edit-sql-title-input';
 	        titleInput.maxLength = 200;
-	        titleInput.placeholder = 'SQL 제목 · 생략 가능';
+			titleInput.placeholder = 'SQL 제목을 입력하세요.';
+			titleInput.setAttribute('aria-required', 'true');
 	        titleInput.value = item.title;
 
 	        titleLabel.append(titleInput);
@@ -186,14 +187,14 @@
 	    $('#edit-add-sql').disabled = editSqls.length >= 5;
 	}
 
-    $('#edit-add-sql').addEventListener('click', function () {
-        readEditSqls();
+	$('#edit-add-sql').addEventListener('click', function () {
+	    readEditSqls();
 
-        if (editSqls.length < 5) {
-            editSqls.push({ title: '', sqlText: '' });
-            renderEditSqls();
-        }
-    });
+	    if (editSqls.length < 5) {
+	        editSqls.push({ title: '', sqlText: '' });
+	        renderEditSqls();
+	    }
+	});
 
     async function loadEditDraft() {
         try {
@@ -263,6 +264,24 @@
 	    }
 
 	    readEditSqls();
+		
+		const missingTitleIndex = editSqls.findIndex(item =>
+		    item.sqlText.trim() && !item.title.trim()
+		);
+
+		if (missingTitleIndex !== -1) {
+		    document.querySelectorAll(
+		        '#edit-sql-items .edit-sql-title-input'
+		    )[missingTitleIndex].focus();
+
+		    notify(
+		        'SQL ' + (missingTitleIndex + 1)
+		        + '의 제목을 입력하세요.',
+		        true
+		    );
+
+		    return;
+		}
 
 	    const savedItems = editSqls.filter(
 	        item => item.sqlText.trim().length > 0

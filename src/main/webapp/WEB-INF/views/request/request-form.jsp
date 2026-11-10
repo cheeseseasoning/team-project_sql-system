@@ -11,116 +11,128 @@
     <span class="badge">초안 작성</span>
 </div>
 
-<div class="workflow">
-    <strong>1 요청·SQL 작성</strong>
-    <span>2 초안 저장</span>
-    <span>3 결재선 확인·제출</span>
-    <span>4 결재 및 실행</span>
-</div>
-
 <form id="request-form" class="panel form-panel">
     <fieldset id="request-fields"
               style="border: 0; padding: 0; margin: 0; min-width: 0;">
         <legend class="sr-only">조회 요청 작성</legend>
 
-        <div class="form-grid">
-            <label>
-                요청 제목 <span class="required">*</span>
-                <input id="title"
-                       required
-                       maxlength="200"
-                       placeholder="요청 제목을 입력하세요.">
-            </label>
+		<section class="request-basic-fields" aria-label="요청 기본 정보">
+		    <div class="request-heading-fields">
+		        <label for="title"
+		               class="request-input-field request-title-field">
+		            <span>
+		                요청 제목 <span class="required">*</span>
+		            </span>
 
-            <label>
-                조회 목적 <span class="required">*</span>
-                <textarea id="purpose"
-                          rows="3"
-                          required
-                          placeholder="데이터가 필요한 목적을 입력하세요."></textarea>
-            </label>
-        </div>
+		            <input id="title"
+		                   type="text"
+		                   required
+		                   maxlength="200"
+		                   placeholder="요청 제목을 입력하세요.">
+		        </label>
+
+		        <label for="desired-date" class="request-input-field">
+		            <span>처리 희망일 · 선택</span>
+
+		            <input id="desired-date"
+		                   type="date"
+		                   aria-describedby="request-priority-help">
+		        </label>
+
+		        <label for="is-urgent" class="request-urgent-check">
+		            <input id="is-urgent"
+		                   type="checkbox"
+		                   aria-describedby="request-priority-help">
+		            <span>긴급</span>
+		        </label>
+		    </div>
+
+		    <label for="purpose" class="request-input-field">
+		        <span>
+		            조회 목적 <span class="required">*</span>
+		        </span>
+
+		        <textarea id="purpose"
+		                  rows="1"
+		                  required
+		                  placeholder="데이터가 필요한 목적을 입력하세요."></textarea>
+		    </label>
+
+		    <label for="detail-content" class="request-input-field">
+		        <span>상세 내용 · 선택</span>
+
+		        <textarea id="detail-content"
+		                  rows="2"
+		                  placeholder="요청 배경, 조회 범위, 주의사항을 입력하세요."></textarea>
+		    </label>
+
+		    <p id="request-priority-help" class="sr-only">
+		        긴급 여부와 처리 희망일은 처리 담당자의 참고 정보입니다.
+		    </p>
+		</section>
 		
-		<label for="detail-content">
-		    상세 내용
-		</label>
-		<textarea id="detail-content"
-		          rows="5"
-		          placeholder="요청 배경·조회 범위·주의사항 등을 입력하세요. 선택 항목입니다."></textarea>
+		<section class="request-sql-section" aria-labelledby="sql-writing-title">
+		    <div class="request-sql-heading">
+		        <h2 id="sql-writing-title">SQL 작성</h2>
 
-		<div class="form-grid">
-		    <label class="urgent-option">
-		        <input id="is-urgent" type="checkbox">
-                <span><strong>긴급 요청</strong><small>빠른 처리가 필요한 경우 체크하세요.</small></span>
-		    </label>
+		        <div class="request-mode-switch"
+		             role="group"
+		             aria-label="SQL 작성 방식">
+		            <button type="button" data-mode="direct">
+		                직접 작성
+		            </button>
 
-		    <label>
-		        희망일
-		        <input id="desired-date" type="date">
-		    </label>
+		            <button type="button" data-mode="ai">
+		                AI 작성 · 시연
+		            </button>
+		        </div>
+		    </div>
+
+		    <div class="request-sql-toolbar">
+		        <div id="sql-tabs"
+		             class="request-sql-tabs"
+		             role="tablist"
+		             aria-label="작성할 SQL 선택">
+		        </div>
+
+		        <div class="request-sql-actions">
+		            <span id="sql-count"
+		                  class="caption"
+		                  aria-live="polite"></span>
+
+		            <button id="add-sql"
+		                    type="button"
+		                    class="button">
+		                + SQL 추가
+		            </button>
+		        </div>
+		    </div>
+
+		    <div id="sql-items"></div>
+		</section>
+
+		<div class="form-footer">
+		    <span class="caption">
+		        빈 SQL 입력 칸은 제외됩니다.
+		        저장 후 상세 화면에서 제출할 수 있습니다.
+		    </span>
+
+		    <div class="request-save-actions">
+		        <button id="validate-draft-sqls"
+		                type="button"
+		                class="button"
+		                title="저장 전 SQL 검증 기능은 준비 중입니다."
+		                disabled>
+		            SQL 검증
+		        </button>
+
+		        <button id="save-draft"
+		                type="submit"
+		                class="button primary">
+		            초안 저장
+		        </button>
+		    </div>
 		</div>
-
-		<p class="caption">
-		    긴급 여부와 희망일은 처리 담당자의 참고 정보입니다.
-		</p>
-
-        <div class="tabs" role="group" aria-label="SQL 작성 방식">
-            <button type="button" data-mode="direct">
-                직접 SQL 작성
-            </button>
-            <button type="button" data-mode="ai">
-                AI로 작성 · 시연
-            </button>
-        </div>
-
-        <section id="ai-section" hidden>
-            <label for="prompt">자연어 조회 요청</label>
-            <textarea id="prompt"
-                      rows="3"
-                      maxlength="3000"
-                      placeholder="조회하고 싶은 내용을 입력하세요."></textarea>
-
-            <button id="generate"
-                    type="button"
-                    class="button">
-                SQL 초안 생성
-            </button>
-
-            <p id="explanation"
-               class="explanation"
-               aria-live="polite">
-                현재 AI 생성은 시연 기능입니다.
-                생성된 SQL을 확인한 뒤 저장하세요.
-            </p>
-        </section>
-
-        <div class="panel-heading section-gap">
-            <h2>
-                SQL 항목
-                <span id="sql-count" class="muted"></span>
-            </h2>
-
-            <button id="add-sql"
-                    type="button"
-                    class="button">
-                + SQL 추가
-            </button>
-        </div>
-
-        <div id="sql-items"></div>
-
-        <div class="form-footer">
-            <span class="caption">
-                빈 SQL 입력 칸은 제외됩니다.
-                저장 후 상세 화면에서 제출할 수 있습니다.
-            </span>
-
-            <button id="save-draft"
-                    type="submit"
-                    class="button primary">
-                초안 저장
-            </button>
-        </div>
     </fieldset>
 </form>
 
@@ -133,90 +145,259 @@
 	    { title: '', sqlText: '' }
 	];
 	
+	let activeSqlIndex = 0;
+	
     let formBusy = false;
     let createdRequestId = null;
 
-	function readSqls() {
-	    sqls = Array.from(
-	        document.querySelectorAll('#sql-items .sql-item')
-	    ).map(section => ({
-	        title: section.querySelector('.sql-title-input').value,
-	        sqlText: section.querySelector('.sql-editor').value
-	    }));
+	function activateSqlTab(index, moveFocus = false) {
+	    activeSqlIndex = index;
+
+	    const tabs = $('#sql-tabs').querySelectorAll('[role="tab"]');
+	    const panels = $('#sql-items').querySelectorAll('.sql-item');
+
+	    tabs.forEach(function (tab, tabIndex) {
+	        const selected = tabIndex === index;
+
+	        tab.setAttribute('aria-selected', String(selected));
+	        tab.tabIndex = selected ? 0 : -1;
+	    });
+
+	    panels.forEach(function (panel, panelIndex) {
+	        panel.hidden = panelIndex !== index;
+	    });
+
+	    if (moveFocus) {
+	        tabs[index]?.focus();
+	    }
 	}
 
-    function setMode(next) {
-        mode = next;
-        $('#ai-section').hidden = mode !== 'ai';
-
-        document.querySelectorAll('button[data-mode]')
-            .forEach(function (button) {
-                button.setAttribute(
-                    'aria-pressed',
-                    String(button.dataset.mode === mode)
-                );
-            });
-    }
-
 	function renderSqls() {
+	    const tabs = $('#sql-tabs');
 	    const box = $('#sql-items');
+
+	    tabs.replaceChildren();
 	    box.replaceChildren();
 
+	    activeSqlIndex = Math.max(
+	        0,
+	        Math.min(activeSqlIndex, sqls.length - 1)
+	    );
+
 	    sqls.forEach(function (item, index) {
+			const tabGroup = document.createElement('div');
+			tabGroup.className = 'request-sql-tab-group';
+			tabGroup.setAttribute('role', 'presentation');
+
+			const tab = document.createElement('button');
+
+			tab.type = 'button';
+			tab.id = 'sql-tab-' + index;
+			tab.className = 'request-sql-tab';
+			tab.textContent = 'SQL ' + (index + 1);
+			tab.setAttribute('role', 'tab');
+			tab.setAttribute('aria-controls', 'sql-panel-' + index);
+
+			tab.addEventListener('click', function () {
+			    activateSqlTab(index);
+			});
+
+			const remove = document.createElement('button');
+
+			remove.type = 'button';
+			remove.className = 'request-sql-tab-remove';
+			remove.textContent = '×';
+			remove.disabled = sqls.length <= 1;
+
+			remove.setAttribute(
+			    'aria-label',
+			    'SQL ' + (index + 1) + ' 삭제'
+			);
+
+			remove.title = sqls.length <= 1
+			    ? 'SQL은 최소 1개를 유지해야 합니다.'
+			    : 'SQL ' + (index + 1) + ' 삭제';
+
+			remove.addEventListener('click', function (event) {
+			    event.stopPropagation();
+			    removeSql(index);
+			});
+
+			tabGroup.append(tab, remove);
+			tabs.appendChild(tabGroup);
+
 	        const section = document.createElement('section');
+
+	        section.id = 'sql-panel-' + index;
 	        section.className = 'sql-item';
+	        section.setAttribute('role', 'tabpanel');
+	        section.setAttribute('aria-labelledby', tab.id);
 
-	        const head = document.createElement('div');
-	        head.className = 'panel-heading';
+	        // 사용자 입력값은 HTML 문자열에 넣지 않고 아래에서 value로 지정한다.
+	        section.innerHTML = `
+	            <label class="request-sql-field">
+	                <span>SQL 제목 <span class="required">*</span></span>
+	                <input type="text"
+	                       class="sql-title-input"
+						   aria-required="true"
+	                       maxlength="200"
+	                       placeholder="SQL 제목을 입력하세요.">
+	            </label>
 
-	        const label = document.createElement('label');
-	        label.htmlFor = 'sql-' + index;
-	        label.textContent = 'SQL ' + (index + 1);
+	            <div class="request-sql-editor-grid">
+	                <div class="request-ai-panel" hidden>
+	                    <label class="request-sql-field">
+	                        <span>자연어 요청</span>
+	                        <textarea class="sql-prompt"
+	                                  rows="5"
+	                                  maxlength="3000"
+	                                  placeholder="예: 현재 판매 중인 상품의 상품 ID와 상품명을 조회해 주세요."></textarea>
+	                    </label>
 
-	        head.append(label);
+	                    <div class="request-ai-generate-actions">
+	                        <button type="button"
+	                                class="button primary sql-generate">
+	                            SQL 초안 생성 →
+	                        </button>
+	                    </div>
 
-	        if (sqls.length > 1) {
-	            const remove = document.createElement('button');
-	            remove.type = 'button';
-	            remove.className = 'text-button';
-	            remove.textContent = '삭제';
+	                    <p class="request-ai-explanation"
+	                       role="status"
+	                       aria-live="polite"></p>
+	                </div>
 
-	            remove.addEventListener('click', function () {
-	                readSqls();
-	                sqls.splice(index, 1);
-	                renderSqls();
-	            });
+	                <label class="request-sql-field request-sql-output">
+	                    <span class="request-sql-output-heading">
+	                        <span class="request-sql-editor-label">
+	                            SQL 원문
+	                        </span>
+	                        <span class="request-ai-status"></span>
+	                    </span>
 
-	            head.append(remove);
+	                    <textarea class="sql-editor"
+	                              rows="5"
+	                              maxlength="20000"
+	                              spellcheck="false"></textarea>
+	                </label>
+	            </div>
+	        `;
+
+	        const titleInput =
+	            section.querySelector('.sql-title-input');
+	        const promptInput =
+	            section.querySelector('.sql-prompt');
+	        const editor =
+	            section.querySelector('.sql-editor');
+	        const status =
+	            section.querySelector('.request-ai-status');
+
+	        titleInput.value = item.title;
+	        promptInput.value = item.prompt || '';
+	        editor.id = 'sql-' + index;
+	        editor.value = item.sqlText;
+	        editor.placeholder =
+	            'SQL을 직접 입력하거나, AI로 생성한 SQL을 검토·수정하세요.';
+
+	        function updateStatus() {
+	            status.textContent = editor.value.trim()
+	                ? '검토 필요'
+	                : '생성 대기';
 	        }
 
-	        const titleLabel = document.createElement('label');
-	        titleLabel.textContent = 'SQL 제목';
+	        updateStatus();
+	        editor.addEventListener('input', updateStatus);
 
-	        const titleInput = document.createElement('input');
-	        titleInput.type = 'text';
-	        titleInput.className = 'sql-title-input';
-	        titleInput.maxLength = 200;
-	        titleInput.placeholder = '예: 부서별 매출 합계 · 생략 가능';
-	        titleInput.value = item.title;
+	        section.querySelector('.request-ai-explanation').textContent =
+	            item.explanation || '';
 
-	        titleLabel.append(titleInput);
+	        section.querySelector('.sql-generate')
+	            .addEventListener('click', function () {
+	                generateSql(index, this);
+	        });
 
-	        const editor = document.createElement('textarea');
-	        editor.id = 'sql-' + index;
-	        editor.className = 'sql-editor';
-	        editor.rows = 8;
-	        editor.spellcheck = false;
-	        editor.maxLength = 20000;
-	        editor.placeholder = '조회할 SQL을 입력하세요.';
-	        editor.value = item.sqlText;
-
-	        section.append(head, titleLabel, editor);
-	        box.append(section);
+	        box.appendChild(section);
 	    });
 
 	    $('#sql-count').textContent = sqls.length + ' / 5';
 	    $('#add-sql').disabled = sqls.length >= 5;
+
+	    activateSqlTab(activeSqlIndex);
+	    setMode(mode);
+	}
+	
+	function removeSql(index) {
+	    if (formBusy || sqls.length <= 1) {
+	        return;
+	    }
+
+	    readSqls();
+
+	    const current = sqls[index];
+
+	    if (!current) return;
+
+	    const hasContent =
+	        current.title.trim()
+	        || current.sqlText.trim()
+	        || (current.prompt || '').trim();
+
+	    if (hasContent && !window.confirm(
+	            'SQL ' + (index + 1)
+	            + '의 작성 내용을 삭제하시겠습니까?')) {
+	        return;
+	    }
+
+	    sqls.splice(index, 1);
+
+	    // 선택된 탭보다 앞의 SQL을 지우면 같은 항목이 계속 선택되도록 보정한다.
+	    if (index < activeSqlIndex) {
+	        activeSqlIndex--;
+	    }
+
+	    activeSqlIndex = Math.min(
+	        activeSqlIndex,
+	        sqls.length - 1
+	    );
+
+	    renderSqls();
+	    activateSqlTab(activeSqlIndex, true);
+	}
+
+	function setMode(next) {
+	    mode = next;
+	    $('#request-form').dataset.mode = mode;
+
+	    document.querySelectorAll('button[data-mode]')
+	        .forEach(function (button) {
+	            button.setAttribute(
+	                'aria-pressed',
+	                String(button.dataset.mode === mode)
+	            );
+	        });
+
+	    document.querySelectorAll('#sql-items .sql-item')
+	        .forEach(function (section) {
+	            section.querySelector('.request-ai-panel').hidden =
+	                mode !== 'ai';
+
+	            section.querySelector('.request-sql-editor-label').textContent =
+	                mode === 'ai' ? '생성된 SQL' : 'SQL 원문';
+	        });
+	}
+	
+	function readSqls() {
+	    const sections = document.querySelectorAll(
+	        '#sql-items .sql-item'
+	    );
+
+	    sqls = Array.from(sections).map(function (section, index) {
+	        return {
+	            ...sqls[index],
+	            title: section.querySelector('.sql-title-input').value,
+	            sqlText: section.querySelector('.sql-editor').value,
+	            prompt: section.querySelector('.sql-prompt').value
+	        };
+	    });
 	}
 
     async function runFormTask(button, task) {
@@ -248,40 +429,98 @@
             });
         });
 
-    $('#add-sql').addEventListener('click', function () {
-        readSqls();
+	$('#add-sql').addEventListener('click', function () {
+	    readSqls();
 
-        if (sqls.length < 5) {
-            sqls.push({ title: '', sqlText: '' });
-            renderSqls();
-        }
-    });
+	    if (sqls.length >= 5) {
+	        return;
+	    }
 
-    $('#generate').addEventListener('click', function () {
-        runFormTask(this, async function () {
-            const prompt = $('#prompt').value.trim();
+	    sqls.push({ title: '', sqlText: '' });
+	    activeSqlIndex = sqls.length - 1;
 
-            if (!prompt) {
-                throw Error('자연어 조회 요청을 입력하세요.');
-            }
+	    renderSqls();
+	    activateSqlTab(activeSqlIndex, true);
+	});
+	
+	$('#sql-tabs').addEventListener('keydown', function (event) {
+	    const tab = event.target.closest('[role="tab"]');
 
-            const data = await post('/sql/generate', { prompt });
+	    if (!tab) return;
 
-            if (!data || typeof data.sql !== 'string'
-                    || !data.sql.trim()) {
-                throw Error('생성된 SQL이 없습니다.');
-            }
+	    const tabs = Array.from(
+	        this.querySelectorAll('[role="tab"]')
+	    );
+	    const index = tabs.indexOf(tab);
 
-            readSqls();
-            sqls[0].sqlText = data.sql;
-            renderSqls();
+	    let nextIndex;
 
-            $('#explanation').textContent =
-                data.explanation || '생성된 SQL을 확인하세요.';
+	    switch (event.key) {
+	        case 'ArrowRight':
+	            nextIndex = (index + 1) % tabs.length;
+	            break;
+	        case 'ArrowLeft':
+	            nextIndex = (index - 1 + tabs.length) % tabs.length;
+	            break;
+	        case 'Home':
+	            nextIndex = 0;
+	            break;
+	        case 'End':
+	            nextIndex = tabs.length - 1;
+	            break;
+	        default:
+	            return;
+	    }
 
-            notify('SQL 초안이 생성되었습니다. 내용을 확인하세요.');
-        });
-    });
+	    event.preventDefault();
+	    activateSqlTab(nextIndex, true);
+	});
+	
+	async function generateSql(index, button) {
+	    await runFormTask(button, async function () {
+	        readSqls();
+
+	        const item = sqls[index];
+	        const prompt = item.prompt.trim();
+
+	        if (!prompt) {
+	            throw Error('자연어 요청을 입력하세요.');
+	        }
+
+	        if (item.sqlText.trim() && !window.confirm(
+	                'SQL ' + (index + 1)
+	                + '의 기존 원문을 새로 생성한 SQL로 바꾸시겠습니까?')) {
+	            return;
+	        }
+
+	        button.textContent = '생성 중…';
+
+	        const data = await post('/sql/generate', { prompt });
+
+	        if (!data || typeof data.sql !== 'string'
+	                || !data.sql.trim()) {
+	            throw Error('생성된 SQL이 없습니다.');
+	        }
+
+	        if (data.sql.length > 20000) {
+	            throw Error('생성된 SQL이 입력 가능한 길이를 초과했습니다.');
+	        }
+
+	        // 요청 성공 후에만 기존 SQL을 교체한다.
+	        item.sqlText = data.sql;
+	        item.explanation =
+	            data.explanation
+	            || '생성된 SQL을 검토·수정한 뒤 저장하세요.';
+
+	        activeSqlIndex = index;
+	        renderSqls();
+
+	        notify(
+	            'SQL ' + (index + 1)
+	            + ' 초안이 생성되었습니다. 내용을 확인하세요.'
+	        );
+	    });
+	}
 
     $('#request-form').addEventListener('submit', function (event) {
         event.preventDefault();
@@ -292,6 +531,32 @@
                 + encodeURIComponent(createdRequestId);
             return;
         }
+		
+		if (formBusy) return;
+
+		readSqls();
+
+		const missingTitleIndex = sqls.findIndex(item =>
+		    item.sqlText.trim() && !item.title.trim()
+		);
+
+		if (missingTitleIndex !== -1) {
+		    activateSqlTab(missingTitleIndex);
+
+		    const titleInput = document
+		        .querySelectorAll('#sql-items .sql-title-input')
+		        [missingTitleIndex];
+
+		    titleInput.focus();
+
+		    notify(
+		        'SQL ' + (missingTitleIndex + 1)
+		        + '의 제목을 입력하세요.',
+		        true
+		    );
+
+		    return;
+		}
 
         runFormTask($('#save-draft'), async function () {
             const title = $('#title').value.trim();
