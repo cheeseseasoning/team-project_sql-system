@@ -6,7 +6,7 @@
      data-edit-mode="${viewCreateEdit}"
      hidden></div>
 
-	 <div class="page-heading">
+	 <div class="page-heading panel-aligned-heading">
 	     <h1>${viewCreateEdit ? 'DB 변경 요청 수정' : 'DB 변경 요청 작성'}</h1>
 	     <span class="badge">${viewCreateEdit ? '초안 수정' : '초안 작성'}</span>
 	 </div>

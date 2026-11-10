@@ -193,26 +193,25 @@
 .views-page .views-pagination .button {
     min-width: 32px;
     min-height: 32px;
-    padding: 3px 7px;
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted);
+}
+
+.views-page .views-pagination .button:not(:disabled):hover,
+.views-page .views-page-numbers [aria-current="page"] {
+    background: var(--tint);
+    color: var(--accent);
 }
 
 .views-page .views-page-numbers [aria-current="page"] {
-    border-color: var(--accent);
-    background: var(--accent);
-    color: #fff;
+    font-weight: 700;
 }
 
-/* 뷰 조회에서 검색, 목록, 페이지 이동 사이의 세로 여백을 줄인다. */
-.main:has(> .views-page) {
-    padding-top: 12px;
-}
-
-.views-page > .page-heading {
-    margin: 0 0 12px;
-}
-
-.views-page > .page-heading h1 {
-    margin: 0;
+.views-page .views-pagination .button:disabled {
+    opacity: 0.45;
 }
 
 .views-page > .panel {
@@ -243,7 +242,7 @@
 }
 
 .views-page .views-pagination {
-    margin-top: 12px;
+    margin-top: 20px;
 }
 
 .views-page .views-list-footer {

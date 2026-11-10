@@ -1,37 +1,31 @@
 <%@ page pageEncoding="UTF-8" %>
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
-<div class="page-heading">
+<div class="notices-page">
+<div class="page-heading panel-aligned-heading">
     <h1>공지사항</h1>
-    <span class="caption">서비스 운영 소식과 이용 안내를 확인하세요.</span>
 </div>
 
 <section id="notice-list-view" hidden>
     <div class="panel">
         <div class="table-scroll">
-            <table>
+            <table class="notice-table">
                 <thead>
                     <tr>
-                        <th scope="col">번호</th>
                         <th scope="col">제목</th>
                         <th scope="col">작성자</th>
                         <th scope="col">등록일</th>
                     </tr>
                 </thead>
                 <tbody id="notices-body">
-                    <tr><td colspan="4">공지사항을 불러오는 중입니다.</td></tr>
+                    <tr><td colspan="3">공지사항을 불러오는 중입니다.</td></tr>
                 </tbody>
             </table>
         </div>
+        <nav id="notice-pagination" class="notice-pagination" aria-label="공지사항 페이지" hidden></nav>
     </div>
 
-    <div class="section-gap" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-        <nav aria-label="공지사항 페이지">
-            <a id="notice-previous" class="button" hidden>이전</a>
-            <span id="notice-page-info" class="caption" aria-live="polite"></span>
-            <a id="notice-next" class="button" hidden>다음</a>
-        </nav>
-
+    <div class="notice-list-actions">
         <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
             <button id="notice-create" type="button" class="button primary">
                 공지 등록
@@ -41,18 +35,17 @@
 </section>
 
 <section id="notice-detail-view" hidden>
-    <article class="panel">
+    <article class="panel notice-detail-panel">
         <p id="notice-detail-status" role="status">공지사항을 불러오는 중입니다.</p>
 
         <div id="notice-detail-content" hidden>
             <h2 id="notice-title"></h2>
             <p id="notice-meta" class="caption"></p>
-            <hr>
-            <div id="notice-body" class="notice-body section-gap"></div>
+            <div id="notice-body" class="notice-body"></div>
         </div>
     </article>
 
-    <div class="section-gap" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div class="notice-detail-footer">
         <a id="notice-back" class="button">목록</a>
 
         <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
@@ -92,6 +85,7 @@
         </form>
     </section>
 </c:if>
+</div>
 
 <script>
     (() => {
@@ -120,7 +114,39 @@
         }
 
         function formatDate(value) {
-            return value ? value.substring(0, 10) : '-';
+            return value ? value.substring(0, 10).replace(/-/g, '.') : '-';
+        }
+
+        function renderPagination(totalPages) {
+            const pagination = $('#notice-pagination');
+            const fragment = document.createDocumentFragment();
+            const groupSize = 10;
+            const first = Math.floor((page - 1) / groupSize) * groupSize + 1;
+            const last = Math.min(first + groupSize - 1, totalPages);
+
+            function appendLink(label, target, accessibleLabel, disabled = false) {
+                const item = document.createElement(disabled ? 'span' : 'a');
+                item.className = 'button';
+                item.textContent = label;
+                item.setAttribute('aria-label', accessibleLabel);
+                if (disabled) {
+                    item.setAttribute('aria-disabled', 'true');
+                } else {
+                    item.href = listUrl(target);
+                    if (target === page) {
+                        item.setAttribute('aria-current', 'page');
+                    }
+                }
+                fragment.appendChild(item);
+            }
+
+            appendLink('‹ 이전', page - 1, '이전 페이지', page <= 1);
+            for (let number = first; number <= last; number++) {
+                appendLink(String(number), number, number + '페이지');
+            }
+            appendLink('다음 ›', page + 1, '다음 페이지', page >= totalPages);
+            pagination.replaceChildren(fragment);
+            pagination.hidden = totalPages === 0;
         }
 
         function showView(view) {
@@ -149,7 +175,6 @@
                 $('#notices-body').innerHTML = data.notices.length
                     ? data.notices.map(notice =>
                         '<tr>' +
-                            '<td>' + esc(notice.noticeId) + '</td>' +
                             '<td><a class="table-link" href="' +
                                 esc(detailUrl(notice.noticeId, page)) + '">' +
                                 esc(notice.title) + '</a></td>' +
@@ -157,22 +182,12 @@
                             '<td>' + esc(formatDate(notice.createdAt)) + '</td>' +
                         '</tr>'
                     ).join('')
-                    : '<tr><td colspan="4">등록된 공지사항이 없습니다.</td></tr>';
+                    : '<tr><td colspan="3">등록된 공지사항이 없습니다.</td></tr>';
 
-                $('#notice-page-info').textContent = data.totalPages
-                    ? page + ' / ' + data.totalPages + ' 페이지'
-                    : '전체 0건';
-
-                const previous = $('#notice-previous');
-                previous.hidden = page <= 1;
-                previous.href = listUrl(page - 1);
-
-                const next = $('#notice-next');
-                next.hidden = page >= data.totalPages;
-                next.href = listUrl(page + 1);
+                renderPagination(data.totalPages);
             } catch (error) {
                 $('#notices-body').innerHTML =
-                    '<tr><td colspan="4">공지사항을 불러오지 못했습니다.</td></tr>';
+                    '<tr><td colspan="3">공지사항을 불러오지 못했습니다.</td></tr>';
                 notify(error.message, true);
             }
         }
@@ -189,12 +204,8 @@
 
                 const metadata = [
                     notice.createdByName || '-',
-                    '등록 ' + formatDate(notice.createdAt)
+                    formatDate(notice.updatedAt || notice.createdAt)
                 ];
-
-                if (notice.updatedAt) {
-                    metadata.push('수정 ' + formatDate(notice.updatedAt));
-                }
 
                 $('#notice-meta').textContent = metadata.join(' · ');
 

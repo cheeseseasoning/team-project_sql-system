@@ -1,0 +1,87 @@
+.notices-page .notice-table {
+    min-width: 440px;
+    font-size: 13px;
+}
+
+.notices-page .notice-table th,
+.notices-page .notice-table td {
+    padding: 10px 14px;
+    vertical-align: middle;
+}
+
+.notices-page .notice-table th:first-child {
+    width: 68%;
+}
+
+.notices-page .notice-table th:not(:first-child),
+.notices-page .notice-table td:not(:first-child) {
+    white-space: nowrap;
+}
+
+.notices-page .notice-table a {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.notices-page .notice-pagination:not([hidden]) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 20px;
+}
+
+.notices-page .notice-pagination .button {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted);
+}
+
+.notices-page .notice-pagination a:hover,
+.notices-page .notice-pagination [aria-current="page"] {
+    background: var(--tint);
+    color: var(--accent);
+}
+
+.notices-page .notice-pagination [aria-current="page"] {
+    font-weight: 700;
+}
+
+.notices-page .notice-pagination [aria-disabled="true"] {
+    opacity: 0.45;
+}
+
+.notices-page .notice-list-actions {
+    text-align: right;
+}
+
+.notices-page .notice-list-actions .button {
+    margin-top: 16px;
+}
+
+.notices-page .notice-detail-panel h2 {
+    margin: 0 0 8px;
+    font-size: 23px;
+    overflow-wrap: anywhere;
+}
+
+.notices-page .notice-detail-panel .notice-body {
+    max-width: none;
+    margin: 18px 0 0;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    overflow-wrap: anywhere;
+}
+
+.notices-page .notice-detail-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}

@@ -2,7 +2,7 @@
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="views-page">
-	<div class="page-heading">
+	<div class="page-heading panel-aligned-heading">
 	    <h1>뷰 조회</h1>
 	</div>
 
@@ -84,9 +84,9 @@
         </div>
 		
 		<nav class="views-pagination" aria-label="뷰 목록 페이지 이동">
-		    <button id="view-prev-page" type="button" class="button" aria-label="이전" disabled>‹</button>
+		    <button id="view-prev-page" type="button" class="button" aria-label="이전 페이지" disabled>‹ 이전</button>
 		    <div id="view-page-numbers" class="views-page-numbers"></div>
-		    <button id="view-next-page" type="button" class="button" aria-label="다음" disabled>›</button>
+		    <button id="view-next-page" type="button" class="button" aria-label="다음 페이지" disabled>다음 ›</button>
 		</nav>
 		<span id="view-page-info" class="sr-only" aria-live="polite"></span>
 

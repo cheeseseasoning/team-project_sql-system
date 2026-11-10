@@ -272,6 +272,12 @@ html {
     margin-bottom: 24px;
 }
 
+.page-heading.panel-aligned-heading {
+    min-height: 32px;
+    margin: 0 0 24px;
+    padding-inline: 2px;
+}
+
 .page-heading > .muted {
     font-size: 12px;
 }
