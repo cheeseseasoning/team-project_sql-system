@@ -698,33 +698,78 @@ public class RequestService {
 	}
 
 	@Transactional(readOnly = true)
-	public RequestPageResponse getMyRequestsPage(String keyword, String status, int page, int size) {
-		return getMyRequestsPage(1L, keyword, status, page, size);
+	public RequestPageResponse getMyRequestsPage(
+	        String keyword,
+	        String status,
+	        int page,
+	        int size) {
+
+	    return getMyRequestsPage(
+	            1L, keyword, "", status, page, size);
 	}
 
 	@Transactional(readOnly = true)
-	public RequestPageResponse getMyRequestsPage(Long drafterId, String keyword, String status, int page, int size) {
+	public RequestPageResponse getMyRequestsPage(
+	        Long drafterId,
+	        String keyword,
+	        String status,
+	        int page,
+	        int size) {
 
-		String searchKeyword = keyword == null ? "" : keyword.strip();
-		String searchStatus = status == null ? "" : status.strip();
+	    return getMyRequestsPage(
+	            drafterId, keyword, "", status, page, size);
+	}
 
-		validateSearchConditions(searchKeyword, searchStatus);
+	@Transactional(readOnly = true)
+	public RequestPageResponse getMyRequestsPage(
+	        Long drafterId,
+	        String keyword,
+	        String requestType,
+	        String status,
+	        int page,
+	        int size) {
 
-		RequestSearchValidator.validatePage(page, size);
+	    String searchKeyword = keyword == null ? "" : keyword.strip();
+	    String searchRequestType = requestType == null ? "" : requestType.strip();
+	    String searchStatus = status == null ? "" : status.strip();
 
-		long totalCount = requestMapper.countMyRequests(drafterId, searchKeyword, searchStatus);
+	    validateSearchConditions(searchKeyword, searchStatus);
+	    RequestSearchValidator.validateRequestType(searchRequestType);
+	    RequestSearchValidator.validatePage(page, size);
 
-		long totalPages = totalCount == 0 ? 0 : (totalCount - 1) / size + 1;
+	    long totalCount = requestMapper.countMyRequests(
+	            drafterId,
+	            searchKeyword,
+	            searchRequestType,
+	            searchStatus);
 
-		// 범위를 넘는 페이지를 요청하면 마지막 페이지로 보정
-		int actualPage = totalPages == 0 ? 1 : (int) Math.min(page, totalPages);
+	    long totalPages = totalCount == 0
+	            ? 0
+	            : (totalCount - 1) / size + 1;
 
-		long offset = (long) (actualPage - 1) * size;
+	    // 범위를 넘는 페이지를 요청하면 마지막 페이지로 보정
+	    int actualPage = totalPages == 0
+	            ? 1
+	            : (int) Math.min(page, totalPages);
 
-		List<RequestListResponse> items = totalCount == 0 ? List.of()
-				: requestMapper.selectMyRequestsPage(drafterId, searchKeyword, searchStatus, offset, size);
+	    long offset = (long) (actualPage - 1) * size;
 
-		return new RequestPageResponse(items, actualPage, size, totalCount, totalPages);
+	    List<RequestListResponse> items = totalCount == 0
+	            ? List.of()
+	            : requestMapper.selectMyRequestsPage(
+	                    drafterId,
+	                    searchKeyword,
+	                    searchRequestType,
+	                    searchStatus,
+	                    offset,
+	                    size);
+
+	    return new RequestPageResponse(
+	            items,
+	            actualPage,
+	            size,
+	            totalCount,
+	            totalPages);
 	}
 
 	private void validateSearchConditions(String keyword, String status) {
@@ -741,7 +786,9 @@ public class RequestService {
 
 		RequestSummaryResponse summary = requestMapper.selectMyRequestSummary(drafterId);
 
-		List<RequestListResponse> recentRequests = requestMapper.selectMyRequestsPage(drafterId, "", "", 0L, 5);
+		List<RequestListResponse> recentRequests =
+		        requestMapper.selectMyRequestsPage(
+		                drafterId, "", "", "", 0L, 5);
 
 		return new RequestDashboardResponse(summary, recentRequests);
 	}

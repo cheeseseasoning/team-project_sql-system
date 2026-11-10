@@ -82,11 +82,13 @@ public interface RequestMapper {
     long countMyRequests(
             @Param("drafterId") Long drafterId,
             @Param("keyword") String keyword,
+            @Param("requestType") String requestType,
             @Param("status") String status);
 
     List<RequestListResponse> selectMyRequestsPage(
             @Param("drafterId") Long drafterId,
             @Param("keyword") String keyword,
+            @Param("requestType") String requestType,
             @Param("status") String status,
             @Param("offset") long offset,
             @Param("size") int size);

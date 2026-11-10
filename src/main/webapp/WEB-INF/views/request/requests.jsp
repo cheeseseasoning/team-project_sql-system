@@ -10,6 +10,15 @@
 					<input name="keyword" id="keyword" placeholder="요청번호 또는 제목" maxlength="120">
 				</label>
 
+				<label class="request-type-filter">
+				    요청 유형
+				    <select id="request-type" name="requestType">
+				        <option value="">전체</option>
+				        <option value="SELECT">조회</option>
+				        <option value="DB_CHANGE">DB 변경</option>
+				    </select>
+				</label>
+				
 				<label>
 					처리 상태
 					<select id="status" name="status">
@@ -28,7 +37,15 @@
 				</label>
 
 				<button class="button primary" type="submit">검색</button>
-				<button id="clear-filter" class="button" type="button">초기화</button>
+				
+				<button id="clear-filter"
+				        class="button refresh-button"
+				        type="button"
+				        title="검색 조건 초기화 및 새로고침"
+				        aria-label="검색 조건 초기화 및 새로고침">
+				    <img src="${pageContext.request.contextPath}/icons/RefreshCw.svg"
+				         alt="">
+				</button>
 			</form>
 
 			<div class="panel-heading request-list-heading">
@@ -104,6 +121,7 @@
 
 			let activeFilters = {
 				keyword: '',
+				requestType: '',
 				status: ''
 			};
 
@@ -302,6 +320,10 @@
 			        if (activeFilters.keyword) {
 			            params.set('keyword', activeFilters.keyword);
 			        }
+					
+					if (activeFilters.requestType) {
+					    params.set('requestType', activeFilters.requestType);
+					}
 
 			        if (activeFilters.status) {
 			            params.set('status', activeFilters.status);
@@ -353,6 +375,7 @@
 
 				activeFilters = {
 					keyword: $('#keyword').value.trim(),
+					requestType: $('#request-type').value,
 					status: $('#status').value
 				};
 
@@ -363,16 +386,28 @@
 				);
 			});
 
-			$('#clear-filter').addEventListener('click', function () {
-				$('#keyword').value = '';
-				$('#status').value = '';
+			$('#clear-filter').addEventListener('click', async function () {
+			    if (this.disabled) return;
 
-				activeFilters = {
-					keyword: '',
-					status: ''
-				};
+			    this.disabled = true;
+			    this.setAttribute('aria-busy', 'true');
 
-				busy(this, () => loadRequests(1));
+			    try {
+			        $('#keyword').value = '';
+			        $('#request-type').value = '';
+			        $('#status').value = '';
+
+			        activeFilters = {
+			            keyword: '',
+			            requestType: '',
+			            status: ''
+			        };
+
+			        await loadRequests(1);
+			    } finally {
+			        this.disabled = false;
+			        this.removeAttribute('aria-busy');
+			    }
 			});
 
 			$('#previous-page').addEventListener('click', function () {
@@ -387,6 +422,14 @@
 
 			// 공통 검색창에서 넘어온 조건 반영
 			const initialParams = new URLSearchParams(location.search);
+			
+			const initialRequestType =
+			    initialParams.get('requestType') || '';
+
+			if (Array.from($('#request-type').options)
+			    .some(option => option.value === initialRequestType)) {
+			    $('#request-type').value = initialRequestType;
+			}
 
 			$('#keyword').value = initialParams.get('keyword') || '';
 
@@ -399,6 +442,7 @@
 
 			activeFilters = {
 				keyword: $('#keyword').value.trim(),
+				requestType: $('#request-type').value,
 				status: $('#status').value
 			};
 

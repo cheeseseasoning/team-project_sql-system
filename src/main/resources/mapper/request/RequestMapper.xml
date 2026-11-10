@@ -312,6 +312,17 @@
 	        )
 	    </if>
 	
+	    <choose>
+	        <when test='requestType == "SELECT"'>
+	            AND R.REQUEST_TYPE = 'SELECT'
+	        </when>
+	        <when test='requestType == "DB_CHANGE"'>
+	            AND R.REQUEST_TYPE IN (
+	                'CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE'
+	            )
+	        </when>
+	    </choose>
+	
 	    <if test="status != null and status != ''">
 	        AND R.REQUEST_STATUS = #{status}
 	    </if>

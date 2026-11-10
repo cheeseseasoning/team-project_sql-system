@@ -1772,3 +1772,18 @@
     --status-background: #f8fafc;
     --status-border: #cbd5e1;
 }
+
+
+#my-request-list .filter-bar > label.request-type-filter,
+#my-request-list .filter-bar > label:has(#status) {
+    flex: 0 0 150px;
+    width: 150px;
+}
+
+
+#my-request-list #clear-filter {
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    padding: 0;
+}

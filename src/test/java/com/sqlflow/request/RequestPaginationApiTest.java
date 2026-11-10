@@ -141,13 +141,13 @@ class RequestPaginationApiTest {
         // 다른 작성자 조건에서는 건수와 목록 모두 없어야 함
         assertEquals(
                 0L,
-                requestMapper.countMyRequests(0L, prefix, "")
+                requestMapper.countMyRequests(0L, prefix, "", "")
         );
 
         assertTrue(
-                requestMapper.selectMyRequestsPage(
-                        0L, prefix, "", 0L, 10
-                ).isEmpty()
+        		requestMapper.selectMyRequestsPage(
+        		        0L, prefix, "", "", 0L, 10
+        		).isEmpty()
         );
     }
 
@@ -219,6 +219,7 @@ class RequestPaginationApiTest {
         input.setTitle(title);
         input.setPurpose("페이지 조회 테스트");
         input.setSqls(List.of("SELECT 1 FROM DUAL"));
+        input.setSqlTitles(List.of("테스트 조회"));
 
         return requestService.createDraft(input);
     }
