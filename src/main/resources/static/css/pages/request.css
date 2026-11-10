@@ -1505,3 +1505,270 @@
     opacity: 0.3;
     cursor: not-allowed;
 }
+
+
+/* 내 조회 요청: 표 위 제목과 전체 건수 */
+#my-request-list .request-list-heading {
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+#my-request-list .request-list-count {
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+/* 내 조회 요청: 표 아래 가운데 페이지 이동 */
+#my-request-list .request-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+
+    margin-top: 16px;
+    padding-top: 4px;
+}
+
+#my-request-list .request-pagination[hidden] {
+    display: none;
+}
+
+#my-request-list .request-page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#my-request-list .request-page-number,
+#my-request-list .request-page-direction {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 5px;
+
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+#my-request-list .request-page-number:hover,
+#my-request-list .request-page-direction:hover:not(:disabled) {
+    background: var(--soft);
+    color: var(--accent);
+}
+
+#my-request-list .request-page-number[aria-current="page"] {
+    background: var(--tint);
+    color: var(--accent);
+    font-weight: 700;
+}
+
+#my-request-list .request-page-direction:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+    #my-request-list .request-pagination {
+        gap: 4px;
+    }
+
+    #my-request-list .request-page-number,
+    #my-request-list .request-page-direction {
+        min-width: 28px;
+        padding: 0 6px;
+    }
+}
+
+
+/* 내 조회 요청: 목록 표 */
+#my-request-list .request-list-table {
+    width: 100%;
+    min-width: 900px;
+    table-layout: fixed;
+    font-size: 12px;
+}
+
+#my-request-list .request-number-column {
+    width: 16%;
+}
+
+#my-request-list .request-title-column {
+    width: 30%;
+}
+
+#my-request-list .request-type-column {
+    width: 9%;
+}
+
+#my-request-list .request-drafter-column {
+    width: 13%;
+}
+
+#my-request-list .request-department-column {
+    width: 11%;
+}
+
+#my-request-list .request-status-column {
+    width: 14%;
+}
+
+#my-request-list .request-date-column {
+    width: 7%;
+}
+
+#my-request-list .request-list-table th {
+    padding: 10px 12px;
+    background: var(--rail);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+#my-request-list .request-list-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+    line-height: 1.5;
+}
+
+#my-request-list .request-list-table tbody tr:hover {
+    background: #f8fbfc;
+}
+
+#my-request-list .request-number-cell,
+#my-request-list .request-date-cell {
+    color: var(--muted);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+#my-request-list .request-number-cell,
+#my-request-list .request-department-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 긴급 배지와 제목을 한 줄에 배치 */
+#my-request-list .request-title-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+}
+
+#my-request-list .request-title-content .urgent-badge {
+    flex-shrink: 0;
+    margin: 0;
+    font-size: 10px;
+}
+
+#my-request-list .request-title-link {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+
+    color: var(--accent);
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+#my-request-list .request-title-link:hover {
+    text-decoration: underline;
+}
+
+/* 상태: 배경·테두리·점·텍스트로 구분 */
+#my-request-list .request-status-text {
+    --status-color: #475569;
+    --status-background: #f1f5f9;
+    --status-border: #cbd5e1;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 4px 8px;
+    border: 1px solid var(--status-border);
+    border-radius: 5px;
+
+    background: var(--status-background);
+    color: var(--status-color);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+#my-request-list .request-status-text::before {
+    content: "";
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+/* 결재 진행·재실행 검토 */
+#my-request-list .request-status-text.is-pending {
+    --status-color: #92400e;
+    --status-background: #fffbeb;
+    --status-border: #fcd34d;
+}
+
+/* 실행 대기 */
+#my-request-list .request-status-text.is-ready {
+    --status-color: #1d4ed8;
+    --status-background: #eff6ff;
+    --status-border: #93c5fd;
+}
+
+/* 실행 중 */
+#my-request-list .request-status-text.is-running {
+    --status-color: #6d28d9;
+    --status-background: #f5f3ff;
+    --status-border: #c4b5fd;
+}
+
+/* 실행 완료 */
+#my-request-list .request-status-text.is-completed {
+    --status-color: #15803d;
+    --status-background: #f0fdf4;
+    --status-border: #86efac;
+}
+
+/* 일부 실패 */
+#my-request-list .request-status-text.is-partial-failed {
+    --status-color: #c2410c;
+    --status-background: #fff7ed;
+    --status-border: #fdba74;
+}
+
+/* 실패·반려 */
+#my-request-list .request-status-text.is-failed,
+#my-request-list .request-status-text.is-rejected {
+    --status-color: #b91c1c;
+    --status-background: #fef2f2;
+    --status-border: #fca5a5;
+}
+
+/* 회수 */
+#my-request-list .request-status-text.is-withdrawn {
+    --status-color: #64748b;
+    --status-background: #f8fafc;
+    --status-border: #cbd5e1;
+}

@@ -338,11 +338,28 @@
 	        R.APPROVAL_STATUS,
 	        R.CREATED_AT,
 	        R.DESIRED_DATE,
-	        CASE WHEN R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
-	             THEN (SELECT COUNT(*) FROM DB_CHANGE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
-	             ELSE (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID = R.REQUEST_ID)
+	        U.USER_NAME AS DRAFTER_NAME,
+	        D.DEPT_NAME,
+	        CASE
+	            WHEN R.REQUEST_TYPE IN (
+	                'CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE'
+	            )
+	            THEN (
+	                SELECT COUNT(*)
+	                FROM DB_CHANGE_SQL V
+	                WHERE V.REQUEST_ID = R.REQUEST_ID
+	            )
+	            ELSE (
+	                SELECT COUNT(*)
+	                FROM QUERY_ITEM I
+	                WHERE I.REQUEST_ID = R.REQUEST_ID
+	            )
 	        END AS SQL_COUNT
 	    FROM QUERY_REQUEST R
+	    LEFT JOIN USERS U
+	      ON U.USER_ID = R.DRAFTER_ID
+	    LEFT JOIN DEPARTMENT D
+	      ON D.DEPT_ID = R.DEPT_ID
 	
 	    <include refid="myRequestPageConditions"/>
 	
