@@ -155,7 +155,7 @@ public class PageController {
         if ("queue".equals(view)) {
             return "redirect:/execution-queue";
         }
-        return view(model, "execution-results", "실행 결과");
+        return view(model, "execution-results", "쿼리 실행 결과");
     }
 
     @GetMapping("/execution-queue")
@@ -163,7 +163,7 @@ public class PageController {
             Model model,
             Authentication authentication) {
         executionQueueService.assertCanAccess(principal(authentication));
-        return view(model, "execution-queue", "실행 목록");
+        return view(model, "execution-queue", "쿼리 실행 대기 목록");
     }
 
     @GetMapping("/execution-queue/{requestId}")
