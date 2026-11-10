@@ -2,21 +2,11 @@
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="view-detail-page">
-    <a id="view-back-link"
-       class="view-back-link"
-       href="${pageContext.request.contextPath}/views">
-        ← 뷰 목록
-    </a>
-
-    <div class="page-heading view-heading">
-        <div>
-            <p id="view-detail-schema" class="caption view-schema"></p>
-            <h1 id="view-detail-title" class="view-title">뷰 상세</h1>
-            <p id="view-detail-resource-name"
-               class="caption view-resource-name"></p>
-        </div>
-
-        <span class="badge">읽기 전용</span>
+    <div class="view-detail-toolbar">
+        <a id="view-back-link" class="view-back-link" href="${pageContext.request.contextPath}/views">
+            ← 뷰 목록
+        </a>
+        <span class="caption">읽기 전용</span>
     </div>
 
     <section id="view-detail-loading"
@@ -45,29 +35,33 @@
     </section>
 
     <div id="view-detail-content" hidden>
-        <section class="panel view-panel">
-            <div class="panel-heading">
-                <h2>뷰 정보</h2>
-                <span id="view-detail-registration" class="badge"></span>
-            </div>
+		<section class="panel view-panel" aria-label="뷰 기본 정보">
+		    <dl class="view-info">
+		        <div>
+		            <dt>뷰 이름</dt>
+		            <dd id="view-detail-title" class="view-info-emphasis"></dd>
+		        </div>
+		        <div>
+		            <dt>등록 이름</dt>
+		            <dd id="view-info-resource-name" class="view-info-emphasis"></dd>
+		        </div>
 
-            <dl class="view-info">
-                <div>
-                    <dt>스키마</dt>
-                    <dd id="view-info-schema"></dd>
-                </div>
+		        <div>
+		            <dt>스키마</dt>
+		            <dd id="view-info-schema"></dd>
+		        </div>
 
-                <div>
-                    <dt>등록 이름</dt>
-                    <dd id="view-info-resource-name"></dd>
-                </div>
+		        <div>
+		            <dt>등록 상태</dt>
+		            <dd><span id="view-detail-registration" class="badge"></span></dd>
+		        </div>
 
-                <div class="view-info-description">
-                    <dt>설명</dt>
-                    <dd id="view-info-description"></dd>
-                </div>
-            </dl>
-        </section>
+		        <div class="view-info-description">
+		            <dt>설명</dt>
+		            <dd id="view-info-description"></dd>
+		        </div>
+		    </dl>
+		</section>
 
         <section class="panel view-panel">
             <div class="panel-heading">
@@ -95,10 +89,6 @@
                     <tbody id="view-policy-rows"></tbody>
                 </table>
             </div>
-
-            <p class="caption view-policy-description">
-                실제 데이터 조회·다운로드 시 현재 권한을 다시 확인합니다.
-            </p>
         </section>
 
         <section class="panel view-panel">
@@ -114,6 +104,7 @@
                     <thead>
                         <tr>
                             <th scope="col">순서</th>
+                            <th scope="col">논리명</th>
                             <th scope="col">컬럼명</th>
                             <th scope="col">자료형</th>
                             <th scope="col">NULL 허용 여부</th>
@@ -335,39 +326,36 @@
         body.replaceChildren(fragment);
     }
 
-    function renderColumns(columns) {
-        const body = $('#view-column-rows');
+	function renderColumns(columns) {
+	    const body = $('#view-column-rows');
+	    $('#view-column-count').textContent = '총 ' + columns.length + '개';
 
-        $('#view-column-count').textContent = '총 ' + columns.length + '개';
+	    if (columns.length === 0) {
+	        showEmptyRow(body, 6, '표시할 컬럼이 없습니다.');
+	        return;
+	    }
 
-        if (columns.length === 0) {
-            showEmptyRow(body, 5, '표시할 컬럼이 없습니다.');
-            return;
-        }
+	    const fragment = document.createDocumentFragment();
+	    const nullableNames = { YES: '허용', NO: '불가' };
+	    const sortedColumns = columns.slice()
+	        .sort((first, second) => first.ordinalPosition - second.ordinalPosition);
 
-        const fragment = document.createDocumentFragment();
-        const nullableNames = {
-            YES: '허용',
-            NO: '불가'
-        };
+	    sortedColumns.forEach(function (column) {
+	        const row = document.createElement('tr');
 
-        const sortedColumns = columns.slice()
-                .sort((first, second) => first.ordinalPosition - second.ordinalPosition);
+	        appendCell(row, column.ordinalPosition);
+	        // 현재 컬럼 응답에는 논리명이 없으므로 자리만 표시한다.
+	        appendCell(row, '—');
+	        appendCell(row, column.columnName, 'view-column-name');
+	        appendCell(row, column.columnType, 'view-column-type');
+	        appendCell(row, nullableNames[column.isNullable] || '확인 필요');
+	        appendCell(row, column.columnComment);
 
-        sortedColumns.forEach(function (column) {
-            const row = document.createElement('tr');
+	        fragment.appendChild(row);
+	    });
 
-            appendCell(row, column.ordinalPosition);
-            appendCell(row, column.columnName, 'view-column-name');
-            appendCell(row, column.columnType, 'view-column-type');
-            appendCell(row, nullableNames[column.isNullable] || '확인 필요');
-            appendCell(row, column.columnComment);
-
-            fragment.appendChild(row);
-        });
-
-        body.replaceChildren(fragment);
-    }
+	    body.replaceChildren(fragment);
+	}
 	
 	/**
 	 * 화면 표시용으로 줄바꿈·들여쓰기를 적용한다.
@@ -390,24 +378,21 @@
 	    }
 	}
 
-    function renderDetail(detail) {
-        $('#view-detail-schema').textContent = detail.schemaName;
-        $('#view-detail-title').textContent = detail.objectName;
-        $('#view-detail-resource-name').textContent = detail.resourceName || '등록 이름 없음';
+	function renderDetail(detail) {
+	    $('#view-detail-title').textContent = detail.objectName;
+	    $('#view-info-schema').textContent = detail.schemaName;
+	    $('#view-info-resource-name').textContent = detail.resourceName || '등록 이름 없음';
+	    $('#view-info-description').textContent = detail.description || '등록된 설명이 없습니다.';
 
-        $('#view-info-schema').textContent = detail.schemaName;
-        $('#view-info-resource-name').textContent = detail.resourceName || '등록 이름 없음';
-        $('#view-info-description').textContent = detail.description || '등록된 설명이 없습니다.';
+	    renderRegistration(detail);
+	    renderPolicies(detail);
+	    renderColumns(detail.columns);
 
-        renderRegistration(detail);
-        renderPolicies(detail);
-        renderColumns(detail.columns);
+	    // 화면 표시용으로 정렬하며, 실패하면 원문을 표시한다.
+	    $('#view-create-statement').textContent = formatCreateStatement(detail.createStatement);
 
-		// 화면 표시용으로 정렬하며, 실패하면 원문을 표시한다.
-		$('#view-create-statement').textContent = formatCreateStatement(detail.createStatement);
-
-        document.title = detail.objectName + ' | SQLFlow';
-    }
+	    document.title = detail.objectName + ' | SQLFlow';
+	}
 
     async function loadDetail() {
         if (loading) {
