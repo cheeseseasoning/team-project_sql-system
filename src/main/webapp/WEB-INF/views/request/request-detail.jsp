@@ -1,55 +1,100 @@
 <%@ page pageEncoding="UTF-8" %>
 	<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
-		<div class="request-detail-page">
+		<div class="request-detail-page request-document-page">
+	
+		    <div id="detail-config"
+		         data-request-id="<c:out value='${requestId}'/>"
+		         hidden></div>
+	
+		    <a class="back-link"
+		       href="${pageContext.request.contextPath}/requests">
+		        ← 내 요청 목록
+		    </a>
+	
+			<article class="request-document"
+				     aria-labelledby="detail-title">
+	
+				<header class="request-document-heading">
+				    <p id="request-document-heading"
+				       class="request-document-caption">
+				        SQLFlow · 데이터 조회 기안서
+				    </p>
+	
+				    <h1 id="detail-title">
+				        요청을 불러오는 중입니다.
+				    </h1>
+				</header>
+	
+		        <c:set var="requestDetailReadOnly" value="${false}" />
+		        <%@ include file="/WEB-INF/views/fragments/request-detail-body.jspf" %>
+	
+				<footer class="request-document-footer">
+				    <div class="request-document-actions">
+				        <div id="draft-edit-action"
+				             class="request-document-draft-actions"
+				             hidden>
 
-			<div id="detail-config" data-request-id="<c:out value='${requestId}'/>" hidden>
-			</div>
+				            <button id="draft-delete"
+				                    type="button"
+				                    class="button request-draft-delete">
+				                초안 삭제
+				            </button>
 
-			<a class="back-link" href="${pageContext.request.contextPath}/requests">
-				← 내 요청 목록
-			</a>
+				            <div class="request-document-primary-actions">
+				                <a id="draft-edit-link" class="button">
+				                    초안 수정
+				                </a>
 
-			<div class="page-heading">
-				<div>
-					<span id="request-number" class="caption"></span>
-					<h1 id="detail-title">조회 요청을 불러오는 중입니다.</h1>
-				</div>
+				                <span id="sql-validation-controls" hidden>
+				                    <button id="validate-sqls"
+				                            type="button"
+				                            class="button"
+				                            title="등록된 SQL 전체를 검증합니다.">
+				                        SQL 검증
+				                    </button>
+				                </span>
 
-				<div>
-					<span id="detail-state"></span>
+				                <button id="approval-line-open"
+				                        type="button"
+				                        class="button"
+				                        aria-haspopup="dialog"
+				                        aria-controls="approval-line-dialog"
+				                        aria-describedby="approval-preview-help"
+				                        disabled>
+				                    결재선 지정
+				                </button>
 
-					<span id="draft-edit-action" hidden>
-						<a id="draft-edit-link" class="button">
-							초안 수정
-						</a>
+				                <button id="request-submit-open"
+				                        type="button"
+				                        class="button primary">
+				                    기안서 제출
+				                </button>
+				            </div>
+							
+							<p class="request-document-footer-help">
+							    초안은 SQL 검증과 결재선 확인 후 제출할 수 있습니다.
+							</p>
+				        </div>
 
-						<button id="draft-delete" type="button" class="button">
-							초안 삭제
-						</button>
+				        <button id="request-withdraw"
+				                type="button"
+				                class="button"
+				                hidden>
+				            기안서 회수
+				        </button>
 
-						<button id="request-submit-open" type="button" class="button primary">
-							제출
-						</button>
-					</span>
-
-					<button id="request-withdraw"
-					        type="button"
-					        class="button"
-					        hidden>
-					    기안서 회수
-					</button>
-					
-					<button id="request-redraft" type="button" class="button primary" hidden>
-						재기안
-					</button>
-				</div>
-			</div>
-
-			<c:set var="requestDetailReadOnly" value="${false}" />
-			<%@ include file="/WEB-INF/views/fragments/request-detail-body.jspf" %>
-
-		</div><!-- request-detail-page 끝 -->
+				        <button id="request-redraft"
+				                type="button"
+				                class="button primary"
+				                hidden>
+				            재기안
+				        </button>
+				    </div>
+				</footer>
+	
+		    </article>
+		</div>
 
 		<!-- 결재선 등록 모달 -->
 		<dialog id="approval-line-dialog" aria-labelledby="approval-line-dialog-title"

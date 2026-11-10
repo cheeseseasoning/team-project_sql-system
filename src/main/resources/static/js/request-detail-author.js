@@ -38,27 +38,6 @@ function renderDetailItems(items) {
     );
 }
 
-function renderApprovalHistory(items) {
-    return RequestDetailRenderer.renderHistory(items);
-}
-
-async function loadApprovalHistory() {
-	const panel = $('#approval-history-panel');
-	const list = $('#approval-history-list');
-
-	try {
-		const items = await api(
-			'/approvals/' + encodeURIComponent(requestId) + '/history'
-		);
-		list.innerHTML = renderApprovalHistory(items);
-	} catch (error) {
-		list.innerHTML =
-			'<li class="empty">결재 이력을 불러오지 못했습니다.</li>';
-	}
-
-	panel.hidden = false;
-}
-
 async function loadDetail() {
 	try {
 		const request = await api(
@@ -140,7 +119,12 @@ async function loadDetail() {
 		
 		$('#request-info').hidden = false;
 		
-		await loadApprovalHistory();
+		await RequestDetailRenderer.loadRejectionReason(
+		    request.requestStatus,
+		    '/approvals/'
+		        + encodeURIComponent(requestId)
+		        + '/history'
+		);
 
 	} catch (error) {
 		$('#detail-title').textContent = '조회 요청 상세';
@@ -504,8 +488,7 @@ function renderAppliedApprovalLine() {
         status: null
     }));
 
-    $('#request-approval-list').innerHTML =
-        RequestDetailRenderer.renderApprovalRows(rows);
+    RequestDetailRenderer.renderApprovalPreview(rows);
 
     $('#request-approval-badge').textContent = '제출 전';
     $('#approval-preview-help').textContent =

@@ -297,11 +297,13 @@ html {
    ================================================== */
 
 @media (min-width: 1400px) {
-    .main {
-        width: calc(100% - 210px);
-        max-width: none;
-        margin: 0;
-    }
+	.main {
+	    width: 100%;
+	    max-width: none;
+	    min-width: 0;
+	    margin: 0;
+	    padding: 24px;
+	}
 }
 
 
