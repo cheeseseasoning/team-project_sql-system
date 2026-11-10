@@ -2,26 +2,21 @@
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="views-page">
-    <div class="page-heading">
-        <div>
-            <h1>뷰 조회</h1>
-            <p class="caption views-introduction">
-                업무에 사용할 뷰와 데이터 구성을 확인하세요.
-            </p>
-        </div>
-    </div>
+	<div class="page-heading">
+	    <h1>뷰 조회</h1>
+	</div>
 
     <section class="panel">
         <form id="view-filter-form" class="views-filter">
             <label for="view-department" class="views-department-field">
-                부서
+                <span class="sr-only">부서</span>
                 <select id="view-department" name="deptId" disabled>
                     <option value="">전체 부서</option>
                 </select>
             </label>
 
             <label for="view-keyword" class="views-keyword-field">
-                뷰 검색
+                <span class="sr-only">뷰 검색</span>
                 <input id="view-keyword"
                        name="keyword"
                        type="search"
@@ -47,11 +42,10 @@
 
         <p class="caption views-filter-description">
             전체 부서는 실제 존재하는 모든 뷰를 표시합니다.
-            부서를 선택하면 활성 접근 정책이 등록된 뷰만 표시합니다.
+            부서를 선택하면 해당 부서에서 접근 가능한 뷰만 표시합니다.
         </p>
 
-        <div class="panel-heading">
-            <h2>뷰 목록</h2>
+        <div class="views-list-summary">
             <span id="view-count"
                   class="caption"
                   aria-live="polite"></span>
@@ -63,21 +57,21 @@
                     실제 업무 DB에 존재하는 뷰 목록
                 </caption>
 
-                <colgroup>
-                    <col class="views-name-column">
-                    <col class="views-schema-column">
-                    <col class="views-description-column">
-                    <col class="views-status-column">
-                </colgroup>
+				<colgroup>
+				    <col class="views-name-column">
+				    <col class="views-resource-column">
+				    <col class="views-schema-column">
+				    <col class="views-status-column">
+				</colgroup>
 
-                <thead>
-                    <tr>
-                        <th scope="col">뷰 이름 / 등록 이름</th>
-                        <th scope="col">스키마</th>
-                        <th scope="col">설명</th>
-                        <th scope="col">등록 상태</th>
-                    </tr>
-                </thead>
+				<thead>
+				    <tr>
+				        <th scope="col">뷰 이름</th>
+				        <th scope="col">등록 이름</th>
+				        <th scope="col">스키마</th>
+				        <th scope="col">활성 상태</th>
+				    </tr>
+				</thead>
 
                 <tbody id="view-rows" aria-busy="true">
                     <tr>
@@ -89,11 +83,12 @@
             </table>
         </div>
 		
-		<nav class="views-list-footer" aria-label="뷰 목록 페이지">
-		    <button id="view-prev-page" type="button" class="button" disabled>이전</button>
-		    <span id="view-page-info" class="caption" aria-live="polite"></span>
-		    <button id="view-next-page" type="button" class="button" disabled>다음</button>
+		<nav class="views-pagination" aria-label="뷰 목록 페이지 이동">
+		    <button id="view-prev-page" type="button" class="button" aria-label="이전" disabled>‹</button>
+		    <div id="view-page-numbers" class="views-page-numbers"></div>
+		    <button id="view-next-page" type="button" class="button" aria-label="다음" disabled>›</button>
 		</nav>
+		<span id="view-page-info" class="sr-only" aria-live="polite"></span>
 
         <div class="views-list-footer">
             <p id="view-list-message"
@@ -233,7 +228,7 @@
 
         if (view.enabled === 'Y') {
             return {
-                label: '활성 등록',
+                label: '활성',
                 kind: 'success'
             };
         }
@@ -254,69 +249,51 @@
     /**
      * 서버 문자열은 HTML로 해석하지 않고 텍스트로 출력한다.
      */
-    function renderRows(views) {
-        const fragment = document.createDocumentFragment();
+	 function renderRows(views) {
+	     const fragment = document.createDocumentFragment();
+	     const listParams = new URLSearchParams(window.location.search);
 
-        views.forEach(function (view) {
-            const row = document.createElement('tr');
+	     views.forEach(function (view) {
+	         const row = document.createElement('tr');
+	         const detailParams = new URLSearchParams({
+	             schemaName: view.schemaName,
+	             objectName: view.objectName
+	         });
 
-            const nameCell = document.createElement('td');
-            const objectName = document.createElement('a');
-            const resourceName = document.createElement('span');
+	         // 상세에서 목록으로 돌아올 때 부서와 키워드 검색 조건을 복원한다.
+	         for (const key of ['deptId', 'keyword']) {
+	             const value = listParams.get(key);
+	             if (value) detailParams.set(key, value);
+	         }
 
-			const detailParams = new URLSearchParams({schemaName: view.schemaName, objectName: view.objectName});
+	         const nameCell = document.createElement('td');
+	         const objectName = document.createElement('a');
+	         objectName.className = 'views-object-name';
+	         objectName.textContent = view.objectName;
+	         objectName.href = BASE + '/views/detail?' + detailParams.toString();
+	         nameCell.appendChild(objectName);
 
-			// 상세에서 목록으로 돌아올 때 기존 검색 조건을 유지한다.
-			const listParams = new URLSearchParams(window.location.search);
+	         const resourceCell = document.createElement('td');
+	         resourceCell.className = 'views-resource-name';
+	         resourceCell.textContent = view.resourceName || '등록 이름 없음';
 
-			if (listParams.get('deptId')) {
-			    detailParams.set('deptId', listParams.get('deptId'));
-			}
+	         const schemaCell = document.createElement('td');
+	         schemaCell.className = 'views-schema';
+	         schemaCell.textContent = view.schemaName;
 
-			if (listParams.get('keyword')) {
-			    detailParams.set('keyword', listParams.get('keyword'));
-			}
+	         const statusCell = document.createElement('td');
+	         const statusBadge = document.createElement('span');
+	         const status = getRegistrationStatus(view);
+	         statusBadge.className = 'badge ' + status.kind;
+	         statusBadge.textContent = status.label;
+	         statusCell.appendChild(statusBadge);
 
-			objectName.className = 'views-object-name';
-			objectName.textContent = view.objectName;
-			objectName.href = BASE + '/views/detail?' + detailParams.toString();
+	         row.append(nameCell, resourceCell, schemaCell, statusCell);
+	         fragment.appendChild(row);
+	     });
 
-            resourceName.className = 'secondary';
-            resourceName.textContent = view.resourceName || '등록 이름 없음';
-
-            nameCell.append(objectName, resourceName);
-
-            const schemaCell = document.createElement('td');
-
-            schemaCell.className = 'views-schema';
-            schemaCell.textContent = view.schemaName;
-
-            const descriptionCell = document.createElement('td');
-
-            descriptionCell.className = 'views-description';
-            descriptionCell.textContent =
-                view.description || '등록된 설명이 없습니다.';
-
-            const statusCell = document.createElement('td');
-            const statusBadge = document.createElement('span');
-            const status = getRegistrationStatus(view);
-
-            statusBadge.className = 'badge ' + status.kind;
-            statusBadge.textContent = status.label;
-            statusCell.appendChild(statusBadge);
-
-            row.append(
-                nameCell,
-                schemaCell,
-                descriptionCell,
-                statusCell
-            );
-
-            fragment.appendChild(row);
-        });
-
-        rowsElement.replaceChildren(fragment);
-    }
+	     rowsElement.replaceChildren(fragment);
+	 }
 
     function showFailure(error) {
         countElement.textContent = '';
@@ -326,6 +303,34 @@
         messageElement.classList.add('views-error');
         retryButton.hidden = false;
     }
+	
+	function renderViewPageNumbers(page, totalPages) {
+	    const container = $('#view-page-numbers');
+	    const pageGroupSize = 10;
+	    const fragment = document.createDocumentFragment();
+
+	    // 현재 페이지가 속한 구간만 표시한다. 마지막 구간은 실제 페이지 수까지만 만든다.
+	    const firstPage = Math.floor((Math.max(1, page) - 1) / pageGroupSize) * pageGroupSize + 1;
+	    const lastPage = Math.min(firstPage + pageGroupSize - 1, totalPages);
+
+	    for (let number = firstPage; number <= lastPage; number++) {
+	        const button = document.createElement('button');
+	        button.type = 'button';
+	        button.className = 'button';
+	        button.textContent = String(number);
+	        button.setAttribute('aria-label', number + '페이지');
+
+	        if (number === page) {
+	            button.setAttribute('aria-current', 'page');
+	        } else {
+	            button.addEventListener('click', () => loadViews('push', number));
+	        }
+
+	        fragment.appendChild(button);
+	    }
+
+	    container.replaceChildren(fragment);
+	}
 
 	async function loadViews(historyMode = 'push', requestedPage) {
 	    const version = ++requestVersion;
@@ -383,6 +388,7 @@
 	    previousButton.disabled = true;
 	    nextButton.disabled = true;
 	    pageInfo.textContent = '';
+	    renderViewPageNumbers(1, 0);
 	    retryButton.hidden = true;
 	    countElement.textContent = '';
 	    messageElement.textContent = '뷰 목록을 조회하고 있습니다.';
@@ -423,6 +429,7 @@
 	        pageInfo.textContent = data.totalPages === 0
 	            ? '0 / 0 페이지'
 	            : data.page + ' / ' + data.totalPages + ' 페이지';
+	        renderViewPageNumbers(data.page, data.totalPages);
 
 	        previousButton.disabled = data.page <= 1;
 	        nextButton.disabled = data.page >= data.totalPages;

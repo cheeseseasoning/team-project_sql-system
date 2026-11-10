@@ -23,10 +23,17 @@
 
 .views-page .views-filter input,
 .views-page .views-filter select {
+    box-sizing: border-box;
     width: 100%;
     min-width: 0;
-    min-height: 46px;
+    height: 46px;
     margin: 0;
+}
+
+.views-page .views-filter-actions .button {
+    box-sizing: border-box;
+    height: 46px;
+    white-space: nowrap;
 }
 
 .views-page .views-filter-actions {
@@ -66,16 +73,20 @@
     width: 34%;
 }
 
-.views-page .views-schema-column {
-    width: 17%;
+.views-page .views-resource-column {
+    width: 29%;
 }
 
-.views-page .views-description-column {
-    width: 35%;
+.views-page .views-schema-column {
+    width: 23%;
 }
 
 .views-page .views-status-column {
     width: 14%;
+}
+
+.views-page .views-resource-name {
+    overflow-wrap: anywhere;
 }
 
 .views-page .views-table th,
@@ -168,4 +179,74 @@
         align-items: flex-start;
         flex-direction: column;
     }
+}
+
+.views-page .views-pagination,
+.views-page .views-page-numbers {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.views-page .views-pagination .button {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 3px 7px;
+}
+
+.views-page .views-page-numbers [aria-current="page"] {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+}
+
+/* 뷰 조회에서 검색, 목록, 페이지 이동 사이의 세로 여백을 줄인다. */
+.main:has(> .views-page) {
+    padding-top: 12px;
+}
+
+.views-page > .page-heading {
+    margin: 0 0 12px;
+}
+
+.views-page > .page-heading h1 {
+    margin: 0;
+}
+
+.views-page > .panel {
+    padding-block: 14px;
+}
+
+.views-page .views-filter-description {
+    margin: 6px 0;
+    padding-bottom: 6px;
+}
+
+.views-page .views-list-summary {
+    margin-bottom: 4px;
+    text-align: right;
+}
+
+.views-page .views-table th,
+.views-page .views-table td {
+    vertical-align: middle;
+}
+
+.views-page .views-table th {
+    padding-block: 8px;
+}
+
+.views-page .views-table td {
+    padding-block: 9px;
+}
+
+.views-page .views-pagination {
+    margin-top: 12px;
+}
+
+.views-page .views-list-footer {
+    margin-top: 8px;
+    padding-top: 8px;
 }

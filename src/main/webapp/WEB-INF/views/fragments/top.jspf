@@ -236,7 +236,7 @@
             </header>
 
             <main class="main">
-				<c:if test="${page ne 'home' and page ne 'view-create-request-form'}">
+				<c:if test="${page ne 'home' and page ne 'view-create-request-form' and page ne 'views'}">
 				    <div class="demo-strip">
 				        <span>개발 환경</span>
 				        로그인 계정 기준으로 요청과 결재 권한을 확인합니다.
