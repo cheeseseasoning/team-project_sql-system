@@ -13,6 +13,8 @@ import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.auth.security.SqlFlowUserDetails;
-import com.sqlflow.schedule.mapper.DepartmentScheduleMapper.Schedule;
 import com.sqlflow.schedule.service.DepartmentScheduleService;
 
 @RestController
@@ -36,7 +37,7 @@ public class DepartmentScheduleController {
     }
 
     @GetMapping
-    public List<Schedule> getSchedules(
+    public List<ScheduleResponse> getSchedules(
             @AuthenticationPrincipal SqlFlowUserDetails user,
             @RequestParam("month") String month) {
         YearMonth requestedMonth;
@@ -46,7 +47,11 @@ public class DepartmentScheduleController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "조회 월은 YYYY-MM 형식으로 입력하세요.");
         }
 
-        return service.findByMonth(user, requestedMonth);
+        return service.findByMonth(user, requestedMonth).stream()
+                .map(schedule -> new ScheduleResponse(schedule.scheduleId(), schedule.scheduleDate(),
+                        schedule.title(), schedule.memo(), schedule.createdBy(),
+                        java.util.Objects.equals(schedule.createdBy(), user.getUserId())))
+                .toList();
     }
 
     @PostMapping
@@ -62,5 +67,16 @@ public class DepartmentScheduleController {
             @NotNull LocalDate scheduleDate,
             @NotBlank @Size(max = 100) String title,
             @Size(max = 500) String memo) {
+    }
+
+    @DeleteMapping("/{scheduleId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteSchedule(@AuthenticationPrincipal SqlFlowUserDetails user,
+            @PathVariable("scheduleId") Long scheduleId) {
+        service.delete(user, scheduleId);
+    }
+
+    public record ScheduleResponse(Long scheduleId, LocalDate scheduleDate, String title,
+            String memo, Long createdBy, boolean canDelete) {
     }
 }

@@ -38,6 +38,8 @@
 	    }
 
 	    const cards = $('#detail-items').querySelectorAll('.result-item');
+	    let viewOptions;
+	    let executorOptions;
 
 	    (detail.items || []).forEach((item, index) => {
 	        if (!cards[index]) {
@@ -45,6 +47,7 @@
 	        }
 
 	        const hasResult = Boolean(item.changeResultStatus);
+	        const canLinkView = detail.requestType === 'CREATE_VIEW' && !hasResult;
 	        const form = document.createElement('form');
 	        form.className = 'change-sql-result-form';
 	        form.innerHTML = `
@@ -55,12 +58,25 @@
 	                    <option value="CANCELLED">취소</option>
 	                </select>
 	            </label>
+	            ${canLinkView ? `
+	                <label hidden>생성된 뷰
+	                    <select name="resourceId">
+	                        <option value="">등록된 뷰를 선택하세요</option>
+	                    </select>
+	                    <small class="caption" data-view-options-status></small>
+	                </label>
+	            ` : ''}
 	            <label>처리 메모
 	                <textarea name="resultNote" maxlength="1000"></textarea>
 	            </label>
-	            <label>외부 실행자 사용자 ID
-	                <input name="executedBy" type="number" min="1" step="1">
-	            </label>
+	            <div class="change-executor-picker">
+	                <label>외부 실행자
+	                    <input name="executorSearch" type="search"
+	                           placeholder="이름 또는 부서로 검색" autocomplete="off">
+	                </label>
+	                <input name="executedBy" type="hidden">
+	                <div class="change-executor-options" aria-label="직원 검색 결과" role="group" hidden></div>
+	            </div>
 	            ${hasResult ? `
 	                <label>변경 유형
 	                    <select name="changeType">
@@ -84,12 +100,24 @@
 	        fields.resultStatus.value = item.changeResultStatus || 'COMPLETED';
 	        fields.resultNote.value = item.changeResultNote || '';
 	        fields.executedBy.value = item.changeExecutedBy ?? '';
+	        const updateExecutorPicker = bindExecutorPicker(form, item.changeExecutedBy, () => {
+	            executorOptions ??= loadExecutorOptions().catch(error => {
+	                executorOptions = null;
+	                throw error;
+	            });
+	            return executorOptions;
+	        });
 
 	        function updateRequiredFields() {
 	            const status = fields.resultStatus.value;
 	            fields.resultNote.required = status !== 'COMPLETED';
-	            fields.executedBy.disabled = status === 'CANCELLED';
-	            fields.executedBy.required = status !== 'CANCELLED';
+	            updateExecutorPicker(status === 'CANCELLED');
+	            if (canLinkView) {
+	                const showViewPicker = status === 'COMPLETED';
+	                fields.resourceId.closest('label').hidden = !showViewPicker;
+	                fields.resourceId.disabled = !showViewPicker;
+	                fields.resourceId.required = showViewPicker;
+	            }
 	        }
 
 	        fields.resultStatus.addEventListener('change', updateRequiredFields);
@@ -107,8 +135,150 @@
 			summary.textContent = hasResult ? '결과 변경' : '결과 등록';
 
 			resultEditor.append(summary, form);
+			if (item.changeExecutedBy != null) {
+			    resultEditor.addEventListener('toggle', () => {
+			        if (resultEditor.open && fields.executedBy.value) {
+			            fields.executorSearch.dispatchEvent(new Event('focus'));
+			        }
+			    });
+			}
+			if (canLinkView) {
+			    resultEditor.addEventListener('toggle', async () => {
+			        if (!resultEditor.open || fields.resourceId.dataset.loaded) return;
+			        const status = form.querySelector('[data-view-options-status]');
+			        status.textContent = '등록된 뷰를 불러오는 중입니다.';
+			        try {
+			            viewOptions ??= loadRegisteredViews();
+			            const views = await viewOptions;
+			            fields.resourceId.replaceChildren(
+			                new Option('등록된 뷰를 선택하세요', ''),
+			                ...views.map(view => new Option(
+			                    view.schemaName + '.' + view.objectName, String(view.resourceId)))
+			            );
+			            fields.resourceId.dataset.loaded = 'true';
+			            status.textContent = views.length ? '' : '리소스 관리에서 생성된 뷰를 먼저 등록해 주세요.';
+			        } catch (error) {
+			            viewOptions = null;
+			            status.textContent = '뷰 목록을 불러오지 못했습니다. 폼을 다시 열어 주세요.';
+			        }
+			    });
+			}
 			cards[index].append(resultEditor);
 	    });
+	}
+
+	function bindExecutorPicker(form, initialId, getOptions) {
+	    const search = form.elements.executorSearch;
+	    const selected = form.elements.executedBy;
+	    const list = form.querySelector('.change-executor-options');
+	    let searchVersion = 0;
+	    let initialLabelLoaded = false;
+
+	    function showMessage(message) {
+	        const text = document.createElement('p');
+	        text.textContent = message;
+	        list.replaceChildren(text);
+	    }
+
+	    function closeList() {
+	        searchVersion++;
+	        list.hidden = true;
+	    }
+
+	    function validateSelection() {
+	        search.required = !search.disabled && !selected.value;
+	        search.setCustomValidity(search.disabled || selected.value || !search.value.trim()
+	            ? '' : '검색 결과에서 외부 실행자를 선택해 주세요.');
+	    }
+
+	    search.addEventListener('focus', async () => {
+	        if (!initialId || initialLabelLoaded || selected.value !== String(initialId)) return;
+	        try {
+	            const employee = (await getOptions()).find(item => String(item.userId) === String(initialId));
+	            if (employee && selected.value === String(initialId)) {
+	                search.value = employee.userName + ' · ' + employee.loginId;
+	                initialLabelLoaded = true;
+	            }
+	        } catch {
+	            search.placeholder = '직원 목록을 불러오지 못했습니다. 다시 검색해 주세요.';
+	        }
+	    });
+
+	    search.addEventListener('input', async () => {
+	        selected.value = '';
+	        validateSelection();
+	        const keyword = search.value.trim().toLowerCase();
+	        closeList();
+	        if (!keyword) return;
+
+	        const version = searchVersion;
+	        list.hidden = false;
+	        showMessage('직원 목록을 불러오는 중입니다.');
+	        try {
+	            const employees = await getOptions();
+	            if (version !== searchVersion) return;
+	            const matches = employees.filter(employee =>
+	                [employee.userName, employee.deptName].some(value => value?.toLowerCase().includes(keyword)));
+	            if (!matches.length) {
+	                showMessage('검색 결과가 없습니다.');
+	                return;
+	            }
+	            list.replaceChildren(...matches.map(employee => {
+	                const option = document.createElement('button');
+	                option.type = 'button';
+	                const detail = document.createElement('small');
+	                detail.textContent = [employee.deptName, employee.positionName, employee.loginId].filter(Boolean).join(' · ');
+	                option.append(employee.userName, detail);
+	                option.addEventListener('click', () => {
+	                    selected.value = employee.userId;
+	                    search.value = employee.userName + ' · ' + employee.loginId;
+	                    validateSelection();
+	                    closeList();
+	                    search.focus();
+	                });
+	                return option;
+	            }));
+	            list.scrollTop = 0;
+	        } catch {
+	            if (version === searchVersion) showMessage('직원 목록을 불러오지 못했습니다. 다시 검색해 주세요.');
+	        }
+	    });
+
+	    form.querySelector('.change-executor-picker').addEventListener('keydown', event => {
+	        if (event.key === 'Escape' && !list.hidden) {
+	            event.preventDefault();
+	            closeList();
+	            search.focus();
+	        }
+	    });
+
+	    return cancelled => {
+	        search.disabled = cancelled;
+	        validateSelection();
+	        if (cancelled) closeList();
+	    };
+	}
+
+	async function loadExecutorOptions() {
+	    const employees = [];
+	    for (let page = 1; ; page++) {
+	        const response = await api('/accounts?page=' + page + '&size=100');
+	        employees.push(...response.items.filter(employee => employee.deptName === 'DB팀'));
+	        if (page >= response.totalPages) return employees;
+	    }
+	}
+
+	async function loadRegisteredViews() {
+	    const registered = [];
+	    let page = 1;
+	    let totalPages;
+	    do {
+	        const result = await api('/views?page=' + page + '&size=50');
+	        registered.push(...result.items.filter(view => view.registered && view.resourceId != null));
+	        totalPages = result.totalPages;
+	        page++;
+	    } while (page <= totalPages);
+	    return registered;
 	}
 
 	async function saveChangeSqlResult(form, queryId, hasResult) {
@@ -125,6 +295,9 @@
 	    if (hasResult) {
 	        body.changeType = fields.changeType.value;
 	        body.changeReason = fields.changeReason.value.trim();
+	    }
+	    if (fields.resourceId && !fields.resourceId.disabled) {
+	        body.resourceId = fields.resourceId.value;
 	    }
 
 	    if (body.changeType === 'REEXECUTION' && resultStatus === 'CANCELLED') {

@@ -34,10 +34,20 @@ public class DepartmentScheduleService {
     }
 
     private Long requireDepartment(SqlFlowUserDetails user) {
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        }
         Long deptId = user.getDeptId();
         if (deptId == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "소속 부서가 없는 계정입니다.");
         }
         return deptId;
+    }
+
+    public void delete(SqlFlowUserDetails user, Long scheduleId) {
+        Long deptId = requireDepartment(user);
+        if (mapper.deleteOwned(scheduleId, deptId, user.getUserId()) != 1) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "삭제할 수 있는 일정이 없거나 이미 삭제되었습니다.");
+        }
     }
 }

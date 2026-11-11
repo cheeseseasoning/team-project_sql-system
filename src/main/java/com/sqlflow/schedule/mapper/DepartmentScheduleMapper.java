@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -37,4 +38,16 @@ public interface DepartmentScheduleMapper {
             @Param("scheduleDate") LocalDate scheduleDate,
             @Param("title") String title,
             @Param("memo") String memo);
+
+    /** 같은 부서의 등록자 본인 일정만 한 번의 SQL로 삭제한다. */
+    @Delete("""
+        DELETE FROM DEPARTMENT_SCHEDULE
+        WHERE SCHEDULE_ID = #{scheduleId}
+          AND DEPT_ID = #{deptId}
+          AND CREATED_BY = #{userId}
+        """)
+    int deleteOwned(
+            @Param("scheduleId") Long scheduleId,
+            @Param("deptId") Long deptId,
+            @Param("userId") Long userId);
 }

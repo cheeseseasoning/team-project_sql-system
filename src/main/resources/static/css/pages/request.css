@@ -1263,3 +1263,43 @@
         gap: 10px;
     }
 }
+.change-executor-picker .change-executor-options {
+    max-height: 200px;
+    margin-top: 6px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--bg);
+}
+
+.change-executor-options button {
+    display: grid;
+    gap: 2px;
+    width: 100%;
+    padding: 8px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--text);
+    text-align: left;
+}
+
+.change-executor-options button:last-child {
+    border-bottom: 0;
+}
+
+.change-executor-options button:hover,
+.change-executor-options button:focus-visible {
+    background: var(--tint);
+}
+
+.change-executor-options small,
+.change-executor-options p {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.change-executor-options p {
+    padding: 8px 12px;
+}

@@ -282,11 +282,32 @@
 
 			    container.innerHTML = heading + '<ul>' + schedules.map(function (schedule) {
 			        const title = esc(schedule.title);
-			        return '<li>' + (schedule.memo
+			        return '<li class="dashboard-schedule-row"><div class="dashboard-schedule-content">' + (schedule.memo
 			            ? '<details><summary>' + title + '</summary><p class="caption">' + esc(schedule.memo) + '</p></details>'
-			            : title) + '</li>';
+			            : title) + '</div>' + (schedule.canDelete
+			            ? '<button type="button" class="dashboard-schedule-delete" data-schedule-delete="'
+			                + esc(schedule.scheduleId) + '" aria-label="' + esc(schedule.title + ' 일정 삭제') + '">삭제</button>'
+			            : '') + '</li>';
 			    }).join('') + '</ul>';
 			}
+
+			$('#dashboard-calendar-detail').addEventListener('click', async function (event) {
+			    const button = event.target.closest('[data-schedule-delete]');
+			    if (!button || button.disabled) return;
+			    if (!window.confirm('이 일정을 삭제할까요?')) return;
+
+			    button.disabled = true;
+			    try {
+			        await api('/department-schedules/' + encodeURIComponent(button.dataset.scheduleDelete), {
+			            method: 'DELETE'
+			        });
+			        await loadDashboardCalendar();
+			    } catch (error) {
+			        notify(error.message || '일정을 삭제하지 못했습니다.', true);
+			    } finally {
+			        button.disabled = false;
+			    }
+			});
 
 			function renderDashboardCalendar() {
 			    const year = calendarMonth.getFullYear();

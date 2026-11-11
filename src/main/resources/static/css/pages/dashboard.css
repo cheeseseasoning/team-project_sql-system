@@ -312,6 +312,33 @@
     margin-top: 4px;
 }
 
+.dashboard-calendar-detail .dashboard-schedule-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.dashboard-schedule-content {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.dashboard-schedule-delete {
+    flex: none;
+    padding: 2px 6px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.dashboard-schedule-delete:hover {
+    background: var(--soft);
+    color: var(--error);
+}
+
 .dashboard-calendar-month-nav {
     justify-content: center;
     margin-bottom: 6px;
