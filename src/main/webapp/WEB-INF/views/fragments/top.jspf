@@ -110,7 +110,10 @@
                 </a>
 
                 <details class="nav-group" ${activeMenu == 'create' or activeMenu == 'view-create-requests' or activeMenu == 'views' ? 'open' : ''}>
-                    <summary class="nav-item"><img src="${pageContext.request.contextPath}/icons/FilePlus.svg" alt="">데이터 조회·요청</summary>
+                    <summary class="nav-item">
+					    <img src="${pageContext.request.contextPath}/icons/FilePlus.svg" alt="">
+					    데이터 조회·변경
+					</summary>
                     <div class="nav-group-links">
                         <a class="nav-item ${activeMenu == 'views' ? 'active' : ''}"
                            href="${pageContext.request.contextPath}/views"
@@ -218,13 +221,27 @@
 
         <div class="workspace">
             <header class="header">
-                <div class="breadcrumb">
-                    <a href="${pageContext.request.contextPath}/">SQLFlow</a>
-                    <span aria-hidden="true">›</span>
-                    <span class="breadcrumb-current">
-                        <c:out value="${pageTitle}"/>
-                    </span>
-                </div>
+                <nav class="breadcrumb" aria-label="현재 위치">
+				    <a href="${pageContext.request.contextPath}/">SQLFlow</a>
+				
+				    <c:if test="${not empty breadcrumbGroup}">
+				        <span aria-hidden="true">›</span>
+				        <span><c:out value="${breadcrumbGroup}"/></span>
+				    </c:if>
+				
+				    <c:if test="${not empty breadcrumbMenuPath}">
+				        <c:url var="breadcrumbMenuUrl" value="${breadcrumbMenuPath}"/>
+				        <span aria-hidden="true">›</span>
+				        <a href="${breadcrumbMenuUrl}">
+				            <c:out value="${breadcrumbMenuLabel}"/>
+				        </a>
+				    </c:if>
+				
+				    <span aria-hidden="true">›</span>
+				    <span class="breadcrumb-current" aria-current="page">
+				        <c:out value="${empty breadcrumbCurrent ? pageTitle : breadcrumbCurrent}"/>
+				    </span>
+				</nav>
 
                 <div class="header-tools">
                     <form class="header-search"

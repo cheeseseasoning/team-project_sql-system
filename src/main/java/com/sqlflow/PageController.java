@@ -264,15 +264,13 @@ public class PageController {
     private String view(Model model, String page, String title) {
         model.addAttribute("page", page);
         model.addAttribute("pageTitle", title);
-        model.addAttribute(
-                "activeMenu",
+        String activeMenu =
                 page.equals("home") ? "home"
                         : page.equals("my-page") ? "my-page"
                         : page.equals("accounts") ? "accounts"
-                		: page.equals("view-create-request-form")
-                				? ("create".equals(model.getAttribute("dbChangeFormMode"))
-			                            ? "view-create-requests"
-			                            : "requests")	
+                        : page.equals("view-create-request-form")
+                                ? ("create".equals(model.getAttribute("dbChangeFormMode"))
+                                        ? "view-create-requests" : "requests")
                         : page.startsWith("department-request") ? "department-requests"
                         : page.equals("notices") ? "notices"
                         : page.equals("views") || page.equals("view-detail") ? "views"
@@ -282,8 +280,11 @@ public class PageController {
                         : page.startsWith("execution-result") ? "execution-results"
                         : page.startsWith("approval-") ? "approvals"
                         : page.equals("request-form") || page.equals("request-review")
-                                ? "create"
-                                : "requests");
+                                ? "create" : "requests";
+
+        model.addAttribute("activeMenu", activeMenu);
+        addBreadcrumb(model, activeMenu, title);
+        
         return switch (page) {
             case "home" -> "home/" + page;
             case "my-page" -> "account/" + page;
@@ -296,5 +297,57 @@ public class PageController {
             case "notices" -> "notice/" + page;
             default -> page;
         };
+    }
+    
+    private void addBreadcrumb(Model model, String activeMenu, String title) {
+        MenuPath menu = switch (activeMenu) {
+	        case "views" ->
+			        new MenuPath("데이터 조회·변경", "뷰 조회", "/views");
+			case "create" ->
+			        new MenuPath("데이터 조회·변경", "데이터 조회 요청", "/requests/new");
+			case "view-create-requests" ->
+			        new MenuPath("데이터 조회·변경", "데이터 변경 요청",
+			                "/view-create-requests/new");
+            case "requests" ->
+                    new MenuPath("기안·결재", "내 기안함", "/requests");
+            case "department-requests" ->
+                    new MenuPath("기안·결재", "부서 기안함", "/department-requests");
+            case "approvals" ->
+                    new MenuPath("기안·결재", "받은 결재", "/approvals/pending");
+            case "execution-results" ->
+                    new MenuPath(null, "쿼리 실행 결과", "/execution-results");
+            case "execution-queue" ->
+                    new MenuPath("DB 운영", "쿼리 실행 대기", "/execution-queue");
+            case "db-resource-admin" ->
+                    new MenuPath("DB 운영", "리소스·접근 정책 관리", "/db-admin/resources");
+            case "accounts", "admin-users" ->
+                    new MenuPath(null, "계정 목록", "/accounts");
+            case "notices" ->
+                    new MenuPath(null, "공지사항", "/notices");
+            case "my-page" ->
+                    new MenuPath(null, "내 프로필", "/my-page");
+            default -> null;
+        };
+
+        String current = title;
+
+        if (menu != null) {
+            model.addAttribute("breadcrumbGroup", menu.group());
+
+            if (!menu.label().equals(title)) {
+                model.addAttribute("breadcrumbMenuLabel", menu.label());
+                model.addAttribute("breadcrumbMenuPath", menu.path());
+
+                String prefix = menu.label() + " ";
+                if (title.startsWith(prefix)) {
+                    current = title.substring(prefix.length());
+                }
+            }
+        }
+
+        model.addAttribute("breadcrumbCurrent", current);
+    }
+
+    private record MenuPath(String group, String label, String path) {
     }
 }
