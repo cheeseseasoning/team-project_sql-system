@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.access.service.RequestSqlValidationService;
-
 import com.sqlflow.request.domain.QueryItem;
 import com.sqlflow.request.domain.QueryRequest;
 import com.sqlflow.request.dto.DmlDraftRequest;
@@ -24,9 +23,10 @@ import com.sqlflow.request.dto.RequestDraftUpdateRequest;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.dto.RequestPageResponse;
+import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.dto.RequestSubmitRequest;
 import com.sqlflow.request.dto.RequestSummaryResponse;
-import com.sqlflow.request.dto.RequestSqlValidationResult;
+import com.sqlflow.request.dto.SelectSqlValidationResult;
 import com.sqlflow.request.dto.ViewCreateDraftRequest;
 import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO;
 import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO.Status;
@@ -429,6 +429,11 @@ public class RequestService {
 		return results;
 	}
 
+	public List<SelectSqlValidationResult> validateSelectSqlTexts(
+	        Long requesterId, List<String> sqls) {
+	    return requestSqlValidationService.validateTexts(requesterId, sqls);
+	}
+	
 	@Transactional
 	public void updateDraft(Long requestId, RequestDraftUpdateRequest input) {
 		updateDraft(requestId, input, 1L);

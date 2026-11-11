@@ -34,6 +34,8 @@ import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.dto.RequestPageResponse;
 import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.dto.RequestSubmitRequest;
+import com.sqlflow.request.dto.SelectSqlValidationRequest;
+import com.sqlflow.request.dto.SelectSqlValidationResult;
 import com.sqlflow.request.dto.ViewCreateDraftRequest;
 import com.sqlflow.request.dto.ViewCreateSqlValidationRequestDTO;
 import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO;
@@ -264,6 +266,15 @@ public class RequestController {
         return requestService.validateDraftSql(
                 requestId,
                 user.getUserId());
+    }
+    
+    @PostMapping("/select-sql/validate")
+    public List<SelectSqlValidationResult> validateSelectSqlTexts(
+            @Valid @RequestBody SelectSqlValidationRequest input,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+
+        return requestService.validateSelectSqlTexts(
+                user.getUserId(), input.sqls());
     }
 
     /** 로그인한 사용자가 작성 중인 뷰 SQL을 저장 없이 검사한다. */

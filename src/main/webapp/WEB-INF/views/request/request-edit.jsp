@@ -126,6 +126,10 @@
 		                </c:otherwise>
 		            </c:choose>
 		        </a>
+				
+				<button id="edit-validate-sqls" type="button" class="button" hidden>
+				    SQL 검증
+				</button>
 
 		        <button id="edit-save"
 		                type="submit"
@@ -168,10 +172,11 @@
 	    // 숨겨진 탭의 입력값도 함께 읽는다.
 	    editSqls = Array.from(
 	        document.querySelectorAll('#edit-sql-items .sql-item')
-	    ).map(section => ({
-	        title: section.querySelector('.edit-sql-title-input').value,
-	        sqlText: section.querySelector('.edit-sql-editor').value
-	    }));
+		).map((section, index) => ({
+		    ...editSqls[index],
+		    title: section.querySelector('.edit-sql-title-input').value,
+		    sqlText: section.querySelector('.edit-sql-editor').value
+		}));
 	}
 
 	function activateEditSqlTab(index, focusTab = false) {
@@ -317,13 +322,40 @@
 	            + ' spellcheck="false"'
 	            + ' placeholder="SELECT SQL을 입력하세요.">'
 	            + '</textarea>'
-	            + '</label>';
+				+ '</label>'
+				+ '<p class="request-sql-validation caption" hidden></p>';
 
 	        section.querySelector('.edit-sql-title-input').value =
 	            item.title || '';
 
-	        section.querySelector('.edit-sql-editor').value =
-	            item.sqlText || '';
+			const editor = section.querySelector('.edit-sql-editor');
+			const validationMessage = section.querySelector('.request-sql-validation');
+			const tabLabel = 'SQL ' + (index + 1);
+
+			editor.value = item.sqlText || '';
+
+			function renderValidation() {
+			    const result = editSqls[index].validation;
+			    const passed = result?.validationStatus === 'VALID';
+
+			    tab.textContent = tabLabel + (result ? (passed ? ' ✓' : ' !') : '');
+			    tab.setAttribute('aria-label', result
+			        ? tabLabel + (passed ? ' 검증 완료' : ' 검증 실패')
+			        : tabLabel);
+
+			    validationMessage.hidden = !result;
+			    validationMessage.classList.toggle('is-invalid', Boolean(result) && !passed);
+			    validationMessage.textContent = result
+			        ? (passed ? '검증 완료' : '검증 실패') + ' · ' + result.message
+			        : '';
+			}
+
+			renderValidation();
+
+			editor.addEventListener('input', function () {
+			    delete editSqls[index].validation;
+			    renderValidation();
+			});
 
 	        box.append(section);
 	    });
@@ -408,6 +440,8 @@
 			}));
 
             renderEditSqls();
+			
+			$('#edit-validate-sqls').hidden = request.requestType !== 'SELECT';
 
             $('#edit-loading').hidden = true;
             $('#edit-fields').disabled = false;
@@ -534,6 +568,57 @@
 	            saveButton.textContent = originalText;
 	        }
 	    }
+	});
+	
+	$('#edit-validate-sqls').addEventListener('click', function () {
+	    const fields = $('#edit-fields');
+	    if (this.hidden || fields.disabled || saveInProgress) return;
+
+	    busy(this, async function () {
+	        readEditSqls();
+
+	        const items = editSqls.filter(item => item.sqlText.trim());
+	        if (items.length === 0) {
+	            throw Error('검증할 SQL을 입력하세요.');
+	        }
+
+	        let results;
+	        saveInProgress = true;
+	        fields.disabled = true;
+
+	        try {
+	            results = await post('/requests/select-sql/validate', {
+	                sqls: items.map(item => item.sqlText)
+	            });
+	        } finally {
+	            saveInProgress = false;
+	            fields.disabled = false;
+	        }
+
+	        if (!Array.isArray(results) || results.length !== items.length) {
+	            throw Error('SQL 검증 결과를 확인할 수 없습니다.');
+	        }
+
+	        items.forEach(function (item, index) {
+	            item.validation = results[index];
+	        });
+
+	        const firstInvalid = editSqls.findIndex(
+	            item => item.validation?.validationStatus === 'INVALID'
+	        );
+
+	        if (firstInvalid !== -1) {
+	            activeEditSqlIndex = firstInvalid;
+	        }
+
+	        renderEditSqls();
+
+	        if (firstInvalid === -1) {
+	            notify('SQL ' + items.length + '개의 검증이 완료되었습니다.');
+	        } else {
+	            notify('검증에 실패한 SQL이 있습니다. 해당 탭에서 사유를 확인하세요.', true);
+	        }
+	    });
 	});
 
     loadEditDraft();

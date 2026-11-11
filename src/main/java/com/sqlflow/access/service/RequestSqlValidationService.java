@@ -1,7 +1,7 @@
 package com.sqlflow.access.service;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import org.springframework.dao.DataAccessException;
@@ -10,10 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionException;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.sqlflow.execution.service.SqlParserValidator;
 import com.sqlflow.execution.service.MySqlQueryMetadataValidationService;
+import com.sqlflow.execution.service.SqlParserValidator;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestSqlValidationResult;
+import com.sqlflow.request.dto.SelectSqlValidationResult;
 
 import lombok.RequiredArgsConstructor;
 
@@ -48,8 +49,7 @@ public class RequestSqlValidationService {
 
     /** Validate every saved item independently so the UI can show each result. */
     public List<RequestSqlValidationResult> validateItems(
-            Long requesterId,
-            List<RequestItemResponse> items) {
+            Long requesterId, List<RequestItemResponse> items) {
 
         if (items == null || items.isEmpty() || items.size() > 5) {
             throw new ResponseStatusException(
@@ -57,21 +57,39 @@ public class RequestSqlValidationService {
                     "검증하려면 SQL을 1개 이상, 5개 이하로 등록하세요.");
         }
 
-        List<RequestSqlValidationResult> results = new ArrayList<>();
-        for (RequestItemResponse item : items) {
-            try {
-                var access = validateOne(requesterId, item.getSqlText());
-                results.add(new RequestSqlValidationResult(
-                        item.getQueryId(), "VALID", "검증을 통과했습니다.",
-                        access.accessLevel(), access.resourceIds().stream().sorted().toList()));
-            } catch (ResponseStatusException exception) {
-                String message = Objects.requireNonNullElse(
-                        exception.getReason(), "SQL 검증에 실패했습니다.");
-                results.add(new RequestSqlValidationResult(
-                        item.getQueryId(), "INVALID", message, null, List.of()));
-            }
+        return items.stream()
+                .map(item -> validateItem(
+                        requesterId, item.getQueryId(), item.getSqlText()))
+                .toList();
+    }
+
+    public List<SelectSqlValidationResult> validateTexts(
+            Long requesterId, List<String> sqls) {
+
+        return sqls.stream()
+                .map(sql -> validateItem(requesterId, null, sql))
+                .map(result -> new SelectSqlValidationResult(
+                        result.validationStatus(), result.message()))
+                .toList();
+    }
+
+    private RequestSqlValidationResult validateItem(
+            Long requesterId, Long queryId, String sqlText) {
+
+        try {
+            var access = validateOne(requesterId, sqlText);
+            return new RequestSqlValidationResult(
+                    queryId,
+                    "VALID",
+                    "검증을 통과했습니다.",
+                    access.accessLevel(),
+                    access.resourceIds().stream().sorted().toList());
+        } catch (ResponseStatusException exception) {
+            String message = Objects.requireNonNullElse(
+                    exception.getReason(), "SQL 검증에 실패했습니다.");
+            return new RequestSqlValidationResult(
+                    queryId, "INVALID", message, null, List.of());
         }
-        return results;
     }
 
     private DataAccessValidationService.ValidationResult validateOne(

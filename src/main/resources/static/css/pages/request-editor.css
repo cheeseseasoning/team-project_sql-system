@@ -337,6 +337,10 @@
     display: none;
 }
 
+.request-editor .request-sql-validation.is-invalid {
+    color: var(--error);
+}
+
 @media (max-width: 760px) {
     .request-editor[data-mode="ai"] .request-sql-editor-grid {
         grid-template-columns: minmax(0, 1fr);

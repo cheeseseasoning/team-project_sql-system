@@ -121,9 +121,7 @@
 		    <div class="request-save-actions">
 		        <button id="validate-draft-sqls"
 		                type="button"
-		                class="button"
-		                title="저장 전 SQL 검증 기능은 준비 중입니다."
-		                disabled>
+		                class="button">
 		            SQL 검증
 		        </button>
 
@@ -281,6 +279,8 @@
 	                              spellcheck="false"></textarea>
 	                </label>
 	            </div>
+				
+				<p class="request-sql-validation caption" hidden></p>
 	        `;
 
 	        const titleInput =
@@ -306,7 +306,39 @@
 	        }
 
 	        updateStatus();
-	        editor.addEventListener('input', updateStatus);
+			
+			const validationMessage = section.querySelector('.request-sql-validation');
+			const tabLabel = 'SQL ' + (index + 1);
+
+			function renderValidation() {
+			    const result = sqls[index].validation;
+			    const passed = result?.validationStatus === 'VALID';
+
+			    tab.textContent = tabLabel + (result ? (passed ? ' ✓' : ' !') : '');
+
+			    if (result) {
+			        tab.setAttribute(
+			            'aria-label',
+			            tabLabel + (passed ? ' 검증 완료' : ' 검증 실패')
+			        );
+			    } else {
+			        tab.removeAttribute('aria-label');
+			    }
+
+			    validationMessage.hidden = !result;
+			    validationMessage.classList.toggle('is-invalid', Boolean(result) && !passed);
+			    validationMessage.textContent = result
+			        ? (passed ? '검증 완료' : '검증 실패') + ' · ' + result.message
+			        : '';
+			}
+
+			renderValidation();
+
+			editor.addEventListener('input', function () {
+			    delete sqls[index].validation;
+			    updateStatus();
+			    renderValidation();
+			});
 
 	        section.querySelector('.request-ai-explanation').textContent =
 	            item.explanation || '';
@@ -509,6 +541,7 @@
 
 	        // 요청 성공 후에만 기존 SQL을 교체한다.
 	        item.sqlText = data.sql;
+			delete item.validation;
 	        item.explanation =
 	            data.explanation
 	            || '생성된 SQL을 검토·수정한 뒤 저장하세요.';
@@ -599,7 +632,47 @@
             location.href = BASE + '/requests/'
                 + encodeURIComponent(createdRequestId);
         });
-    });
+		
+	});
+		
+	$('#validate-draft-sqls').addEventListener('click', function () {
+	    runFormTask(this, async function () {
+	        readSqls();
+
+	        const items = sqls.filter(item => item.sqlText.trim());
+	        if (items.length === 0) {
+	            throw Error('검증할 SQL을 입력하세요.');
+	        }
+
+	        const results = await post('/requests/select-sql/validate', {
+	            sqls: items.map(item => item.sqlText)
+	        });
+
+	        if (!Array.isArray(results) || results.length !== items.length) {
+	            throw Error('SQL 검증 결과를 확인할 수 없습니다.');
+	        }
+
+	        items.forEach(function (item, index) {
+	            item.validation = results[index];
+	        });
+
+	        const firstInvalid = sqls.findIndex(
+	            item => item.validation?.validationStatus === 'INVALID'
+	        );
+
+	        if (firstInvalid !== -1) {
+	            activeSqlIndex = firstInvalid;
+	        }
+
+	        renderSqls();
+
+	        if (firstInvalid === -1) {
+	            notify('SQL ' + items.length + '개의 검증이 완료되었습니다.');
+	        } else {
+	            notify('검증에 실패한 SQL이 있습니다. 해당 탭에서 사유를 확인하세요.', true);
+	        }
+	    });
+	});
 
     renderSqls();
     setMode(mode);
