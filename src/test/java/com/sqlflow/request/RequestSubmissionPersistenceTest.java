@@ -56,6 +56,7 @@ class RequestSubmissionPersistenceTest {
                 "SELECT * FROM sqlflow_demo.demo_product",
                 "SELECT * FROM sqlflow_demo.demo_customer"
         ));
+        draft.setSqlTitles(List.of("상품 조회", "고객 조회"));
 
         requestId = requestService.createDraft(draft, USER_ID, DEPT_ID);
 

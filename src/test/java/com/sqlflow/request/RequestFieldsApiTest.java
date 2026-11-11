@@ -126,7 +126,8 @@ class RequestFieldsApiTest {
                 {
                     "title": "기존 요청 형식 테스트",
                     "purpose": "추가 항목 없이 저장",
-                    "sqls": ["SELECT 1 FROM DUAL"]
+                    "sqls": ["SELECT 1 FROM DUAL"],
+                    "sqlTitles": ["기본값 확인 SQL"]
                 }
                 """;
 

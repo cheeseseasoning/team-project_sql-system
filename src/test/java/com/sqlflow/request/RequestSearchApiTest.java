@@ -177,6 +177,7 @@ class RequestSearchApiTest {
         input.setTitle(title);
         input.setPurpose("요청 검색 테스트");
         input.setSqls(List.of("SELECT 1 FROM DUAL"));
+        input.setSqlTitles(List.of("요청 검색 테스트 SQL"));
 
         return requestService.createDraft(input);
     }

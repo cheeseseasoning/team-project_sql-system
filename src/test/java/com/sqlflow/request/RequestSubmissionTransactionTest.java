@@ -52,6 +52,7 @@ class RequestSubmissionTransactionTest {
         draft.setTitle("제출 롤백 테스트");
         draft.setPurpose("결재 처리 실패 시 DB 롤백 확인");
         draft.setSqls(List.of("SELECT 1 FROM DUAL"));
+        draft.setSqlTitles(List.of("제출 롤백 테스트 SQL"));
 
         requestId = requestService.createDraft(draft, 1L, 1L);
         
