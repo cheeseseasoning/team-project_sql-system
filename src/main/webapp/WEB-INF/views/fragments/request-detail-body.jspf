@@ -20,7 +20,7 @@
 		        </colgroup>
 		
 		        <tbody>
-		            <c:if test="${not requestDetailReadOnly}">
+		            <c:if test="${not requestDetailReadOnly or requestDetailDocument}">
 		                <tr>
 		                    <th scope="row">요청번호</th>
 		                    <td id="request-number"></td>
@@ -77,7 +77,7 @@
 			
 			    <span id="request-approval-badge" hidden></span>
 			
-			    <c:if test="${not requestDetailReadOnly}">
+			    <c:if test="${not requestDetailReadOnly or requestDetailDocument}">
 			        <div id="approval-card-navigation"
 			             class="approval-card-navigation"
 			             hidden>
