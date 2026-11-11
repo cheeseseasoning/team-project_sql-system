@@ -4,7 +4,7 @@
 <main class="approval-page">
     <div class="approval-heading">
         <div>
-            <h1>결재 대기 목록</h1>
+            <h1><c:out value="${pageTitle}"/></h1>
             <p class="caption">내게 배정된 요청을 열어 검토하세요.</p>
         </div>
         <span id="approval-count" class="approval-count">내 결재 대기 · 불러오는 중</span>

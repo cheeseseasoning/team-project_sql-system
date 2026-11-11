@@ -83,7 +83,7 @@ public class PageController {
 
     @GetMapping("/my-page")
     public String myPage(Model model) {
-        return view(model, "my-page", "마이페이지");
+        return view(model, "my-page", "내 프로필");
     }
 
     @GetMapping("/requests/new")
@@ -91,7 +91,7 @@ public class PageController {
             Model model,
             @RequestParam(name = "mode", defaultValue = "direct") String mode) {
         model.addAttribute("mode", "ai".equals(mode) ? "ai" : "direct");
-        return view(model, "request-form", "조회 요청 작성");
+        return view(model, "request-form", "데이터 조회 요청 작성");
     }
 
     @GetMapping("/requests/review")
@@ -101,27 +101,27 @@ public class PageController {
 
     @GetMapping("/requests")
     public String list(Model model) {
-        return view(model, "requests", "내 조회 요청");
+        return view(model, "requests", "내 기안함");
     }
 
     @GetMapping("/requests/{id}")
     public String detail(Model model, @PathVariable String id) {
         model.addAttribute("requestId", id);
-        return view(model, "request-detail", "조회 요청 상세");
+        return view(model, "request-detail", "기안서 상세");
     }
 
     @GetMapping("/requests/{id}/edit")
     public String editDraft(Model model, @PathVariable("id") Long id) {
         model.addAttribute("requestId", id);
         model.addAttribute("redraftMode", false);
-        return view(model, "request-edit", "조회 요청 초안 수정");
+        return view(model, "request-edit", "데이터 조회 요청 초안 수정");
     }
 
     @GetMapping("/requests/{id}/redraft")
     public String redraftForm(Model model, @PathVariable("id") Long id) {
         model.addAttribute("requestId", id);
         model.addAttribute("redraftMode", true);
-        return view(model, "request-edit", "조회 요청 재기안");
+        return view(model, "request-edit", "데이터 조회 요청 재기안");
     }
 
     @GetMapping("/department-requests")
@@ -139,7 +139,7 @@ public class PageController {
 
     @GetMapping("/approvals/pending")
     public String pendingApprovals(Model model) {
-        return view(model, "approval-pending", "결재 대기 목록");
+    	return view(model, "approval-pending", "받은 결재");
     }
 
     @GetMapping("/approvals/{id}")
@@ -163,7 +163,7 @@ public class PageController {
             Model model,
             Authentication authentication) {
         executionQueueService.assertCanAccess(principal(authentication));
-        return view(model, "execution-queue", "쿼리 실행 대기 목록");
+        return view(model, "execution-queue", "쿼리 실행 대기");
     }
 
     @GetMapping("/execution-queue/{requestId}")
@@ -187,21 +187,21 @@ public class PageController {
     @GetMapping("/view-create-requests/new")
     public String createViewRequest(Model model) {
         model.addAttribute("dbChangeFormMode", "create");
-        return view(model, "view-create-request-form", "DB 변경 요청 작성");
+        return view(model, "view-create-request-form", "데이터 변경 요청 작성");
     }
 
     @GetMapping("/view-create-requests/{requestId}/edit")
     public String editViewRequest(Model model, @PathVariable Long requestId) {
         model.addAttribute("dbChangeFormMode", "edit");
         model.addAttribute("requestId", requestId);
-        return view(model, "view-create-request-form", "DB 변경 요청 초안 수정");
+        return view(model, "view-create-request-form", "데이터 변경 요청 초안 수정");
     }
 
     @GetMapping("/view-create-requests/{requestId}/redraft")
     public String redraftViewRequest(Model model, @PathVariable Long requestId) {
         model.addAttribute("dbChangeFormMode", "redraft");
         model.addAttribute("requestId", requestId);
-        return view(model, "view-create-request-form", "DB 변경 요청 재기안");
+        return view(model, "view-create-request-form", "데이터 변경 요청 재기안");
     }
 
     /** 읽기 전용 뷰 목록 화면을 연다. */

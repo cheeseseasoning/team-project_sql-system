@@ -127,7 +127,7 @@ async function loadDetail() {
 		);
 
 	} catch (error) {
-		$('#detail-title').textContent = '조회 요청 상세';
+		$('#detail-title').textContent = '기안서 상세';
 		$('#detail-items').textContent =
 			'요청을 불러오지 못했습니다. 내 요청 목록으로 돌아가 확인하세요.';
 

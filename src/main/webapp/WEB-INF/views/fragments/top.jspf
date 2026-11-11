@@ -207,7 +207,7 @@
                    href="${pageContext.request.contextPath}/my-page"
                    ${activeMenu == 'my-page' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
-                    마이페이지
+                    내 프로필
                 </a>
             </nav>
 

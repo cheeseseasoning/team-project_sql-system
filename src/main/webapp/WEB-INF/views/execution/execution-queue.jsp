@@ -4,7 +4,7 @@
 <main class="execution-queue-page">
     <div class="page-heading">
         <div>
-            <h1>실행 목록</h1>
+            <h1><c:out value="${pageTitle}"/></h1>
         </div>
     </div>
 

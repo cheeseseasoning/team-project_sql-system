@@ -2,7 +2,7 @@
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <header class="my-page-heading">
-    <h1>내 프로필</h1>
+    <h1><c:out value="${pageTitle}"/></h1>
     <p>내 계정 정보와 연락처를 확인하세요.</p>
 </header>
 

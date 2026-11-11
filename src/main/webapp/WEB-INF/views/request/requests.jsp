@@ -1,8 +1,11 @@
 <%@ page pageEncoding="UTF-8" %>
 	<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 		<div class="page-heading">
-			<h1>내 조회 요청</h1><a class="button primary" href="${pageContext.request.contextPath}/requests/new">새 조회 요청</a>
+		    <h1><c:out value="${pageTitle}"/></h1>
+		    <a class="button primary"
+		       href="${pageContext.request.contextPath}/requests/new">새 조회 요청</a>
 		</div>
+		
 		<section id="my-request-list" class="panel">
 			<form id="filter-form" class="filter-bar">
 				<label>
@@ -58,7 +61,7 @@
 
 			<div class="table-scroll">
 			    <table class="request-list-table">
-			        <caption class="sr-only">내 조회 요청 목록</caption>
+			        <caption class="sr-only">내 기안함 목록</caption>
 
 			        <colgroup>
 			            <col class="request-number-column">

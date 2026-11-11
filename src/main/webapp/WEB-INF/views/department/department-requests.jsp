@@ -4,7 +4,7 @@
 <main class="department-requests-page">
     <div class="department-requests-heading">
         <div>
-            <h1>부서 요청 내역</h1>
+            <h1><c:out value="${pageTitle}"/></h1>
             <p class="caption">
                 <c:out value="${deptName}"/>에서 제출한 요청과 처리 상태를 확인하세요.
             </p>

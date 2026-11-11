@@ -7,7 +7,7 @@
 </div>
 
 <div class="page-heading">
-    <h1>조회 요청 작성</h1>
+    <h1><c:out value="${pageTitle}"/></h1>
     <span class="badge">초안 작성</span>
 </div>
 
