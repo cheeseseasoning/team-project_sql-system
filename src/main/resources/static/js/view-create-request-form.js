@@ -4,26 +4,18 @@
     const MAX_SQL_COUNT = 5;
 	const TYPE = {
 	    CREATE_VIEW: {
-	        guide: '신규 뷰를 생성하는 요청입니다.',
-	        sqlGuide: '항목마다 CREATE VIEW 문을 한 개씩 입력하세요.',
 	        placeholder: 'CREATE VIEW v_product AS\nSELECT product_id FROM demo_product;',
 	        saveGuide: '초안 저장 후 내 기안함에서 결재선을 지정하고 제출할 수 있습니다.'
 	    },
 	    INSERT: {
-	        guide: '테이블에 데이터를 추가하는 요청입니다.',
-	        sqlGuide: '항목마다 INSERT 문을 한 개씩 입력하세요.',
 	        placeholder: "INSERT INTO demo_product (product_id, product_name)\nVALUES (1, '상품명');",
 	        saveGuide: '초안 저장 후 내 기안함에서 다시 열어 수정할 수 있습니다.'
 	    },
 	    UPDATE: {
-	        guide: '테이블의 기존 데이터를 수정하는 요청입니다.',
-	        sqlGuide: '항목마다 UPDATE 문을 한 개씩 입력하세요.',
 	        placeholder: "UPDATE demo_product\nSET product_name = '새 상품명'\nWHERE product_id = 1;",
 	        saveGuide: '초안 저장 후 내 기안함에서 다시 열어 수정할 수 있습니다.'
 	    },
 	    DELETE: {
-	        guide: '테이블에서 데이터를 삭제하는 요청입니다.',
-	        sqlGuide: '항목마다 DELETE 문을 한 개씩 입력하세요.',
 	        placeholder: 'DELETE FROM demo_product\nWHERE product_id = 1;',
 	        saveGuide: '초안 저장 후 내 기안함에서 다시 열어 수정할 수 있습니다.'
 	    }
@@ -41,10 +33,10 @@
 
     const form = document.getElementById('view-create-request-form');
     const changeType = document.getElementById('db-change-type');
-    const typeGuide = document.getElementById('db-change-guide');
-    const sqlGuide = document.getElementById('view-sql-guide');
     const saveGuide = document.getElementById('view-save-guide');
     const items = document.getElementById('view-sql-items');
+    const tabs = document.getElementById('view-sql-tabs');
+    const writeModes = document.getElementById('view-sql-write-modes');
     const template = document.getElementById('view-sql-item-template');
     const count = document.getElementById('view-sql-count');
     const message = document.getElementById('view-form-message');
@@ -61,6 +53,7 @@
     const saveLabel = editMode ? '수정 저장' : '초안 저장';
 
     let nextItemId = 0;
+    let activeSection = null;
     let validationRevision = 0;
     let validationInProgress = false;
     let saving = false;
@@ -72,8 +65,6 @@
     function updateTypeDisplay() {
         const type = TYPE[changeType.value];
 
-        typeGuide.textContent = type.guide;
-        sqlGuide.textContent = type.sqlGuide;
         saveGuide.textContent = type.saveGuide;
 
         items.querySelectorAll('.sql-editor').forEach(editor => {
@@ -90,36 +81,47 @@
         message.textContent = '';
     }
 
+    // 편집기를 숨겨도 DOM 순서와 입력값은 유지한다.
+    function selectSql(section) {
+        const sections = getSections();
+        activeSection = sections.includes(section) ? section : sections[0];
+
+        sections.forEach((item, index) => {
+            const selected = item === activeSection;
+            item.hidden = !selected;
+            tabs.children[index].setAttribute('aria-pressed', String(selected));
+        });
+    }
+
     function refreshOrder() {
         invalidateValidation();
 
         const sections = getSections();
 
+        tabs.replaceChildren();
         sections.forEach((section, index) => {
             const label = 'SQL ' + (index + 1);
-            const up = section.querySelector('[data-action="up"]');
-            const down = section.querySelector('[data-action="down"]');
             const remove = section.querySelector('[data-action="remove"]');
-
-            section.querySelector('.view-sql-heading').textContent = label;
-
-            up.disabled = index === 0;
-            down.disabled = index === sections.length - 1;
             remove.disabled = sections.length === 1;
-
-            up.setAttribute('aria-label', label + ' 위로 이동');
-            down.setAttribute('aria-label', label + ' 아래로 이동');
             remove.setAttribute('aria-label', label + ' 삭제');
+
+            const tab = document.createElement('button');
+            tab.type = 'button';
+            tab.textContent = label;
+            tab.addEventListener('click', () => selectSql(section));
+            tabs.append(tab);
         });
 
         count.textContent = sections.length + ' / ' + MAX_SQL_COUNT;
         addButton.disabled = sections.length >= MAX_SQL_COUNT;
+        selectSql(activeSection);
     }
 
     function addSql(focusEditor, values = {}) {
         if (getSections().length >= MAX_SQL_COUNT) return;
 
         const fragment = template.content.cloneNode(true);
+        const section = fragment.querySelector('.sql-item');
         const sqlTitle = fragment.querySelector('.view-sql-title');
         const editor = fragment.querySelector('.sql-editor');
         const itemId = ++nextItemId;
@@ -131,6 +133,7 @@
         editor.placeholder = TYPE[changeType.value].placeholder;
 
         items.append(fragment);
+        if (focusEditor) activeSection = section;
         refreshOrder();
 
         if (focusEditor) editor.focus();
@@ -139,7 +142,12 @@
     function validateFields(fields) {
         for (const field of fields) {
             field.setCustomValidity(field.value.trim() ? '' : '내용을 입력하세요.');
-            if (!field.reportValidity()) return false;
+            if (field.validity.valid) continue;
+
+            const section = field.closest('.sql-item');
+            if (section) selectSql(section);
+            field.reportValidity();
+            return false;
         }
 
         return true;
@@ -204,7 +212,7 @@
         } finally {
             validationInProgress = false;
             validateButton.disabled = false;
-            validateButton.textContent = '구문 검사';
+            validateButton.textContent = 'SQL 검증';
         }
     }
 
@@ -227,7 +235,8 @@
         if (saving) return;
 
         message.textContent = '';
-        if (!validateFields([title, purpose, ...items.querySelectorAll('.sql-editor')])) return;
+        const sqlFields = items.querySelectorAll('.view-sql-title, .sql-editor');
+        if (!validateFields([title, purpose, ...sqlFields])) return;
 
         const request = readRequest();
         const isView = changeType.value === 'CREATE_VIEW';
@@ -263,7 +272,7 @@
     }
 
     async function loadDraft() {
-        const controls = form.querySelectorAll('input, textarea, button');
+        const controls = form.querySelectorAll('input, textarea, button:not([data-ai-generate])');
         controls.forEach(control => { control.disabled = true; });
         saveButton.textContent = '초안 불러오는 중…';
 
@@ -296,32 +305,15 @@
     }
 
     items.addEventListener('click', event => {
-        const button = event.target.closest('button[data-action]');
+        const button = event.target.closest('button[data-action="remove"]');
         if (!button || !items.contains(button) || button.disabled) return;
 
         const section = button.closest('.sql-item');
-        const previous = section.previousElementSibling;
-        const next = section.nextElementSibling;
-        let focusSection = section;
+        const focusSection = section.nextElementSibling || section.previousElementSibling;
+        if (!focusSection) return;
 
-        switch (button.dataset.action) {
-            case 'up':
-                if (!previous) return;
-                items.insertBefore(section, previous);
-                break;
-            case 'down':
-                if (!next) return;
-                items.insertBefore(next, section);
-                break;
-            case 'remove':
-                focusSection = next || previous;
-                if (!focusSection) return;
-                section.remove();
-                break;
-            default:
-                return;
-        }
-
+        section.remove();
+        activeSection = focusSection;
         refreshOrder();
         focusSection.querySelector('.sql-editor').focus();
     });
@@ -339,6 +331,17 @@
     changeType.addEventListener('change', () => {
         invalidateValidation();
         updateTypeDisplay();
+    });
+
+    writeModes.addEventListener('click', event => {
+        const selected = event.target.closest('button[data-write-mode]');
+        if (!selected) return;
+
+        // 같은 SQL 편집기를 공유해서 작성 방식을 바꿔도 입력값을 유지한다.
+        form.dataset.writeMode = selected.dataset.writeMode;
+        for (const button of writeModes.querySelectorAll('button[data-write-mode]')) {
+            button.setAttribute('aria-pressed', String(button === selected));
+        }
     });
 
     addButton.addEventListener('click', () => addSql(true));

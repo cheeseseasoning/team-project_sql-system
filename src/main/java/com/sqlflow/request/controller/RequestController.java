@@ -25,6 +25,7 @@ import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.approval.service.ApprovalService;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 import com.sqlflow.request.dto.DepartmentRequestPageResponse;
+import com.sqlflow.request.dto.DmlDraftRequest;
 import com.sqlflow.request.dto.RequestDashboardResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
@@ -33,15 +34,15 @@ import com.sqlflow.request.dto.RequestListResponse;
 import com.sqlflow.request.dto.RequestPageResponse;
 import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.dto.RequestSubmitRequest;
-import com.sqlflow.request.dto.DmlDraftRequest;
 import com.sqlflow.request.dto.ViewCreateDraftRequest;
 import com.sqlflow.request.dto.ViewCreateSqlValidationRequestDTO;
 import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO;
 import com.sqlflow.request.service.DepartmentRequestService;
 import com.sqlflow.request.service.DmlSqlValidationService;
-import com.sqlflow.request.service.RequestService;
-import com.sqlflow.request.service.DmlSqlValidationService.ValidationResult;
 import com.sqlflow.request.service.DmlSqlValidationService.SqlType;
+import com.sqlflow.request.service.DmlSqlValidationService.ValidationResult;
+import com.sqlflow.request.service.RequestService;
+import com.sqlflow.request.service.ViewCreationLinkService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -57,6 +58,7 @@ public class RequestController {
     private final RequestService requestService;
     private final ApprovalService approvalService;
     private final DepartmentRequestService departmentRequestService;
+    private final ViewCreationLinkService viewCreationLinkService;
     private final DmlSqlValidationService dmlSqlValidationService;
 
     @GetMapping("/dashboard")
@@ -368,13 +370,14 @@ public class RequestController {
             @Valid @RequestBody ChangeSqlResultRequest input,
             @AuthenticationPrincipal SqlFlowUserDetails user) {
 
-        departmentRequestService.registerChangeSqlResult(
+        viewCreationLinkService.register(
                 requestId,
                 queryId,
                 user.getUserId(),
                 input.resultStatus(),
                 input.resultNote(),
-                input.executedBy());
+                input.executedBy(),
+                input.resourceId());
 
         return ResponseEntity.noContent().build();
     }
@@ -382,7 +385,8 @@ public class RequestController {
     public record ChangeSqlResultRequest(
             @NotNull String resultStatus,
             @Size(max = 1000) String resultNote,
-            Long executedBy) {
+            Long executedBy,
+            Long resourceId) {
     }
 
     @PatchMapping("/department/{requestId}/change-sql/{queryId}/result")

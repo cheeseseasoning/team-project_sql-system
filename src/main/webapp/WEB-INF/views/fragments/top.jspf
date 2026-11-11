@@ -44,6 +44,11 @@
               href="${pageContext.request.contextPath}/css/pages/execution-queue.css">
     </c:if>
 
+    <c:if test="${page == 'notices'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/notices.css">
+    </c:if>
+
     <c:if test="${page == 'views'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/views.css">
@@ -86,94 +91,108 @@
                    href="${pageContext.request.contextPath}/"
                    ${activeMenu == 'home' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/House.svg" alt="">
-                    업무 현황
+                    HOME
                 </a>
 
-                <a class="nav-item ${activeMenu == 'my-page' ? 'active' : ''}"
-                   href="${pageContext.request.contextPath}/my-page"
-                   ${activeMenu == 'my-page' ? 'aria-current="page"' : ''}>
-                    <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
-                    마이페이지
-                </a>
+                <details class="nav-group" ${activeMenu == 'create' or activeMenu == 'view-create-requests' or activeMenu == 'views' ? 'open' : ''}>
+                    <summary class="nav-item"><img src="${pageContext.request.contextPath}/icons/FilePlus.svg" alt="">데이터 조회·요청</summary>
+                    <div class="nav-group-links">
+                        <a class="nav-item ${activeMenu == 'views' ? 'active' : ''}"
+                           href="${pageContext.request.contextPath}/views"
+                           ${activeMenu == 'views' ? 'aria-current="page"' : ''}>
+                            <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
+                            뷰 조회
+                        </a>
+                        <a class="nav-item ${activeMenu == 'create' ? 'active' : ''}"
+                           href="${pageContext.request.contextPath}/requests/new"
+                           ${activeMenu == 'create' ? 'aria-current="page"' : ''}>
+                            <img src="${pageContext.request.contextPath}/icons/FilePlus.svg" alt="">
+                            데이터 조회 요청
+                        </a>
+                        <a class="nav-item ${activeMenu == 'view-create-requests' ? 'active' : ''}"
+                           href="${pageContext.request.contextPath}/view-create-requests/new"
+                           ${activeMenu == 'view-create-requests' ? 'aria-current="page"' : ''}>
+                            <img src="${pageContext.request.contextPath}/icons/FilePlus.svg" alt="">
+                            데이터 변경 요청
+                        </a>
+                    </div>
+                </details>
 
-                <a class="nav-item ${activeMenu == 'create' ? 'active' : ''}"
-                   href="${pageContext.request.contextPath}/requests/new"
-                   ${activeMenu == 'create' ? 'aria-current="page"' : ''}>
-                    <img src="${pageContext.request.contextPath}/icons/FilePlus.svg" alt="">
-                    조회 요청 작성
-                </a>
+                <details class="nav-group" ${activeMenu == 'requests' or activeMenu == 'department-requests' or activeMenu == 'approvals' ? 'open' : ''}>
+                    <summary class="nav-item"><img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">기안·결재</summary>
+                    <div class="nav-group-links">
+                        <a class="nav-item ${activeMenu == 'requests' ? 'active' : ''}"
+                           href="${pageContext.request.contextPath}/requests"
+                           ${activeMenu == 'requests' ? 'aria-current="page"' : ''}>
+                            <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
+                            내 기안함
+                        </a>
+                        <a class="nav-item ${activeMenu == 'department-requests' ? 'active' : ''}"
+                           href="${pageContext.request.contextPath}/department-requests"
+                           ${activeMenu == 'department-requests' ? 'aria-current="page"' : ''}>
+                            <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
+                            부서 기안함
+                        </a>
+                        <a class="nav-item ${activeMenu == 'approvals' ? 'active' : ''}"
+                           href="${pageContext.request.contextPath}/approvals/pending"
+                           ${activeMenu == 'approvals' ? 'aria-current="page"' : ''}>
+                            <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
+                            받은 결재
+                        </a>
+                    </div>
+                </details>
 
-                <a class="nav-item ${activeMenu == 'requests' ? 'active' : ''}"
-                   href="${pageContext.request.contextPath}/requests"
-                   ${activeMenu == 'requests' ? 'aria-current="page"' : ''}>
-                    <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
-                    내 조회 요청
-                </a>
-
-                <a class="nav-item ${activeMenu == 'department-requests' ? 'active' : ''}"
-                   href="${pageContext.request.contextPath}/department-requests"
-                   ${activeMenu == 'department-requests' ? 'aria-current="page"' : ''}>
-                    <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
-                    부서 기안함
-                </a>
-
-                <a class="nav-item ${activeMenu == 'approvals' ? 'active' : ''}"
-                   href="${pageContext.request.contextPath}/approvals/pending"
-                   ${activeMenu == 'approvals' ? 'aria-current="page"' : ''}>
-                    <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
-                    결재 대기
-                </a>
-
-                <c:if test="${pageContext.request.isUserInRole('DB_APPROVER')}">
-                    <a class="nav-item ${activeMenu == 'execution-queue' ? 'active' : ''}"
-                       href="${pageContext.request.contextPath}/execution-queue"
-                       ${activeMenu == 'execution-queue' ? 'aria-current="page"' : ''}>
-                        <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg" alt="">
-                        실행 목록
-                    </a>
-                </c:if>
-
-                <a class="nav-item ${activeMenu == 'execution-results' ? 'active' : ''}"
+                <a class="nav-item nav-item-emphasis ${activeMenu == 'execution-results' ? 'active' : ''}"
                    href="${pageContext.request.contextPath}/execution-results"
                    ${activeMenu == 'execution-results' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg" alt="">
-                    실행 결과
+                    쿼리 실행 결과
                 </a>
 
-                <a class="nav-item ${activeMenu == 'view-create-requests' ? 'active' : ''}"
-                   href="${pageContext.request.contextPath}/view-create-requests/new"
-                   ${activeMenu == 'view-create-requests' ? 'aria-current="page"' : ''}>
-                    <img src="${pageContext.request.contextPath}/icons/FilePlus.svg" alt="">
-                    뷰 생성 요청
-                </a>
-
-                <a class="nav-item ${activeMenu == 'views' ? 'active' : ''}"
-                   href="${pageContext.request.contextPath}/views"
-                   ${activeMenu == 'views' ? 'aria-current="page"' : ''}>
-                    <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
-                    뷰 조회
-                </a>
-
-                <c:if test="${pageContext.request.isUserInRole('DB_ADMIN') or deptName == 'DB팀'}">
-                    <a class="nav-item ${activeMenu == 'db-resource-admin' ? 'active' : ''}"
-                       href="${pageContext.request.contextPath}/db-admin/resources">
-                        <img src="${pageContext.request.contextPath}/icons/SlidersHorizontal.svg" alt="">
-                        리소스·접근 정책 관리
-                    </a>
+                <c:if test="${pageContext.request.isUserInRole('DB_APPROVER') or pageContext.request.isUserInRole('DB_ADMIN') or deptName == 'DB팀'}">
+                    <details class="nav-group" ${activeMenu == 'execution-queue' or activeMenu == 'db-resource-admin' ? 'open' : ''}>
+                        <summary class="nav-item"><img src="${pageContext.request.contextPath}/icons/SlidersHorizontal.svg" alt="">DB 운영</summary>
+                        <div class="nav-group-links">
+                            <c:if test="${pageContext.request.isUserInRole('DB_APPROVER')}">
+                                <a class="nav-item ${activeMenu == 'execution-queue' ? 'active' : ''}"
+                                   href="${pageContext.request.contextPath}/execution-queue"
+                                   ${activeMenu == 'execution-queue' ? 'aria-current="page"' : ''}>
+                                    <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg" alt="">
+                                    쿼리 실행 대기
+                                </a>
+                            </c:if>
+                            <c:if test="${pageContext.request.isUserInRole('DB_ADMIN') or deptName == 'DB팀'}">
+                                <a class="nav-item ${activeMenu == 'db-resource-admin' ? 'active' : ''}"
+                                   href="${pageContext.request.contextPath}/db-admin/resources"
+                                   ${activeMenu == 'db-resource-admin' ? 'aria-current="page"' : ''}>
+                                    <img src="${pageContext.request.contextPath}/icons/SlidersHorizontal.svg" alt="">
+                                    리소스·접근 정책 관리
+                                </a>
+                            </c:if>
+                        </div>
+                    </details>
                 </c:if>
 
+                <a class="nav-item ${(activeMenu == 'accounts' or activeMenu == 'admin-users') ? 'active' : ''}"
+                   href="${pageContext.request.contextPath}/accounts"
+                   ${(activeMenu == 'accounts' or activeMenu == 'admin-users') ? 'aria-current="page"' : ''}>
+                    <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
+                    계정 목록
+                </a>
+            </nav>
+
+            <nav class="sidebar-secondary" aria-label="공통 메뉴">
                 <a class="nav-item ${activeMenu == 'notices' ? 'active' : ''}"
                    href="${pageContext.request.contextPath}/notices"
                    ${activeMenu == 'notices' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/Bell.svg" alt="">
                     공지사항
                 </a>
-
-                <a class="nav-item ${activeMenu == 'accounts' ? 'active' : ''}"
-                   href="${pageContext.request.contextPath}/accounts"
-                   ${activeMenu == 'accounts' ? 'aria-current="page"' : ''}>
+                <a class="nav-item ${activeMenu == 'my-page' ? 'active' : ''}"
+                   href="${pageContext.request.contextPath}/my-page"
+                   ${activeMenu == 'my-page' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
-                    계정 목록
+                    마이페이지
                 </a>
             </nav>
 
@@ -212,11 +231,11 @@
                     </a>
 
                     <button id="help-button"
-					        class="help-link"
-					        type="button"
-					        popovertarget="help-popover">
-					    도움말
-					</button>
+                            class="help-link"
+                            type="button"
+                            popovertarget="help-popover">
+                        도움말
+                    </button>
 
                     <div class="header-user">
                         <span class="avatar small">

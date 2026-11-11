@@ -28,7 +28,7 @@ public class ViewCreateDraftRequest {
 
     @Getter @Setter
     public static class SqlEntry {
-        @Size(max = 200)
+        @NotBlank(message = "SQL 제목을 입력하세요.") @Size(max = 200)
         private String queryTitle;
         @NotBlank @Size(max = 20000)
         private String sqlText;

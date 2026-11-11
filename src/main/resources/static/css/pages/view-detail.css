@@ -2,27 +2,18 @@
    1. 제목과 목록 복귀
    ================================================== */
 
+.view-detail-page .view-detail-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding-inline: 1px;
+}
+
 .view-detail-page .view-back-link {
-    display: inline-block;
-    margin-bottom: 20px;
     color: var(--accent);
-    font-size: 12px;
-}
-
-.view-detail-page .view-heading {
-    align-items: flex-start;
-}
-
-.view-detail-page .view-schema {
-    margin-bottom: 5px;
-}
-
-.view-detail-page .view-title {
-    overflow-wrap: anywhere;
-}
-
-.view-detail-page .view-resource-name {
-    margin-top: 6px;
+    font-size: 13px;
 }
 
 
@@ -31,13 +22,33 @@
    ================================================== */
 
 .view-detail-page .view-panel {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+    padding: 12px 18px;
+}
+
+.view-detail-page .view-panel .panel-heading {
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.view-detail-page .view-panel:has(.view-table-scroll) .panel-heading {
+    padding-inline: 10px;
+}
+
+.view-detail-page .panel-heading h2 {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.view-detail-page .panel-heading .caption {
+    flex-shrink: 0;
 }
 
 .view-detail-page .view-info {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px 28px;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 0.65fr);
+    gap: 8px 20px;
     margin: 0;
 }
 
@@ -46,7 +57,7 @@
 }
 
 .view-detail-page .view-info dt {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     color: var(--muted);
     font-size: 12px;
 }
@@ -57,8 +68,22 @@
     white-space: pre-wrap;
 }
 
+.view-detail-page .view-info-emphasis {
+    font-weight: 700;
+}
+
 .view-detail-page .view-info-description {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: baseline;
+    gap: 12px;
     grid-column: 1 / -1;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+}
+
+.view-detail-page .view-info-description dt {
+    margin-bottom: 0;
 }
 
 
@@ -76,7 +101,8 @@
 }
 
 .view-detail-page .view-table-scroll {
-    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     overflow-x: auto;
 }
 
@@ -92,12 +118,22 @@
     min-width: 680px;
 }
 
+.view-detail-page th,
+.view-detail-page td {
+    padding: 8px 10px;
+    line-height: 1.45;
+    vertical-align: middle;
+}
+
+.view-detail-page td .badge {
+    padding: 2px 6px;
+}
+
 .view-detail-page th {
     white-space: nowrap;
 }
 
 .view-detail-page td {
-    vertical-align: top;
     overflow-wrap: anywhere;
 }
 
@@ -105,11 +141,6 @@
 .view-detail-page .view-column-type {
     font-family: Consolas, 'Malgun Gothic', monospace;
 }
-
-.view-detail-page .view-policy-description {
-    margin-top: 14px;
-}
-
 
 /* ==================================================
    4. CREATE문
@@ -163,9 +194,5 @@
 @media (max-width: 560px) {
     .view-detail-page .view-info {
         grid-template-columns: minmax(0, 1fr);
-    }
-
-    .view-detail-page .view-heading {
-        flex-direction: column;
     }
 }

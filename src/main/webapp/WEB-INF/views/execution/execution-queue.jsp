@@ -10,6 +10,13 @@
 
     <section class="panel execution-queue-panel" aria-label="실행 요청 목록">
         <form id="queue-search" class="queue-search">
+            <label for="queue-department" class="queue-department-field">
+                부서
+                <select id="queue-department" name="deptId" disabled>
+                    <option value="">전체 부서</option>
+                </select>
+            </label>
+
             <label class="queue-keyword-field" for="queue-keyword">
                 <span class="sr-only">요청 검색</span>
                 <input
@@ -82,6 +89,8 @@
         let totalPages = 0;
         let totalCount = 0;
         let keyword = '';
+        let deptId = '';
+        let departmentsReady = false;
         let loading = false;
         let requestVersion = 0;
 
@@ -203,16 +212,20 @@
         }
 
         function updateControls() {
-            $id('queue-keyword').disabled = loading;
-            $id('queue-search-button').disabled = loading;
-            $id('queue-refresh').disabled = loading;
+            const disabled = loading || !departmentsReady;
+
+            $id('queue-department').disabled = disabled;
+            $id('queue-keyword').disabled = disabled;
+            $id('queue-search-button').disabled = disabled;
+            $id('queue-refresh').disabled = disabled;
+
             renderPagination();
         }
 
         function renderRows(items) {
             if (!items.length) {
                 showEmptyMessage(
-                    keyword
+                    keyword || deptId
                         ? '검색 조건에 맞는 실행 요청이 없습니다.'
                         : '실행 대기 중인 요청이 없습니다.'
                 );
@@ -248,6 +261,26 @@
             }).join('');
         }
 
+        async function loadDepartments() {
+            const departments = await api('/views/departments');
+
+            if (!Array.isArray(departments)) {
+                throw new Error('부서 목록 응답을 확인할 수 없습니다.');
+            }
+
+            const select = $id('queue-department');
+            select.replaceChildren(new Option('전체 부서', ''));
+
+            for (const department of departments) {
+                select.add(new Option(
+                    department.deptName,
+                    String(department.deptId)
+                ));
+            }
+
+            departmentsReady = true;
+        }
+
         async function load(page) {
             if (loading) {
                 return;
@@ -267,6 +300,10 @@
                     size: String(pageSize),
                     keyword: keyword
                 });
+
+                if (deptId) {
+                    params.set('deptId', deptId);
+                }
 
                 const data = await api(
                     '/executions/ready?' + params.toString()
@@ -324,6 +361,7 @@
             }
 
             keyword = $id('queue-keyword').value.trim();
+            deptId = $id('queue-department').value;
             load(1);
         });
 
@@ -334,6 +372,7 @@
 
             $id('queue-search').reset();
             keyword = '';
+            deptId = '';
             load(1);
         });
 
@@ -361,8 +400,21 @@
             }
         });
 
-        updateControls();
-        load(1);
+        async function initialize() {
+            updateControls();
+
+            try {
+                await loadDepartments();
+                await load(1);
+            } catch (error) {
+                showEmptyMessage(
+                    '부서 목록을 불러오지 못했습니다. 화면을 새로고침해 주세요.'
+                );
+                notify(error.message || '부서 목록을 불러오지 못했습니다.', true);
+            }
+        }
+
+        initialize();
     })();
 </script>
 
