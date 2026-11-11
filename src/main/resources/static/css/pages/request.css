@@ -1052,3 +1052,254 @@
 	    color: #166534;
 	}
 }
+
+/* 요청 제목에 가장 넓은 공간을 주고, 희망일과 긴급 여부를 옆에 배치한다. */
+#view-create-request-form .db-change-request-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 200px) auto;
+    align-items: end;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+#view-create-request-form .db-change-request-top input:not([type="checkbox"]) {
+    box-sizing: border-box;
+    width: 100%;
+    height: 44px;
+    min-height: 0;
+}
+
+#view-create-request-form .db-change-urgent {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+#view-create-request-form .db-change-urgent input {
+    width: auto;
+    margin: 0;
+}
+
+#view-create-request-form .db-change-sql-header,
+#view-create-request-form .db-change-sql-type,
+#view-create-request-form .db-change-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+#view-create-request-form .db-change-sql-header {
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+}
+
+#view-create-request-form .db-change-sql-type h2 {
+    margin: 0;
+}
+
+#view-create-request-form #db-change-type {
+    box-sizing: border-box;
+    width: auto;
+    max-width: 100%;
+    height: 34px;
+    min-height: 0;
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+#view-create-request-form .db-change-sql-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0;
+}
+
+#view-create-request-form .db-change-sql-toolbar {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin: 8px 0 12px;
+    border-bottom: 1px solid var(--line);
+}
+
+#view-create-request-form .db-change-sql-toolbar .db-change-form-actions {
+    margin-left: auto;
+    padding-bottom: 4px;
+}
+
+#view-create-request-form #view-add-sql {
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 13px;
+}
+
+#view-create-request-form .db-change-write-modes {
+    display: inline-flex;
+    padding: 2px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--soft);
+}
+
+#view-create-request-form .db-change-write-modes > button {
+    padding: 5px 10px;
+    border: 0;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+}
+
+#view-create-request-form .db-change-write-modes > button[aria-pressed="true"] {
+    background: #fff;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+#view-create-request-form .db-change-write-modes > button:not(:disabled) {
+    cursor: pointer;
+}
+
+#view-create-request-form .db-change-sql-workspace {
+    margin-top: 12px;
+}
+
+#view-create-request-form .db-change-ai-prompt,
+#view-create-request-form .db-change-ai-label,
+#view-create-request-form[data-write-mode="ai"] .db-change-direct-label {
+    display: none;
+}
+
+#view-create-request-form[data-write-mode="ai"] .db-change-sql-workspace {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 12px;
+}
+
+#view-create-request-form[data-write-mode="ai"] .db-change-ai-prompt {
+    display: block;
+}
+
+#view-create-request-form[data-write-mode="ai"] .db-change-ai-label {
+    display: inline;
+}
+
+#view-create-request-form[data-write-mode="ai"] .db-change-sql-workspace textarea {
+    box-sizing: border-box;
+    width: 100%;
+    height: 150px;
+}
+
+#view-create-request-form .db-change-ai-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+@media (max-width: 640px) {
+    #view-create-request-form[data-write-mode="ai"] .db-change-sql-workspace {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+#view-create-request-form .db-change-sql-field-heading {
+    position: relative;
+}
+
+#view-create-request-form .db-change-sql-field-heading > label {
+    display: block;
+}
+
+#view-create-request-form .db-change-sql-field-heading > button {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+#view-create-request-form .db-change-sql-tabs > button {
+    padding: 7px 12px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    cursor: pointer;
+}
+
+#view-create-request-form .db-change-sql-tabs > button[aria-pressed="true"] {
+    border-bottom-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+#view-create-request-form #view-sql-items > .sql-item {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+#view-create-request-form #view-sql-items > .sql-item[hidden] {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    #view-create-request-form .db-change-request-top {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    #view-create-request-form .form-footer {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+}
+.change-executor-picker .change-executor-options {
+    max-height: 200px;
+    margin-top: 6px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--bg);
+}
+
+.change-executor-options button {
+    display: grid;
+    gap: 2px;
+    width: 100%;
+    padding: 8px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--text);
+    text-align: left;
+}
+
+.change-executor-options button:last-child {
+    border-bottom: 0;
+}
+
+.change-executor-options button:hover,
+.change-executor-options button:focus-visible {
+    background: var(--tint);
+}
+
+.change-executor-options small,
+.change-executor-options p {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.change-executor-options p {
+    padding: 8px 12px;
+}

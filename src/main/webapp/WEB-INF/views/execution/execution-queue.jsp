@@ -3,8 +3,8 @@
 		<div class="page-heading">
 			<div>
 				<p class="caption">DB팀 실행 권한 계정</p>
-				<h1>실행 목록</h1>
-			</div><a class="button" href="${pageContext.request.contextPath}/execution-results">실행 결과</a>
+				<h1>쿼리 실행 대기 목록</h1>
+			</div><a class="button" href="${pageContext.request.contextPath}/execution-results">쿼리 실행 결과</a>
 		</div>
 		<section class="panel execution-queue-panel">
 			<form id="queue-search" class="queue-search">

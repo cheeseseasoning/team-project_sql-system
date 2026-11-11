@@ -6,144 +6,131 @@
      data-edit-mode="${viewCreateEdit}"
      hidden></div>
 
-<div class="page-heading">
-    <h1>${viewCreateEdit ? 'DB 변경 요청 수정' : 'DB 변경 요청 작성'}</h1>
-    <span class="badge">${viewCreateEdit ? '초안 수정' : '초안 작성'}</span>
-</div>
+	 <div class="page-heading panel-aligned-heading">
+	     <h1>${viewCreateEdit ? 'DB 변경 요청 수정' : 'DB 변경 요청 작성'}</h1>
+	     <span class="badge">${viewCreateEdit ? '초안 수정' : '초안 작성'}</span>
+	 </div>
 
-<div class="workflow" aria-label="처리 단계">
-    <strong>1 요청·SQL 작성</strong>
-    <span>2 초안 저장·결재선 확인</span>
-    <span>3 결재</span>
-    <span>4 DB팀 외부 처리·결과 등록</span>
-</div>
+	 <form id="view-create-request-form" class="panel form-panel">
+	     <div class="db-change-request-top">
+	         <label>
+	             요청 제목 <span class="required">*</span>
+	             <input id="view-request-title"
+	                    name="title"
+	                    required
+	                    maxlength="200"
+	                    placeholder="예: 월별 매출 집계 뷰 생성">
+	         </label>
 
-<form id="view-create-request-form" class="panel form-panel">
-    <div class="panel-heading">
-        <h2>요청 정보</h2>
-    </div>
+	         <label>
+	             처리 희망일 <span class="caption">· 선택</span>
+	             <input id="view-request-date" name="desiredDate" type="date">
+	         </label>
 
-    <div class="form-grid">
-        <label>
-            변경 유형
-			<select id="db-change-type"
-			        aria-describedby="db-change-guide"
-			        ${viewCreateEdit ? 'disabled' : ''}>
-			    <option value="CREATE_VIEW">CREATE VIEW · 뷰 생성</option>
-			    <option value="INSERT">INSERT · 데이터 추가</option>
-			    <option value="UPDATE">UPDATE · 데이터 수정</option>
-			    <option value="DELETE">DELETE · 데이터 삭제</option>
-			</select>
-        </label>
+	         <label class="db-change-urgent">
+	             <input id="view-request-urgent" name="isUrgent" type="checkbox">
+	             <span>긴급</span>
+	         </label>
+	     </div>
 
-        <label>
-            요청 제목 <span class="required">*</span>
-            <input id="view-request-title"
-                   name="title"
-                   required
-                   maxlength="200"
-                   placeholder="예: 월별 매출 집계 뷰 생성">
-        </label>
-    </div>
+	     <label for="view-request-purpose">
+	         변경 목적 <span class="required">*</span>
+	     </label>
+	     <textarea id="view-request-purpose"
+	               name="purpose"
+	               rows="2"
+	               required
+	               placeholder="변경이 필요한 이유와 사용 목적을 입력하세요."></textarea>
 
-    <p id="db-change-guide" class="caption">
-        신규 뷰를 만드는 CREATE VIEW 문을 요청합니다.
-    </p>
+	     <label for="view-request-detail">
+	         상세 내용 <span class="caption">· 선택</span>
+	     </label>
+	     <textarea id="view-request-detail"
+	               name="detailContent"
+	               rows="3"
+	               placeholder="변경 대상, 요청 배경과 처리 시 주의사항을 입력하세요."></textarea>
 
-    <label for="view-request-purpose">
-        요청 목적 <span class="required">*</span>
-    </label>
-    <textarea id="view-request-purpose"
-              name="purpose"
-              rows="3"
-              required
-              placeholder="변경이 필요한 이유와 사용 목적을 입력하세요."></textarea>
+	     <div class="db-change-sql-header section-gap">
+	         <div class="db-change-sql-type">
+	             <h2>SQL 작성</h2>
+	             <select id="db-change-type"
+	                     aria-label="변경 유형"
+	                     ${viewCreateEdit ? 'disabled' : ''}>
+	                 <option value="CREATE_VIEW">CREATE VIEW · 뷰 생성</option>
+	                 <option value="INSERT">INSERT · 데이터 추가</option>
+	                 <option value="UPDATE">UPDATE · 데이터 수정</option>
+	                 <option value="DELETE">DELETE · 데이터 삭제</option>
+	             </select>
+	         </div>
 
-    <label for="view-request-detail">상세 내용</label>
-    <textarea id="view-request-detail"
-              name="detailContent"
-              rows="4"
-              placeholder="변경 대상, 요청 배경과 처리 시 주의사항을 입력하세요."></textarea>
+	         <div id="view-sql-write-modes" class="db-change-write-modes" role="group" aria-label="SQL 작성 방식">
+	             <button type="button" data-write-mode="direct" aria-pressed="true">직접 작성</button>
+	             <button type="button" data-write-mode="ai" aria-pressed="false">AI로 작성</button>
+	         </div>
+	     </div>
 
-    <div class="form-grid">
-        <label class="urgent-option">
-            <input id="view-request-urgent" name="isUrgent" type="checkbox">
-            <span>
-                <strong>긴급 요청</strong>
-                <small>빠른 처리가 필요한 경우 체크하세요.</small>
-            </span>
-        </label>
+	     <div class="db-change-sql-toolbar">
+	         <div id="view-sql-tabs" class="db-change-sql-tabs" role="group" aria-label="SQL 항목 선택"></div>
+	         <div class="db-change-form-actions">
+	             <span id="view-sql-count" class="caption"></span>
+	             <button id="view-add-sql" type="button" class="button">+ SQL 추가</button>
+	         </div>
+	     </div>
 
-        <label>
-            희망일
-            <input id="view-request-date" name="desiredDate" type="date">
-        </label>
-    </div>
+	     <div id="view-sql-items"></div>
+	     <p id="view-form-message" class="caption" role="status" aria-live="polite"></p>
 
-    <div class="panel-heading section-gap">
-        <h2>변경 SQL <span id="view-sql-count" class="muted"></span></h2>
-        <div>
-            <button id="view-add-sql" type="button" class="button">
-                + SQL 추가
-            </button>
-            <button id="view-validate-sqls" type="button" class="button">
-                구문 검사
-            </button>
-        </div>
-    </div>
+	     <div class="form-footer">
+	         <span id="view-save-guide" class="caption">
+	             초안 저장 후 내 기안함에서 결재선을 지정하고 제출할 수 있습니다.
+	         </span>
 
-    <p id="view-sql-guide" class="caption">
-        항목마다 CREATE VIEW 문 한 개를 작성하세요. 위에서 아래 순서로 처리됩니다.
-    </p>
-
-    <div id="view-sql-items"></div>
-
-    <p id="view-form-message" class="caption" role="status" aria-live="polite"></p>
-
-    <div class="form-footer">
-        <span id="view-save-guide" class="caption">
-            초안 저장 후 내 기안함에서 결재선을 지정하고 제출할 수 있습니다.
-        </span>
-
-        <button id="view-save-draft"
-                type="button"
-                class="button primary"
-                aria-describedby="view-save-guide"
-                ${viewCreateEdit ? 'disabled' : ''}>
-            ${viewCreateEdit ? '수정 저장' : '초안 저장'}
-        </button>
-    </div>
-</form>
+	         <div class="db-change-form-actions">
+	             <button id="view-validate-sqls" type="button" class="button">SQL 검증</button>
+	             <button id="view-save-draft"
+	                     type="button"
+	                     class="button primary"
+	                     aria-describedby="view-save-guide"
+	                     ${viewCreateEdit ? 'disabled' : ''}>
+	                 ${viewCreateEdit ? '수정 저장' : '초안 저장'}
+	             </button>
+	         </div>
+	     </div>
+	 </form>
 
 <template id="view-sql-item-template">
     <section class="sql-item">
-        <div class="panel-heading">
-            <h3 class="view-sql-heading"></h3>
-            <div>
-                <button type="button" class="text-button" data-action="up">위로</button>
-                <button type="button" class="text-button" data-action="down">아래로</button>
-                <button type="button" class="text-button" data-action="remove">삭제</button>
-            </div>
+        <div class="db-change-sql-field-heading">
+            <label>
+                SQL 제목 <span class="required">*</span>
+                <input class="view-sql-title" required maxlength="200" placeholder="예: 상품 목록 변경">
+            </label>
+            <button type="button" class="text-button" data-action="remove">삭제</button>
         </div>
 
-        <label>
-            SQL 제목 <span class="caption">(선택)</span>
-            <input class="view-sql-title" maxlength="200" placeholder="예: 상품 목록 변경">
-        </label>
-
-        <label>
-            SQL 구문 <span class="required">*</span>
-            <textarea class="sql-editor"
-                      rows="8"
-                      required
-                      maxlength="20000"
-                      spellcheck="false"
-                      aria-describedby="view-sql-guide"></textarea>
-        </label>
+        <div class="db-change-sql-workspace">
+            <div class="db-change-ai-prompt">
+                <label>
+                    자연어 요청
+                    <textarea rows="6" placeholder="어떤 변경이 필요한지 설명해 주세요."></textarea>
+                </label>
+                <div class="db-change-ai-actions">
+                    <span class="caption">AI 생성 연결 예정</span>
+                    <button type="button" class="button primary" data-ai-generate disabled>SQL 초안 생성 →</button>
+                </div>
+            </div>
+            <label>
+                <span class="db-change-direct-label">SQL 구문</span>
+                <span class="db-change-ai-label">생성된 SQL</span>
+                <span class="required">*</span>
+                <textarea class="sql-editor" rows="8" required
+                          maxlength="20000" spellcheck="false"></textarea>
+            </label>
+        </div>
     </section>
 </template>
 
-<script src="${pageContext.request.contextPath}/js/view-create-request-form.js?v=20261103-dml-draft"
+<script src="${pageContext.request.contextPath}/js/view-create-request-form.js?v=20261109-db-change-ai-layout"
         defer></script>
 
 <%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

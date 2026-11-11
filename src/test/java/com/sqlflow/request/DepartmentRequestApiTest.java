@@ -32,6 +32,7 @@ import com.sqlflow.request.controller.RequestController;
 import com.sqlflow.request.dto.DepartmentRequestPageResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.service.DepartmentRequestService;
+import com.sqlflow.request.service.ViewCreationLinkService;
 import com.sqlflow.request.service.DmlSqlValidationService;
 import com.sqlflow.request.service.DmlSqlValidationService.SqlType;
 import com.sqlflow.request.service.RequestService;
@@ -69,6 +70,9 @@ class DepartmentRequestApiTest {
 
     @MockitoBean
     private DepartmentRequestService departmentRequestService;
+
+    @MockitoBean
+    private ViewCreationLinkService viewCreationLinkService;
 
     private MockMvc mockMvc;
 
