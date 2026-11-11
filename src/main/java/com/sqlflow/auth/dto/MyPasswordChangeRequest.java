@@ -17,7 +17,7 @@ public class MyPasswordChangeRequest {
     @Size(
             min = 8,
             max = 72,
-            message = "새 비밀번호는 8자 이상, 72바이트 이하여야 합니다.")
+            message = "새 비밀번호는 8~72자로 입력하세요.")
     private String newPassword;
 
     @NotBlank(message = "새 비밀번호 확인을 입력하세요.")
