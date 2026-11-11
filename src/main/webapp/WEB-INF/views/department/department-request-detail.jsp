@@ -1,7 +1,7 @@
 <%@ page pageEncoding="UTF-8" %>
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
-<div class="request-detail-page">
+<div class="request-detail-page request-document-page">
 
     <div id="department-detail-config"
          data-request-id="<c:out value='${requestId}'/>"
@@ -13,21 +13,21 @@
         ← 부서 기안함
     </a>
 
-    <div class="page-heading">
-        <div>
-            <span id="request-number" class="caption"></span>
+    <article class="request-document" aria-labelledby="detail-title">
+        <header class="request-document-heading">
+            <p id="request-document-heading" class="request-document-caption">
+                SQLFlow · 데이터 조회 기안서
+            </p>
             <h1 id="detail-title">기안을 불러오는 중입니다.</h1>
-        </div>
+        </header>
 
-        <div>
-            <span id="detail-state"></span>
+        <div id="department-detail-content" hidden>
+            <%-- 열람·결과 처리 모드는 유지하고, 공통 기안문 배치만 사용한다. --%>
+            <c:set var="requestDetailReadOnly" value="${true}" />
+            <c:set var="requestDetailDocument" value="${true}" />
+            <%@ include file="/WEB-INF/views/fragments/request-detail-body.jspf" %>
         </div>
-    </div>
-
-    <div id="department-detail-content" hidden>
-        <c:set var="requestDetailReadOnly" value="${true}" />
-        <%@ include file="/WEB-INF/views/fragments/request-detail-body.jspf" %>
-    </div>
+    </article>
 
 </div>
 
