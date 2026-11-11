@@ -64,7 +64,8 @@ public interface UserAccountMapper {
             @Param("positionId") Long positionId,
             @Param("loginId") String loginId,
             @Param("passwordHash") String passwordHash,
-            @Param("userName") String userName);
+            @Param("userName") String userName,
+            @Param("employeeNo") String employeeNo);
 
     int insertUserRole(
             @Param("userId") Long userId,

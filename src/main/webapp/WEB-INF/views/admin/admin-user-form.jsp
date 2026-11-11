@@ -50,6 +50,21 @@
                         required
                         placeholder="사용자 이름">
                 </label>
+				
+				<label class="account-create-field" for="account-employee-no">
+				    <span class="account-create-label">
+						사번 <span class="required">*</span>
+					</span>
+				    <input id="account-employee-no"
+				           name="employeeNo"
+				           type="text"
+				           autocomplete="off"
+				           maxlength="10"
+				           pattern="[0-9]{4}-[0-9]{5}"
+						   required
+				           title="입사연도 4자리와 일련번호 5자리를 하이픈으로 구분해 입력하세요."
+				           placeholder="2026-00042">
+				</label>
 
                 <label class="account-create-field" for="account-dept">
                     <span class="account-create-label">
@@ -382,6 +397,7 @@
 
             const loginId = document.getElementById('account-login');
             const userName = document.getElementById('account-name');
+			const employeeNo = document.getElementById('account-employee-no');
 
             loginId.value = loginId.value.trim();
             userName.value = userName.value.trim();
@@ -399,6 +415,7 @@
                 const result = await post('/admin/users', {
                     loginId: loginId.value,
                     userName: userName.value,
+					employeeNo: employeeNo.value.trim() || null,
                     deptId: Number(departmentSelect.value),
                     positionId: Number(positionSelect.value),
                     initialPassword: password.value,

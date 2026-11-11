@@ -52,6 +52,16 @@ public class AdminUserService {
         }
 
         String loginId = trim(request.getLoginId());
+        String employeeNo = trim(request.getEmployeeNo());
+        
+        if (employeeNo != null && employeeNo.isEmpty()) {
+            employeeNo = null;
+        }
+        
+        if (employeeNo == null || !employeeNo.matches("[0-9]{4}-[0-9]{5}")) {
+            throw badRequest("사번은 2026-00042 형식으로 입력하세요.");
+        }
+        
         String userName = trim(request.getUserName());
         String password = request.getInitialPassword();
 
@@ -109,18 +119,27 @@ public class AdminUserService {
         String passwordHash = passwordEncoder.encode(password);
         
         try {
-        userAccountMapper.insertUser(
-                userId,
-                request.getDeptId(),
-                request.getPositionId(),
-                loginId,
-                passwordHash,
-                userName);
+        	
+	        userAccountMapper.insertUser(
+	                userId,
+	                request.getDeptId(),
+	                request.getPositionId(),
+	                loginId,
+	                passwordHash,
+	                userName,
+	                employeeNo);
+        
         } catch (DataIntegrityViolationException exception) {
-        	if(isLoginIdUniqueViolation(exception)) {
-        		throw duplicateLoginId();
-        	}
-        	throw exception;
+            if (isUniqueViolation(exception, "UK_USERS_EMPLOYEE_NO")) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT, "이미 등록된 사번입니다.");
+            }
+
+            if (isUniqueViolation(exception, "UX_USERS_LOGIN_ID")) {
+                throw duplicateLoginId();
+            }
+
+            throw exception;
         }
 
         for (Long roleId : roleIds) {
@@ -148,26 +167,20 @@ public class AdminUserService {
     	}
     }
     
-    private boolean isLoginIdUniqueViolation(Throwable exception) {
-    	Throwable current = exception;
-    	
-    	while(current != null) {
-    		String message = current.getMessage();
-    		
-    		if(message != null
-    				&& message.toUpperCase().contains("UX_USERS_LOGIN_ID")) {
-    			return true;
-    		}
-    		
-    		if(current instanceof SQLException sqlException 
-    				&& sqlException.getErrorCode() == 1) {
-    			return true;
-    		}
-    		
-    		current = current.getCause();
-    	}
-    	
-    	return false;
+    private boolean isUniqueViolation(Throwable exception, String constraintName) {
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            if (cause instanceof SQLException sqlException
+                    && sqlException.getErrorCode() == 1) {
+                String message = sqlException.getMessage();
+                if (message != null
+                        && (message.contains("." + constraintName + ")")
+                            || message.contains("(" + constraintName + ")"))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
     
     private ResponseStatusException duplicateLoginId() {

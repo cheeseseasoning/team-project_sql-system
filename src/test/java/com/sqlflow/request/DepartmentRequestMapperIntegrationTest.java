@@ -311,7 +311,8 @@ class DepartmentRequestMapperIntegrationTest {
                         positionId,
                         prefix + userId,
                         passwordHash,
-                        prefix + name));
+                        prefix + name,
+                        null));
 
         return userId;
     }
