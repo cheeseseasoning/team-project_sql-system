@@ -36,7 +36,12 @@
                or page == 'view-create-request-form'
                or page == 'execution-results'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261111-css-split">
+              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261111-editor-split">
+    </c:if>
+
+    <c:if test="${page == 'request-form' or page == 'request-edit'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/request-editor.css?v=20261111-editor-split">
     </c:if>
 
     <c:if test="${page == 'request-detail' or page == 'department-request-detail'}">

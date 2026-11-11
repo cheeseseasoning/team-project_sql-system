@@ -11,7 +11,8 @@
     <span class="badge">초안 작성</span>
 </div>
 
-<form id="request-form" class="panel form-panel">
+<form id="request-form"
+	  class="panel form-panel request-editor">
     <fieldset id="request-fields"
               style="border: 0; padding: 0; margin: 0; min-width: 0;">
         <legend class="sr-only">조회 요청 작성</legend>
