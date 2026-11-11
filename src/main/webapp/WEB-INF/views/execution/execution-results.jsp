@@ -2,7 +2,7 @@
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="page-heading">
-    <h1>실행 결과</h1>
+    <h1>쿼리 실행 결과</h1>
     <button id="execution-refresh" type="button" class="button">
         새로고침
     </button>

@@ -17,16 +17,17 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
 @MapperScan(
-    basePackages = {
-        "com.sqlflow.auth.mapper",
-        "com.sqlflow.request.mapper",
-        "com.sqlflow.approval.mapper",
-        "com.sqlflow.execution.mapper",
-        "com.sqlflow.access.mapper",
-        "com.sqlflow.notice.mapper"
-    },
-    sqlSessionFactoryRef = "managementSqlSessionFactory"
-)
+	    basePackages = {
+	        "com.sqlflow.auth.mapper",
+	        "com.sqlflow.request.mapper",
+	        "com.sqlflow.approval.mapper",
+	        "com.sqlflow.execution.mapper",
+	        "com.sqlflow.access.mapper",
+	        "com.sqlflow.notice.mapper",
+	        "com.sqlflow.schedule.mapper"
+	    },
+	    sqlSessionFactoryRef = "managementSqlSessionFactory"
+	)
 public class OracleManagementDbConfig {
 
     @Bean

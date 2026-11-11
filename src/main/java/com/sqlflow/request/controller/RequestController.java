@@ -38,6 +38,7 @@ import com.sqlflow.request.dto.ViewCreateDraftRequest;
 import com.sqlflow.request.dto.ViewCreateSqlValidationRequestDTO;
 import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO;
 import com.sqlflow.request.service.DepartmentRequestService;
+import com.sqlflow.request.service.ViewCreationLinkService;
 import com.sqlflow.request.service.DmlSqlValidationService;
 import com.sqlflow.request.service.RequestService;
 import com.sqlflow.request.service.DmlSqlValidationService.ValidationResult;
@@ -57,6 +58,7 @@ public class RequestController {
 	private final RequestService requestService;
 	private final ApprovalService approvalService;
 	private final DepartmentRequestService departmentRequestService;
+	private final ViewCreationLinkService viewCreationLinkService;
 	private final DmlSqlValidationService dmlSqlValidationService;
 
 	
@@ -324,9 +326,9 @@ public class RequestController {
 	        @Valid @RequestBody ChangeSqlResultRequest input,
 	        @AuthenticationPrincipal SqlFlowUserDetails user) {
 
-	    departmentRequestService.registerChangeSqlResult(
+	    viewCreationLinkService.register(
 	            requestId, queryId, user.getUserId(),
-	            input.resultStatus(), input.resultNote(), input.executedBy());
+	            input.resultStatus(), input.resultNote(), input.executedBy(), input.resourceId());
 
 	    return ResponseEntity.noContent().build();
 	}
@@ -334,7 +336,8 @@ public class RequestController {
 	public record ChangeSqlResultRequest(
 	        @NotNull String resultStatus,
 	        @Size(max = 1000) String resultNote,
-	        Long executedBy) {
+	        Long executedBy,
+	        Long resourceId) {
 	}
 	
 	@PatchMapping("/department/{requestId}/change-sql/{queryId}/result")

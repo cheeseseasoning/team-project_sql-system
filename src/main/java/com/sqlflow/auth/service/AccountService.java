@@ -47,6 +47,35 @@ public class AccountService {
      */
     @Transactional(readOnly = true)
     public AccountListPageResponse getAccountList(int page, int size) {
+    	 return getAccountListPage(page, size, true);
+    }
+    
+    /**
+     * 로그인 사용자의 현재 DB 권한을 확인하고 계정 목록을 반환합니다.
+     * 활성 SYSTEM_ADMIN에게만 계정 상태(enabled)를 포함합니다.
+     */
+    @Transactional(readOnly = true)
+    public AccountListPageResponse getAccountListForActor(
+            int page,
+            int size,
+            String actorLoginId) {
+
+        boolean includeAccountStatus =
+                actorLoginId != null
+                && !actorLoginId.isBlank()
+                && userAccountMapper.countActiveSystemAdminByLoginId(actorLoginId) == 1;
+
+        AccountListPageResponse response =
+                getAccountListPage(page, size, includeAccountStatus);
+
+        return response;
+    }
+
+    private AccountListPageResponse getAccountListPage(
+            int page,
+            int size,
+            boolean includeAccountStatus) {
+
         validatePageParameters(page, size);
 
         long totalCount = userAccountMapper.countAllAccounts();
@@ -61,7 +90,19 @@ public class AccountService {
         long offset = (long) (actualPage - 1) * size;
 
         List<AccountListItemResponse> items =
-                userAccountMapper.selectAccountListItems(offset, size);
+                userAccountMapper.selectAccountListItems(offset, size)
+                        .stream()
+                        .map(account -> new AccountListItemResponse(
+                                account.getUserId(),
+                                account.getLoginId(),
+                                account.getUserName(),
+                                account.getDeptName(),
+                                account.getPositionName(),
+                                account.getRoleNames(),
+                                includeAccountStatus
+                                        ? account.getEnabled()
+                                        : null))
+                        .toList();
 
         return new AccountListPageResponse(
                 items,
