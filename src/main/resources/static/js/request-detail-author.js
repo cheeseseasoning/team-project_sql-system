@@ -300,8 +300,11 @@ $('#validate-sqls').addEventListener('click', function () {
 let requestSubmitting = false;
 
 $('#request-redraft').addEventListener('click', function () {
-    location.href =
-        BASE + '/requests/'
+    const isDbChange =
+        ['CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType);
+    const path = isDbChange ? '/view-create-requests/' : '/requests/';
+
+    location.href = BASE + path
         + encodeURIComponent(requestId)
         + '/redraft';
 });

@@ -186,15 +186,22 @@ public class PageController {
 
     @GetMapping("/view-create-requests/new")
     public String createViewRequest(Model model) {
-        model.addAttribute("viewCreateEdit", false);
-        return view(model, "view-create-request-form", "뷰 생성 요청 작성");
+        model.addAttribute("dbChangeFormMode", "create");
+        return view(model, "view-create-request-form", "DB 변경 요청 작성");
     }
 
     @GetMapping("/view-create-requests/{requestId}/edit")
     public String editViewRequest(Model model, @PathVariable Long requestId) {
-        model.addAttribute("viewCreateEdit", true);
+        model.addAttribute("dbChangeFormMode", "edit");
         model.addAttribute("requestId", requestId);
-        return view(model, "view-create-request-form", "뷰 생성 요청 초안 수정");
+        return view(model, "view-create-request-form", "DB 변경 요청 초안 수정");
+    }
+
+    @GetMapping("/view-create-requests/{requestId}/redraft")
+    public String redraftViewRequest(Model model, @PathVariable Long requestId) {
+        model.addAttribute("dbChangeFormMode", "redraft");
+        model.addAttribute("requestId", requestId);
+        return view(model, "view-create-request-form", "DB 변경 요청 재기안");
     }
 
     /** 읽기 전용 뷰 목록 화면을 연다. */
@@ -262,7 +269,10 @@ public class PageController {
                 page.equals("home") ? "home"
                         : page.equals("my-page") ? "my-page"
                         : page.equals("accounts") ? "accounts"
-                        : page.startsWith("view-create-request") ? "view-create-requests"
+                		: page.equals("view-create-request-form")
+                				? ("create".equals(model.getAttribute("dbChangeFormMode"))
+			                            ? "view-create-requests"
+			                            : "requests")	
                         : page.startsWith("department-request") ? "department-requests"
                         : page.equals("notices") ? "notices"
                         : page.equals("views") || page.equals("view-detail") ? "views"

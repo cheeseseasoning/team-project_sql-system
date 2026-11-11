@@ -27,10 +27,13 @@
         BLOCKED: '검사 차단'
     };
 
-    const config = document.getElementById('view-create-edit-config');
-    const editMode = config.dataset.editMode === 'true';
-    const requestId = config.dataset.requestId;
-
+	const config = document.getElementById('view-create-edit-config');
+	const requestId = config.dataset.requestId;
+	const formMode = config.dataset.formMode;
+	const editMode = formMode === 'edit';
+	const redraftMode = formMode === 'redraft';
+	const loadsExistingRequest = editMode || redraftMode;
+	
     const form = document.getElementById('view-create-request-form');
     const changeType = document.getElementById('db-change-type');
     const saveGuide = document.getElementById('view-save-guide');
@@ -50,7 +53,9 @@
     const addButton = document.getElementById('view-add-sql');
     const validateButton = document.getElementById('view-validate-sqls');
     const saveButton = document.getElementById('view-save-draft');
-    const saveLabel = editMode ? '수정 저장' : '초안 저장';
+	
+	const saveLabel = redraftMode ? '새 초안 저장'
+		: editMode ? '수정 저장' : '초안 저장';
 
     let nextItemId = 0;
     let activeSection = null;
@@ -250,22 +255,38 @@
 
         try {
             let savedId = requestId;
+			
+			if (redraftMode) {
+			    const { items: sqlItems, sqlType, ...requestFields } = request;
+			    const result = await post(
+			        '/requests/' + encodeURIComponent(requestId) + '/redraft',
+			        {
+			            ...requestFields,
+			            sqls: sqlItems.map(item => item.sqlText),
+			            sqlTitles: sqlItems.map(item => item.queryTitle)
+			        }
+			    );
 
-            if (editMode) {
-                await api(draftPath + '/' + encodeURIComponent(requestId), {
-                    method: 'PUT',
-                    body: JSON.stringify(request)
-                });
-            } else {
-                const result = await post(draftPath, request);
-                savedId = result.requestId;
-            }
+			    if (!result?.requestId) {
+			        throw new Error('새 초안의 요청 ID를 확인할 수 없습니다.');
+			    }
+
+			    savedId = result.requestId;
+			} else if (editMode) {
+			    await api(draftPath + '/' + encodeURIComponent(requestId), {
+			        method: 'PUT',
+			        body: JSON.stringify(request)
+			    });
+			} else {
+			    const result = await post(draftPath, request);
+			    savedId = result.requestId;
+			}
 
             location.href = BASE + '/requests/' + encodeURIComponent(savedId);
         } catch (error) {
             message.textContent = error.message || '초안을 저장하지 못했습니다.';
             saving = false;
-            changeType.disabled = editMode;
+            changeType.disabled = loadsExistingRequest;
             saveButton.textContent = saveLabel;
             updateTypeDisplay();
         }
@@ -273,15 +294,25 @@
 
     async function loadDraft() {
         const controls = form.querySelectorAll('input, textarea, button:not([data-ai-generate])');
-        controls.forEach(control => { control.disabled = true; });
+        controls.forEach(control => {
+			control.disabled = true;
+			changeType.disabled = true;
+		});
         saveButton.textContent = '초안 불러오는 중…';
 
         try {
             const request = await api('/requests/mine/' + encodeURIComponent(requestId));
 
-            if (request.requestStatus !== 'DRAFT' || !Object.hasOwn(TYPE, request.requestType)) {
-                throw new Error('수정할 수 있는 DB 변경 초안이 아닙니다.');
-            }
+			const allowedStatuses = redraftMode
+			    ? ['REJECTED', 'WITHDRAWN']
+			    : ['DRAFT'];
+
+			if (!allowedStatuses.includes(request.requestStatus)
+			        || !Object.hasOwn(TYPE, request.requestType)) {
+			    throw new Error(redraftMode
+			        ? '반려되거나 회수된 DB 변경 요청만 재기안할 수 있습니다.'
+			        : '수정할 수 있는 DB 변경 초안이 아닙니다.');
+			}
 
             changeType.value = request.requestType;
             title.value = request.title || '';
@@ -350,9 +381,9 @@
 
     addSql(false);
 
-    if (editMode) {
-        loadDraft();
-    } else {
-        updateTypeDisplay();
-    }
+	if (loadsExistingRequest) {
+	    loadDraft();
+	} else {
+	    updateTypeDisplay();
+	}
 })();

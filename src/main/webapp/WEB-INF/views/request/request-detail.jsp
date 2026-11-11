@@ -205,6 +205,6 @@
 		</dialog>
 
 		<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261106-flexible-approval-dml"></script>
-		<script src="${pageContext.request.contextPath}/js/request-detail-author.js?v=20261106-flexible-approval-dml"></script>
+		<script src="${pageContext.request.contextPath}/js/request-detail-author.js?v=20261111-db-change-redraft"></script>
 
 		<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>
