@@ -540,45 +540,45 @@
             return "/execution-results/" + encodeURIComponent(row.executionId);
         }
 
-        function renderRows(items) {
-            if (!Array.isArray(items) || items.length === 0) {
-                resultsBody.innerHTML =
-                    '<tr><td colspan="7" class="table-message">조회된 실행 결과가 없습니다.</td></tr>';
-                return;
-            }
+		function renderRows(items) {
+		    if (!Array.isArray(items) || items.length === 0) {
+		        resultsBody.innerHTML =
+		            '<tr><td colspan="7" class="table-message">조회된 실행 결과가 없습니다.</td></tr>';
+		        return;
+		    }
 
-            resultsBody.innerHTML = items.map(function (row) {
-                const state = statusLabel(row.status);
+		    resultsBody.innerHTML = items.map(function (row) {
+		        const state = statusLabel(row.status);
 
-                return `
-                    <tr>
-                        <td>
-                            <a class="query-link" href="${requestDetailUrl(row)}">
-                                ${escapeHtml(row.requestNo || "—")}
-                            </a>
-                        </td>
-                        <td>
-                            <a class="request-link" href="${requestDetailUrl(row)}">
-                                ${escapeHtml(row.requestTitle || "제목 없음")}
-                            </a>
-                        </td>
-                        <td>
-                            <a class="query-link" href="${resultDetailUrl(row)}">
-                                ${escapeHtml(row.queryTitle || "SQL")}
-                            </a>
-                        </td>
-                        <td>${escapeHtml(row.departmentName || "—")}</td>
-                        <td>${escapeHtml(row.drafterName || "—")}</td>
-                        <td>
-                            <span class="status ${state[1]}">
-                                ${escapeHtml(state[0])}
-                            </span>
-                        </td>
-                        <td>${formatDate(row.resultCreatedAt)}</td>
-                    </tr>
-                `;
-            }).join("");
-        }
+		        return `
+		            <tr>
+		                <td>
+		                    <a class="query-link" href="\${requestDetailUrl(row)}">
+		                        \${escapeHtml(row.requestNo || "—")}
+		                    </a>
+		                </td>
+		                <td>
+		                    <a class="request-link" href="\${requestDetailUrl(row)}">
+		                        \${escapeHtml(row.requestTitle || "제목 없음")}
+		                    </a>
+		                </td>
+		                <td>
+		                    <a class="query-link" href="\${resultDetailUrl(row)}">
+		                        \${escapeHtml(row.queryTitle || "SQL")}
+		                    </a>
+		                </td>
+		                <td>\${escapeHtml(row.departmentName || "—")}</td>
+		                <td>\${escapeHtml(row.drafterName || "—")}</td>
+		                <td>
+		                    <span class="status \${state[1]}">
+		                        \${escapeHtml(state[0])}
+		                    </span>
+		                </td>
+		                <td>\${formatDate(row.resultCreatedAt)}</td>
+		            </tr>
+		        `;
+		    }).join("");
+		}
 
         function renderPagination() {
             if (totalPages <= 0) {
