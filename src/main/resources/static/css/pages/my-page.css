@@ -1,40 +1,83 @@
-.my-page-intro {
-    margin: -8px 0 24px;
+/* 내 프로필 제목과 정보 패널 */
+.my-page-heading {
+    margin-bottom: 20px;
+}
+
+.my-page-heading h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.my-page-heading p {
+    margin: 6px 0 0;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 12px;
 }
 
-.my-page-content {
-    max-width: 960px;
+.panel.my-page-content {
+    padding: 0 18px;
 }
 
-.profile-info-grid {
+.profile-section {
+    padding: 18px 0;
+}
+
+.profile-section + .profile-section {
+    border-top: 1px solid var(--line);
+}
+
+.profile-section h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.profile-section-heading,
+.profile-account-row,
+.profile-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.profile-info-grid,
+.profile-contact-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 32px;
-    margin: 0;
+    gap: 16px 24px;
+    margin: 14px 0 0;
 }
 
-.profile-info-grid > div {
-    display: grid;
-    grid-template-columns: 80px minmax(0, 1fr);
-    align-items: baseline;
-    gap: 16px;
-    padding: 18px 0;
-    border-bottom: 1px solid var(--line);
-}
-
-.profile-info-grid dt {
+.profile-info-grid dt,
+.profile-contact-grid label {
     color: var(--muted);
     font-size: 12px;
 }
 
 .profile-info-grid dd {
-    margin: 0;
+    margin: 5px 0 0;
     font-size: 13px;
     overflow-wrap: anywhere;
 }
 
+.profile-account-row .caption {
+    margin: 6px 0 0;
+    line-height: 1.5;
+}
+
+.profile-section-heading > .button,
+.profile-account-row > .button {
+    flex-shrink: 0;
+}
+
+.my-page-content .button {
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* 연락처 수정 폼 */
 #profile-fields {
     min-width: 0;
     margin: 0;
@@ -42,21 +85,19 @@
     border: 0;
 }
 
-.profile-contact-grid {
-    margin: 20px 0 0;
-}
-
 .profile-contact-grid input {
-    margin-top: 8px;
+    width: 100%;
+    min-width: 0;
+    margin-top: 6px;
 }
 
-.profile-field-help {
-    margin-top: 8px;
-    line-height: 1.6;
+.profile-field-help,
+.profile-field-error {
+    margin: 6px 0 0;
+    line-height: 1.5;
 }
 
 .profile-field-error {
-    margin-top: 8px;
     color: var(--error);
     font-size: 12px;
 }
@@ -70,45 +111,31 @@
     color: var(--muted);
 }
 
-.profile-footer .caption {
-    line-height: 1.7;
+.profile-footer {
+    flex-wrap: wrap;
+    margin-top: 14px;
 }
 
-#profile-save:disabled {
-    opacity: .55;
+.profile-footer .caption {
+    margin: 0;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
 }
 
 #profile-load-error .button {
     margin-top: 16px;
 }
 
-@media (max-width: 850px) {
-    .profile-info-grid {
-        grid-template-columns: 1fr;
+@media (max-width: 600px) {
+    .profile-info-grid,
+    .profile-contact-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
     }
-}
-
-@media (max-width: 560px) {
-    .profile-footer {
-        align-items: stretch;
-        flex-direction: column;
-    }
-}
-
-.profile-account-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-}
-
-.profile-account-row .caption {
-    margin-top: 7px;
-    line-height: 1.7;
-}
-
-.profile-account-row > .button {
-    flex-shrink: 0;
 }
 
 #password-dialog {

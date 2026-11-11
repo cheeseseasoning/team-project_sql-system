@@ -7,31 +7,6 @@
     $('#department-back').href =
         BASE + '/department-requests' + location.search;
 
-    async function loadHistory() {
-        const panel = $('#approval-history-panel');
-        const list = $('#approval-history-list');
-
-        try {
-            const history = await api(
-                '/requests/department/'
-                + encodeURIComponent(requestId)
-                + '/approval-history',
-                { cache: 'no-store' }
-            );
-
-            list.innerHTML =
-                RequestDetailRenderer.renderHistory(history);
-
-        } catch (error) {
-            list.innerHTML =
-                '<li class="empty">'
-                + esc(error.message || '결재 이력을 불러오지 못했습니다.')
-                + '</li>';
-        }
-
-        panel.hidden = false;
-    }
-	
 	function addChangeSqlResultForms(detail) {
 	    if (!detail.canManageChangeSqlResult) {
 	        return;
@@ -358,6 +333,13 @@
 
             $('#request-info').hidden = false;
             $('#department-detail-content').hidden = false;
+			
+			await RequestDetailRenderer.loadRejectionReason(
+			    detail.requestStatus,
+			    '/requests/department/'
+			        + encodeURIComponent(requestId)
+			        + '/approval-history'
+			);
 
         } catch (error) {
             $('#detail-title').textContent = '기안을 열 수 없습니다.';
@@ -365,8 +347,6 @@
             notify(error.message, true);
             return;
         }
-
-        await loadHistory();
     }
 
     const downloadButton = $('#view-sql-download');

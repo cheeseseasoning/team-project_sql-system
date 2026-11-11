@@ -1,0 +1,467 @@
+/* ==================================================
+   조회 요청 편집 화면
+   - 조회 요청 작성과 초안 수정·재기안 화면에서 로딩한다.
+   - 작성·수정 공통 스타일은 .request-editor 범위로 제한한다.
+   - 다른 화면도 사용하는 입력·검증 공통 규칙은 request.css에 둔다.
+   - 반응형 및 하단 재정의 규칙의 선언 순서를 유지한다.
+   ================================================== */
+
+/* 조회 요청 작성: 기본 정보 */
+.request-editor .request-basic-fields {
+    display: grid;
+    gap: 12px;
+    padding-bottom: 24px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+}
+
+.request-editor .request-heading-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 206px 82px;
+    align-items: end;
+    gap: 24px;
+}
+
+.request-editor .request-input-field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+}
+
+.request-editor .request-input-field > span {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.request-editor .request-input-field > input,
+.request-editor .request-input-field > textarea {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.request-editor .request-input-field > input {
+    height: 34px;
+}
+
+.request-editor :is(#purpose, #edit-purpose) {
+    min-height: 36px;
+}
+
+.request-editor :is(#detail-content, #edit-detail-content) {
+    min-height: 46px;
+}
+
+.request-editor .request-urgent-check {
+    display: inline-flex;
+    align-items: center;
+    align-self: end;
+    gap: 6px;
+    min-height: 34px;
+    margin: 0;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.request-editor .request-urgent-check > input {
+    flex: 0 0 14px;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--error);
+}
+
+.request-editor .request-urgent-check:has(input:checked) {
+    color: var(--error);
+    font-weight: 600;
+}
+
+.request-editor .request-urgent-check:has(input:disabled) {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+    .request-editor .request-heading-fields {
+        grid-template-columns: minmax(0, 1fr) 82px;
+        gap: 12px;
+    }
+
+    .request-editor .request-title-field {
+        grid-column: 1 / -1;
+    }
+}
+
+
+/* 조회 요청 작성: SQL 편집 영역 */
+.request-editor .request-sql-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.request-editor .request-sql-heading h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* 직접 작성 / AI 작성 */
+.request-editor .request-mode-switch {
+    display: inline-flex;
+    padding: 2px;
+    border-radius: 5px;
+    background: var(--soft);
+}
+
+.request-editor .request-mode-switch button {
+    min-height: 30px;
+    padding: 5px 16px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.request-editor .request-mode-switch button[aria-pressed="true"] {
+    border-color: var(--line);
+    background: var(--bg);
+    color: var(--accent);
+}
+
+/* SQL 번호 탭 / 추가 버튼 */
+.request-editor .request-sql-toolbar {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid var(--line);
+}
+
+.request-editor .request-sql-tabs {
+    display: flex;
+    align-items: stretch;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.request-editor .request-sql-tab {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.request-editor .request-sql-tab[aria-selected="true"] {
+    border-bottom-color: var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.request-editor .request-sql-actions {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 2px;
+}
+
+.request-editor :is(#add-sql, #edit-add-sql) {
+    min-height: 30px;
+    padding: 5px 16px;
+    font-size: 12px;
+}
+
+/* 선택한 SQL 입력 영역 */
+.request-editor :is(#sql-items, #edit-sql-items) .sql-item {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 10px 0 0;
+    border: 0;
+}
+
+.request-editor :is(#sql-items, #edit-sql-items) .sql-item[hidden] {
+    display: none;
+}
+
+.request-editor .request-sql-field {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+    margin: 0;
+}
+
+.request-editor .request-sql-field > span {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.request-editor .request-sql-field > input,
+.request-editor .request-sql-field > textarea {
+    margin: 0;
+    padding: 7px 10px;
+    border-radius: 4px;
+}
+
+.request-editor .sql-title-input {
+    height: 32px;
+    font-size: 12px;
+}
+
+.request-editor .sql-editor {
+    min-height: 104px;
+    background: var(--soft);
+    font: 12px/1.6 Consolas, 'Malgun Gothic', monospace;
+}
+
+.request-editor .request-sql-panel-tools {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.request-editor #ai-section:not([hidden]) {
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--soft);
+}
+
+@media (max-width: 520px) {
+    .request-editor .request-sql-toolbar {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .request-editor .request-sql-tabs {
+        width: 100%;
+    }
+
+    .request-editor .request-sql-actions {
+        justify-content: flex-end;
+        width: 100%;
+        padding-bottom: 6px;
+    }
+}
+
+
+/* 직접 작성은 한 열, AI 작성은 자연어·SQL 두 열 */
+.request-editor .request-sql-editor-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.request-editor[data-mode="ai"] .request-sql-editor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.request-editor .request-ai-panel,
+.request-editor .request-sql-output {
+    min-width: 0;
+}
+
+.request-editor .request-ai-panel[hidden] {
+    display: none;
+}
+
+.request-editor .sql-prompt,
+.request-editor .sql-editor {
+    height: 132px;
+    min-height: 104px;
+    margin: 0;
+    resize: vertical;
+}
+
+.request-editor .sql-prompt {
+    background: var(--bg);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.request-editor .request-sql-output-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.request-editor .request-ai-status {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.request-editor[data-mode="direct"] .request-ai-status {
+    display: none;
+}
+
+.request-editor .request-ai-generate-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.request-editor .sql-generate {
+    min-height: 32px;
+    padding: 6px 16px;
+    font-size: 12px;
+}
+
+.request-editor .request-ai-explanation {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.request-editor .request-ai-explanation:empty {
+    display: none;
+}
+
+@media (max-width: 760px) {
+    .request-editor[data-mode="ai"] .request-sql-editor-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+
+.request-editor .request-save-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+
+/* 데스크톱 조회 요청 작성 화면의 세로 공간 압축 */
+@media (min-width: 1000px) {
+    .main:has(.request-editor) {
+        padding: 16px 24px;
+    }
+
+    .main:has(.request-editor) > .page-heading {
+        margin-bottom: 12px;
+    }
+
+    .request-editor {
+        padding: 16px;
+    }
+
+    .request-editor .request-basic-fields {
+        gap: 8px;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+    }
+
+    .request-editor .request-input-field {
+        gap: 4px;
+    }
+
+    .request-editor .request-sql-heading {
+        margin-bottom: 6px;
+    }
+
+	.request-editor :is(#sql-items, #edit-sql-items) .sql-item {
+	    gap: 8px;
+	    padding-top: 8px;
+	}
+
+    .request-editor .sql-prompt,
+    .request-editor .sql-editor {
+        height: clamp(96px, 15vh, 132px);
+        min-height: 96px;
+        overflow-y: auto;
+    }
+
+    .request-editor .request-ai-generate-actions {
+        margin-top: 6px;
+    }
+
+    .request-editor .request-ai-explanation {
+        margin-top: 6px;
+    }
+
+    .request-editor .form-footer {
+        margin-top: 12px;
+        padding-top: 12px;
+        gap: 12px;
+    }
+}
+
+
+/* SQL 탭과 삭제 버튼을 하나의 묶음으로 표시 */
+.request-editor .request-sql-tab-group {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    border-bottom: 2px solid transparent;
+}
+
+/* 선택된 탭은 삭제 버튼 아래까지 밑줄 표시 */
+.request-editor .request-sql-tab-group:has(
+    .request-sql-tab[aria-selected="true"]
+) {
+    border-bottom-color: var(--accent);
+}
+
+.request-editor .request-sql-tab-group .request-sql-tab {
+    align-self: stretch;
+    padding: 8px 6px 8px 12px;
+    border-bottom: 0;
+}
+
+.request-editor .request-sql-tab-remove {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+
+    width: 28px;
+    height: 28px;
+    margin-right: 4px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.request-editor .request-sql-tab-remove:hover:not(:disabled) {
+    background: #fff1f0;
+    color: var(--error);
+}
+
+.request-editor .request-sql-tab-remove:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* 작성·수정 폼의 fieldset 기본 테두리 제거 */
+.request-editor > fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}

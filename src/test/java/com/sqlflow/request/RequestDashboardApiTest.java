@@ -162,9 +162,9 @@ class RequestDashboardApiTest {
         assertEquals(0L, summary.getWithdrawnCount());
 
         assertTrue(
-                requestMapper.selectMyRequestsPage(
-                        0L, "", "", 0L, 5
-                ).isEmpty()
+        		requestMapper.selectMyRequestsPage(
+        		        0L, "", "", "", 0L, 5
+        		).isEmpty()
         );
     }
 
@@ -173,6 +173,7 @@ class RequestDashboardApiTest {
         input.setTitle("대시보드-" + UUID.randomUUID() + " " + title);
         input.setPurpose("대시보드 집계와 최근 요청 검증");
         input.setSqls(List.of("SELECT 1 FROM DUAL"));
+        input.setSqlTitles(List.of("테스트 조회"));
 
         return requestService.createDraft(input);
     }

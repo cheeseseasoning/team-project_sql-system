@@ -698,33 +698,78 @@ public class RequestService {
 	}
 
 	@Transactional(readOnly = true)
-	public RequestPageResponse getMyRequestsPage(String keyword, String status, int page, int size) {
-		return getMyRequestsPage(1L, keyword, status, page, size);
+	public RequestPageResponse getMyRequestsPage(
+	        String keyword,
+	        String status,
+	        int page,
+	        int size) {
+
+	    return getMyRequestsPage(
+	            1L, keyword, "", status, page, size);
 	}
 
 	@Transactional(readOnly = true)
-	public RequestPageResponse getMyRequestsPage(Long drafterId, String keyword, String status, int page, int size) {
+	public RequestPageResponse getMyRequestsPage(
+	        Long drafterId,
+	        String keyword,
+	        String status,
+	        int page,
+	        int size) {
 
-		String searchKeyword = keyword == null ? "" : keyword.strip();
-		String searchStatus = status == null ? "" : status.strip();
+	    return getMyRequestsPage(
+	            drafterId, keyword, "", status, page, size);
+	}
 
-		validateSearchConditions(searchKeyword, searchStatus);
+	@Transactional(readOnly = true)
+	public RequestPageResponse getMyRequestsPage(
+	        Long drafterId,
+	        String keyword,
+	        String requestType,
+	        String status,
+	        int page,
+	        int size) {
 
-		RequestSearchValidator.validatePage(page, size);
+	    String searchKeyword = keyword == null ? "" : keyword.strip();
+	    String searchRequestType = requestType == null ? "" : requestType.strip();
+	    String searchStatus = status == null ? "" : status.strip();
 
-		long totalCount = requestMapper.countMyRequests(drafterId, searchKeyword, searchStatus);
+	    validateSearchConditions(searchKeyword, searchStatus);
+	    RequestSearchValidator.validateRequestType(searchRequestType);
+	    RequestSearchValidator.validatePage(page, size);
 
-		long totalPages = totalCount == 0 ? 0 : (totalCount - 1) / size + 1;
+	    long totalCount = requestMapper.countMyRequests(
+	            drafterId,
+	            searchKeyword,
+	            searchRequestType,
+	            searchStatus);
 
-		// 범위를 넘는 페이지를 요청하면 마지막 페이지로 보정
-		int actualPage = totalPages == 0 ? 1 : (int) Math.min(page, totalPages);
+	    long totalPages = totalCount == 0
+	            ? 0
+	            : (totalCount - 1) / size + 1;
 
-		long offset = (long) (actualPage - 1) * size;
+	    // 범위를 넘는 페이지를 요청하면 마지막 페이지로 보정
+	    int actualPage = totalPages == 0
+	            ? 1
+	            : (int) Math.min(page, totalPages);
 
-		List<RequestListResponse> items = totalCount == 0 ? List.of()
-				: requestMapper.selectMyRequestsPage(drafterId, searchKeyword, searchStatus, offset, size);
+	    long offset = (long) (actualPage - 1) * size;
 
-		return new RequestPageResponse(items, actualPage, size, totalCount, totalPages);
+	    List<RequestListResponse> items = totalCount == 0
+	            ? List.of()
+	            : requestMapper.selectMyRequestsPage(
+	                    drafterId,
+	                    searchKeyword,
+	                    searchRequestType,
+	                    searchStatus,
+	                    offset,
+	                    size);
+
+	    return new RequestPageResponse(
+	            items,
+	            actualPage,
+	            size,
+	            totalCount,
+	            totalPages);
 	}
 
 	private void validateSearchConditions(String keyword, String status) {
@@ -741,41 +786,55 @@ public class RequestService {
 
 		RequestSummaryResponse summary = requestMapper.selectMyRequestSummary(drafterId);
 
-		List<RequestListResponse> recentRequests = requestMapper.selectMyRequestsPage(drafterId, "", "", 0L, 5);
+		List<RequestListResponse> recentRequests =
+		        requestMapper.selectMyRequestsPage(
+		                drafterId, "", "", "", 0L, 5);
 
 		return new RequestDashboardResponse(summary, recentRequests);
 	}
 
-	private void saveDraftItems(Long requestId, List<String> sqls, List<String> sqlTitles) {
+	private void saveDraftItems(
+	        Long requestId,
+	        List<String> sqls,
+	        List<String> sqlTitles) {
 
-		if (sqlTitles != null && sqlTitles.size() != sqls.size()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SQL 목록과 SQL 제목 목록의 개수가 일치해야 합니다.");
-		}
+	    if (sqls == null
+	            || sqlTitles == null
+	            || sqlTitles.size() != sqls.size()) {
+	        throw new ResponseStatusException(
+	                HttpStatus.BAD_REQUEST,
+	                "SQL 목록과 SQL 제목 목록의 개수가 일치해야 합니다.");
+	    }
 
-		for (int index = 0; index < sqls.size(); index++) {
-			String title = sqlTitles == null ? null : sqlTitles.get(index);
+	    for (int index = 0; index < sqls.size(); index++) {
+	        String title = sqlTitles.get(index);
 
-			if (title == null || title.isBlank()) {
-				title = "SQL " + (index + 1);
-			} else {
-				title = title.strip();
-			}
+	        if (title == null || title.isBlank()) {
+	            throw new ResponseStatusException(
+	                    HttpStatus.BAD_REQUEST,
+	                    "SQL " + (index + 1) + "의 제목을 입력하세요.");
+	        }
 
-			if (title.length() > 200) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SQL 제목은 200자 이하여야 합니다.");
-			}
+	        title = title.strip();
 
-			QueryItem item = new QueryItem();
-			item.setRequestId(requestId);
-			item.setQueryOrder(index + 1);
-			item.setQueryTitle(title);
-			item.setSqlText(sqls.get(index));
-			item.setAuthoringType("MANUAL");
+	        if (title.length() > 200) {
+	            throw new ResponseStatusException(
+	                    HttpStatus.BAD_REQUEST,
+	                    "SQL 제목은 200자 이하여야 합니다.");
+	        }
 
-			if (requestMapper.insertItem(item) != 1) {
-			    throw new IllegalStateException("SQL 항목 저장에 실패했습니다.");
-			}
-		}
+	        QueryItem item = new QueryItem();
+	        item.setRequestId(requestId);
+	        item.setQueryOrder(index + 1);
+	        item.setQueryTitle(title);
+	        item.setSqlText(sqls.get(index));
+	        item.setAuthoringType("MANUAL");
+
+	        if (requestMapper.insertItem(item) != 1) {
+	            throw new IllegalStateException(
+	                    "SQL 항목 저장에 실패했습니다.");
+	        }
+	    }
 	}
 	
 	private String normalizeOptionalText(String value) {

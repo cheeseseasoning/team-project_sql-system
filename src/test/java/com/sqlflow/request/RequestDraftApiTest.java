@@ -1,14 +1,16 @@
 package com.sqlflow.request;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +39,6 @@ class RequestDraftApiTest {
 
     @Test
     void createDraftSavesRequestAndSqlItems() throws Exception {
-
         String body = """
                 {
                     "title": "초안 저장 테스트",
@@ -45,11 +46,237 @@ class RequestDraftApiTest {
                     "sqls": [
                         "SELECT 1 FROM DUAL",
                         "SELECT USER FROM DUAL"
+                    ],
+                    "sqlTitles": [
+                        "상수 조회",
+                        "사용자 조회"
                     ]
                 }
                 """;
 
-        // 새 API 호출
+        Long requestId = postDraft(body);
+
+        String title = jdbcTemplate.queryForObject("""
+                SELECT TITLE
+                FROM QUERY_REQUEST
+                WHERE REQUEST_ID = ?
+                """, String.class, requestId);
+
+        String requestStatus = jdbcTemplate.queryForObject("""
+                SELECT REQUEST_STATUS
+                FROM QUERY_REQUEST
+                WHERE REQUEST_ID = ?
+                """, String.class, requestId);
+
+        Integer itemCount = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM QUERY_ITEM
+                WHERE REQUEST_ID = ?
+                """, Integer.class, requestId);
+
+        assertEquals("초안 저장 테스트", title);
+        assertEquals("DRAFT", requestStatus);
+        assertEquals(Integer.valueOf(2), itemCount);
+
+        mockMvc.perform(
+                    get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].queryTitle")
+                        .value("상수 조회"))
+                .andExpect(jsonPath("$.items[0].sqlText")
+                        .value("SELECT 1 FROM DUAL"))
+                .andExpect(jsonPath("$.items[1].queryTitle")
+                        .value("사용자 조회"))
+                .andExpect(jsonPath("$.items[1].sqlText")
+                        .value("SELECT USER FROM DUAL"));
+    }
+
+    @Test
+    void validateDraftPersistsPerItemFailureAndReason() throws Exception {
+        // SQL 원문은 의도적으로 잘못 입력하되 제목은 정상 입력한다.
+        String body = """
+                {
+                    "title": "SQL 검증 상태 테스트",
+                    "purpose": "잘못된 SQL의 검증 상태 확인",
+                    "sqls": ["sql"],
+                    "sqlTitles": ["잘못된 SQL 검증"]
+                }
+                """;
+
+        Long requestId = postDraft(body);
+
+        mockMvc.perform(
+                    post("/api/requests/{requestId}/validate", requestId)
+                        .with(csrf())
+                        .with(authenticatedUser())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].validationStatus")
+                        .value("INVALID"))
+                .andExpect(jsonPath("$[0].message").isNotEmpty());
+
+        mockMvc.perform(
+                    get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].validationStatus")
+                        .value("INVALID"));
+    }
+
+    @Test
+    void updateDraftChangesRequestAndSqlItems() throws Exception {
+        Long requestId = createDraftForUpdateTest();
+
+        String originalRequestNo = jdbcTemplate.queryForObject("""
+                SELECT REQUEST_NO
+                FROM QUERY_REQUEST
+                WHERE REQUEST_ID = ?
+                """, String.class, requestId);
+
+        String body = """
+                {
+                    "title": "수정한 제목",
+                    "purpose": "수정한 조회 목적",
+                    "sqls": [
+                        "SELECT SYSDATE FROM DUAL"
+                    ],
+                    "sqlTitles": [
+                        "기준 일시 조회"
+                    ]
+                }
+                """;
+
+        mockMvc.perform(
+                    put("/api/requests/drafts/{requestId}", requestId)
+                        .with(csrf())
+                        .with(authenticatedUser())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body)
+                )
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(
+                    get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestId").value(requestId))
+                .andExpect(jsonPath("$.requestNo")
+                        .value(originalRequestNo))
+                .andExpect(jsonPath("$.title").value("수정한 제목"))
+                .andExpect(jsonPath("$.purpose")
+                        .value("수정한 조회 목적"))
+                .andExpect(jsonPath("$.requestStatus").value("DRAFT"))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].queryOrder").value(1))
+                .andExpect(jsonPath("$.items[0].queryTitle")
+                        .value("기준 일시 조회"))
+                .andExpect(jsonPath("$.items[0].sqlText")
+                        .value("SELECT SYSDATE FROM DUAL"));
+    }
+
+    @Test
+    void updateDraftRejectsSubmittedRequest() throws Exception {
+        Long requestId = createDraftForUpdateTest();
+        markSubmitted(requestId);
+
+        // 입력값 검증은 통과시켜 제출 상태의 수정 차단을 확인한다.
+        String body = """
+                {
+                    "title": "변경되면 안 되는 제목",
+                    "purpose": "변경되면 안 되는 목적",
+                    "sqls": [
+                        "SELECT SYSDATE FROM DUAL"
+                    ],
+                    "sqlTitles": [
+                        "기준 일시 조회"
+                    ]
+                }
+                """;
+
+        mockMvc.perform(
+                    put("/api/requests/drafts/{requestId}", requestId)
+                        .with(csrf())
+                        .with(authenticatedUser())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body)
+                )
+                .andExpect(status().isConflict());
+
+        assertSubmittedRequestUnchanged(requestId);
+    }
+
+    @Test
+    void deleteDraftRemovesRequestAndSqlItems() throws Exception {
+        Long requestId = createDraftForUpdateTest();
+
+        mockMvc.perform(
+                    delete("/api/requests/drafts/{requestId}", requestId)
+                        .with(csrf())
+                        .with(authenticatedUser())
+                )
+                .andExpect(status().isNoContent());
+
+        Integer requestCount = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM QUERY_REQUEST
+                WHERE REQUEST_ID = ?
+                """, Integer.class, requestId);
+
+        Integer itemCount = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM QUERY_ITEM
+                WHERE REQUEST_ID = ?
+                """, Integer.class, requestId);
+
+        assertEquals(Integer.valueOf(0), requestCount);
+        assertEquals(Integer.valueOf(0), itemCount);
+
+        mockMvc.perform(
+                    get("/api/requests/mine/{requestId}", requestId)
+                        .with(authenticatedUser())
+                )
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteDraftRejectsSubmittedRequest() throws Exception {
+        Long requestId = createDraftForUpdateTest();
+        markSubmitted(requestId);
+
+        mockMvc.perform(
+                    delete("/api/requests/drafts/{requestId}", requestId)
+                        .with(csrf())
+                        .with(authenticatedUser())
+                )
+                .andExpect(status().isConflict());
+
+        assertSubmittedRequestUnchanged(requestId);
+    }
+
+    private Long createDraftForUpdateTest() throws Exception {
+        String body = """
+                {
+                    "title": "수정 전 제목",
+                    "purpose": "수정 전 목적",
+                    "sqls": [
+                        "SELECT 1 FROM DUAL",
+                        "SELECT USER FROM DUAL"
+                    ],
+                    "sqlTitles": [
+                        "상수 조회",
+                        "사용자 조회"
+                    ]
+                }
+                """;
+
+        return postDraft(body);
+    }
+
+    private Long postDraft(String body) throws Exception {
         String response = mockMvc.perform(
                     post("/api/requests/drafts")
                         .with(csrf())
@@ -64,162 +291,25 @@ class RequestDraftApiTest {
                 .getContentAsString();
 
         Number id = JsonPath.read(response, "$.requestId");
-        Long requestId = id.longValue();
-
-        // 실제 Oracle에 요청서가 저장됐는지 확인
-        String title = jdbcTemplate.queryForObject(
-                "SELECT TITLE FROM QUERY_REQUEST WHERE REQUEST_ID = ?",
-                String.class,
-                requestId
-        );
-
-        String requestStatus = jdbcTemplate.queryForObject(
-                "SELECT REQUEST_STATUS FROM QUERY_REQUEST WHERE REQUEST_ID = ?",
-                String.class,
-                requestId
-        );
-
-        // 같은 요청에 SQL 두 개가 연결됐는지 확인
-        Integer itemCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM QUERY_ITEM WHERE REQUEST_ID = ?",
-                Integer.class,
-                requestId
-        );
-
-        assertEquals("초안 저장 테스트", title);
-        assertEquals("DRAFT", requestStatus);
-        assertEquals(Integer.valueOf(2), itemCount);
+        return id.longValue();
     }
 
-    @Test
-    void validateDraftPersistsPerItemFailureAndReason() throws Exception {
-
-        String body = """
-                {
-                    "title": "SQL 검증 상태 테스트",
-                    "purpose": "잘못된 SQL의 검증 상태 확인",
-                    "sqls": ["sql"]
-                }
-                """;
-
-        String response = mockMvc.perform(
-                    post("/api/requests/drafts")
-                        .with(csrf())
-                        .with(authenticatedUser())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body)
-                )
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        Number id = JsonPath.read(response, "$.requestId");
-        Long requestId = id.longValue();
-
-        mockMvc.perform(
-                    post("/api/requests/{requestId}/validate", requestId)
-                        .with(csrf())
-                        .with(authenticatedUser())
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].validationStatus").value("INVALID"))
-                .andExpect(jsonPath("$[0].message").isNotEmpty());
-
-        mockMvc.perform(
-                    get("/api/requests/mine/{requestId}", requestId)
-                        .with(authenticatedUser())
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].validationStatus").value("INVALID"));
-    }
-    
-    @Test
-    void updateDraftChangesRequestAndSqlItems() throws Exception {
-
-        Long requestId = createDraftForUpdateTest();
-
-        String originalRequestNo = jdbcTemplate.queryForObject(
-                "SELECT REQUEST_NO FROM QUERY_REQUEST WHERE REQUEST_ID = ?",
-                String.class,
-                requestId
-        );
-
-        String body = """
-                {
-                    "title": "수정한 제목",
-                    "purpose": "수정한 조회 목적",
-                    "sqls": [
-                        "SELECT SYSDATE FROM DUAL"
-                    ]
-                }
-                """;
-
-        // 기존 초안 수정
-        mockMvc.perform(
-                    put("/api/requests/drafts/{requestId}", requestId)
-                        .with(csrf())
-                        .with(authenticatedUser())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body)
-                )
-                .andExpect(status().isNoContent());
-
-        // 상세 조회로 수정 결과 확인
-        mockMvc.perform(
-                    get("/api/requests/mine/{requestId}", requestId)
-                        .with(authenticatedUser())
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.requestId").value(requestId))
-                .andExpect(jsonPath("$.requestNo").value(originalRequestNo))
-                .andExpect(jsonPath("$.title").value("수정한 제목"))
-                .andExpect(jsonPath("$.purpose").value("수정한 조회 목적"))
-                .andExpect(jsonPath("$.requestStatus").value("DRAFT"))
-                .andExpect(jsonPath("$.items.length()").value(1))
-                .andExpect(jsonPath("$.items[0].queryOrder").value(1))
-                .andExpect(jsonPath("$.items[0].sqlText")
-                        .value("SELECT SYSDATE FROM DUAL"));
-    }
-
-    @Test
-    void updateDraftRejectsSubmittedRequest() throws Exception {
-
-        Long requestId = createDraftForUpdateTest();
-
-        // 제출 API가 아직 없으므로 테스트용 요청만 결재 대기 상태로 변경
-        jdbcTemplate.update(
-                """
+    private void markSubmitted(Long requestId) {
+        // 수정·삭제의 상태 검사를 위해 테스트용 요청만 변경한다.
+        int updated = jdbcTemplate.update("""
                 UPDATE QUERY_REQUEST
                 SET REQUEST_STATUS = 'PENDING_APPROVAL',
                     APPROVAL_STATUS = 'PENDING',
                     SUBMITTED_AT = SYSTIMESTAMP
                 WHERE REQUEST_ID = ?
-                """,
-                requestId
-        );
+                """, requestId);
 
-        String body = """
-                {
-                    "title": "변경되면 안 되는 제목",
-                    "purpose": "변경되면 안 되는 목적",
-                    "sqls": [
-                        "SELECT SYSDATE FROM DUAL"
-                    ]
-                }
-                """;
+        assertEquals(1, updated);
+    }
 
-        // 제출된 요청은 수정할 수 없어야 함
-        mockMvc.perform(
-                    put("/api/requests/drafts/{requestId}", requestId)
-                        .with(csrf())
-                        .with(authenticatedUser())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body)
-                )
-                .andExpect(status().isConflict());
+    private void assertSubmittedRequestUnchanged(
+            Long requestId) throws Exception {
 
-        // 차단 후 기존 제목과 SQL이 유지되는지 확인
         mockMvc.perform(
                     get("/api/requests/mine/{requestId}", requestId)
                         .with(authenticatedUser())
@@ -230,117 +320,12 @@ class RequestDraftApiTest {
                 .andExpect(jsonPath("$.requestStatus")
                         .value("PENDING_APPROVAL"))
                 .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].queryTitle")
+                        .value("상수 조회"))
                 .andExpect(jsonPath("$.items[0].sqlText")
                         .value("SELECT 1 FROM DUAL"))
-                .andExpect(jsonPath("$.items[1].sqlText")
-                        .value("SELECT USER FROM DUAL"));
-    }
-
-    // 각 테스트에서 사용할 새 초안 생성
-    private Long createDraftForUpdateTest() throws Exception {
-
-        String body = """
-                {
-                    "title": "수정 전 제목",
-                    "purpose": "수정 전 목적",
-                    "sqls": [
-                        "SELECT 1 FROM DUAL",
-                        "SELECT USER FROM DUAL"
-                    ]
-                }
-                """;
-
-        String response = mockMvc.perform(
-                    post("/api/requests/drafts")
-                        .with(csrf())
-                        .with(authenticatedUser())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body)
-                )
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        Number id = JsonPath.read(response, "$.requestId");
-        return id.longValue();
-    }
-    
-    @Test
-    void deleteDraftRemovesRequestAndSqlItems() throws Exception {
-
-        Long requestId = createDraftForUpdateTest();
-
-        // 초안 삭제
-        mockMvc.perform(
-                    delete("/api/requests/drafts/{requestId}", requestId)
-                        .with(csrf())
-                        .with(authenticatedUser())
-                )
-                .andExpect(status().isNoContent());
-
-        // 요청서가 실제로 삭제됐는지 확인
-        Integer requestCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM QUERY_REQUEST WHERE REQUEST_ID = ?",
-                Integer.class,
-                requestId
-        );
-
-        // 연결된 SQL 항목도 삭제됐는지 확인
-        Integer itemCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM QUERY_ITEM WHERE REQUEST_ID = ?",
-                Integer.class,
-                requestId
-        );
-
-        assertEquals(Integer.valueOf(0), requestCount);
-        assertEquals(Integer.valueOf(0), itemCount);
-
-        // 삭제한 요청 상세 조회는 404
-        mockMvc.perform(
-                    get("/api/requests/mine/{requestId}", requestId)
-                        .with(authenticatedUser())
-                )
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void deleteDraftRejectsSubmittedRequest() throws Exception {
-
-        Long requestId = createDraftForUpdateTest();
-
-        // 테스트용 요청만 제출 상태로 변경
-        jdbcTemplate.update(
-                """
-                UPDATE QUERY_REQUEST
-                SET REQUEST_STATUS = 'PENDING_APPROVAL',
-                    APPROVAL_STATUS = 'PENDING',
-                    SUBMITTED_AT = SYSTIMESTAMP
-                WHERE REQUEST_ID = ?
-                """,
-                requestId
-        );
-
-        // 제출된 요청은 삭제할 수 없어야 함
-        mockMvc.perform(
-                    delete("/api/requests/drafts/{requestId}", requestId)
-                        .with(csrf())
-                        .with(authenticatedUser())
-                )
-                .andExpect(status().isConflict());
-
-        // 요청서와 SQL이 그대로 유지되는지 확인
-        mockMvc.perform(
-                    get("/api/requests/mine/{requestId}", requestId)
-                        .with(authenticatedUser())
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("수정 전 제목"))
-                .andExpect(jsonPath("$.requestStatus")
-                        .value("PENDING_APPROVAL"))
-                .andExpect(jsonPath("$.items.length()").value(2))
-                .andExpect(jsonPath("$.items[0].sqlText")
-                        .value("SELECT 1 FROM DUAL"))
+                .andExpect(jsonPath("$.items[1].queryTitle")
+                        .value("사용자 조회"))
                 .andExpect(jsonPath("$.items[1].sqlText")
                         .value("SELECT USER FROM DUAL"));
     }
@@ -355,6 +340,7 @@ class RequestDraftApiTest {
         account.setDeptName("테스트팀");
         account.setPositionName("사원");
         account.setEnabled("Y");
-        return user(new SqlFlowUserDetails(account, java.util.List.of()));
+
+        return user(new SqlFlowUserDetails(account, List.of()));
     }
 }

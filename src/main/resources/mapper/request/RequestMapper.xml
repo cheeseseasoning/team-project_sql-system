@@ -312,6 +312,17 @@
 	        )
 	    </if>
 	
+	    <choose>
+	        <when test='requestType == "SELECT"'>
+	            AND R.REQUEST_TYPE = 'SELECT'
+	        </when>
+	        <when test='requestType == "DB_CHANGE"'>
+	            AND R.REQUEST_TYPE IN (
+	                'CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE'
+	            )
+	        </when>
+	    </choose>
+	
 	    <if test="status != null and status != ''">
 	        AND R.REQUEST_STATUS = #{status}
 	    </if>
@@ -338,11 +349,28 @@
 	        R.APPROVAL_STATUS,
 	        R.CREATED_AT,
 	        R.DESIRED_DATE,
-	        CASE WHEN R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
-	             THEN (SELECT COUNT(*) FROM DB_CHANGE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
-	             ELSE (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID = R.REQUEST_ID)
+	        U.USER_NAME AS DRAFTER_NAME,
+	        D.DEPT_NAME,
+	        CASE
+	            WHEN R.REQUEST_TYPE IN (
+	                'CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE'
+	            )
+	            THEN (
+	                SELECT COUNT(*)
+	                FROM DB_CHANGE_SQL V
+	                WHERE V.REQUEST_ID = R.REQUEST_ID
+	            )
+	            ELSE (
+	                SELECT COUNT(*)
+	                FROM QUERY_ITEM I
+	                WHERE I.REQUEST_ID = R.REQUEST_ID
+	            )
 	        END AS SQL_COUNT
 	    FROM QUERY_REQUEST R
+	    LEFT JOIN USERS U
+	      ON U.USER_ID = R.DRAFTER_ID
+	    LEFT JOIN DEPARTMENT D
+	      ON D.DEPT_ID = R.DEPT_ID
 	
 	    <include refid="myRequestPageConditions"/>
 	
@@ -390,7 +418,8 @@
 	           A.APPROVER_ID,
 	           U.USER_NAME AS APPROVER_NAME,
 	           D.DEPT_NAME,
-	           P.POSITION_NAME
+	           P.POSITION_NAME,
+	           A.DECIDED_AT
 	    FROM APPROVAL A
 	    JOIN QUERY_REQUEST Q ON Q.REQUEST_ID = A.REQUEST_ID
 	    LEFT JOIN USERS U ON U.USER_ID = A.APPROVER_ID

@@ -209,10 +209,10 @@ class MyPasswordControllerTest {
     }
 
     @Test
-    void 문자수가_짧아도_UTF8_72바이트를_초과하면_거절한다()
+    void 새_비밀번호에_한글이_포함되면_거절한다()
             throws Exception {
 
-        String newPassword = "가".repeat(25);
+        String newPassword = "가".repeat(8);
 
         mockMvc.perform(
                     post("/api/me/password")

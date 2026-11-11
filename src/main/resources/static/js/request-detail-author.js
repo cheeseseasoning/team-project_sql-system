@@ -38,27 +38,6 @@ function renderDetailItems(items) {
     );
 }
 
-function renderApprovalHistory(items) {
-    return RequestDetailRenderer.renderHistory(items);
-}
-
-async function loadApprovalHistory() {
-	const panel = $('#approval-history-panel');
-	const list = $('#approval-history-list');
-
-	try {
-		const items = await api(
-			'/approvals/' + encodeURIComponent(requestId) + '/history'
-		);
-		list.innerHTML = renderApprovalHistory(items);
-	} catch (error) {
-		list.innerHTML =
-			'<li class="empty">결재 이력을 불러오지 못했습니다.</li>';
-	}
-
-	panel.hidden = false;
-}
-
 async function loadDetail() {
 	try {
 		const request = await api(
@@ -140,7 +119,12 @@ async function loadDetail() {
 		
 		$('#request-info').hidden = false;
 		
-		await loadApprovalHistory();
+		await RequestDetailRenderer.loadRejectionReason(
+		    request.requestStatus,
+		    '/approvals/'
+		        + encodeURIComponent(requestId)
+		        + '/history'
+		);
 
 	} catch (error) {
 		$('#detail-title').textContent = '조회 요청 상세';
@@ -340,6 +324,7 @@ let approvalLineApprovers = [];
 let appliedApprovalLine = null;
 
 const approvalLineCheckedCandidateIds = new Set();
+const approvalLineCheckedSelectedIds = new Set();
 
 function approvalLineUserId(user) {
     return String(user.userId);
@@ -355,9 +340,9 @@ function showApprovalLineMessage(message) {
 
 function showApprovalLineCandidateMessage(message) {
     approvalLineCandidateBody.innerHTML =
-        '<tr><td colspan="5" class="empty" role="status">'
+        '<p class="approval-line-empty" role="status">'
         + esc(message)
-        + '</td></tr>';
+        + '</p>';
 }
 
 function getApprovalLineValidationMessage(users) {
@@ -391,55 +376,133 @@ function updateApprovalLineControls() {
         approvalLineLoading
         || approvalLineCheckedCandidateIds.size === 0;
 
-    $('#approval-line-reset').disabled =
-        approvalLineLoading || approvalLineApprovers.length === 0;
+    $('#approval-line-remove').disabled =
+        approvalLineLoading
+        || approvalLineCheckedSelectedIds.size === 0;
 
     $('#approval-line-apply').disabled =
         approvalLineLoading
         || !approvalLineReady
-        || Boolean(getApprovalLineValidationMessage(approvalLineApprovers));
+        || Boolean(
+            getApprovalLineValidationMessage(approvalLineApprovers)
+        );
 }
 
 function renderApprovalLineCandidates() {
     if (approvalLineVisibleCandidates.length === 0) {
-        showApprovalLineCandidateMessage('조회된 사용자가 없습니다.');
+        showApprovalLineCandidateMessage(
+            '검색 조건에 맞는 직원이 없습니다.'
+        );
         return;
     }
 
+    // 추가·삭제로 다시 그릴 때 부서 펼침 상태를 유지한다.
+    const openStates = new Map(
+        Array.from(
+            approvalLineCandidateBody.querySelectorAll(
+                '.approval-line-department'
+            )
+        ).map(element => [
+            element.dataset.department,
+            element.open
+        ])
+    );
+
+    const groups = new Map();
+
+    // 서버에서 정렬한 순서를 그대로 유지한다.
+    approvalLineVisibleCandidates.forEach(function (user) {
+        const department = user.deptName || '부서 정보 없음';
+
+        if (!groups.has(department)) {
+            groups.set(department, []);
+        }
+
+        groups.get(department).push(user);
+    });
+
+    const hasKeyword = Boolean(
+        $('#approval-line-keyword').value.trim()
+    );
+
     approvalLineCandidateBody.innerHTML =
-        approvalLineVisibleCandidates.map(user => {
-            const userId = approvalLineUserId(user);
-            const assigned = isApprovalLineUserAssigned(user);
-            const checked =
-                assigned || approvalLineCheckedCandidateIds.has(userId);
+        Array.from(groups.entries()).map(
+            function ([department, users], groupIndex) {
+				const isOpen = openStates.has(department)
+					? openStates.get(department)
+					: hasKeyword;
 
-            return '<tr class="' + (checked ? 'is-selected' : '') + '">'
-                + '<td><input type="checkbox"'
-                + ' class="approval-line-candidate-check"'
-                + ' value="' + esc(userId) + '"'
-                + ' aria-label="' + esc(user.userName) + ' 선택"'
-                + (checked ? ' checked' : '')
-                + (assigned ? ' disabled' : '')
-                + '></td>'
-                + '<td>' + esc(user.userName) + '</td>'
-                + '<td>' + esc(user.userId) + '</td>'
-                + '<td>' + esc(user.deptName) + '</td>'
-                + '<td>' + esc(user.positionName || '—') + '</td>'
-                + '</tr>';
-        }).join('');
+                const employees = users.map(function (user) {
+                    const userId = approvalLineUserId(user);
+                    const assigned = isApprovalLineUserAssigned(user);
+
+                    const checked =
+                        assigned
+                        || approvalLineCheckedCandidateIds.has(userId);
+
+                    const className =
+                        'approval-line-candidate-item'
+                        + (checked ? ' is-selected' : '')
+                        + (assigned ? ' is-assigned' : '');
+
+                    return '<li>'
+                        + '<label class="' + className + '">'
+                        + '<input type="checkbox"'
+                        + ' class="approval-line-candidate-check"'
+                        + ' value="' + esc(userId) + '"'
+                        + (checked ? ' checked' : '')
+                        + (assigned ? ' disabled' : '')
+                        + '>'
+                        + '<span class="approval-line-employee-name">'
+                        + esc(user.userName)
+                        + '</span>'
+                        + '<span class="approval-line-employee-position">'
+                        + esc(user.positionName || '')
+                        + '</span>'
+                        + '</label>'
+                        + '</li>';
+                }).join('');
+
+                return '<details class="approval-line-department"'
+                    + ' data-department="' + esc(department) + '"'
+                    + (isOpen ? ' open' : '')
+                    + '>'
+                    + '<summary>'
+                    + '<span>' + esc(department) + '</span>'
+                    + '<span class="approval-line-department-count">'
+                    + users.length + '명'
+                    + '</span>'
+                    + '</summary>'
+                    + '<ul class="approval-line-employees">'
+                    + employees
+                    + '</ul>'
+                    + '</details>';
+            }
+        ).join('');
 }
-
 function renderApprovalLineSelected() {
+    $('#approval-line-selected-count').textContent =
+        approvalLineApprovers.length + '명';
+
     if (approvalLineApprovers.length === 0) {
         approvalLineSelectedBody.innerHTML =
-            '<tr><td colspan="6" class="empty">'
-            + '결재자를 1명 이상 추가하세요.'
-            + '</td></tr>';
+            '<li class="approval-line-empty">'
+            + '결재자를 추가해 주세요.'
+            + '</li>';
         return;
     }
 
     approvalLineSelectedBody.innerHTML =
-        approvalLineApprovers.map((user, index) => {
+        approvalLineApprovers.map(function (user, index) {
+            const userId = approvalLineUserId(user);
+            const checked =
+                approvalLineCheckedSelectedIds.has(userId);
+
+            const person = [
+                user.userName,
+                user.positionName
+            ].filter(Boolean).join(' ');
+
             const actions = [
                 {
                     action: 'up',
@@ -452,37 +515,42 @@ function renderApprovalLineSelected() {
                     label: '↓',
                     description: '아래로 이동',
                     disabled: index === approvalLineApprovers.length - 1
-                },
-                {
-                    action: 'delete',
-                    label: '삭제',
-                    description: '결재선에서 삭제',
-                    disabled: false
                 }
-            ].map(item =>
-                '<button type="button" class="button"'
-                + ' data-approver-action="' + item.action + '"'
-                + ' data-index="' + index + '"'
-                + ' aria-label="' + esc(user.userName)
-                + ' ' + item.description + '"'
-                + (approvalLineLoading || item.disabled ? ' disabled' : '')
-                + '>' + item.label + '</button>'
-            ).join('');
+            ].map(function (item) {
+                return '<button type="button" class="button"'
+                    + ' data-approver-action="' + item.action + '"'
+                    + ' data-index="' + index + '"'
+                    + ' aria-label="'
+                    + esc(person + ' ' + item.description) + '"'
+                    + (approvalLineLoading || item.disabled
+                        ? ' disabled'
+                        : '')
+                    + '>' + item.label
+                    + '</button>';
+            }).join('');
 
-            return '<tr>'
-                + '<td>' + (index + 1) + '</td>'
-                + '<td>'
-                + (index === approvalLineApprovers.length - 1
-                    ? '최종 결재자'
-                    : '결재자')
-                + '</td>'
-                + '<td>' + esc(user.userName) + '</td>'
-                + '<td>' + esc(user.deptName) + '</td>'
-                + '<td>' + esc(user.positionName || '—') + '</td>'
-                + '<td><div class="approval-line-row-actions">'
+            return '<li class="approval-line-selected-item'
+                + (checked ? ' is-selected' : '') + '">'
+                + '<label class="approval-line-selected-label">'
+                + '<input type="checkbox"'
+                + ' class="approval-line-selected-check"'
+                + ' value="' + esc(userId) + '"'
+                + (checked ? ' checked' : '')
+                + (approvalLineLoading ? ' disabled' : '')
+                + '>'
+                + '<span class="approval-line-selected-person">'
+                + '<strong>'
+                + (index + 1) + '. ' + esc(person)
+                + '</strong>'
+                + '<span class="approval-line-selected-department">'
+                + esc(user.deptName || '—')
+                + '</span>'
+                + '</span>'
+                + '</label>'
+                + '<div class="approval-line-row-actions">'
                 + actions
-                + '</div></td>'
-                + '</tr>';
+                + '</div>'
+                + '</li>';
         }).join('');
 }
 
@@ -504,8 +572,7 @@ function renderAppliedApprovalLine() {
         status: null
     }));
 
-    $('#request-approval-list').innerHTML =
-        RequestDetailRenderer.renderApprovalRows(rows);
+    RequestDetailRenderer.renderApprovalPreview(rows);
 
     $('#request-approval-badge').textContent = '제출 전';
     $('#approval-preview-help').textContent =
@@ -529,6 +596,7 @@ async function loadApprovalLineCandidates() {
     approvalLineReady = false;
     approvalLineVisibleCandidates = [];
     approvalLineCheckedCandidateIds.clear();
+	approvalLineCheckedSelectedIds.clear();
 
     renderApprovalLineSelected();
     updateApprovalLineControls();
@@ -593,7 +661,6 @@ approvalLineOpenButton.addEventListener('click', function () {
     approvalLineReady = false;
 
     $('#approval-line-keyword').value = '';
-    $('#approval-line-name').value = '';
 
     showApprovalLineMessage('');
     approvalLineDialog.showModal();
@@ -632,9 +699,11 @@ approvalLineCandidateBody.addEventListener('change', function (event) {
         approvalLineCheckedCandidateIds.delete(checkbox.value);
     }
 
-    checkbox.closest('tr').classList.toggle(
-        'is-selected', checkbox.checked
-    );
+	checkbox.closest('.approval-line-candidate-item')
+		.classList.toggle(
+		    'is-selected',
+		    checkbox.checked
+	);
 
     updateApprovalLineControls();
 });
@@ -656,6 +725,27 @@ $('#approval-line-add').addEventListener('click', function () {
     approvalLineCheckedCandidateIds.clear();
     refreshApprovalLineEditor();
     showApprovalLineMessage(added + '명을 추가했습니다.');
+});
+
+approvalLineSelectedBody.addEventListener('change', function (event) {
+    const checkbox = event.target;
+
+    if (approvalLineLoading
+            || !checkbox.matches('.approval-line-selected-check')
+            || checkbox.disabled) {
+        return;
+    }
+
+    if (checkbox.checked) {
+        approvalLineCheckedSelectedIds.add(checkbox.value);
+    } else {
+        approvalLineCheckedSelectedIds.delete(checkbox.value);
+    }
+
+    checkbox.closest('.approval-line-selected-item')
+        .classList.toggle('is-selected', checkbox.checked);
+
+    updateApprovalLineControls();
 });
 
 approvalLineSelectedBody.addEventListener('click', function (event) {
@@ -689,15 +779,27 @@ approvalLineSelectedBody.addEventListener('click', function (event) {
     showApprovalLineMessage('');
 });
 
-$('#approval-line-reset').addEventListener('click', function () {
-    if (approvalLineLoading || approvalLineApprovers.length === 0) return;
-    if (!window.confirm('구성한 결재선을 초기화하시겠습니까?')) return;
+$('#approval-line-remove').addEventListener('click', function () {
+    if (approvalLineLoading
+            || approvalLineCheckedSelectedIds.size === 0) {
+        return;
+    }
 
-    approvalLineApprovers = [];
-    approvalLineCheckedCandidateIds.clear();
+    const previousCount = approvalLineApprovers.length;
+
+    approvalLineApprovers = approvalLineApprovers.filter(
+        user => !approvalLineCheckedSelectedIds.has(
+            approvalLineUserId(user)
+        )
+    );
+
+    const removedCount =
+        previousCount - approvalLineApprovers.length;
+
+    approvalLineCheckedSelectedIds.clear();
 
     refreshApprovalLineEditor();
-    showApprovalLineMessage('결재선을 초기화했습니다.');
+    showApprovalLineMessage(removedCount + '명을 제외했습니다.');
 });
 
 $('#approval-line-apply').addEventListener('click', function () {
@@ -725,6 +827,7 @@ approvalLineDialog.addEventListener('close', function () {
     approvalLineReady = false;
     approvalLineVisibleCandidates = [];
     approvalLineCheckedCandidateIds.clear();
+	approvalLineCheckedSelectedIds.clear();
 
     approvalLineCandidateBody.setAttribute('aria-busy', 'false');
     approvalLineOpenButton.focus();
