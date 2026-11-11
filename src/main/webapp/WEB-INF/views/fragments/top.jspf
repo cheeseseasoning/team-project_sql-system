@@ -36,7 +36,17 @@
                or page == 'view-create-request-form'
                or page == 'execution-results'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261029-view-history">
+              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261111-css-split">
+    </c:if>
+
+    <c:if test="${page == 'request-detail' or page == 'department-request-detail'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261111-css-split">
+    </c:if>
+
+    <c:if test="${page == 'request-detail'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/approval-line-modal.css?v=20261111-css-split">
     </c:if>
 
     <c:if test="${page == 'execution-queue' or page == 'execution-queue-detail'}">
