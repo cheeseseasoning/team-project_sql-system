@@ -21,7 +21,7 @@ public class RequestDraftUpdateRequest {
 
     @NotBlank(message = "조회 목적을 입력하세요.")
     private String purpose;
-    
+
     private String detailContent;
 
     @NotBlank(message = "긴급 여부를 입력하세요.")
@@ -36,16 +36,19 @@ public class RequestDraftUpdateRequest {
     @NotNull(message = "SQL 목록이 필요합니다.")
     @Size(max = 5, message = "SQL은 최대 5개까지 등록할 수 있습니다.")
     private List<@NotBlank(message = "빈 SQL은 등록할 수 없습니다.") String> sqls;
-    
+
+    @NotNull(message = "SQL 제목 목록이 필요합니다.")
     @Size(max = 5, message = "SQL 제목은 최대 5개까지 등록할 수 있습니다.")
     private List<
+            @NotBlank(message = "SQL 제목을 입력하세요.")
             @Size(max = 200, message = "SQL 제목은 200자 이하여야 합니다.")
             String> sqlTitles;
 
     @AssertTrue(message = "SQL 목록과 SQL 제목 목록의 개수가 일치해야 합니다.")
     public boolean isSqlTitleCountValid() {
-        return sqlTitles == null
-                || (sqls != null && sqlTitles.size() == sqls.size());
+        return sqls != null
+                && sqlTitles != null
+                && sqlTitles.size() == sqls.size();
     }
-    
+
 }

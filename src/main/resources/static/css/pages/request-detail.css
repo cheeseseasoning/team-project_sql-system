@@ -1,0 +1,1652 @@
+/* ==================================================
+   요청 상세 화면
+   - 내 요청 상세와 부서 기안서 상세에서 함께 사용한다.
+   - 기안 정보, 결재 카드, 첨부 SQL, 반려 사유와 하단 동작을 담당한다.
+   - 결재선 편집 dialog는 approval-line-modal.css에서 관리한다.
+   - 기본 규칙 뒤에 화면별 재정의가 이어지므로 선언 순서를 유지한다.
+   ================================================== */
+
+/* ==================================================
+   요청 상세: 컨테이너·제목
+   ================================================== */
+
+.request-detail-page {
+	width: 100%;
+	min-width: 0;
+	max-width: none;
+	margin: 0;
+}
+
+.request-detail-page .page-heading {
+	flex-wrap: wrap;
+}
+
+.request-detail-page .page-heading>div {
+	min-width: 0;
+}
+
+.request-detail-page #detail-title {
+	overflow-wrap: anywhere;
+}
+
+.request-detail-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 300px;
+	gap: 20px;
+	align-items: start;
+}
+
+.request-detail-page .panel {
+	padding: 22px;
+}
+
+.request-detail-page h2 {
+	font-size: 17px;
+	font-weight: 600;
+}
+
+
+/* ==================================================
+   요청 상세: 요청 정보
+   ================================================== */
+
+.request-detail-page .request-info-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px 24px;
+	margin: 20px 0 0;
+}
+
+.view-create-result-form {
+	display: grid;
+	grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+	gap: 12px 16px;
+	align-items: start;
+	margin-top: 20px;
+}
+
+.view-create-result-form label {
+	font-weight: 600;
+}
+
+.view-create-result-form textarea {
+	min-height: 110px;
+	resize: vertical;
+}
+
+.view-create-result-form .form-footer {
+	grid-column: 1 / -1;
+}
+
+#view-create-result-content {
+	white-space: pre-wrap;
+}
+
+@media (max-width: 650px) {
+	.view-create-result-form {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.view-create-result-form .form-footer {
+		grid-column: auto;
+	}
+}
+
+.request-detail-page .request-info-grid>div {
+	display: grid;
+	grid-template-columns: 76px minmax(0, 1fr);
+	align-items: baseline;
+	gap: 10px;
+	margin: 0;
+	font-size: 14px;
+}
+
+.request-detail-page .request-info-grid dt {
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.request-detail-page .request-info-grid dd {
+	margin: 0;
+	text-align: left;
+	line-height: 1.6;
+	overflow-wrap: anywhere;
+}
+
+.request-detail-page .request-info-grid .request-source-row {
+	grid-column: 1 / -1;
+}
+
+.request-detail-page .request-info-grid .badge {
+	font-size: 12px;
+}
+
+
+/* ==================================================
+   요청 상세: 조회 목적·상세 내용
+   ================================================== */
+
+.request-detail-page .request-content-section {
+	margin-top: 22px;
+	padding-top: 20px;
+	border-top: 1px solid var(--line);
+}
+
+.request-detail-page .request-content-section .notice-body {
+	margin: 10px 0 0;
+	max-width: none;
+	font-size: 14px;
+	line-height: 1.75;
+	overflow-wrap: anywhere;
+}
+
+
+/* ==================================================
+   요청 상세: 결재선 미리보기
+   ================================================== */
+
+.request-detail-page .request-approval-panel .panel-heading {
+	margin-bottom: 10px;
+	flex-wrap: wrap;
+}
+
+.request-approval-description {
+	font-size: 13px;
+	color: var(--muted);
+	line-height: 1.7;
+}
+
+.request-approval-list {
+	list-style: none;
+	margin: 24px 0;
+	padding: 0;
+}
+
+.request-approval-list li {
+	position: relative;
+	display: flex;
+	gap: 12px;
+	padding-bottom: 28px;
+}
+
+.request-approval-list li:last-child {
+	padding-bottom: 0;
+}
+
+.request-approval-list li:not(:last-child)::after {
+	content: "";
+	position: absolute;
+	left: 15px;
+	top: 34px;
+	bottom: 4px;
+	width: 1px;
+	background: var(--line);
+}
+
+.request-approval-number {
+	display: grid;
+	place-items: center;
+	flex: 0 0 32px;
+	height: 32px;
+	border: 1px solid var(--line);
+	border-radius: 50%;
+	background: var(--tint);
+	color: var(--accent);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.request-approval-list strong {
+	display: block;
+	font-size: 14px;
+}
+
+.request-approval-list p {
+	margin-top: 5px;
+	font-size: 14px;
+	color: var(--muted);
+}
+
+.request-approval-list li div>span {
+	display: block;
+	margin-top: 4px;
+	font-size: 12px;
+	color: var(--muted);
+}
+
+.request-approval-register {
+	width: 100%;
+}
+
+.request-approval-register:disabled {
+	cursor: not-allowed;
+}
+
+.request-approval-help {
+	margin-top: 10px;
+	font-size: 12px;
+	color: var(--muted);
+	text-align: center;
+}
+
+
+/* ==================================================
+   요청 상세: 결재 이력
+   ================================================== */
+
+.approval-history-panel {
+	margin-top: 20px;
+}
+
+.approval-history-list {
+	display: grid;
+	gap: 12px;
+	margin: 20px 0 0;
+	padding-left: 24px;
+}
+
+.approval-history-item {
+	padding: 14px 16px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--soft);
+}
+
+.approval-history-item .panel-heading {
+	margin-bottom: 8px;
+}
+
+.approval-history-item p {
+	margin: 8px 0 0;
+	overflow-wrap: anywhere;
+}
+
+.approval-history-comment {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+
+/* ==================================================
+   요청 상세: 등록한 SQL 영역
+   ================================================== */
+
+.request-detail-page .request-sql-panel {
+	margin-top: 20px;
+}
+
+.request-detail-page .request-sql-heading {
+	justify-content: space-between;
+}
+
+.request-detail-page .request-sql-heading-main {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	min-width: 0;
+}
+
+.request-detail-page .request-sql-heading h2 {
+	margin: 0;
+}
+
+.request-detail-page .request-sql-count {
+	margin-left: auto;
+	white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+	.request-detail-page .request-sql-heading-main {
+		flex-wrap: wrap;
+	}
+}
+
+.sql-validation-controls {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	margin: 8px 0 18px;
+	padding: 14px 16px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--surface, #f5f7f9);
+}
+
+.sql-validation-controls p {
+	margin: 0;
+}
+
+@media (max-width: 650px) {
+	.sql-validation-controls {
+		align-items: stretch;
+		flex-direction: column;
+	}
+}
+
+
+/* ==================================================
+   요청 상세: 결재선 확인·제출 모달 (이전 표시 방식 호환)
+   ================================================== */
+
+#approval-dialog {
+	width: min(520px, calc(100% - 32px));
+	max-height: 85vh;
+	overflow: auto;
+	border: 1px solid var(--line);
+	border-radius: 9px;
+	padding: 24px;
+}
+
+#approval-dialog::backdrop {
+	background: rgba(0, 0, 0, 0.35);
+}
+
+#approval-dialog label {
+	margin-top: 18px;
+}
+
+#approval-fields {
+	border: 0;
+	padding: 0;
+	margin: 0;
+	min-width: 0;
+}
+
+#approval-dialog-message {
+	margin: 16px 0;
+}
+
+
+/* ==================================================
+   13. 반응형: 1100px 이하
+   결재선을 본문 아래로 배치
+   ================================================== */
+
+@media (max-width: 1100px) {
+	.request-detail-layout {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+
+/* ==================================================
+   15. 반응형: 650px 이하
+   요청 정보를 한 열로 배치
+   ================================================== */
+
+@media (max-width: 650px) {
+	.request-detail-page .panel {
+		padding: 18px;
+	}
+
+	.request-detail-page .request-info-grid {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 14px;
+	}
+}
+
+
+/* 요청 상세: 기안서 기본 배치 */
+.request-document-page {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.request-document-page > .back-link {
+    display: inline-flex;
+    margin-bottom: 12px;
+    font-size: 12px;
+}
+
+.request-document-page .request-document {
+    min-width: 0;
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-top: 2px solid var(--accent);
+    border-radius: 4px;
+    background: #fff;
+}
+
+.request-document-page .request-document-heading {
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.request-document-page .request-document-caption {
+    margin: 0 0 6px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.request-document-page #request-document-heading {
+    margin: 0 0 6px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.request-document-page .request-document-identification {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.request-document-page .request-document-title-row {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    background: #f1f6f8;
+}
+
+.request-document-page .request-document-title-label {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.request-document-page #detail-title {
+    margin: 0;
+    color: var(--text);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.request-document-page .request-document-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+}
+
+.request-document-page .request-document-footer-help {
+    flex: 1 1 220px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.request-document-page .request-document-actions,
+.request-document-page .request-document-draft-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* display:flex가 hidden 속성을 덮어쓰지 않도록 처리 */
+.request-document-page .request-document-actions [hidden] {
+    display: none;
+}
+
+.request-document-page .request-document-actions .button {
+    min-height: 36px;
+    padding: 8px 14px;
+    font-size: 12px;
+}
+
+@media (max-width: 650px) {
+    .request-document-page .request-document {
+        padding: 16px;
+    }
+
+	.request-document-page #detail-title {
+	    font-size: 21px;
+	}
+
+    .request-document-page .request-document-title-row {
+        grid-template-columns: 48px minmax(0, 1fr);
+    }
+
+    .request-document-page .request-document-actions {
+        width: 100%;
+    }
+}
+
+/* 기안서 상단 정보·결재란 */
+.request-document-page #request-info {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.request-document-page .request-detail-layout {
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    gap: 40px;
+    margin-bottom: 24px;
+    align-items: start;
+}
+
+.request-document-page .request-information-summary {
+    min-width: 0;
+}
+
+.request-document-page .request-information-heading {
+    margin: 0 0 10px;
+    font-size: 13px;
+}
+
+.request-document-page .request-info-grid {
+    display: block;
+    margin: 0;
+    border: 1px solid var(--line);
+}
+
+/* hidden인 원본 요청 행은 계속 숨긴다. */
+.request-document-page .request-info-grid > div:not([hidden]) {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: 0;
+    align-items: stretch;
+    margin: 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+}
+
+.request-document-page .request-info-grid > div:last-child {
+    border-bottom: 0;
+}
+
+.request-document-page .request-info-grid > div[hidden] {
+    display: none;
+}
+
+.request-document-page .request-info-grid dt {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 6px 8px;
+    background: #f1f6f8;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.request-document-page .request-info-grid dd {
+    min-width: 0;
+    margin: 0;
+    padding: 6px 8px;
+    border-left: 1px solid var(--line);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.request-document-page .request-info-grid .badge {
+    font-size: 10px;
+}
+
+.request-document-page .request-additional-info {
+    margin-top: 10px;
+}
+
+.request-document-page .request-additional-info > summary {
+    width: fit-content;
+    color: var(--muted);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.request-document-page .request-additional-info[open] > summary {
+    margin-bottom: 8px;
+}
+
+.request-document-page .request-approval-panel {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.request-document-page .request-approval-panel .panel-heading {
+    margin-bottom: 10px;
+}
+
+.request-document-page #request-approval-title {
+    margin: 0;
+    font-size: 13px;
+}
+
+.request-document-page .request-approval-description {
+    margin: 0 0 12px;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.request-document-page .request-content-section {
+    margin-top: 16px;
+    padding-top: 0;
+    border-top: 0;
+}
+
+.request-document-page .request-content-section h2 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.request-document-page .request-content-section .notice-body {
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+@media (max-width: 800px) {
+    .request-document-page .request-detail-layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px;
+    }
+
+    .request-document-page .request-information-summary {
+        width: 100%;
+        max-width: 360px;
+    }
+}
+
+
+/* 결재 카드 이동 */
+.request-document-page .approval-card-navigation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.request-document-page .approval-card-navigation[hidden] {
+    display: none;
+}
+
+.request-document-page .approval-card-navigation .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
+    font-size: 10px;
+}
+
+.request-document-page .approval-card-range {
+    min-width: 54px;
+    color: var(--muted);
+    font-size: 11px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* 기존 세로 결재선 대신 가로 카드 표시 */
+.request-document-page .request-approval-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    margin: 12px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.request-document-page .request-approval-cards > li {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    padding: 0;
+}
+
+.request-document-page .request-approval-cards > li::after {
+    content: none;
+}
+
+.request-document-page .approval-card {
+    border: 1px solid var(--line);
+    background: #fff;
+}
+
+.request-document-page .approval-card-step {
+    padding: 6px;
+    background: #f1f6f8;
+    color: var(--muted);
+    font-size: 11px;
+    text-align: center;
+}
+
+.request-document-page .approval-card-person {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 90px;
+    padding: 10px 6px;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.request-document-page .approval-card-person strong {
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.request-document-page .approval-card-person > span {
+    margin: 0;
+    font-size: 11px;
+}
+
+.request-document-page .approval-card-department {
+    color: var(--muted);
+}
+
+.request-document-page .approval-card-person .approval-card-status {
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.request-document-page .approval-card.is-pending .approval-card-status {
+    color: #92400e;
+}
+
+.request-document-page .approval-card.is-approved .approval-card-status {
+    color: #15803d;
+}
+
+.request-document-page .approval-card.is-rejected .approval-card-status {
+    color: #b91c1c;
+}
+
+.request-document-page .approval-card-date {
+    padding: 6px 4px;
+    background: #f1f6f8;
+    color: var(--muted);
+    font-size: 10px;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.request-document-page .request-approval-cards > .approval-card-empty {
+    grid-column: 1 / -1;
+    padding: 20px 12px;
+    border: 1px dashed var(--line);
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+
+/* 실제 이력이 아닌 안내 문구에는 번호를 표시하지 않는다. */
+.approval-history-list > li.empty {
+    list-style: none;
+}
+
+.approval-history-list:has(> li.empty:only-child) {
+    padding-left: 0;
+}
+
+.approval-history-list > li.empty {
+    padding: 16px 12px;
+    font-size: 12px;
+}
+
+/* 결재 이력 펼치기·접기 */
+.request-detail-page .approval-history-panel {
+    padding: 14px 16px;
+}
+
+.approval-history-toggle {
+    width: fit-content;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.approval-history-panel[open] > .approval-history-toggle {
+    margin-bottom: 12px;
+}
+
+.approval-history-panel .approval-history-list {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+
+/* 기안서 첨부 SQL */
+.request-document-page .request-sql-panel {
+    margin-top: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.request-document-page .request-sql-heading {
+    margin-bottom: 10px;
+}
+
+.request-document-page .request-sql-heading h2 {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.request-document-page .request-sql-count {
+    margin-left: 0;
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+/* 여러 SQL을 하나의 테두리 안에 배치 */
+.request-document-page #detail-items {
+    border: 1px solid var(--line);
+}
+
+.request-document-page .request-sql-item {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+}
+
+.request-document-page .request-sql-item + .request-sql-item {
+    border-top: 1px solid var(--line);
+}
+
+.request-document-page .request-sql-item
+    > .request-sql-accordion {
+    margin: 0;
+}
+
+.request-document-page .request-sql-accordion > summary {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px 10px 28px;
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.5;
+    list-style: none;
+    cursor: pointer;
+}
+
+.request-document-page .request-sql-accordion
+    > summary::-webkit-details-marker {
+    display: none;
+}
+
+.request-document-page .request-sql-accordion > summary::before {
+    content: "▸";
+    position: absolute;
+    left: 12px;
+    top: 10px;
+    color: var(--muted);
+}
+
+.request-document-page .request-sql-accordion[open]
+    > summary::before {
+    content: "▾";
+}
+
+.request-document-page .request-sql-accordion > summary:hover {
+    background: #f8fafb;
+}
+
+.request-document-page .request-sql-summary-title {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.request-document-page .request-sql-validation-state {
+    flex-shrink: 0;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.request-document-page .request-sql-validation-state.is-valid {
+    color: #15803d;
+}
+
+.request-document-page .request-sql-validation-state.is-invalid {
+    color: #b91c1c;
+    font-weight: 600;
+}
+
+.request-document-page .request-sql-validation-state.is-warning {
+    color: #92400e;
+    font-weight: 600;
+}
+
+.request-document-page .request-sql-body {
+    padding: 0 12px 12px;
+}
+
+.request-document-page .request-sql-body > .caption {
+    margin: 0 0 6px;
+    font-size: 11px;
+}
+
+.request-document-page .request-sql-body pre {
+    margin: 0;
+    padding: 12px;
+    border: 0;
+    border-radius: 2px;
+    background: #f3f6f7;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.request-document-page .request-sql-body
+    .sql-validation-message {
+    font-size: 12px;
+}
+
+
+/* 원본 시안에 맞춘 기안서 배치 */
+.request-document-page .request-document {
+    padding: 20px;
+}
+
+.request-document-page .request-document-heading {
+    margin-bottom: 20px;
+}
+
+/* 왼쪽 정보표 · 오른쪽 결재란 */
+.request-document-page .request-detail-layout {
+    grid-template-columns: minmax(220px, 260px) minmax(0, 420px);
+    justify-content: space-between;
+    gap: 32px;
+    margin-bottom: 14px;
+}
+
+.request-document-page .request-info-grid dt,
+.request-document-page .request-info-grid dd {
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+.request-document-page .request-info-grid #detail-state .badge {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 11px;
+}
+
+/* 결재란 */
+.request-document-page .request-approval-description {
+    display: none;
+}
+
+.request-document-page .request-approval-panel .panel-heading {
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.request-document-page .request-approval-cards {
+    margin: 0;
+}
+
+.request-document-page .approval-card-person {
+    min-height: 66px;
+    gap: 3px;
+    padding: 8px 6px;
+}
+
+.request-document-page .approval-card-step,
+.request-document-page .approval-card-date {
+    padding: 4px;
+}
+
+.request-document-page .request-approval-help {
+    margin: 6px 0 0;
+    font-size: 10px;
+    text-align: left;
+}
+
+/* 추가 정보를 가로 보조 정보 줄로 표시 */
+.request-detail-page .request-secondary-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 18px;
+    margin: 0 0 14px;
+    padding: 0;
+}
+
+.request-detail-page .request-secondary-info > div {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    min-width: 0;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.request-detail-page .request-secondary-info > div[hidden] {
+    display: none;
+}
+
+.request-detail-page .request-secondary-info dt {
+    color: var(--muted);
+}
+
+.request-detail-page .request-secondary-info dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.request-detail-page .request-secondary-info .badge {
+    font-size: 10px;
+}
+
+/* 제목과 본문 간격 */
+.request-document-page .request-document-title-row {
+    margin-bottom: 14px;
+    padding: 8px 12px;
+}
+
+.request-document-page .request-content-section {
+    margin-top: 14px;
+}
+
+/* SQL 아래 결재 이력 */
+.request-document-page .approval-history-panel {
+    margin-top: 12px;
+    padding: 10px 12px;
+}
+
+/* 하단 안내와 버튼 */
+.request-document-page .request-document-footer {
+    margin-top: 16px;
+    padding-top: 12px;
+}
+
+/* 좁은 화면에서는 정보표와 결재란을 세로로 배치 */
+@media (max-width: 800px) {
+    .request-document-page .request-detail-layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+    }
+
+    .request-document-page .request-approval-panel {
+        width: 100%;
+        max-width: 420px;
+        justify-self: end;
+    }
+}
+
+
+/* 하단 안내 다음 줄에 버튼 배치 */
+.request-document-page .request-document-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.request-document-page .request-document-footer-help {
+    flex: none;
+}
+
+.request-document-page .request-document-actions {
+    width: 100%;
+    justify-content: flex-end;
+}
+
+/* 삭제는 왼쪽, 작업 버튼은 오른쪽 */
+.request-document-page .request-document-draft-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.request-document-page .request-draft-delete {
+    flex-shrink: 0;
+    color: #b91c1c;
+}
+
+.request-document-page .request-document-primary-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* 기안 정보표 */
+.request-detail-page .request-info-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    border: 1px solid var(--line);
+    font-size: 11px;
+}
+
+.request-info-table .request-info-label-column {
+    width: 15%;
+}
+
+.request-info-table .request-info-value-column {
+    width: 35%;
+}
+
+.request-detail-page .request-info-table th,
+.request-detail-page .request-info-table td {
+    padding: 7px 8px;
+    border: 1px solid var(--line);
+    text-align: left;
+    vertical-align: middle;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.request-detail-page .request-info-table th {
+    background: #f1f6f8;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.request-detail-page .request-info-table td {
+    background: #fff;
+    font-size: 11px;
+}
+
+.request-detail-page .request-info-table .badge {
+    margin: 0;
+    font-size: 10px;
+}
+
+.request-document-page .request-info-table #detail-state .badge {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 11px;
+}
+
+.request-source-reference {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+/* 상단 좌우 영역 */
+.request-document-page .request-detail-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px;
+    align-items: start;
+    margin-bottom: 20px;
+}
+
+.request-document-page .request-information-summary,
+.request-document-page .request-approval-panel {
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+}
+
+/* 두 제목의 시작 높이와 아래 여백을 동일하게 */
+.request-document-page .request-information-heading,
+.request-document-page .request-approval-panel .panel-heading {
+    display: flex;
+    align-items: center;
+    min-height: 28px;
+    margin: 0 0 8px;
+}
+
+.request-document-page .request-information-heading {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.request-document-page .request-approval-panel .panel-heading {
+    flex-wrap: nowrap;
+    gap: 8px;
+}
+
+.request-document-page #request-approval-title {
+    flex-shrink: 0;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.request-document-page .request-approval-cards {
+    margin: 0;
+}
+
+.request-document-page .approval-card-person {
+    min-height: 90px;
+    gap: 5px;
+    padding: 12px 10px;
+}
+
+.request-document-page .approval-card-step,
+.request-document-page .approval-card-date {
+    padding: 6px 8px;
+}
+
+.request-document-page .request-approval-help {
+    margin: 8px 0 0;
+    line-height: 1.5;
+}
+
+.request-document-page .request-document-heading {
+    margin-bottom: 24px;
+}
+
+/* 좁은 화면에서는 세로로 배치 */
+@media (max-width: 1100px) {
+    .request-document-page .request-detail-layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px;
+    }
+
+    .request-document-page .request-approval-panel {
+        max-width: 630px;
+        justify-self: end;
+    }
+}
+
+/* 결재란 아래의 중복 설명 숨김 */
+.request-document-page .request-approval-help {
+    display: none;
+}
+
+/* 등록 전후 결재란의 기본 높이 통일 */
+.request-document-page .request-approval-cards {
+    grid-auto-rows: minmax(160px, auto);
+}
+
+/* 미등록 상태는 카드 3칸 전체 크기의 안내 박스 */
+.request-document-page .request-approval-cards
+    > .approval-card-empty {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    border: 1px solid var(--line);
+    background: #f8fafb;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+
+/* 결재 이력: 접기 영역 */
+.request-detail-page .approval-history-panel {
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: none;
+}
+
+.request-detail-page .approval-history-toggle {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.request-detail-page .approval-history-panel[open]
+    > .approval-history-toggle {
+    margin-bottom: 12px;
+}
+
+.approval-history-content {
+    min-width: 0;
+}
+
+.approval-history-empty {
+    margin: 0;
+    padding: 16px 12px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+/* 이력 표 */
+.approval-history-table-scroll {
+    overflow-x: auto;
+}
+
+.request-detail-page .approval-history-table {
+    width: 100%;
+    min-width: 460px;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.approval-history-table .history-order-column {
+    width: 10%;
+}
+
+.approval-history-table .history-person-column {
+    width: 40%;
+}
+
+.approval-history-table .history-status-column {
+    width: 20%;
+}
+
+.approval-history-table .history-date-column {
+    width: 30%;
+}
+
+.request-detail-page .approval-history-table th,
+.request-detail-page .approval-history-table td {
+    padding: 10px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+}
+
+.request-detail-page .approval-history-table th {
+    background: #f3f6f8;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.approval-history-person {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.approval-history-department {
+    display: block;
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.approval-history-date,
+.approval-history-order {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.approval-history-status {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.approval-history-status.is-approved {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.approval-history-status.is-rejected {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.approval-history-status.is-pending {
+    background: #fffbeb;
+    color: #92400e;
+}
+
+/* 의견은 결재자 행 바로 아래에 전체 너비로 표시 */
+.request-detail-page .approval-history-note-row > td {
+    padding: 0 12px 10px;
+}
+
+.approval-history-note {
+    padding: 10px 12px;
+    border-radius: 3px;
+    background: #f8fafb;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.approval-history-note strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.approval-history-note p {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.approval-history-note-row.is-rejected .approval-history-note {
+    background: #fff5f5;
+    color: #991b1b;
+}
+
+
+/* SQL·결재 이력의 접기 제목 서식 통일 */
+.request-document-page .request-sql-accordion > summary,
+.request-document-page .approval-history-panel
+    > .approval-history-toggle {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 38px;
+    margin: 0;
+    padding: 10px 12px 10px 30px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    list-style: none;
+    cursor: pointer;
+}
+
+/* 기본 화살표 제거 */
+.request-document-page .request-sql-accordion
+    > summary::-webkit-details-marker,
+.request-document-page .approval-history-panel
+    > summary::-webkit-details-marker {
+    display: none;
+}
+
+/* 같은 모양과 위치의 화살표 */
+.request-document-page .request-sql-accordion > summary::before,
+.request-document-page .approval-history-panel > summary::before {
+    content: "▸";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.request-document-page .request-sql-accordion[open]
+    > summary::before,
+.request-document-page .approval-history-panel[open]
+    > summary::before {
+    content: "▾";
+}
+
+.request-document-page .request-sql-accordion > summary:hover,
+.request-document-page .approval-history-panel
+    > summary:hover {
+    background: #f8fafb;
+}
+
+/* 결재 이력 바깥 여백 대신 내부 본문에 여백 부여 */
+.request-document-page .approval-history-panel {
+    padding: 0;
+}
+
+.request-document-page .approval-history-panel[open]
+    > .approval-history-toggle {
+    margin-bottom: 0;
+}
+
+.request-document-page .approval-history-content {
+    padding: 0 12px 12px;
+}
+
+
+/* 긴급 여부를 다른 셀과 같은 크기의 텍스트로 표시 */
+.request-detail-page .request-info-table #request-urgency {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    vertical-align: baseline;
+}
+
+/* 긴급일 때만 글자색 강조 */
+.request-detail-page .request-info-table
+    #request-urgency.urgent-badge {
+    color: #b91c1c;
+}
+
+
+/* 실제 결재자가 없는 칸은 빈 영역으로 유지 */
+.request-document-page .request-approval-cards
+    > .approval-card-placeholder {
+    align-self: stretch;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--line);
+    background: #f8fafb;
+}
+
+.request-document-page .request-document-draft-actions {
+    flex-wrap: wrap;
+    row-gap: 8px;
+}
+
+.request-document-page .request-document-draft-actions
+    > .request-document-footer-help {
+    flex: 0 0 100%;
+    margin: 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: right;
+}
+
+
+/* 목적·상세 내용과 반려 사유 */
+.request-detail-page .request-body-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 24px 32px;
+    margin-top: 16px;
+}
+
+.request-detail-page .request-body-layout.has-rejection {
+    grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+/* 기안서 상단 좌우 영역과 동일한 너비 비율 */
+.request-document-page .request-body-layout.has-rejection {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.request-body-content {
+    min-width: 0;
+}
+
+.request-detail-page .request-body-content
+    > .request-content-section {
+    margin: 16px 0 0;
+    padding: 0;
+    border: 0;
+}
+
+.request-detail-page .request-body-content
+    > .request-content-section:first-child {
+    margin-top: 0;
+}
+
+/* 반려 사유 패널 */
+.request-detail-page .request-rejection-panel {
+    min-width: 0;
+    align-self: stretch;
+    padding: 16px;
+    border: 1px solid #f3caca;
+    border-left: 3px solid #c55353;
+    border-radius: 4px;
+    background: #fff7f7;
+}
+
+.request-detail-page #request-rejection-title {
+    margin: 0;
+    color: #991b1b;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.request-rejection-meta {
+    margin: 6px 0 12px;
+    color: #8b6262;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.request-rejection-meta:empty {
+    display: none;
+}
+
+.request-rejection-reason {
+    margin: 0;
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* 좁은 화면에서는 본문 아래에 표시 */
+@media (max-width: 1100px) {
+    .request-detail-page .request-body-layout.has-rejection {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

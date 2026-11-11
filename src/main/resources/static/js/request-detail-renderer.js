@@ -45,7 +45,7 @@ window.RequestDetailRenderer = (() => {
             ? String(value).replace('T', ' ').substring(0, 19)
             : '-';
     }
-	
+
 	function renderChangeResult(item) {
 	    const statusNames = {
 	        COMPLETED: '성공',
@@ -79,19 +79,40 @@ window.RequestDetailRenderer = (() => {
 	        + changeReason;
 	}
 
-	function renderItems(items, validationMessages = new Map(), { readOnly = false } = {}) {
+	function renderItems(
+	    items,
+	    validationMessages = new Map(),
+	    { readOnly = false } = {}
+	) {
 	    if (!Array.isArray(items) || items.length === 0) {
 	        return '<p class="empty">등록된 SQL이 없습니다.</p>';
 	    }
 
-	    return items.map(item => {
-	        const validationLabel = validationNames[item.validationStatus] || item.validationStatus || '-';
-	        const authoringLabel = authoringNames[item.authoringType] || item.authoringType || '-';
-	        const validationMessage = validationMessages.get(item.queryId);
-	        const showValidationDetail = Boolean(validationMessage)
-	            || ['INVALID', 'WARNING', 'BLOCKED'].includes(item.validationStatus);
+	    const useAccordion = Boolean(
+	        document.querySelector('.request-document-page')
+	    );
+
+	    return items.map(function (item, index) {
+	        const validationLabel =
+	            validationNames[item.validationStatus]
+	            || item.validationStatus
+	            || '-';
+
+	        const authoringLabel =
+	            authoringNames[item.authoringType]
+	            || item.authoringType
+	            || '-';
+
+	        const validationMessage =
+	            validationMessages.get(item.queryId);
+
+	        const showValidationDetail =
+	            Boolean(validationMessage)
+	            || ['INVALID', 'WARNING', 'BLOCKED']
+	                .includes(item.validationStatus);
 
 	        let validationClass = '';
+
 	        if (item.validationStatus === 'WARNING') {
 	            validationClass = ' is-warning';
 	        } else if (item.validationStatus === 'VALID') {
@@ -101,21 +122,74 @@ window.RequestDetailRenderer = (() => {
 	        const defaultValidationMessage = readOnly
 	            ? '저장된 SQL의 검증 상태를 확인해 주세요.'
 	            : '전체 SQL 검증을 다시 실행해 안내를 확인하세요.';
+
 	        const validationDetail = showValidationDetail
-	            ? '<p class="sql-validation-message' + validationClass + '" role="status">'
-	                + esc(validationMessage || defaultValidationMessage) + '</p>'
+	            ? '<p class="sql-validation-message'
+	                + validationClass
+	                + '" role="status">'
+	                + esc(
+	                    validationMessage
+	                    || defaultValidationMessage
+	                )
+	                + '</p>'
 	            : '';
 
-	        return '<article class="result-item">'
-	            + '<div class="panel-heading">'
-	            + '<h3>' + esc(item.queryTitle || ('SQL ' + item.queryOrder)) + '</h3>'
-	            + badge(validationLabel)
-	            + '</div>'
-	            + '<p class="caption">순서 ' + esc(item.queryOrder) + ' · ' + esc(authoringLabel) + '</p>'
-	            + '<pre><code>' + esc(item.sqlText) + '</code></pre>'
+	        const sqlBody =
+	            '<p class="caption">순서 '
+	            + esc(item.queryOrder)
+	            + ' · ' + esc(authoringLabel)
+	            + '</p>'
+	            + '<pre><code>'
+	            + esc(item.sqlText)
+	            + '</code></pre>'
 	            + validationDetail
 	            + renderChangeResult(item)
-	            + renderChangeResultHistory(item.changeResultHistory)
+	            + renderChangeResultHistory(item.changeResultHistory);
+
+	        // 부서 상세는 기존 표시와 결과 등록 구조를 유지한다.
+	        if (!useAccordion) {
+	            return '<article class="result-item">'
+	                + '<div class="panel-heading">'
+	                + '<h3>'
+	                + esc(item.queryTitle || ('SQL ' + item.queryOrder))
+	                + '</h3>'
+	                + badge(validationLabel)
+	                + '</div>'
+	                + sqlBody
+	                + '</article>';
+	        }
+
+	        const number = String(item.queryOrder ?? index + 1)
+	            .padStart(2, '0');
+
+	        const title = item.queryTitle || '제목 없음';
+
+	        const stateClass = {
+	            PENDING: 'is-pending',
+	            VALID: 'is-valid',
+	            INVALID: 'is-invalid',
+	            WARNING: 'is-warning',
+	            BLOCKED: 'is-invalid'
+	        }[item.validationStatus] || 'is-pending';
+
+	        return '<article class="result-item request-sql-item">'
+	            + '<details class="request-sql-accordion"'
+	            + (index === 0 ? ' open' : '')
+	            + '>'
+	            + '<summary>'
+	            + '<span class="request-sql-summary-title">'
+	            + 'SQL ' + esc(number)
+	            + ' · ' + esc(title)
+	            + '</span>'
+	            + '<span class="request-sql-validation-state '
+	            + stateClass + '">'
+	            + esc(validationLabel)
+	            + '</span>'
+	            + '</summary>'
+	            + '<div class="request-sql-body">'
+	            + sqlBody
+	            + '</div>'
+	            + '</details>'
 	            + '</article>';
 	    }).join('');
 	}
@@ -149,62 +223,120 @@ window.RequestDetailRenderer = (() => {
 	        + '</details>';
 	}
 
-    function renderHistory(items) {
-        if (!Array.isArray(items) || items.length === 0) {
-            return '<li class="empty">등록된 결재 이력이 없습니다.</li>';
-        }
+	function renderHistory(items) {
+	    if (!Array.isArray(items) || items.length === 0) {
+	        return '<p class="approval-history-empty">'
+	            + '등록된 결재 이력이 없습니다.'
+	            + '</p>';
+	    }
 
-		const typeNames = {
-		    APPROVER: '결재',
-		    INTERMEDIATE: '중간 결재',
-		    DIRECTOR: '부서장 결재',
-		    DB_EXECUTION: 'DB팀 실행 승인'
-		};
+	    const statusLabels = {
+	        WAITING: '대기',
+	        PENDING: '결재 차례',
+	        APPROVED: '승인',
+	        REJECTED: '반려',
+	        CANCELLED: '취소'
+	    };
 
-        const historyStatusNames = {
-            WAITING: '대기',
-            PENDING: '결재 대기',
-            APPROVED: '승인',
-            REJECTED: '반려',
-            CANCELLED: '취소'
-        };
+	    const statusClasses = {
+	        WAITING: 'is-waiting',
+	        PENDING: 'is-pending',
+	        APPROVED: 'is-approved',
+	        REJECTED: 'is-rejected',
+	        CANCELLED: 'is-cancelled'
+	    };
 
-        return items.map(item => {
-            const typeName =
-                typeNames[item.approvalType]
-                || item.approvalType
-                || '-';
+	    const rows = [...items]
+	        .sort((a, b) => a.approvalOrder - b.approvalOrder)
+	        .map(function (item) {
+	            const statusClass =
+	                statusClasses[item.status] || 'is-waiting';
 
-            const statusName =
-                historyStatusNames[item.status]
-                || item.status
-                || '-';
+	            const statusLabel =
+	                statusLabels[item.status] || '상태 확인 필요';
 
-            const comment = item.commentText
-                ? '<p class="approval-history-comment">'
-                    + esc(item.commentText)
-                    + '</p>'
-                : '';
+	            const person = [
+	                item.approverName || '사용자 정보 없음',
+	                item.positionName
+	            ].filter(Boolean).join(' ');
 
-            return '<li class="approval-history-item">'
-                + '<div class="panel-heading">'
-                + '<strong>' + esc(typeName) + '</strong>'
-                + badge(statusName)
-                + '</div>'
-                + '<p>' + esc(item.approverName || '-')
-                + ' · ' + esc(item.deptName || '-')
-                + ' · ' + esc(item.positionName || '-') + '</p>'
-                + comment
-                + '<p class="caption">처리 시각: '
-                + esc(
-                    item.decidedAt
-                        ? formatDate(item.decidedAt)
-                        : '아직 처리되지 않았습니다.'
-                )
-                + '</p>'
-                + '</li>';
-        }).join('');
-    }
+	            const fullDate = item.decidedAt
+	                ? formatDate(item.decidedAt).substring(0, 16)
+	                : '';
+
+	            const shortDate = fullDate
+	                ? fullDate.substring(5).replace('-', '.')
+	                : '—';
+
+	            const hasComment =
+	                Boolean(item.commentText?.trim());
+
+	            const commentLabel = item.status === 'REJECTED'
+	                ? '반려 사유'
+	                : '처리 의견';
+
+	            const commentRow = hasComment
+	                ? '<tr class="approval-history-note-row '
+	                    + statusClass + '">'
+	                    + '<td colspan="4">'
+	                    + '<div class="approval-history-note">'
+	                    + '<strong>'
+	                    + esc(commentLabel)
+	                    + '</strong>'
+	                    + '<p>'
+	                    + esc(item.commentText)
+	                    + '</p>'
+	                    + '</div>'
+	                    + '</td>'
+	                    + '</tr>'
+	                : '';
+
+	            return '<tr class="approval-history-data-row '
+	                + statusClass + '">'
+	                + '<td class="approval-history-order">'
+	                + esc(item.approvalOrder)
+	                + '</td>'
+	                + '<td>'
+	                + '<strong class="approval-history-person">'
+	                + esc(person)
+	                + '</strong>'
+	                + '<span class="approval-history-department">'
+	                + esc(item.deptName || '—')
+	                + '</span>'
+	                + '</td>'
+	                + '<td>'
+	                + '<span class="approval-history-status '
+	                + statusClass + '">'
+	                + esc(statusLabel)
+	                + '</span>'
+	                + '</td>'
+	                + '<td class="approval-history-date" title="'
+	                + esc(fullDate) + '">'
+	                + esc(shortDate)
+	                + '</td>'
+	                + '</tr>'
+	                + commentRow;
+	        }).join('');
+
+	    return '<div class="approval-history-table-scroll">'
+	        + '<table class="approval-history-table">'
+	        + '<caption class="sr-only">결재 처리 상태와 의견</caption>'
+	        + '<colgroup>'
+	        + '<col class="history-order-column">'
+	        + '<col class="history-person-column">'
+	        + '<col class="history-status-column">'
+	        + '<col class="history-date-column">'
+	        + '</colgroup>'
+	        + '<thead><tr>'
+	        + '<th scope="col">순서</th>'
+	        + '<th scope="col">결재자</th>'
+	        + '<th scope="col">상태</th>'
+	        + '<th scope="col">처리 시각</th>'
+	        + '</tr></thead>'
+	        + '<tbody>' + rows + '</tbody>'
+	        + '</table>'
+	        + '</div>';
+	}
 
     function renderApprovalRows(rows) {
 		const lineStatusNames = {
@@ -242,10 +374,161 @@ window.RequestDetailRenderer = (() => {
                 + '</li>';
         }).join('');
     }
-	
+
+	function renderApprovalPreview(
+	    rows,
+	    emptyMessage = '결재선을 등록해 주세요.'
+	) {
+	    const list = $('#request-approval-list');
+
+	    // 부서 상세 화면은 기존 목록 표시를 유지한다.
+	    if (!list.closest('.request-document-page')) {
+	        list.innerHTML = rows.length
+	            ? renderApprovalRows(rows)
+	            : '<li><p class="muted">'
+	                + esc(emptyMessage)
+	                + '</p></li>';
+	        return;
+	    }
+
+	    const previous = $('#approval-card-previous');
+	    const next = $('#approval-card-next');
+	    const navigation = $('#approval-card-navigation');
+	    const range = $('#approval-card-range');
+
+	    const pageSize = 3;
+	    let start = 0;
+
+	    const statusLabels = {
+	        PENDING: '결재 차례',
+	        WAITING: '대기',
+	        APPROVED: '승인',
+	        REJECTED: '반려',
+	        CANCELLED: '취소'
+	    };
+
+	    function draw() {
+	        list.classList.add('request-approval-cards');
+	        navigation.hidden = rows.length <= pageSize;
+
+	        if (rows.length === 0) {
+	            list.innerHTML =
+	                '<li class="approval-card-empty">'
+	                + esc(emptyMessage)
+	                + '</li>';
+
+	            previous.disabled = true;
+	            next.disabled = true;
+	            range.textContent = '';
+	            return;
+	        }
+
+	        const end = Math.min(start + pageSize, rows.length);
+	        const visibleRows = rows.slice(start, end);
+
+	        list.innerHTML = visibleRows.map(function (row, index) {
+	            const absoluteIndex = start + index;
+	            const isLast = absoluteIndex === rows.length - 1;
+
+	            const stepLabel = isLast
+	                ? '최종 결재'
+	                : row.order + '차 결재';
+
+	            const statusLabel = row.status
+	                ? statusLabels[row.status] || '상태 확인 필요'
+	                : '제출 전';
+
+	            const statusClass = {
+	                PENDING: 'is-pending',
+	                WAITING: 'is-waiting',
+	                APPROVED: 'is-approved',
+	                REJECTED: 'is-rejected',
+	                CANCELLED: 'is-cancelled'
+	            }[row.status] || 'is-draft';
+
+	            const personLabel = [
+	                row.name || '사용자 정보 없음',
+	                row.positionName
+	            ].filter(Boolean).join(' ');
+
+	            const decidedAt = row.decidedAt
+	                ? formatDate(row.decidedAt).substring(0, 16)
+	                : '—';
+
+	            return '<li class="approval-card '
+	                + statusClass + '">'
+	                + '<div class="approval-card-step">'
+	                + esc(stepLabel)
+	                + '</div>'
+	                + '<div class="approval-card-person">'
+	                + '<strong>' + esc(personLabel) + '</strong>'
+	                + '<span class="approval-card-department">'
+	                + esc(row.deptName || '—')
+	                + '</span>'
+	                + '<span class="approval-card-status">'
+	                + esc(statusLabel)
+	                + '</span>'
+	                + '</div>'
+	                + '<div class="approval-card-date">'
+	                + esc(decidedAt)
+	                + '</div>'
+	                + '</li>';
+			}).join('');
+
+			// 결재자가 없는 나머지 칸을 빈 박스로 채운다.
+			const emptyCount = pageSize - visibleRows.length;
+
+			if (emptyCount > 0) {
+			    const placeholder =
+			        '<li class="approval-card-placeholder"'
+			        + ' aria-hidden="true"></li>';
+
+			    list.insertAdjacentHTML(
+			        'beforeend',
+			        placeholder.repeat(emptyCount)
+			    );
+			}
+
+			previous.disabled = start === 0;
+			next.disabled = end >= rows.length;
+
+	        range.textContent =
+	            (start + 1) + '–' + end + ' / ' + rows.length;
+	    }
+
+	    previous.onclick = function () {
+	        start = Math.max(0, start - pageSize);
+	        draw();
+	    };
+
+	    next.onclick = function () {
+	        if (start + pageSize < rows.length) {
+	            start += pageSize;
+	            draw();
+	        }
+	    };
+
+	    draw();
+	}
+
 	function renderRequestInfo(request) {
 	    $('#request-number').textContent = request.requestNo;
 	    $('#detail-title').textContent = request.title;
+
+		const documentHeading = $('#request-document-heading');
+
+		if (documentHeading) {
+		    const isDbChange = [
+		        'CREATE_VIEW',
+		        'INSERT',
+		        'UPDATE',
+		        'DELETE'
+		    ].includes(request.requestType);
+
+			documentHeading.textContent = isDbChange
+				? 'SQLFlow · DB 변경 기안서'
+				: 'SQLFlow · 데이터 조회 기안서';
+		}
 
 	    $('#detail-state').innerHTML = badge(
 	        statusNames[request.requestStatus]
@@ -285,14 +568,12 @@ window.RequestDetailRenderer = (() => {
 	                || '-'
 	            );
 
-	    $('#created-at').textContent = formatDate(request.createdAt);
+		$('#submitted-at').textContent = request.submittedAt
+			? formatDate(request.submittedAt).substring(0, 16)
+			: '미제출';
 
-	    $('#submitted-at').textContent = request.submittedAt
-	        ? formatDate(request.submittedAt)
-	        : '아직 제출하지 않았습니다.';
-
-	    $('#sql-count').textContent =
-	        '총 ' + (Array.isArray(request.items) ? request.items.length : 0) + '개';
+		$('#sql-count').textContent =
+			(Array.isArray(request.items) ? request.items.length : 0) + '건';
 	}
 
 	function renderSavedApprovalLine(request) {
@@ -303,14 +584,12 @@ window.RequestDetailRenderer = (() => {
 	        : [];
 
 	    if (approvals.length === 0) {
-	        $('#request-approval-list').innerHTML =
-	            '<li><p class="muted">'
-	            + (
-	                isDraft
-	                    ? '결재선을 등록해 주세요.'
-	                    : '저장된 결재선이 없습니다.'
-	            )
-	            + '</p></li>';
+	        renderApprovalPreview(
+	            [],
+				isDraft
+					? '결재선을 지정해 주세요.'
+						: '저장된 결재선이 없습니다.'
+	        );
 
 	        $('#request-approval-badge').textContent =
 	            isDraft ? '미등록' : '결재선 없음';
@@ -322,12 +601,12 @@ window.RequestDetailRenderer = (() => {
 	        return;
 	    }
 
-		const roleNames = {
-		    APPROVER: '결재자',
-		    INTERMEDIATE: '중간 결재자',
-		    DIRECTOR: '소속 부서장',
-		    DB_EXECUTION: 'DB팀 실행 승인'
-		};
+	    const roleNames = {
+	        APPROVER: '결재자',
+	        INTERMEDIATE: '중간 결재자',
+	        DIRECTOR: '소속 부서장',
+	        DB_EXECUTION: 'DB팀 실행 승인'
+	    };
 
 	    const rows = [...approvals]
 	        .sort((a, b) => a.approvalOrder - b.approvalOrder)
@@ -339,17 +618,18 @@ window.RequestDetailRenderer = (() => {
 	            name: approval.approverName,
 	            deptName: approval.deptName,
 	            positionName: approval.positionName,
-	            status: approval.status
+	            status: approval.status,
+	            decidedAt: approval.decidedAt
 	        }));
 
-	    $('#request-approval-list').innerHTML = renderApprovalRows(rows);
+	    renderApprovalPreview(rows);
 
-		const summaryNames = {
-		    PENDING: '결재 진행 중',
-		    APPROVED: '결재 완료',
-		    REJECTED: '반려',
-		    CANCELLED: '결재 취소'
-		};
+	    const summaryNames = {
+	        PENDING: '결재 진행 중',
+	        APPROVED: '결재 완료',
+	        REJECTED: '반려',
+	        CANCELLED: '결재 취소'
+	    };
 
 	    $('#request-approval-badge').textContent =
 	        summaryNames[request.approvalStatus]
@@ -360,15 +640,85 @@ window.RequestDetailRenderer = (() => {
 	        '저장된 결재선과 현재 처리 상태입니다.';
 	}
 
-    return Object.freeze({
-        statusNames,
-        classNames,
-        approvalNames,
-        formatDate,
-        renderItems,
-        renderHistory,
-        renderApprovalRows,
-		renderRequestInfo,
-		renderSavedApprovalLine
-    });
+	async function loadRejectionReason(requestStatus, historyUrl) {
+	    const layout = $('#request-body-layout');
+	    const panel = $('#request-rejection-panel');
+	    const meta = $('#request-rejection-meta');
+	    const reason = $('#request-rejection-reason');
+
+	    const isRejected = requestStatus === 'REJECTED';
+
+	    layout.classList.toggle('has-rejection', isRejected);
+	    panel.hidden = !isRejected;
+
+	    meta.textContent = '';
+	    reason.textContent = '';
+
+	    // 반려되지 않은 요청은 이력 조회도 하지 않는다.
+	    if (!isRejected) return;
+
+	    reason.textContent = '반려 사유를 불러오는 중입니다.';
+	    panel.setAttribute('aria-busy', 'true');
+
+	    try {
+	        const history = await api(
+	            historyUrl,
+	            { cache: 'no-store' }
+	        );
+
+	        if (!Array.isArray(history)) {
+	            throw Error('결재 처리 정보를 확인할 수 없습니다.');
+	        }
+
+	        const rejected = history
+	            .filter(item => item.status === 'REJECTED')
+	            .sort((a, b) =>
+	                String(b.decidedAt || '')
+	                    .localeCompare(String(a.decidedAt || ''))
+	                || Number(b.approvalOrder) - Number(a.approvalOrder)
+	            )[0];
+
+	        if (!rejected) {
+	            reason.textContent =
+	                '반려 처리 기록을 확인할 수 없습니다.';
+	            return;
+	        }
+
+	        const person = [
+	            rejected.approverName,
+	            rejected.positionName
+	        ].filter(Boolean).join(' ');
+
+	        const decidedAt = rejected.decidedAt
+	            ? formatDate(rejected.decidedAt).substring(0, 16)
+	            : '';
+
+	        meta.textContent = [
+	            person,
+	            decidedAt
+	        ].filter(Boolean).join(' · ');
+
+	        reason.textContent = rejected.commentText?.trim()
+	            || '등록된 반려 사유가 없습니다.';
+	    } catch (error) {
+	        reason.textContent =
+	            '반려 사유를 불러오지 못했습니다.';
+	    } finally {
+	        panel.removeAttribute('aria-busy');
+	    }
+	}
+
+	return Object.freeze({
+	    statusNames,
+	    classNames,
+	    approvalNames,
+	    formatDate,
+	    renderItems,
+	    renderHistory,
+	    renderApprovalRows,
+	    renderApprovalPreview,
+	    renderRequestInfo,
+	    renderSavedApprovalLine,
+	    loadRejectionReason
+	});
 })();

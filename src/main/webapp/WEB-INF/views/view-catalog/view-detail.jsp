@@ -93,7 +93,13 @@
 
         <section class="panel view-panel">
             <div class="panel-heading">
-                <h2>컬럼 목록</h2>
+				<div class="view-column-heading">
+				    <h2>컬럼 목록</h2>
+				        <button id="view-column-edit" class="button" type="button" hidden
+				                aria-haspopup="dialog" aria-controls="view-column-dialog">
+				            컬럼 정보 편집
+				        </button>
+				</div>
                 <span id="view-column-count" class="caption"></span>
             </div>
 
@@ -116,6 +122,30 @@
                 </table>
             </div>
         </section>
+
+		    <dialog id="view-column-dialog" class="view-column-dialog" aria-labelledby="view-column-dialog-title">
+		        <div class="view-column-editor">
+		            <header class="view-column-editor-header">
+		                <h2 id="view-column-dialog-title">컬럼 정보 편집</h2>
+		                <p id="view-column-dialog-name" class="caption view-column-editor-name"></p>
+		            </header>
+
+		            <div class="view-column-editor-body">
+		                <div class="view-column-editor-labels" aria-hidden="true">
+		                    <span>컬럼명 · 자료형</span>
+		                    <span>논리명</span>
+		                    <span>설명</span>
+		                </div>
+		                <div id="view-column-editor-rows"></div>
+		            </div>
+
+		            <form id="view-column-editor-form" class="view-column-editor-footer">
+		                <p id="view-column-editor-status" class="caption" role="status"></p>
+		                <button class="button" type="submit" formmethod="dialog" formnovalidate>닫기</button>
+		                <button id="view-column-save" class="button primary" type="submit">저장</button>
+		            </form>
+		        </div>
+		    </dialog>
 
         <section class="panel view-panel">
             <div class="panel-heading">
@@ -326,7 +356,7 @@
         body.replaceChildren(fragment);
     }
 
-	function renderColumns(columns) {
+	function renderColumns(columns, metadata = new Map()) {
 	    const body = $('#view-column-rows');
 	    $('#view-column-count').textContent = '총 ' + columns.length + '개';
 
@@ -344,19 +374,19 @@
 	        const row = document.createElement('tr');
 
 	        appendCell(row, column.ordinalPosition);
-	        // 현재 컬럼 응답에는 논리명이 없으므로 자리만 표시한다.
-	        appendCell(row, '—');
+	        const entry = metadata.get(column.columnName);
+	        appendCell(row, entry?.logicalName || '미등록');
 	        appendCell(row, column.columnName, 'view-column-name');
 	        appendCell(row, column.columnType, 'view-column-type');
 	        appendCell(row, nullableNames[column.isNullable] || '확인 필요');
-	        appendCell(row, column.columnComment);
+	        appendCell(row, entry?.description || column.columnComment);
 
 	        fragment.appendChild(row);
 	    });
 
 	    body.replaceChildren(fragment);
 	}
-	
+
 	/**
 	 * 화면 표시용으로 줄바꿈·들여쓰기를 적용한다.
 	 * 정렬할 수 없는 구문은 원문으로 표시한다.
@@ -378,6 +408,113 @@
 	    }
 	}
 
+	async function bindColumnEditor(detail) {
+	    const button = $('#view-column-edit');
+	    const url = '/views/column-metadata?' + new URLSearchParams({
+	        schemaName: detail.schemaName, objectName: detail.objectName
+	    });
+	    button.hidden = true;
+	    let response;
+	    try {
+	        response = await api(url);
+	    } catch (error) {
+	        notify('컬럼 메타데이터를 불러오지 못했습니다.', true);
+	        return;
+	    }
+	    const metadata = new Map(response.columns.map(entry => [entry.columnName, entry]));
+	    renderColumns(detail.columns, metadata);
+	    if (!response.canEdit || detail.columns.length === 0) {
+	        return;
+	    }
+	    button.hidden = false;
+
+	    const dialog = $('#view-column-dialog');
+	    const rows = $('#view-column-editor-rows');
+	    const form = $('#view-column-editor-form');
+	    const save = $('#view-column-save');
+	    const status = $('#view-column-editor-status');
+	    let inputs = [];
+
+	    button.onclick = function () {
+	        inputs = [];
+	        status.textContent = '';
+	        const fragment = document.createDocumentFragment();
+	        $('#view-column-dialog-name').textContent = detail.objectName;
+
+	        // 실제 뷰 컬럼을 기준으로 입력 행을 만들고, 컬럼명과 자료형은 텍스트로 표시한다.
+	        detail.columns.forEach(function (column) {
+	            const row = document.createElement('div');
+	            row.className = 'view-column-editor-row';
+
+	            const identity = document.createElement('div');
+	            identity.className = 'view-column-editor-identity';
+	            const columnName = document.createElement('strong');
+	            columnName.textContent = column.columnName;
+
+	            const columnType = document.createElement('span');
+	            columnType.className = 'caption';
+	            columnType.textContent = column.columnType;
+	            identity.append(columnName, columnType);
+
+	            const logicalName = document.createElement('input');
+	            logicalName.type = 'text';
+	            logicalName.maxLength = 255;
+	            logicalName.placeholder = '논리명';
+	            logicalName.setAttribute('aria-label', column.columnName + ' 논리명');
+
+	            const description = document.createElement('textarea');
+	            description.rows = 1;
+	            description.maxLength = 1000;
+	            description.placeholder = '설명';
+	            description.setAttribute('aria-label', column.columnName + ' 설명');
+	            const entry = metadata.get(column.columnName);
+	            logicalName.value = entry?.logicalName || '';
+	            description.value = entry?.description || '';
+	            inputs.push({ columnName: column.columnName, logicalName, description });
+
+	            row.append(identity, logicalName, description);
+	            fragment.appendChild(row);
+	        });
+
+	        rows.replaceChildren(fragment);
+	        dialog.showModal();
+	    };
+
+	    dialog.oncancel = function (event) {
+	        if (save.disabled) event.preventDefault();
+	    };
+	    form.onsubmit = async function (event) {
+	        if (save.disabled || event.submitter?.formMethod !== 'dialog') event.preventDefault();
+	        if (save.disabled || event.submitter?.formMethod === 'dialog') return;
+
+	        const changes = inputs.map(input => ({
+	            columnName: input.columnName,
+	            logicalName: input.logicalName.value.trim(),
+	            description: input.description.value.trim()
+	        })).filter(entry => {
+	            const previous = metadata.get(entry.columnName);
+	            return entry.logicalName !== (previous?.logicalName || '')
+	                || entry.description !== (previous?.description || '');
+	        });
+	        if (changes.length === 0) {
+	            dialog.close();
+	            return;
+	        }
+	        save.disabled = true;
+	        status.textContent = '';
+	        try {
+	            await api(url, { method: 'PUT', body: JSON.stringify(changes) });
+	            changes.forEach(entry => metadata.set(entry.columnName, entry));
+	            renderColumns(detail.columns, metadata);
+	            dialog.close();
+	        } catch (error) {
+	            status.textContent = error.message;
+	        } finally {
+	            save.disabled = false;
+	        }
+	    };
+	}
+
 	function renderDetail(detail) {
 	    $('#view-detail-title').textContent = detail.objectName;
 	    $('#view-info-schema').textContent = detail.schemaName;
@@ -387,6 +524,7 @@
 	    renderRegistration(detail);
 	    renderPolicies(detail);
 	    renderColumns(detail.columns);
+		bindColumnEditor(detail);
 
 	    // 화면 표시용으로 정렬하며, 실패하면 원문을 표시한다.
 	    $('#view-create-statement').textContent = formatCreateStatement(detail.createStatement);

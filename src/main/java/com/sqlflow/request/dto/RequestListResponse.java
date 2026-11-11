@@ -14,6 +14,8 @@ public class RequestListResponse {
     private String requestType;
 
     private String title;
+    private String drafterName;
+    private String deptName;
     private String isUrgent;
     private String requestClass;
     private String requestStatus;

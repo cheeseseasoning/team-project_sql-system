@@ -1,149 +1,169 @@
 <%@ page pageEncoding="UTF-8" %>
 
-<div class="request-detail-layout">
-
-    <section id="request-info" class="panel request-info-panel" hidden>
-        <h2>요청 정보</h2>
-
-        <dl class="key-values request-info-grid">
-            <div id="source-request-row" class="request-source-row" hidden>
-                <dt>원본 요청</dt>
-                <dd><a id="source-request-link"></a></dd>
-            </div>
-
-            <div>
-                <dt>작성자</dt>
-                <dd id="drafter-name"></dd>
-            </div>
-
-            <div>
-                <dt>요청 부서</dt>
-                <dd id="dept-name"></dd>
-            </div>
-
-            <div>
-                <dt>요청 유형</dt>
-                <dd id="request-type"></dd>
-            </div>
-
-            <div>
-                <dt>조회 유형</dt>
-                <dd id="request-class"></dd>
-            </div>
-
-            <div>
-                <dt>결재 상태</dt>
-                <dd id="approval-status"></dd>
-            </div>
-
-            <div>
-                <dt>생성 시각</dt>
-                <dd id="created-at"></dd>
-            </div>
-
-            <div>
-                <dt>제출 시각</dt>
-                <dd id="submitted-at"></dd>
-            </div>
-
-            <div>
-                <dt>긴급 여부</dt>
-                <dd>
-                    <span id="request-urgency" class="badge"></span>
-                </dd>
-            </div>
-
-            <div>
-                <dt>희망일</dt>
-                <dd id="request-desired-date"></dd>
-            </div>
-        </dl>
-
-        <div class="request-content-section">
-            <h2>조회 목적</h2>
-            <p id="request-purpose" class="notice-body"></p>
-        </div>
-
-        <div class="request-content-section">
-            <h2>상세 내용</h2>
-            <p id="request-detail-content" class="notice-body"></p>
-        </div>
-    </section>
-
-    <aside class="panel request-approval-panel"
-           aria-labelledby="request-approval-title">
-
-        <div class="panel-heading">
-            <h2 id="request-approval-title">결재선</h2>
-            <span id="request-approval-badge" class="badge">미등록</span>
-        </div>
-
-        <p class="request-approval-description">
-            지정한 결재자 순서대로 진행되며, 마지막 결재자가 승인하면 결재가 완료됩니다.
-        </p>
-
-        <ol id="request-approval-list" class="request-approval-list"></ol>
-
-        <c:if test="${not requestDetailReadOnly}">
-            <button id="approval-line-open"
-                    type="button"
-                    class="button primary request-approval-register"
-                    aria-haspopup="dialog"
-                    aria-controls="approval-line-dialog"
-                    aria-describedby="approval-preview-help"
-                    disabled>
-                결재선 등록
-            </button>
-        </c:if>
-
-        <p id="approval-preview-help" class="request-approval-help">
-            결재선 정보를 불러오는 중입니다.
-        </p>
-    </aside>
-</div>
-
-<section id="approval-history-panel"
-         class="panel section-gap approval-history-panel"
-         aria-labelledby="approval-history-title"
+<section id="request-info"
+         class="panel request-info-panel"
          hidden>
-    <div class="panel-heading">
-        <h2 id="approval-history-title">결재 이력</h2>
-    </div>
 
-    <ol id="approval-history-list" class="approval-history-list">
-        <li class="empty">결재 이력을 불러오는 중입니다.</li>
-    </ol>
+	<div class="request-detail-layout">
+
+        <div class="request-information-summary">
+		    <h2 class="request-information-heading">기안 정보</h2>
+
+		    <table class="request-info-table">
+		        <caption class="sr-only">기안 정보</caption>
+
+		        <colgroup>
+		            <col class="request-info-label-column">
+		            <col class="request-info-value-column">
+		            <col class="request-info-label-column">
+		            <col class="request-info-value-column">
+		        </colgroup>
+
+		        <tbody>
+		            <c:if test="${not requestDetailReadOnly or requestDetailDocument}">
+		                <tr>
+		                    <th scope="row">요청번호</th>
+		                    <td id="request-number"></td>
+		                    <th scope="row">문서 상태</th>
+		                    <td id="detail-state"></td>
+		                </tr>
+		            </c:if>
+
+		            <tr>
+		                <th scope="row">기안자</th>
+		                <td id="drafter-name"></td>
+		                <th scope="row">기안 부서</th>
+		                <td id="dept-name"></td>
+		            </tr>
+
+		            <tr>
+		                <th scope="row">제출 시각</th>
+		                <td id="submitted-at"></td>
+		                <th scope="row">처리 희망일</th>
+		                <td id="request-desired-date"></td>
+		            </tr>
+
+		            <tr>
+		                <th scope="row">요청 유형</th>
+		                <td id="request-type"></td>
+		                <th scope="row">조회 유형</th>
+		                <td id="request-class"></td>
+		            </tr>
+
+		            <tr>
+		                <th scope="row">결재 상태</th>
+		                <td id="approval-status"></td>
+		                <th scope="row">긴급 여부</th>
+		                <td>
+		                    <span id="request-urgency" class="badge"></span>
+		                </td>
+		            </tr>
+		        </tbody>
+		    </table>
+
+		    <p id="source-request-row"
+		       class="request-source-reference"
+		       hidden>
+		        원본 요청:
+		        <a id="source-request-link"></a>
+		    </p>
+		</div>
+
+        <aside class="panel request-approval-panel"
+               aria-labelledby="request-approval-title">
+
+            <div class="panel-heading">
+			    <h2 id="request-approval-title">결재란</h2>
+
+			    <span id="request-approval-badge" hidden></span>
+
+			    <c:if test="${not requestDetailReadOnly or requestDetailDocument}">
+			        <div id="approval-card-navigation"
+			             class="approval-card-navigation"
+			             hidden>
+			            <button id="approval-card-previous"
+			                    type="button"
+			                    class="button"
+			                    aria-label="이전 결재자 보기"
+			                    disabled>
+			                <span aria-hidden="true">◀</span>
+			            </button>
+
+			            <span id="approval-card-range"
+			                  class="approval-card-range"
+			                  role="status"></span>
+
+			            <button id="approval-card-next"
+			                    type="button"
+			                    class="button"
+			                    aria-label="다음 결재자 보기"
+			                    disabled>
+			                <span aria-hidden="true">▶</span>
+			            </button>
+			        </div>
+			    </c:if>
+			</div>
+
+            <p class="request-approval-description">
+                지정한 순서대로 진행되며,
+                마지막 결재자가 승인하면 결재가 완료됩니다.
+            </p>
+
+            <ol id="request-approval-list"
+                class="request-approval-list"></ol>
+
+            <p id="approval-preview-help"
+               class="request-approval-help">
+                결재선 정보를 불러오는 중입니다.
+            </p>
+        </aside>
+    </div><!-- request-detail-layout 끝 -->
+
+    <div id="request-body-layout" class="request-body-layout">
+	    <div class="request-body-content">
+	        <section class="request-content-section">
+	            <h2>조회 목적</h2>
+	            <p id="request-purpose" class="notice-body"></p>
+	        </section>
+
+	        <section class="request-content-section">
+	            <h2>상세 내용</h2>
+	            <p id="request-detail-content" class="notice-body"></p>
+	        </section>
+	    </div>
+
+	    <aside id="request-rejection-panel"
+	           class="request-rejection-panel"
+	           aria-labelledby="request-rejection-title"
+	           hidden>
+	        <h2 id="request-rejection-title">반려 사유</h2>
+
+	        <p id="request-rejection-meta"
+	           class="request-rejection-meta"></p>
+
+	        <p id="request-rejection-reason"
+	           class="request-rejection-reason"
+	           role="status"></p>
+	    </aside>
+	</div>
 </section>
 
 <section class="panel section-gap request-sql-panel">
     <div class="panel-heading request-sql-heading">
         <div class="request-sql-heading-main">
-            <h2>등록한 SQL</h2>
+            <h2>
+			    첨부 SQL ·
+			    <span id="sql-count" class="request-sql-count"></span>
+			</h2>
+
             <c:if test="${requestDetailReadOnly and deptName == 'DB팀' and pageContext.request.isUserInRole('DB_APPROVER')}">
-            <button id="view-sql-download" type="button" class="button primary" hidden>
-                승인된 뷰 SQL 다운로드
-            </button>
-            <span id="view-sql-download-message" class="caption" role="status"></span>
+	            <button id="view-sql-download" type="button" class="button primary" hidden>
+	                승인된 뷰 SQL 다운로드
+	            </button>
+	            <span id="view-sql-download-message" class="caption" role="status"></span>
             </c:if>
         </div>
-        <span id="sql-count" class="caption request-sql-count"></span>
     </div>
-
-    <c:if test="${not requestDetailReadOnly}">
-        <div id="sql-validation-controls"
-             class="sql-validation-controls"
-             hidden>
-            <p class="caption">
-                제출 전에 등록한 SQL 전체를 검증해 주세요.
-            </p>
-
-            <button id="validate-sqls"
-                    type="button"
-                    class="button primary">
-                전체 SQL 검증
-            </button>
-        </div>
-    </c:if>
 
     <div id="detail-items">불러오는 중입니다.</div>
 </section>

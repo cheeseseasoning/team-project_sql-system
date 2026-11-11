@@ -228,22 +228,31 @@
     </select>
 
     <select id="searchActiveCandidates"
-            resultType="com.sqlflow.approval.dto.ApprovalCandidateResponse">
-        SELECT U.USER_ID,
-               U.USER_NAME,
-               D.DEPT_NAME,
-               P.POSITION_NAME
-        FROM USERS U
-        JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
-        JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
-        WHERE U.ENABLED = 'Y'
-          AND U.USER_ID &lt;&gt; #{excludedUserId}
-        <if test="keyword != null and keyword != ''">
-            AND LOWER(U.USER_NAME)
-                LIKE '%' || LOWER(#{keyword}) || '%'
-        </if>
-        ORDER BY U.USER_NAME, U.USER_ID
-    </select>
+	        resultType="com.sqlflow.approval.dto.ApprovalCandidateResponse">
+	    SELECT U.USER_ID,
+	           U.USER_NAME,
+	           D.DEPT_NAME,
+	           P.POSITION_NAME
+	    FROM USERS U
+	    JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+	    JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
+	    WHERE U.ENABLED = 'Y'
+	      AND U.USER_ID &lt;&gt; #{excludedUserId}
+
+	    <if test="keyword != null and keyword != ''">
+		    AND (
+		        LOWER(U.USER_NAME)
+		            LIKE '%' || LOWER(#{keyword}) || '%'
+		        OR LOWER(D.DEPT_NAME)
+		            LIKE '%' || LOWER(#{keyword}) || '%'
+		    )
+		</if>
+
+	    ORDER BY D.DEPT_NAME ASC,
+	             P.POSITION_LEVEL DESC NULLS LAST,
+	             U.USER_NAME ASC,
+	             U.USER_ID ASC
+	</select>
 
     <insert id="insertApproval">
         INSERT INTO APPROVAL (

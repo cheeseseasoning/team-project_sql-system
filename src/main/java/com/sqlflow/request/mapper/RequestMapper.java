@@ -42,12 +42,12 @@ public interface RequestMapper {
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);
 
-    
+
     List<RequestListResponse> selectMyRequests(
             @Param("drafterId") Long drafterId,
             @Param("keyword") String keyword,
             @Param("status") String status);
-    
+
     RequestDetailResponse selectMyRequestDetail(
             @Param("requestId") Long requestId,
             @Param("drafterId") Long drafterId);
@@ -55,7 +55,7 @@ public interface RequestMapper {
     List<RequestItemResponse> selectMyRequestItems(
             @Param("requestId") Long requestId,
             @Param("drafterId") Long drafterId);
-    
+
     // 본인 요청의 상태 확인 및 수정 중 잠금
     String selectMyRequestStatusForUpdate(
             @Param("requestId") Long requestId,
@@ -68,32 +68,34 @@ public interface RequestMapper {
     int deleteDraftItems(
             @Param("requestId") Long requestId,
             @Param("drafterId") Long drafterId);
-    
+
     // 본인의 초안 요청서 삭제
     int deleteDraftRequest(
             @Param("requestId") Long requestId,
             @Param("drafterId") Long drafterId);
-    
+
     // 본인의 초안을 제출 상태로 변경
     int submitDraft(
             @Param("requestId") Long requestId,
             @Param("drafterId") Long drafterId);
-    
+
     long countMyRequests(
             @Param("drafterId") Long drafterId,
             @Param("keyword") String keyword,
+            @Param("requestType") String requestType,
             @Param("status") String status);
 
     List<RequestListResponse> selectMyRequestsPage(
             @Param("drafterId") Long drafterId,
             @Param("keyword") String keyword,
+            @Param("requestType") String requestType,
             @Param("status") String status,
             @Param("offset") long offset,
             @Param("size") int size);
-    
+
     RequestSummaryResponse selectMyRequestSummary(
             @Param("drafterId") Long drafterId);
-    
+
     // 본인 요청에 저장된 결재선을 순서대로 조회
     List<RequestApprovalResponse> selectMyRequestApprovals(
             @Param("requestId") Long requestId,
@@ -105,7 +107,7 @@ public interface RequestMapper {
             @Param("queryId") Long queryId,
             @Param("drafterId") Long drafterId,
             @Param("validationStatus") String validationStatus);
-    
+
     int updateSubmittedItemValidation(
             @Param("requestId") Long requestId,
             @Param("queryId") Long queryId,
@@ -121,7 +123,7 @@ public interface RequestMapper {
             @Param("requestId") Long requestId,
             @Param("drafterId") Long drafterId,
             @Param("requestClass") String requestClass);
-    
+
     int withdrawRequest(
             @Param("requestId") Long requestId,
             @Param("drafterId") Long drafterId);

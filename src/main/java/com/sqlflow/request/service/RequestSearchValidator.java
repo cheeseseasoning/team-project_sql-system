@@ -19,6 +19,10 @@ public final class RequestSearchValidator {
             "REJECTED",
             "WITHDRAWN");
 
+    private static final Set<String> SEARCHABLE_TYPES = Set.of(
+            "SELECT",
+            "DB_CHANGE");
+
     private RequestSearchValidator() {
     }
 
@@ -33,6 +37,21 @@ public final class RequestSearchValidator {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "올바르지 않은 요청 상태입니다.");
+        }
+    }
+
+    public static void validateRequestType(String requestType) {
+        if (requestType == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "요청 유형 검색값이 누락되었습니다.");
+        }
+
+        if (!requestType.isEmpty()
+                && !SEARCHABLE_TYPES.contains(requestType)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "올바르지 않은 요청 유형입니다.");
         }
     }
 

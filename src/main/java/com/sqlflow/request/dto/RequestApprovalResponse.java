@@ -1,5 +1,7 @@
 package com.sqlflow.request.dto;
 
+import java.time.LocalDateTime;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,4 +18,6 @@ public class RequestApprovalResponse {
     private String approverName;
     private String deptName;
     private String positionName;
+
+    private LocalDateTime decidedAt;
 }

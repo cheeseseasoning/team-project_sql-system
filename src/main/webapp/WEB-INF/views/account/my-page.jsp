@@ -1,14 +1,10 @@
 <%@ page pageEncoding="UTF-8" %>
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
-<div class="page-heading">
-    <h1>마이페이지</h1>
-    <span class="badge">내 계정</span>
-</div>
-
-<p class="my-page-intro">
-    내 계정 정보를 확인하고 연락처를 수정할 수 있습니다.
-</p>
+<header class="my-page-heading">
+    <h1>내 프로필</h1>
+    <p>내 계정 정보와 연락처를 확인하세요.</p>
+</header>
 
 <div id="profile-loading" class="panel" role="status">
     내 정보를 불러오는 중입니다.
@@ -21,119 +17,130 @@
     </button>
 </div>
 
-<div id="profile-content" class="my-page-content" hidden>
-    <section class="panel" aria-labelledby="profile-info-title">
-        <div class="panel-heading">
-            <h2 id="profile-info-title">기본 정보</h2>
-            <span class="caption">읽기 전용</span>
-        </div>
+<div id="profile-content" class="panel my-page-content" hidden>
+    <section class="profile-section" aria-labelledby="profile-info-title">
+        <h2 id="profile-info-title">기본 정보</h2>
 
         <dl class="profile-info-grid">
             <div>
-                <dt>이름</dt>
-                <dd id="profile-user-name">-</dd>
+                <dt>이름 / 사번</dt>
+                <dd>
+                    <span id="profile-user-name">—</span>
+                    <span aria-hidden="true"> / </span>
+                    <span id="profile-employee-no">—</span>
+                </dd>
             </div>
             <div>
-                <dt>사번</dt>
-                <dd id="profile-employee-no">-</dd>
-            </div>
-            <div>
-                <dt>아이디</dt>
-                <dd id="profile-login-id">-</dd>
+                <dt>로그인 ID</dt>
+                <dd id="profile-login-id">—</dd>
             </div>
             <div>
                 <dt>부서</dt>
-                <dd id="profile-dept-name">-</dd>
+                <dd id="profile-dept-name">—</dd>
             </div>
             <div>
                 <dt>직급</dt>
-                <dd id="profile-position-name">-</dd>
+                <dd id="profile-position-name">—</dd>
             </div>
         </dl>
     </section>
 
-    <form id="profile-form" class="panel section-gap" novalidate>
-        <div class="panel-heading">
+    <section class="profile-section" aria-labelledby="profile-contact-title">
+        <div class="profile-section-heading">
             <h2 id="profile-contact-title">연락처</h2>
-            <span class="caption">직접 수정할 수 있습니다.</span>
-        </div>
-
-        <fieldset id="profile-fields"
-                  aria-labelledby="profile-contact-title"
-                  disabled>
-            <div class="form-grid profile-contact-grid">
-                <div>
-                    <label for="profile-phone">전화번호</label>
-                    <input id="profile-phone"
-                           name="phoneNumber"
-                           type="tel"
-                           inputmode="tel"
-                           autocomplete="tel"
-                           maxlength="20"
-                           placeholder="010-1234-5678"
-                           aria-describedby="profile-phone-help profile-phone-error">
-
-                    <p id="profile-phone-help" class="caption profile-field-help">
-                        국내 휴대전화, 지역번호 전화, 070 번호를 입력하세요.
-                    </p>
-                    <p id="profile-phone-error"
-                       class="profile-field-error"
-                       hidden></p>
-                </div>
-
-                <div>
-                    <label for="profile-email">이메일</label>
-                    <input id="profile-email"
-                           name="email"
-                           type="email"
-                           autocomplete="email"
-                           maxlength="254"
-                           placeholder="name@example.com"
-                           aria-describedby="profile-email-error">
-
-                    <p id="profile-email-error"
-                       class="profile-field-error"
-                       hidden></p>
-                </div>
-            </div>
-        </fieldset>
-
-        <div class="form-footer profile-footer">
-            <p class="caption">
-                전화번호와 이메일은 선택 입력입니다.<br>
-                빈칸으로 저장하면 기존 정보가 삭제됩니다.
-            </p>
-
-            <button id="profile-save"
-                    class="button primary"
-                    type="submit"
+            <button id="profile-edit"
+                    class="button"
+                    type="button"
+                    aria-controls="profile-form"
                     disabled>
-                변경사항 저장
+                수정
             </button>
         </div>
-    </form>
-	
-	<section class="panel section-gap"
-	         aria-labelledby="account-management-title">
-	    <div class="panel-heading">
-	        <h2 id="account-management-title">계정 관리</h2>
-	    </div>
 
-	    <div class="profile-account-row">
-	        <div>
-	            <h3>비밀번호 변경</h3>
-	        </div>
+        <dl id="profile-contact-view" class="profile-info-grid">
+            <div>
+                <dt>전화번호</dt>
+                <dd id="profile-phone-view">—</dd>
+            </div>
+            <div>
+                <dt>이메일</dt>
+                <dd id="profile-email-view">—</dd>
+            </div>
+        </dl>
 
-	        <button id="password-open"
-	                class="button"
-	                type="button"
-	                aria-haspopup="dialog"
-	                aria-controls="password-dialog"
-	                disabled>
-	            비밀번호 변경
-	        </button>
-	    </div>
-	</section>
+        <form id="profile-form" novalidate hidden>
+            <fieldset id="profile-fields"
+                      aria-labelledby="profile-contact-title"
+                      disabled>
+                <div class="profile-contact-grid">
+                    <div>
+                        <label for="profile-phone">전화번호</label>
+                        <input id="profile-phone"
+                               name="phoneNumber"
+                               type="tel"
+                               inputmode="tel"
+                               autocomplete="tel"
+                               maxlength="20"
+                               placeholder="010-1234-5678"
+                               aria-describedby="profile-phone-help profile-phone-error">
+
+                        <p id="profile-phone-help" class="caption profile-field-help">
+                            국내 휴대전화, 지역번호 전화, 070 번호를 입력하세요.
+                        </p>
+                        <p id="profile-phone-error" class="profile-field-error" hidden></p>
+                    </div>
+
+                    <div>
+                        <label for="profile-email">이메일</label>
+                        <input id="profile-email"
+                               name="email"
+                               type="email"
+                               autocomplete="email"
+                               maxlength="254"
+                               placeholder="name@example.com"
+                               aria-describedby="profile-email-error">
+
+                        <p id="profile-email-error" class="profile-field-error" hidden></p>
+                    </div>
+                </div>
+            </fieldset>
+
+            <div class="profile-footer">
+                <p class="caption">
+                    비운 항목은 저장 시 삭제됩니다.
+                </p>
+
+                <div class="profile-actions">
+                    <button id="profile-cancel" class="button" type="button">
+                        취소
+                    </button>
+                    <button id="profile-save"
+                            class="button primary"
+                            type="submit"
+                            disabled>
+                        저장
+                    </button>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <section class="profile-section profile-account-row"
+             aria-labelledby="account-management-title">
+        <div>
+            <h2 id="account-management-title">계정 보안</h2>
+            <p class="caption">로그인에 사용하는 비밀번호를 관리합니다.</p>
+        </div>
+
+        <button id="password-open"
+                class="button"
+                type="button"
+                aria-haspopup="dialog"
+                aria-controls="password-dialog"
+                disabled>
+            비밀번호 변경
+        </button>
+    </section>
 </div>
 
 <dialog id="password-dialog"
@@ -200,7 +207,8 @@
 		    <strong>비밀번호 설정 안내</strong>
 
 		    <div class="password-guide-text">
-		        <p>8자 이상, UTF-8 기준 72바이트 이하로 입력하세요.</p>
+		        <p>영문, 숫자, 특수문자(!, @, # 등)를 사용해 8~72자로 입력해 주세요.</p>
+				<p>공백은 사용할 수 없습니다.</p>
 		        <p>현재 비밀번호와 다른 비밀번호를 사용하세요.</p>
 		        <p>변경이 완료되면 로그아웃됩니다.</p>
 		    </div>
@@ -231,6 +239,8 @@
     const phoneInput = $('#profile-phone');
     const emailInput = $('#profile-email');
     const saveButton = $('#profile-save');
+	const editButton = $('#profile-edit');
+	const cancelButton = $('#profile-cancel');
 
     const phonePattern =
         /^(?:010[0-9]{8}|02[0-9]{7,8}|0(?:31|32|33|41|42|43|44|51|52|53|54|55|61|62|63|64)[0-9]{7,8}|070[0-9]{8})$/;
@@ -238,6 +248,7 @@
     let original = null;
     let loading = false;
     let saving = false;
+	let editing = false;
 
     function normalizeText(value) {
         return value.trim() || null;
@@ -265,15 +276,21 @@
     }
 
 	function updateSaveButton() {
-	    saveButton.disabled =
-	        loading || saving || original === null || !hasChanges();
+	    const busy = loading || saving;
+	    const canEdit = !busy && original !== null;
 
-	    saveButton.textContent = saving
-	        ? '저장 중…'
-	        : '변경사항 저장';
+	    $('#profile-contact-view').hidden = editing;
+	    form.hidden = !editing;
+	    fields.disabled = !editing || !canEdit;
 
-	    $('#password-open').disabled =
-	        loading || saving || original === null;
+	    editButton.hidden = editing;
+	    editButton.disabled = !canEdit;
+	    cancelButton.disabled = busy;
+
+	    saveButton.disabled = !editing || !canEdit || !hasChanges();
+	    saveButton.textContent = saving ? '저장 중…' : '저장';
+
+	    $('#password-open').disabled = !canEdit;
 	}
 
     function setFieldError(input, errorElement, message) {
@@ -361,6 +378,9 @@
         phoneInput.value = formatPhone(profile.phoneNumber);
         emailInput.value = profile.email || '';
 
+		$('#profile-phone-view').textContent = phoneInput.value || '—';
+		$('#profile-email-view').textContent = emailInput.value || '—';
+
         original = currentContact();
         clearErrors();
         updateSaveButton();
@@ -381,7 +401,6 @@
 
             renderProfile(profile);
             $('#profile-content').hidden = false;
-            fields.disabled = false;
         } catch (error) {
             original = null;
             $('#profile-load-error').hidden = false;
@@ -392,6 +411,26 @@
             updateSaveButton();
         }
     }
+
+	editButton.addEventListener('click', () => {
+	    if (loading || saving || original === null) return;
+
+	    editing = true;
+	    updateSaveButton();
+	    phoneInput.focus();
+	});
+
+	cancelButton.addEventListener('click', () => {
+	    if (!editing || saving || original === null) return;
+
+	    phoneInput.value = formatPhone(original.phoneNumber);
+	    emailInput.value = original.email || '';
+	    clearErrors();
+
+	    editing = false;
+	    updateSaveButton();
+	    editButton.focus();
+	});
 
     phoneInput.addEventListener('input', () => {
         setFieldError(phoneInput, $('#profile-phone-error'), '');
@@ -406,7 +445,7 @@
     form.addEventListener('submit', async event => {
         event.preventDefault();
 
-        if (loading || saving || !hasChanges()) return;
+        if (!editing || loading || saving || !hasChanges()) return;
         if (!validateContact()) return;
 
         const contact = currentContact();
@@ -430,15 +469,19 @@
                 body: JSON.stringify(payload)
             });
 
+			editing = false;
             renderProfile(profile);
             notify('연락처를 저장했습니다.');
         } catch (error) {
             notify(error.message, true);
-        } finally {
-            saving = false;
-            fields.disabled = false;
-            updateSaveButton();
-        }
+		} finally {
+		    saving = false;
+		    updateSaveButton();
+
+		    if (!editing) {
+		        editButton.focus();
+		    }
+		}
     });
 
     $('#profile-retry').addEventListener('click', loadProfile);
@@ -525,16 +568,15 @@
             invalid(0, '현재 비밀번호 입력값이 너무 깁니다.');
         }
 
-        if (!next.trim()
-                || next.length < 8
-                || encoder.encode(next).length > 72) {
-            invalid(
-                1,
-                '새 비밀번호는 8자 이상, 72바이트 이하여야 합니다.'
-            );
-        } else if (next === current) {
-            invalid(1, '현재 비밀번호와 다른 비밀번호를 입력하세요.');
-        }
+		if (next.length === 0) {
+		    invalid(1, '새 비밀번호를 입력하세요.');
+		} else if (/[^!-~]/.test(next)) {
+		    invalid(1, '영문, 숫자, 특수문자만 사용할 수 있습니다. 공백은 빼 주세요.');
+		} else if (next.length < 8 || next.length > 72) {
+		    invalid(1, '새 비밀번호는 8~72자로 입력하세요.');
+		} else if (next === current) {
+		    invalid(1, '현재 비밀번호와 다른 비밀번호를 입력하세요.');
+		}
 
         if (!confirm.trim()) {
             invalid(2, '새 비밀번호 확인을 입력하세요.');

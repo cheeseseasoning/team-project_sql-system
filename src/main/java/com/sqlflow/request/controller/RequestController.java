@@ -81,6 +81,7 @@ public class RequestController {
     @GetMapping("/mine/page")
     public RequestPageResponse getMyRequestsPage(
             @RequestParam(name = "keyword", defaultValue = "") String keyword,
+            @RequestParam(name = "requestType", defaultValue = "") String requestType,
             @RequestParam(name = "status", defaultValue = "") String status,
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "size", defaultValue = "10") int size,
@@ -88,6 +89,7 @@ public class RequestController {
         return requestService.getMyRequestsPage(
                 user.getUserId(),
                 keyword,
+                requestType,
                 status,
                 page,
                 size);
