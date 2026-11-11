@@ -45,28 +45,54 @@ public class ViewColumnMetadataService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "컬럼 정보를 편집할 권한이 없습니다.");
         }
 
-        var actualColumns = detail.columns().stream().map(MySqlViewColumnDTO::getColumnName).collect(Collectors.toSet());
+        var actualColumns = detail.columns().stream()
+                .map(MySqlViewColumnDTO::getColumnName)
+                .collect(Collectors.toSet());
         var submitted = new HashSet<String>();
+
         if (entries == null || entries.size() > actualColumns.size()) {
             throw invalidColumn();
         }
+
         for (ColumnMetadata entry : entries) {
             if (entry == null || !actualColumns.contains(entry.columnName()) || !submitted.add(entry.columnName())) {
                 throw invalidColumn();
             }
+
             String name = trim(entry.logicalName());
             String description = trim(entry.description());
+
             if ((name != null && name.length() > 255) || (description != null && description.length() > 1000)) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "논리명은 255자, 설명은 1,000자까지 입력할 수 있습니다.");
             }
+
+            // 최초 등록과 수정 모두 로그인 사용자와 DB의 현재 시각을 기록한다.
             jdbc.update("""
                     MERGE INTO VIEW_COLUMN_METADATA M
                     USING (SELECT ? SCHEMA_NAME, ? OBJECT_NAME, ? COLUMN_NAME FROM DUAL) S
-                    ON (M.SCHEMA_NAME = S.SCHEMA_NAME AND M.OBJECT_NAME = S.OBJECT_NAME AND M.COLUMN_NAME = S.COLUMN_NAME)
-                    WHEN MATCHED THEN UPDATE SET M.LOGICAL_NAME = ?, M.DESCRIPTION = ?, M.UPDATED_AT = SYSTIMESTAMP
-                    WHEN NOT MATCHED THEN INSERT (SCHEMA_NAME, OBJECT_NAME, COLUMN_NAME, LOGICAL_NAME, DESCRIPTION)
-                        VALUES (S.SCHEMA_NAME, S.OBJECT_NAME, S.COLUMN_NAME, ?, ?)
-                    """, schema, view, entry.columnName(), name, description, name, description);
+                    ON (
+                        M.SCHEMA_NAME = S.SCHEMA_NAME
+                        AND M.OBJECT_NAME = S.OBJECT_NAME
+                        AND M.COLUMN_NAME = S.COLUMN_NAME
+                    )
+                    WHEN MATCHED THEN
+                        UPDATE SET M.LOGICAL_NAME = ?,
+                                   M.DESCRIPTION = ?,
+                                   M.UPDATED_BY = ?,
+                                   M.UPDATED_AT = SYSTIMESTAMP
+                    WHEN NOT MATCHED THEN
+                        INSERT (
+                            SCHEMA_NAME, OBJECT_NAME, COLUMN_NAME,
+                            LOGICAL_NAME, DESCRIPTION, UPDATED_BY, UPDATED_AT
+                        )
+                        VALUES (
+                            S.SCHEMA_NAME, S.OBJECT_NAME, S.COLUMN_NAME,
+                            ?, ?, ?, SYSTIMESTAMP
+                        )
+                    """,
+                    schema, view, entry.columnName(),
+                    name, description, userId,
+                    name, description, userId);
         }
     }
 
