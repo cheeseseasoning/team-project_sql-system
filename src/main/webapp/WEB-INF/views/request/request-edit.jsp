@@ -80,7 +80,7 @@
 		        긴급 여부와 처리 희망일은 처리 담당자의 참고 정보입니다.
 		    </p>
 		</section>
-		
+
         <section class="request-sql-section"
 		         aria-labelledby="edit-sql-heading">
 		    <div class="request-sql-heading">
@@ -163,7 +163,7 @@
 	        event.preventDefault();
 	    }
 	});
-	
+
 	function readEditSqls() {
 	    // 숨겨진 탭의 입력값도 함께 읽는다.
 	    editSqls = Array.from(
@@ -395,7 +395,7 @@
 
 			$('#edit-request-number').textContent =
 				(isRedraft ? '원본 요청: ' : '') + request.requestNo;
-			
+
             $('#edit-title').value = request.title;
             $('#edit-purpose').value = request.purpose;
 			$('#edit-detail-content').value = request.detailContent || '';
@@ -406,7 +406,7 @@
 			    title: item.queryTitle || '',
 			    sqlText: item.sqlText || ''
 			}));
-			
+
             renderEditSqls();
 
             $('#edit-loading').hidden = true;
@@ -441,14 +441,14 @@
 	    }
 
 	    readEditSqls();
-		
+
 		const missingTitleIndex = editSqls.findIndex(item =>
 		    item.sqlText.trim() && !item.title.trim()
 		);
 
 		if (missingTitleIndex !== -1) {
 			activateEditSqlTab(missingTitleIndex);
-			
+
 		    document.querySelectorAll(
 		        '#edit-sql-items .edit-sql-title-input'
 		    )[missingTitleIndex].focus();

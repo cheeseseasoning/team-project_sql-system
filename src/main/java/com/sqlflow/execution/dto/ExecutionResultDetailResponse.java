@@ -16,6 +16,9 @@ public class ExecutionResultDetailResponse {
 
     private String requestNo;
     private String requestTitle;
+    private String requestPurpose;
+    private String requesterName;
+    private String executorName;
     private String queryTitle;
     private String sqlText;
 

@@ -8,17 +8,17 @@
 
         <div class="request-information-summary">
 		    <h2 class="request-information-heading">기안 정보</h2>
-		
+
 		    <table class="request-info-table">
 		        <caption class="sr-only">기안 정보</caption>
-		
+
 		        <colgroup>
 		            <col class="request-info-label-column">
 		            <col class="request-info-value-column">
 		            <col class="request-info-label-column">
 		            <col class="request-info-value-column">
 		        </colgroup>
-		
+
 		        <tbody>
 		            <c:if test="${not requestDetailReadOnly or requestDetailDocument}">
 		                <tr>
@@ -28,28 +28,28 @@
 		                    <td id="detail-state"></td>
 		                </tr>
 		            </c:if>
-		
+
 		            <tr>
 		                <th scope="row">기안자</th>
 		                <td id="drafter-name"></td>
 		                <th scope="row">기안 부서</th>
 		                <td id="dept-name"></td>
 		            </tr>
-		
+
 		            <tr>
 		                <th scope="row">제출 시각</th>
 		                <td id="submitted-at"></td>
 		                <th scope="row">처리 희망일</th>
 		                <td id="request-desired-date"></td>
 		            </tr>
-		
+
 		            <tr>
 		                <th scope="row">요청 유형</th>
 		                <td id="request-type"></td>
 		                <th scope="row">조회 유형</th>
 		                <td id="request-class"></td>
 		            </tr>
-		
+
 		            <tr>
 		                <th scope="row">결재 상태</th>
 		                <td id="approval-status"></td>
@@ -74,9 +74,9 @@
 
             <div class="panel-heading">
 			    <h2 id="request-approval-title">결재란</h2>
-			
+
 			    <span id="request-approval-badge" hidden></span>
-			
+
 			    <c:if test="${not requestDetailReadOnly or requestDetailDocument}">
 			        <div id="approval-card-navigation"
 			             class="approval-card-navigation"
@@ -88,11 +88,11 @@
 			                    disabled>
 			                <span aria-hidden="true">◀</span>
 			            </button>
-			
+
 			            <span id="approval-card-range"
 			                  class="approval-card-range"
 			                  role="status"></span>
-			
+
 			            <button id="approval-card-next"
 			                    type="button"
 			                    class="button"
@@ -125,22 +125,22 @@
 	            <h2>조회 목적</h2>
 	            <p id="request-purpose" class="notice-body"></p>
 	        </section>
-	
+
 	        <section class="request-content-section">
 	            <h2>상세 내용</h2>
 	            <p id="request-detail-content" class="notice-body"></p>
 	        </section>
 	    </div>
-	
+
 	    <aside id="request-rejection-panel"
 	           class="request-rejection-panel"
 	           aria-labelledby="request-rejection-title"
 	           hidden>
 	        <h2 id="request-rejection-title">반려 사유</h2>
-	
+
 	        <p id="request-rejection-meta"
 	           class="request-rejection-meta"></p>
-	
+
 	        <p id="request-rejection-reason"
 	           class="request-rejection-reason"
 	           role="status"></p>
@@ -155,7 +155,7 @@
 			    첨부 SQL ·
 			    <span id="sql-count" class="request-sql-count"></span>
 			</h2>
-			
+
             <c:if test="${requestDetailReadOnly and deptName == 'DB팀' and pageContext.request.isUserInRole('DB_APPROVER')}">
 	            <button id="view-sql-download" type="button" class="button primary" hidden>
 	                승인된 뷰 SQL 다운로드

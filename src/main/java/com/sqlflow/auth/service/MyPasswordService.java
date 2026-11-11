@@ -72,16 +72,16 @@ public class MyPasswordService {
         if (newPassword == null || newPassword.isEmpty()) {
             throw badRequest("새 비밀번호를 입력하세요.");
         }
-        
+
         if (!newPassword.matches("[!-~]+")) {
             throw badRequest(
                     "영문, 숫자, 특수문자만 사용할 수 있습니다. 공백은 빼 주세요.");
         }
-        
+
         if (newPassword.length() < 8 || newPassword.length() > 72) {
             throw badRequest("새 비밀번호는 8~72자로 입력하세요.");
         }
-        
+
         if (!newPassword.equals(input.getNewPasswordConfirm())) {
             throw badRequest("새 비밀번호 확인이 일치하지 않습니다.");
         }

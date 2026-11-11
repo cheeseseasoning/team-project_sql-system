@@ -1,308 +1,421 @@
-<%@ page pageEncoding="UTF-8" %>
-	<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
-		<div class="page-heading">
-			<div>
-				<p class="caption">DB팀 실행 권한 계정</p>
-				<h1>쿼리 실행 대기 목록</h1>
-			</div><a class="button" href="${pageContext.request.contextPath}/execution-results">쿼리 실행 결과</a>
-		</div>
-		<section class="panel execution-queue-panel">
-			<form id="queue-search" class="queue-search">
-			    <label for="queue-department" class="queue-department-field">
-			        부서
-			        <select id="queue-department" name="deptId" disabled>
-			            <option value="">전체 부서</option>
-			        </select>
-			    </label>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
-			    <label for="queue-keyword" class="queue-keyword-field">
-			        요청 검색
-			        <input id="queue-keyword"
-			               name="keyword"
-			               type="search"
-			               placeholder="요청번호, 제목, 작성자"
-			               maxlength="120">
-			    </label>
+<main class="execution-queue-page">
+    <div class="page-heading">
+        <div>
+            <h1>실행 목록</h1>
+        </div>
+    </div>
 
-			    <div class="queue-search-actions">
-			        <button id="queue-search-button"
-			                class="button primary"
-			                type="submit"
-			                disabled>
-			            검색
-			        </button>
+    <section class="panel execution-queue-panel" aria-label="실행 요청 목록">
+        <form id="queue-search" class="queue-search">
+            <label for="queue-department" class="queue-department-field">
+                부서
+                <select id="queue-department" name="deptId" disabled>
+                    <option value="">전체 부서</option>
+                </select>
+            </label>
 
-			        <button id="queue-refresh"
-			                class="button refresh-button"
-			                type="button"
-			                title="검색 조건 초기화 및 새로고침"
-			                aria-label="검색 조건 초기화 및 새로고침"
-			                disabled>
-			            <img src="${pageContext.request.contextPath}/icons/RefreshCw.svg"
-			                 alt="">
-			        </button>
-			    </div>
-			</form>
-			
-			<div class="table-scroll">
-				<table>
-					<thead>
-						<tr>
-							<th>요청 번호 / 제목</th>
-							<th>작성자</th>
-							<th>SQL 수</th>
-							<th>상태</th>
-							<th>제출 시각</th>
-							<th></th>
-						</tr>
-					</thead>
-					<tbody id="queue-rows"></tbody>
-				</table>
-			</div>
-			<nav class="form-footer" aria-label="실행 목록 페이지 이동"><button id="queue-prev" class="button" type="button"
-					disabled>이전</button><span id="queue-page" class="caption"></span><button id="queue-next"
-					class="button" type="button" disabled>다음</button></nav>
-		</section>
-		<script>
-			(function () {
-				const size = 10;
+            <label class="queue-keyword-field" for="queue-keyword">
+                <span class="sr-only">요청 검색</span>
+                <input
+                    id="queue-keyword"
+                    name="keyword"
+                    type="search"
+                    placeholder="요청번호, 제목, 작성자"
+                    maxlength="120"
+                    autocomplete="off">
+            </label>
 
-				let page = 1;
-				let keyword = '';
-				let deptId = '';
-				let totalPages = 0;
-				let departmentsReady = false;
-				let loading = false;
-				let requestVersion = 0;
-				
-				const $id = id => document.getElementById(id);
-				const fmt = v => v ? new Date(v).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'}) : '—';
-				
-				function empty(text) {
-					$id('queue-rows').innerHTML =
-							'<tr><td colspan="6" class="empty">' + esc(text) + '</td></tr>';
-				}
-				
-				function updateControls() {
-				    const disabled = loading || !departmentsReady;
+            <button
+                id="queue-search-button"
+                class="button primary"
+                type="submit">
+                검색
+            </button>
 
-				    $id('queue-department').disabled = disabled;
-				    $id('queue-keyword').disabled = disabled;
-				    $id('queue-search-button').disabled = disabled;
-				    $id('queue-refresh').disabled = disabled;
+            <button
+                id="queue-refresh"
+                class="button"
+                type="button">
+                새로고침
+            </button>
+        </form>
 
-				    $id('queue-prev').disabled =
-				        disabled || page <= 1;
+        <div class="queue-table-heading">
+            <span id="queue-total-count" class="queue-total-count" aria-live="polite">
+                총 0건
+            </span>
+        </div>
 
-				    $id('queue-next').disabled =
-				        disabled || totalPages === 0 || page >= totalPages;
-				}
+        <div class="table-scroll">
+            <table class="queue-table">
+                <thead>
+                    <tr>
+                        <th scope="col">요청번호</th>
+                        <th scope="col">제목</th>
+                        <th scope="col">부서</th>
+                        <th scope="col">작성자</th>
+                        <th scope="col">SQL 수</th>
+                        <th scope="col">상태</th>
+                        <th scope="col">요청일</th>
+                    </tr>
+                </thead>
+                <tbody id="queue-rows">
+                    <tr>
+                        <td colspan="7" class="empty">
+                            실행 목록을 불러오는 중입니다.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
-				async function loadDepartments() {
-				    const departments = await api('/views/departments');
+        <nav
+            id="queue-pagination"
+            class="queue-pagination"
+            aria-label="실행 목록 페이지 이동">
+        </nav>
+    </section>
+</main>
 
-				    if (!Array.isArray(departments)) {
-				        throw new Error('부서 목록 응답을 확인할 수 없습니다.');
-				    }
+<script>
+    (function () {
+        const pageSize = 10;
+        const pageBlockSize = 10;
 
-				    const select = $id('queue-department');
+        let currentPage = 1;
+        let totalPages = 0;
+        let totalCount = 0;
+        let keyword = '';
+        let deptId = '';
+        let departmentsReady = false;
+        let loading = false;
+        let requestVersion = 0;
 
-				    select.replaceChildren(new Option('전체 부서', ''));
+        const $id = function (id) {
+            return document.getElementById(id);
+        };
 
-				    for (const department of departments) {
-				        select.add(new Option(
-				            department.deptName,
-				            String(department.deptId)
-				        ));
-				    }
+        function escapeHtml(value) {
+            return esc(value == null ? '' : String(value));
+        }
 
-				    departmentsReady = true;
-				}
-				
-				async function load(next = page) {
-				    const version = ++requestVersion;
+        function formatRequestDate(value) {
+            if (!value) {
+                return '—';
+            }
 
-				    page = next;
-				    loading = true;
-				    updateControls();
+            const date = new Date(value);
 
-				    $id('queue-rows').setAttribute('aria-busy', 'true');
-				    $id('queue-page').textContent = '조회 중입니다.';
-				    empty('실행 목록을 불러오는 중입니다.');
+            if (Number.isNaN(date.getTime())) {
+                return '—';
+            }
 
-				    try {
-				        const params = new URLSearchParams({
-				            page: String(page),
-				            size: String(size),
-				            keyword
-				        });
+            return new Intl.DateTimeFormat('ko-KR', {
+                timeZone: 'Asia/Seoul',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(date).replace(/\. /g, '.').replace(/\.$/, '');
+        }
 
-				        if (deptId) {
-				            params.set('deptId', deptId);
-				        }
+        function getStatus(row) {
+            if (row.batchStatus === 'RUNNING'
+                || row.requestStatus === 'RUNNING') {
+                return { label: '실행 중', kind: 'waiting' };
+            }
 
-				        const data = await api(
-				            '/executions/ready?' + params.toString()
-				        );
+            if (row.batchStatus === 'SUCCESS') {
+                return { label: '완료', kind: 'success' };
+            }
 
-				        if (version !== requestVersion) {
-				            return;
-				        }
+            if (row.batchStatus === 'FAILED') {
+                return { label: '실패', kind: 'danger' };
+            }
 
-				        if (!Array.isArray(data.items)) {
-				            throw new Error('실행 목록 응답을 확인할 수 없습니다.');
-				        }
+            if (row.batchId) {
+                return { label: '개별 실행 가능', kind: 'neutral' };
+            }
 
-				        totalPages = data.totalPages || 0;
+            return { label: '실행 대기', kind: 'neutral' };
+        }
 
-				        // 조회 중 데이터가 줄어 현재 페이지가 없어졌다면 보정
-				        if (totalPages > 0 && page > totalPages) {
-				            await load(totalPages);
-				            return;
-				        }
+        function showEmptyMessage(message) {
+            $id('queue-rows').innerHTML =
+                '<tr><td colspan="7" class="empty">'
+                + escapeHtml(message)
+                + '</td></tr>';
+        }
 
-				        if (totalPages === 0) {
-				            page = 1;
-				        }
+        function getPageBlock() {
+            const blockStart =
+                Math.floor((currentPage - 1) / pageBlockSize) * pageBlockSize + 1;
+            const blockEnd = Math.min(
+                blockStart + pageBlockSize - 1,
+                totalPages
+            );
 
-				        if (data.items.length > 0) {
-				            $id('queue-rows').innerHTML = data.items.map(function (row) {
-				                const detailUrl =
-				                    BASE + '/execution-queue/'
-				                    + encodeURIComponent(row.requestId);
+            return {
+                start: blockStart,
+                end: blockEnd
+            };
+        }
 
-				                const statusLabel =
-				                    row.batchStatus === 'RUNNING' ? '전체 실행 중'
-				                    : row.batchStatus === 'SUCCESS' ? '완료'
-				                    : row.batchStatus === 'FAILED' ? '실패'
-				                    : row.requestStatus === 'RUNNING' ? '개별 SQL 실행 중'
-				                    : row.batchId ? '개별 실행 가능'
-				                    : '실행 대기';
+        function renderPagination() {
+            const pagination = $id('queue-pagination');
 
-				                const statusKind =
-				                    row.batchStatus === 'RUNNING'
-				                    || row.requestStatus === 'RUNNING'
-				                        ? 'waiting'
-				                        : row.batchStatus === 'SUCCESS'
-				                            ? 'success'
-				                            : 'neutral';
+            if (totalPages <= 0) {
+                pagination.innerHTML = '';
+                return;
+            }
 
-				                return '<tr>'
-				                    + '<td>'
-				                    + '<a class="table-title" href="' + esc(detailUrl) + '">'
-				                    + esc(row.requestNo)
-				                    + '</a>'
-				                    + '<span class="secondary">'
-				                    + esc(row.title)
-				                    + '</span>'
-				                    + '</td>'
-				                    + '<td>'
-				                    + esc(row.drafterName)
-				                    + '<span class="secondary">'
-				                    + esc(row.deptName)
-				                    + '</span>'
-				                    + '</td>'
-				                    + '<td class="numeric">'
-				                    + esc(row.queryCount)
-				                    + '</td>'
-				                    + '<td>'
-				                    + badge(statusLabel, statusKind)
-				                    + '</td>'
-				                    + '<td>'
-				                    + esc(fmt(row.submittedAt))
-				                    + '</td>'
-				                    + '<td>'
-				                    + '<a class="button" href="' + esc(detailUrl) + '">'
-				                    + '상세'
-				                    + '</a>'
-				                    + '</td>'
-				                    + '</tr>';
-				            }).join('');
+            const block = getPageBlock();
+            let pageButtons = '';
 
-				        } else {
-				            empty(
-				                deptId || keyword
-				                    ? '검색 조건에 맞는 요청이 없습니다.'
-				                    : '실행 대기 중인 승인 요청이 없습니다.'
-				            );
-				        }
+            for (let page = block.start; page <= block.end; page += 1) {
+                const isCurrent = page === currentPage;
 
-				        $id('queue-page').textContent =
-				            totalPages > 0
-				                ? page + ' / ' + totalPages
-				                    + ' 페이지 · 총 ' + data.totalCount + '건'
-				                : '검색 결과 없음 · 총 0건';
+                pageButtons +=
+                    '<button type="button"'
+                    + ' class="queue-page-button'
+                    + (isCurrent ? ' is-current' : '')
+                    + '" data-page="' + page + '"'
+                    + (isCurrent ? ' aria-current="page"' : '')
+                    + ' aria-label="' + page + '페이지">'
+                    + page
+                    + '</button>';
+            }
 
-				    } catch (error) {
-				        if (version !== requestVersion) {
-				            return;
-				        }
+            const previousDisabled = loading || currentPage <= 1;
+            const nextDisabled = loading || currentPage >= totalPages;
 
-				        totalPages = 0;
-				        empty(error.message);
-				        $id('queue-page').textContent = '';
-				        notify(error.message, true);
+            pagination.innerHTML =
+                '<div class="queue-pagination-controls">'
+                + '<button type="button"'
+                + ' class="queue-page-move" data-action="previous"'
+                + (previousDisabled ? ' disabled' : '')
+                + ' aria-label="이전 페이지">'
+                + '‹ 이전'
+                + '</button>'
+                + '<div class="queue-page-numbers">'
+                + pageButtons
+                + '</div>'
+                + '<button type="button"'
+                + ' class="queue-page-move" data-action="next"'
+                + (nextDisabled ? ' disabled' : '')
+                + ' aria-label="다음 페이지">'
+                + '다음 ›'
+                + '</button>'
+                + '</div>';
+        }
 
-				    } finally {
-				        if (version === requestVersion) {
-				            loading = false;
-				            $id('queue-rows').setAttribute('aria-busy', 'false');
-				            updateControls();
-				        }
-				    }
-				}
-				
-				$id('queue-search').addEventListener('submit', function (event) {
-				    event.preventDefault();
+        function updateControls() {
+            const disabled = loading || !departmentsReady;
 
-				    if (loading || !departmentsReady) {
-				        return;
-				    }
+            $id('queue-department').disabled = disabled;
+            $id('queue-keyword').disabled = disabled;
+            $id('queue-search-button').disabled = disabled;
+            $id('queue-refresh').disabled = disabled;
 
-				    keyword = $id('queue-keyword').value.trim();
-				    deptId = $id('queue-department').value;
+            renderPagination();
+        }
 
-				    load(1);
-				});
+        function renderRows(items) {
+            if (!items.length) {
+                showEmptyMessage(
+                    keyword || deptId
+                        ? '검색 조건에 맞는 실행 요청이 없습니다.'
+                        : '실행 대기 중인 요청이 없습니다.'
+                );
+                return;
+            }
 
-				$id('queue-refresh').addEventListener('click', function () {
-				    if (loading || !departmentsReady) {
-				        return;
-				    }
+            $id('queue-rows').innerHTML = items.map(function (row) {
+                const detailUrl = BASE + '/execution-queue/'
+                    + encodeURIComponent(row.requestId);
+                const status = getStatus(row);
 
-				    $id('queue-search').reset();
+                return '<tr>'
+                    + '<td>'
+                    + '<a class="queue-request-link" href="'
+                    + escapeHtml(detailUrl) + '">'
+                    + escapeHtml(row.requestNo || '—')
+                    + '</a>'
+                    + '</td>'
+                    + '<td>'
+                    + '<a class="queue-title-link" href="'
+                    + escapeHtml(detailUrl) + '">'
+                    + escapeHtml(row.title || '제목 없음')
+                    + '</a>'
+                    + '</td>'
+                    + '<td>' + escapeHtml(row.deptName || '—') + '</td>'
+                    + '<td>' + escapeHtml(row.drafterName || '—') + '</td>'
+                    + '<td class="numeric">'
+                    + escapeHtml(row.queryCount == null ? 0 : row.queryCount)
+                    + '</td>'
+                    + '<td>' + badge(status.label, status.kind) + '</td>'
+                    + '<td>' + escapeHtml(formatRequestDate(row.submittedAt)) + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
 
-				    keyword = '';
-				    deptId = '';
+        async function loadDepartments() {
+            const departments = await api('/views/departments');
 
-				    load(1);
-				});
+            if (!Array.isArray(departments)) {
+                throw new Error('부서 목록 응답을 확인할 수 없습니다.');
+            }
 
-				$id('queue-prev').addEventListener('click', function () {
-				    if (!loading && page > 1) {
-				        load(page - 1);
-				    }
-				});
+            const select = $id('queue-department');
+            select.replaceChildren(new Option('전체 부서', ''));
 
-				$id('queue-next').addEventListener('click', function () {
-				    if (!loading && page < totalPages) {
-				        load(page + 1);
-				    }
-				});
+            for (const department of departments) {
+                select.add(new Option(
+                    department.deptName,
+                    String(department.deptId)
+                ));
+            }
 
-				async function initialize() {
-				    updateControls();
+            departmentsReady = true;
+        }
 
-				    try {
-				        await loadDepartments();
-				        await load(1);
-				    } catch (error) {
-				        empty('부서 목록을 불러오지 못했습니다. 화면을 새로고침해 주세요.');
-				        notify(error.message, true);
-				    }
-				}
+        async function load(page) {
+            if (loading) {
+                return;
+            }
 
-				initialize();
-			})();
-		</script>
-		<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>
+            const version = ++requestVersion;
+            currentPage = page;
+            loading = true;
+            updateControls();
+
+            $id('queue-rows').setAttribute('aria-busy', 'true');
+            showEmptyMessage('실행 목록을 불러오는 중입니다.');
+
+            try {
+                const params = new URLSearchParams({
+                    page: String(currentPage),
+                    size: String(pageSize),
+                    keyword: keyword
+                });
+
+                if (deptId) {
+                    params.set('deptId', deptId);
+                }
+
+                const data = await api(
+                    '/executions/ready?' + params.toString()
+                );
+
+                if (version !== requestVersion) {
+                    return;
+                }
+
+                if (!data || !Array.isArray(data.items)) {
+                    throw new Error('실행 목록 응답을 확인할 수 없습니다.');
+                }
+
+                totalPages = Number(data.totalPages) || 0;
+                totalCount = Number(data.totalCount) || 0;
+
+                if (totalPages > 0 && currentPage > totalPages) {
+                    loading = false;
+                    await load(totalPages);
+                    return;
+                }
+
+                if (totalPages === 0) {
+                    currentPage = 1;
+                }
+
+                $id('queue-total-count').textContent =
+                    '총 ' + totalCount + '건';
+
+                renderRows(data.items);
+            } catch (error) {
+                if (version !== requestVersion) {
+                    return;
+                }
+
+                totalPages = 0;
+                totalCount = 0;
+                $id('queue-total-count').textContent = '총 0건';
+                showEmptyMessage('실행 목록을 불러오지 못했습니다.');
+                notify(error.message || '실행 목록을 불러오지 못했습니다.', true);
+            } finally {
+                if (version === requestVersion) {
+                    loading = false;
+                    $id('queue-rows').setAttribute('aria-busy', 'false');
+                    updateControls();
+                }
+            }
+        }
+
+        $id('queue-search').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            if (loading) {
+                return;
+            }
+
+            keyword = $id('queue-keyword').value.trim();
+            deptId = $id('queue-department').value;
+            load(1);
+        });
+
+        $id('queue-refresh').addEventListener('click', function () {
+            if (loading) {
+                return;
+            }
+
+            $id('queue-search').reset();
+            keyword = '';
+            deptId = '';
+            load(1);
+        });
+
+        $id('queue-pagination').addEventListener('click', function (event) {
+            const button = event.target.closest('button');
+
+            if (!button || button.disabled || loading) {
+                return;
+            }
+
+            const action = button.dataset.action;
+            const selectedPage = Number(button.dataset.page);
+
+            if (action === 'previous' && currentPage > 1) {
+                load(currentPage - 1);
+            } else if (action === 'next' && currentPage < totalPages) {
+                load(currentPage + 1);
+            } else if (
+                Number.isInteger(selectedPage)
+                && selectedPage >= 1
+                && selectedPage <= totalPages
+                && selectedPage !== currentPage
+            ) {
+                load(selectedPage);
+            }
+        });
+
+        async function initialize() {
+            updateControls();
+
+            try {
+                await loadDepartments();
+                await load(1);
+            } catch (error) {
+                showEmptyMessage(
+                    '부서 목록을 불러오지 못했습니다. 화면을 새로고침해 주세요.'
+                );
+                notify(error.message || '부서 목록을 불러오지 못했습니다.', true);
+            }
+        }
+
+        initialize();
+    })();
+</script>
+
+<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

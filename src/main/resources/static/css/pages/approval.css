@@ -1,0 +1,482 @@
+.approval-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.approval-page .approval-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.approval-page .approval-heading h1 {
+    margin: 0;
+}
+
+.approval-page .approval-heading p {
+    margin: 7px 0 0;
+}
+
+.approval-page .approval-count {
+    flex: 0 0 auto;
+    padding: 9px 18px;
+    border-radius: 6px;
+    background: #e5f1f5;
+    color: #24647b;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.approval-page .approval-filter {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) 180px 200px auto;
+    gap: 14px;
+    align-items: end;
+    padding: 16px;
+    border-top: 1px solid #d7e1e7;
+    border-bottom: 1px solid #d7e1e7;
+    background: #fff;
+}
+
+.approval-page .approval-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+}
+
+.approval-page .approval-filter-field label {
+    color: #536b7d;
+    font-size: 13px;
+}
+
+.approval-page .approval-filter input,
+.approval-page .approval-filter select,
+.approval-page .approval-reject textarea {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 12px;
+    border: 1px solid #cfdae2;
+    border-radius: 5px;
+    background: #fff;
+    color: #20394b;
+    font: inherit;
+}
+
+.approval-page .approval-filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.approval-page .approval-filter-actions .button {
+    min-height: 42px;
+    white-space: nowrap;
+}
+
+.approval-page .approval-table-wrap {
+    overflow-x: auto;
+}
+
+.approval-page .approval-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.approval-page .approval-table th {
+    padding: 13px 15px;
+    background: #eef3f6;
+    color: #536b7d;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.approval-page .approval-table td {
+    padding: 14px 15px;
+    border-bottom: 1px solid #d7e1e7;
+    color: #20394b;
+    vertical-align: middle;
+}
+
+.approval-page .approval-request-link {
+    display: inline-block;
+    color: #176b8b;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.approval-page .approval-request-link:hover {
+    text-decoration: underline;
+}
+
+.approval-page .approval-secondary {
+    display: block;
+    margin-top: 5px;
+    color: #657c8d;
+    font-size: 13px;
+}
+
+.approval-page .approval-type-badge,
+.approval-page .approval-urgent-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #edf3f6;
+    color: #536b7d;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.approval-page .approval-urgent-badge {
+    margin-left: 6px;
+    background: #fbe9e9;
+    color: #a33c3c;
+}
+
+.approval-page .approval-table .empty {
+    padding: 42px 15px;
+    color: #657c8d;
+    text-align: center;
+}
+
+.approval-page .approval-table-footer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 62px;
+    padding: 14px 15px;
+    background: #fff;
+}
+
+.approval-page #approval-result-count {
+    position: absolute;
+    left: 15px;
+    color: #657c8d;
+}
+
+.approval-page .approval-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.approval-page .approval-page-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #536c7e;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.approval-page .approval-page-move {
+    min-width: auto;
+}
+
+.approval-page .approval-page-button:hover:not(:disabled):not([aria-current="page"]) {
+    background: #f1f4f6;
+}
+
+.approval-page .approval-page-button[aria-current="page"] {
+    background: #e2f0f4;
+    color: #21627b;
+    font-weight: 700;
+}
+
+.approval-page .approval-page-button:disabled {
+    color: #b9c2c9;
+    cursor: not-allowed;
+}
+
+.approval-page .approval-page-button:focus-visible {
+    outline: 2px solid #276b84;
+    outline-offset: 2px;
+}
+
+.approval-page .approval-detail-card {
+    padding: 28px;
+    border: 1px solid #d2dde4;
+    border-top: 3px solid #24647b;
+    background: #fff;
+}
+
+.approval-page .approval-detail-breadcrumb {
+    align-self: flex-start;
+    text-decoration: none;
+}
+
+.approval-page .approval-detail-breadcrumb:hover {
+    color: #24647b;
+    text-decoration: underline;
+}
+
+.approval-page .approval-detail-title {
+    margin: 8px 0 24px;
+    text-align: center;
+}
+
+.approval-page .approval-detail-top {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(400px, 1.6fr);
+    gap: 32px;
+    align-items: start;
+    margin-bottom: 28px;
+}
+
+.approval-page .approval-meta-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.approval-page .approval-meta-table th,
+.approval-page .approval-meta-table td {
+    padding: 7px 10px;
+    border: 1px solid #d2dde4;
+    text-align: left;
+}
+
+.approval-page .approval-meta-table th {
+    width: 34%;
+    background: #eef3f6;
+    color: #536b7d;
+    font-weight: 500;
+}
+
+.approval-page .approval-line-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.approval-page .approval-line-heading h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.approval-page .approval-line-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #536b7d;
+    font-size: 13px;
+}
+
+.approval-page .approval-line-controls button {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #d2dde4;
+    border-radius: 5px;
+    background: #fff;
+    color: #24647b;
+    cursor: pointer;
+}
+
+.approval-page .approval-line-controls button:disabled {
+    color: #aab7c0;
+    cursor: default;
+}
+
+.approval-page .approval-line {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border: 1px solid #d2dde4;
+}
+
+.approval-page .approval-step {
+    min-width: 0;
+    min-height: 94px;
+    padding: 10px;
+    border-right: 1px solid #d2dde4;
+    color: #536b7d;
+    font-size: 13px;
+}
+
+.approval-page .approval-step:last-child {
+    border-right: 0;
+}
+
+.approval-page .approval-step.is-current {
+    background: #e5f1f5;
+}
+
+.approval-page .approval-step strong,
+.approval-page .approval-step span {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.approval-page .approval-step strong {
+    color: #354f62;
+    font-weight: 600;
+}
+
+.approval-page .approval-step .approval-step-name {
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+}
+
+.approval-page .approval-title-bar {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 16px;
+    padding: 13px 14px;
+    border: 1px solid #d2dde4;
+    background: #eef3f6;
+}
+
+.approval-page .approval-title-bar strong {
+    color: #20394b;
+}
+
+.approval-page .approval-section {
+    margin-top: 18px;
+}
+
+.approval-page .approval-section h3 {
+    margin: 0 0 7px;
+    color: #20394b;
+    font-size: 16px;
+}
+
+.approval-page .approval-section p {
+    margin: 0;
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+
+.approval-page .approval-sql-list {
+    border: 1px solid #d2dde4;
+}
+
+.approval-page .approval-sql-item + .approval-sql-item {
+    border-top: 1px solid #d2dde4;
+}
+
+.approval-page .approval-sql-item summary {
+    padding: 11px 13px;
+    color: #20394b;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.approval-page .approval-sql-item pre {
+    overflow: auto;
+    margin: 0 10px 10px;
+    padding: 12px;
+    background: #eef3f6;
+    color: #20394b;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.approval-page .approval-reject {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #d2dde4;
+}
+
+.approval-page .approval-reject label {
+    display: block;
+    margin-bottom: 8px;
+    color: #536b7d;
+    font-size: 13px;
+}
+
+.approval-page .approval-reject textarea {
+    min-height: 64px;
+    resize: vertical;
+}
+
+.approval-page .approval-detail-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+    .approval-page .approval-filter {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .approval-page .approval-filter-field:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .approval-page .approval-detail-top {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .approval-page .approval-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .approval-page .approval-filter {
+        grid-template-columns: 1fr;
+    }
+
+    .approval-page .approval-filter-field:first-child {
+        grid-column: auto;
+    }
+
+    .approval-page .approval-table-footer {
+        min-height: auto;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .approval-page #approval-result-count {
+        position: static;
+        align-self: flex-start;
+    }
+
+    .approval-page .approval-pagination {
+        flex-wrap: wrap;
+        max-width: 100%;
+    }
+
+    .approval-page .approval-page-button {
+        min-width: 36px;
+        height: 38px;
+        padding: 0 6px;
+    }
+
+    .approval-page .approval-detail-card {
+        padding: 16px;
+    }
+
+    .approval-page .approval-line {
+        grid-template-columns: 1fr;
+    }
+
+    .approval-page .approval-step {
+        min-height: auto;
+        border-right: 0;
+        border-bottom: 1px solid #d2dde4;
+    }
+
+    .approval-page .approval-step:last-child {
+        border-bottom: 0;
+    }
+}

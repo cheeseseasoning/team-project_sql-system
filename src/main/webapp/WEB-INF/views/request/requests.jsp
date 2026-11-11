@@ -18,7 +18,7 @@
 				        <option value="DB_CHANGE">DB 변경</option>
 				    </select>
 				</label>
-				
+
 				<label>
 					처리 상태
 					<select id="status" name="status">
@@ -37,7 +37,7 @@
 				</label>
 
 				<button class="button primary" type="submit">검색</button>
-				
+
 				<button id="clear-filter"
 				        class="button refresh-button"
 				        type="button"
@@ -294,7 +294,7 @@
 			        numbers.appendChild(button);
 			    }
 			}
-			
+
 			async function loadRequests(page = 1) {
 			    const sequence = ++listSequence;
 
@@ -320,7 +320,7 @@
 			        if (activeFilters.keyword) {
 			            params.set('keyword', activeFilters.keyword);
 			        }
-					
+
 					if (activeFilters.requestType) {
 					    params.set('requestType', activeFilters.requestType);
 					}
@@ -422,7 +422,7 @@
 
 			// 공통 검색창에서 넘어온 조건 반영
 			const initialParams = new URLSearchParams(location.search);
-			
+
 			const initialRequestType =
 			    initialParams.get('requestType') || '';
 

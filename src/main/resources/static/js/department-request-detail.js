@@ -328,12 +328,12 @@
                     new Map(),
                     { readOnly: true }
                 );
-				
+
 			addChangeSqlResultForms(detail);
 
             $('#request-info').hidden = false;
             $('#department-detail-content').hidden = false;
-			
+
 			await RequestDetailRenderer.loadRejectionReason(
 			    detail.requestStatus,
 			    '/requests/department/'
@@ -385,6 +385,6 @@
             }
         });
     }
-	
+
     loadDetail();
 })();

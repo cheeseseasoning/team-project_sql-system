@@ -82,7 +82,7 @@
                 </tbody>
             </table>
         </div>
-		
+
 		<nav class="views-pagination" aria-label="뷰 목록 페이지 이동">
 		    <button id="view-prev-page" type="button" class="button" aria-label="이전 페이지" disabled>‹ 이전</button>
 		    <div id="view-page-numbers" class="views-page-numbers"></div>
@@ -303,7 +303,7 @@
         messageElement.classList.add('views-error');
         retryButton.hidden = false;
     }
-	
+
 	function renderViewPageNumbers(page, totalPages) {
 	    const container = $('#view-page-numbers');
 	    const pageGroupSize = 10;

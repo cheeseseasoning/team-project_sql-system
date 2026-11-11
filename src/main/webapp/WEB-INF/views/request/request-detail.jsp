@@ -2,33 +2,33 @@
 	<%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 		<div class="request-detail-page request-document-page">
-	
+
 		    <div id="detail-config"
 		         data-request-id="<c:out value='${requestId}'/>"
 		         hidden></div>
-	
+
 		    <a class="back-link"
 		       href="${pageContext.request.contextPath}/requests">
 		        ← 내 요청 목록
 		    </a>
-	
+
 			<article class="request-document"
 				     aria-labelledby="detail-title">
-	
+
 				<header class="request-document-heading">
 				    <p id="request-document-heading"
 				       class="request-document-caption">
 				        SQLFlow · 데이터 조회 기안서
 				    </p>
-	
+
 				    <h1 id="detail-title">
 				        요청을 불러오는 중입니다.
 				    </h1>
 				</header>
-	
+
 		        <c:set var="requestDetailReadOnly" value="${false}" />
 		        <%@ include file="/WEB-INF/views/fragments/request-detail-body.jspf" %>
-	
+
 				<footer class="request-document-footer">
 				    <div class="request-document-actions">
 				        <div id="draft-edit-action"
@@ -71,7 +71,7 @@
 				                    기안서 제출
 				                </button>
 				            </div>
-							
+
 							<p class="request-document-footer-help">
 							    초안은 SQL 검증과 결재선 확인 후 제출할 수 있습니다.
 							</p>
@@ -92,7 +92,7 @@
 				        </button>
 				    </div>
 				</footer>
-	
+
 		    </article>
 		</div>
 

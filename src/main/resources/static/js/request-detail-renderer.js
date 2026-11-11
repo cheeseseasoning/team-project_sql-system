@@ -45,7 +45,7 @@ window.RequestDetailRenderer = (() => {
             ? String(value).replace('T', ' ').substring(0, 19)
             : '-';
     }
-	
+
 	function renderChangeResult(item) {
 	    const statusNames = {
 	        COMPLETED: '성공',
@@ -374,7 +374,7 @@ window.RequestDetailRenderer = (() => {
                 + '</li>';
         }).join('');
     }
-	
+
 	function renderApprovalPreview(
 	    rows,
 	    emptyMessage = '결재선을 등록해 주세요.'
@@ -510,11 +510,11 @@ window.RequestDetailRenderer = (() => {
 
 	    draw();
 	}
-	
+
 	function renderRequestInfo(request) {
 	    $('#request-number').textContent = request.requestNo;
 	    $('#detail-title').textContent = request.title;
-		
+
 		const documentHeading = $('#request-document-heading');
 
 		if (documentHeading) {
@@ -639,7 +639,7 @@ window.RequestDetailRenderer = (() => {
 	    $('#approval-preview-help').textContent =
 	        '저장된 결재선과 현재 처리 상태입니다.';
 	}
-	
+
 	async function loadRejectionReason(requestStatus, historyUrl) {
 	    const layout = $('#request-body-layout');
 	    const panel = $('#request-rejection-panel');

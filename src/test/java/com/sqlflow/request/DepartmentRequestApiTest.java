@@ -94,7 +94,7 @@ class DepartmentRequestApiTest {
     @Test
     void defaultsUseAuthenticatedUserId() throws Exception {
         when(departmentRequestService.getRequestsPage(
-                1L, "", "", 1, 10))
+                1L, "", "", "", 1, 10))
                 .thenReturn(new DepartmentRequestPageResponse(
                         List.of(), 1, 10, 0, 0));
 
@@ -106,13 +106,13 @@ class DepartmentRequestApiTest {
                 .andExpect(jsonPath("$.items").isEmpty());
 
         verify(departmentRequestService).getRequestsPage(
-                1L, "", "", 1, 10);
+                1L, "", "", "", 1, 10);
     }
 
     @Test
     void callerCannotReplaceActorIdOrScope() throws Exception {
         when(departmentRequestService.getRequestsPage(
-                1L, "매출", "READY", 2, 5))
+                1L, "매출", "", "READY", 2, 5))
                 .thenReturn(new DepartmentRequestPageResponse(
                         List.of(), 2, 5, 0, 0));
 
@@ -128,7 +128,7 @@ class DepartmentRequestApiTest {
                 .andExpect(status().isOk());
 
         verify(departmentRequestService).getRequestsPage(
-                1L, "매출", "READY", 2, 5);
+                1L, "매출", "", "READY", 2, 5);
     }
 
     @Test

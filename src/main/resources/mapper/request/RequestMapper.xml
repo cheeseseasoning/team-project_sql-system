@@ -10,7 +10,7 @@
         SELECT SEQ_QUERY_REQUEST.NEXTVAL
         FROM DUAL
     </select>
-	
+
 	<!-- 요청서 저장 -->
 	<insert id="insertRequest"
 	        parameterType="com.sqlflow.request.domain.QueryRequest">
@@ -134,11 +134,11 @@
           )
         ORDER BY C.QUERY_ORDER, C.QUERY_ID
     </select>
-    
+
     <!-- 작성자의 요청 목록 및 검색 -->
 	<select id="selectMyRequests"
 	        resultType="com.sqlflow.request.dto.RequestListResponse">
-	
+
 	    SELECT
 	        R.REQUEST_ID,
 	        R.REQUEST_NO,
@@ -156,20 +156,20 @@
 	        END AS SQL_COUNT
 	    FROM QUERY_REQUEST R
 	    WHERE R.DRAFTER_ID = #{drafterId}
-	
+
 	    <if test="keyword != null and keyword != ''">
 	        AND (
 	            INSTR(UPPER(R.REQUEST_NO), UPPER(#{keyword})) > 0
 	            OR INSTR(UPPER(R.TITLE), UPPER(#{keyword})) > 0
 	        )
 	    </if>
-	
+
 	    <if test="status != null and status != ''">
 	        AND R.REQUEST_STATUS = #{status}
 	    </if>
-	
+
 	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
-	
+
 	</select>
 
 	<!-- 초안 소유자만 자신의 SQL 검증 상태를 갱신할 수 있다. -->
@@ -187,11 +187,11 @@
 	            AND R.REQUEST_STATUS = 'DRAFT'
 	      )
 	</update>
-	
+
 	<!-- 본인 요청의 상세 정보 -->
 	<select id="selectMyRequestDetail"
 	        resultType="com.sqlflow.request.dto.RequestDetailResponse">
-	
+
 	    SELECT
 	        R.REQUEST_ID,
 	        R.REQUEST_NO,
@@ -220,14 +220,14 @@
 	       AND S.DRAFTER_ID = R.DRAFTER_ID
 	    WHERE R.REQUEST_ID = #{requestId}
 	      AND R.DRAFTER_ID = #{drafterId}
-	
+
 	</select>
 
-	
+
 	<!-- 본인 요청에 등록된 SQL 목록 -->
 	<select id="selectMyRequestItems"
 	        resultType="com.sqlflow.request.dto.RequestItemResponse">
-	
+
 	    SELECT
 	        I.QUERY_ID,
 	        I.QUERY_ORDER,
@@ -242,9 +242,9 @@
 	    WHERE R.REQUEST_ID = #{requestId}
 	      AND R.DRAFTER_ID = #{drafterId}
 	    ORDER BY I.QUERY_ORDER
-	
+
 	</select>
-	
+
 	<!-- 본인 요청의 상태 확인 및 행 잠금 -->
 	<select id="selectMyRequestStatusForUpdate"
 	        resultType="java.lang.String">
@@ -254,7 +254,7 @@
 	      AND DRAFTER_ID = #{drafterId}
 	    FOR UPDATE
 	</select>
-	
+
 	<!-- 본인의 초안만 수정 -->
 	<update id="updateDraft"
 	        parameterType="com.sqlflow.request.domain.QueryRequest">
@@ -268,7 +268,7 @@
 	      AND DRAFTER_ID = #{drafterId}
 	      AND REQUEST_STATUS = 'DRAFT'
 	</update>
-	
+
 	<!-- 본인의 초안에 속한 기존 SQL 항목 삭제 -->
 	<delete id="deleteDraftItems">
 	    DELETE FROM QUERY_ITEM
@@ -281,7 +281,7 @@
 	            AND R.REQUEST_STATUS = 'DRAFT'
 	      )
 	</delete>
-	
+
 	<!-- 본인의 초안 요청서만 삭제 -->
 	<delete id="deleteDraftRequest">
 	    DELETE FROM QUERY_REQUEST
@@ -289,7 +289,7 @@
 	      AND DRAFTER_ID = #{drafterId}
 	      AND REQUEST_STATUS = 'DRAFT'
 	</delete>
-	
+
 	<!-- 본인의 초안을 결재 대기 상태로 변경 -->
 	<update id="submitDraft">
 	    UPDATE QUERY_REQUEST
@@ -300,18 +300,18 @@
 	      AND DRAFTER_ID = #{drafterId}
 	      AND REQUEST_STATUS = 'DRAFT'
 	</update>
-	
+
 	<!-- 페이지 건수와 목록 조회에 동일한 검색 조건 적용 -->
 	<sql id="myRequestPageConditions">
 	    WHERE R.DRAFTER_ID = #{drafterId}
-	
+
 	    <if test="keyword != null and keyword != ''">
 	        AND (
 	            INSTR(UPPER(R.REQUEST_NO), UPPER(#{keyword})) > 0
 	            OR INSTR(UPPER(R.TITLE), UPPER(#{keyword})) > 0
 	        )
 	    </if>
-	
+
 	    <choose>
 	        <when test='requestType == "SELECT"'>
 	            AND R.REQUEST_TYPE = 'SELECT'
@@ -322,19 +322,19 @@
 	            )
 	        </when>
 	    </choose>
-	
+
 	    <if test="status != null and status != ''">
 	        AND R.REQUEST_STATUS = #{status}
 	    </if>
 	</sql>
-	
+
 	<!-- 검색 조건에 해당하는 전체 요청 수 -->
 	<select id="countMyRequests" resultType="java.lang.Long">
 	    SELECT COUNT(*)
 	    FROM QUERY_REQUEST R
 	    <include refid="myRequestPageConditions"/>
 	</select>
-	
+
 	<!-- 현재 페이지의 요청 목록 -->
 	<select id="selectMyRequestsPage"
 	        resultType="com.sqlflow.request.dto.RequestListResponse">
@@ -371,14 +371,14 @@
 	      ON U.USER_ID = R.DRAFTER_ID
 	    LEFT JOIN DEPARTMENT D
 	      ON D.DEPT_ID = R.DEPT_ID
-	
+
 	    <include refid="myRequestPageConditions"/>
-	
+
 	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
 	    OFFSET #{offset} ROWS
 	    FETCH NEXT #{size} ROWS ONLY
 	</select>
-	
+
 	<!-- 본인 요청의 상태별 건수 -->
 	<select id="selectMyRequestSummary"
 	        resultType="com.sqlflow.request.dto.RequestSummaryResponse">
@@ -429,7 +429,7 @@
 	      AND Q.DRAFTER_ID = #{drafterId}
 	    ORDER BY A.APPROVAL_ORDER, A.APPROVAL_ID
 	</select>
-	
+
 	<!-- 제출 시 검증을 통과한 SQL의 상태·분류·시각 저장 -->
 	<update id="updateSubmittedItemValidation">
 	    UPDATE QUERY_ITEM
@@ -439,13 +439,13 @@
 	    WHERE REQUEST_ID = #{requestId}
 	      AND QUERY_ID = #{queryId}
 	</update>
-	
+
 	<!-- 해당 SQL의 조회 대상 목록 교체 -->
 	<delete id="deleteQueryResourceUsage">
 	    DELETE FROM QUERY_RESOURCE_USAGE
 	    WHERE QUERY_ID = #{queryId}
 	</delete>
-	
+
 	<insert id="insertQueryResourceUsage">
 	    INSERT INTO QUERY_RESOURCE_USAGE (
 	        QUERY_ID,
@@ -457,7 +457,7 @@
 	        SYSTIMESTAMP
 	    )
 	</insert>
-	
+
 	<!-- 제출 상태로 변경하기 전에 전체 요청 분류 저장 -->
 	<update id="updateRequestClass">
 	    UPDATE QUERY_REQUEST
@@ -503,7 +503,7 @@
 	            )
 	      )
 	</update>
-	
+
 	<!-- 결재선을 삭제하지 않고 종료 상태와 사유를 보존한다. -->
 	<update id="cancelApprovalsForWithdrawal">
 	    UPDATE APPROVAL

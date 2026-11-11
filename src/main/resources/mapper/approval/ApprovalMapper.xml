@@ -238,7 +238,7 @@
 	    JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
 	    WHERE U.ENABLED = 'Y'
 	      AND U.USER_ID &lt;&gt; #{excludedUserId}
-	
+
 	    <if test="keyword != null and keyword != ''">
 		    AND (
 		        LOWER(U.USER_NAME)
@@ -247,7 +247,7 @@
 		            LIKE '%' || LOWER(#{keyword}) || '%'
 		    )
 		</if>
-			
+
 	    ORDER BY D.DEPT_NAME ASC,
 	             P.POSITION_LEVEL DESC NULLS LAST,
 	             U.USER_NAME ASC,

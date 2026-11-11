@@ -71,7 +71,7 @@
 		        긴급 여부와 처리 희망일은 처리 담당자의 참고 정보입니다.
 		    </p>
 		</section>
-		
+
 		<section class="request-sql-section" aria-labelledby="sql-writing-title">
 		    <div class="request-sql-heading">
 		        <h2 id="sql-writing-title">SQL 작성</h2>
@@ -145,9 +145,9 @@
 	let sqls = [
 	    { title: '', sqlText: '' }
 	];
-	
+
 	let activeSqlIndex = 0;
-	
+
     let formBusy = false;
     let createdRequestId = null;
 
@@ -325,7 +325,7 @@
 	    activateSqlTab(activeSqlIndex);
 	    setMode(mode);
 	}
-	
+
 	function removeSql(index) {
 	    if (formBusy || sqls.length <= 1) {
 	        return;
@@ -385,7 +385,7 @@
 	                mode === 'ai' ? '생성된 SQL' : 'SQL 원문';
 	        });
 	}
-	
+
 	function readSqls() {
 	    const sections = document.querySelectorAll(
 	        '#sql-items .sql-item'
@@ -443,7 +443,7 @@
 	    renderSqls();
 	    activateSqlTab(activeSqlIndex, true);
 	});
-	
+
 	$('#sql-tabs').addEventListener('keydown', function (event) {
 	    const tab = event.target.closest('[role="tab"]');
 
@@ -476,7 +476,7 @@
 	    event.preventDefault();
 	    activateSqlTab(nextIndex, true);
 	});
-	
+
 	async function generateSql(index, button) {
 	    await runFormTask(button, async function () {
 	        readSqls();
@@ -532,7 +532,7 @@
                 + encodeURIComponent(createdRequestId);
             return;
         }
-		
+
 		if (formBusy) return;
 
 		readSqls();

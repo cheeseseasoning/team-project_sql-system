@@ -1,249 +1,246 @@
 <%@ page pageEncoding="UTF-8" %>
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
-<style>
-    .resource-pagination {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        margin-top: 24px;
-    }
-
-    .resource-pagination[hidden] {
-        display: none;
-    }
-
-    .resource-pagination button:disabled {
-        cursor: not-allowed;
-        opacity: 0.55;
-    }
-
-    .resource-page-status {
-        min-width: 150px;
-        text-align: center;
-    }
-</style>
-
-<div class="page-heading resource-page-heading">
-    <div>
-        <h1>리소스·접근 정책 관리</h1>
-        <p class="caption">뷰의 조회 정책 및 접근 부서를 관리합니다.</p>
-    </div>
-    <span class="badge">DB팀 관리</span>
-</div>
-
-<div id="resource-list-view">
-    <section class="panel resource-list-panel">
-        <div class="resource-list-toolbar">
-            <label class="resource-search">
-                <span aria-hidden="true">⌕</span>
-                <input
-                    id="resource-search"
-                    type="search"
-                    placeholder="뷰 이름, 스키마 또는 설명 검색"
-                    aria-label="뷰 이름, 스키마 또는 설명 검색">
-            </label>
-
-            <button id="reload-resources" class="button" type="button">
-                새로고침
-            </button>
-        </div>
-
-        <div class="table-scroll">
-            <table class="resource-list-table">
-                <thead>
-                    <tr>
-                        <th>리소스</th>
-                        <th>종류</th>
-                        <th>조회 / 반출 정책</th>
-                        <th>접근 부서</th>
-                        <th>등록 상태</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="resource-rows">
-                    <tr>
-                        <td colspan="6" class="empty">뷰 목록을 불러오는 중입니다.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="resource-table-foot">
-            <span id="resource-total"></span>
-            <span>뷰만 표시</span>
-        </div>
-
-        <nav
-            id="resource-pagination"
-            class="resource-pagination"
-            aria-label="뷰 목록 페이지 이동"
-            hidden>
-            <button
-                id="resource-previous-page"
-                class="button"
-                type="button">
-                이전
-            </button>
-
-            <span
-                id="resource-page-status"
-                class="resource-page-status caption"
-                aria-live="polite"></span>
-
-            <button
-                id="resource-next-page"
-                class="button"
-                type="button">
-                다음
-            </button>
-        </nav>
-    </section>
-</div>
-
-<div id="resource-detail-view" hidden>
-    <a
-        class="text-button resource-back"
-        id="resource-back"
-        href="${pageContext.request.contextPath}/db-admin/resources">
-        ←　리소스 목록
-    </a>
-
-    <div class="resource-detail-title">
+<div class="resource-admin-page">
+    <div id="resource-list-heading" class="page-heading resource-page-heading">
         <div>
-            <span class="eyebrow">RESOURCE POLICY</span>
-            <h1>리소스 정책 상세</h1>
+            <h1>리소스·접근 정책 관리</h1>
         </div>
-        <span class="badge">DB팀 관리</span>
     </div>
 
-    <section class="panel resource-object-summary">
-        <span class="resource-object-icon" aria-hidden="true">▤</span>
-        <div class="resource-object-main">
-            <strong id="detail-object-name"></strong>
-            <span id="detail-object-meta" class="caption"></span>
-        </div>
-        <span id="detail-resource-state" class="badge success"></span>
-    </section>
+    <div id="resource-list-view">
+        <section class="panel resource-list-panel">
+            <div class="resource-search-block">
+                <label for="resource-search">리소스 검색</label>
 
-    <section class="panel resource-detail-panel">
-        <div class="resource-section-heading">
-            <div>
+                <div class="resource-search-controls">
+                    <input
+                        id="resource-search"
+                        type="search"
+                        placeholder="뷰 이름, 스키마 또는 설명 검색"
+                        aria-label="뷰 이름, 스키마 또는 설명 검색">
+
+                    <button id="search-resources"
+                            class="button primary"
+                            type="button">
+                        검색
+                    </button>
+
+                    <button id="reset-resource-search"
+                            class="button"
+                            type="button">
+                        초기화
+                    </button>
+                </div>
+
+                <p class="caption">
+                    뷰 이름, 스키마, 설명에 포함된 단어로 리소스를 찾을 수 있습니다.
+                </p>
+            </div>
+
+            <div class="resource-list-content">
+                <div class="resource-list-heading">
+                    <h2>리소스 목록</h2>
+                    <span id="resource-total" class="caption"></span>
+                </div>
+
+                <div class="table-scroll">
+                    <table class="resource-list-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">뷰 이름</th>
+                                <th scope="col">등록 이름</th>
+                                <th scope="col">조회/반출정책</th>
+                                <th scope="col">활성 상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resource-rows">
+                            <tr>
+                                <td colspan="4" class="empty">
+                                    뷰 목록을 불러오는 중입니다.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <nav
+                    id="resource-pagination"
+                    class="resource-pagination"
+                    aria-label="리소스 목록 페이지 이동"
+                    hidden>
+                    <button
+                        id="resource-previous-page"
+                        class="resource-page-button"
+                        type="button"
+                        aria-label="이전 페이지">
+                        ‹ 이전
+                    </button>
+
+                    <div
+                        id="resource-page-numbers"
+                        class="resource-page-numbers"
+                        aria-label="페이지 번호"></div>
+
+                    <button
+                        id="resource-next-page"
+                        class="resource-page-button"
+                        type="button"
+                        aria-label="다음 페이지">
+                        다음 ›
+                    </button>
+
+                    <span
+                        id="resource-page-status"
+                        class="resource-page-status sr-only"
+                        aria-live="polite"></span>
+                </nav>
+            </div>
+        </section>
+    </div>
+
+    <div id="resource-detail-view" class="resource-detail-view" hidden>
+        <a
+            class="text-button resource-back"
+            id="resource-back"
+            href="${pageContext.request.contextPath}/db-admin/resources">
+            ← 리소스·접근 정책 관리
+        </a>
+
+        <div class="resource-detail-title">
+            <h1>리소스 정책 상세</h1>
+            <span class="resource-admin-label">DB팀 관리</span>
+        </div>
+
+        <section class="panel resource-object-summary">
+            <div class="resource-object-main">
+                <strong id="detail-object-name"></strong>
+                <span id="detail-object-meta" class="caption"></span>
+            </div>
+            <span id="detail-resource-state" class="resource-state-badge"></span>
+        </section>
+
+        <section class="panel resource-detail-panel resource-policy-panel">
+            <div class="resource-section-heading">
                 <h2>조회·반출 정책</h2>
-                <span class="caption">객체 공통 설정</span>
-            </div>
-        </div>
-
-        <div class="resource-policy-fields">
-            <div class="resource-policy-field">
-                <span>조회 수준<code>ACCESS_LEVEL</code></span>
-                <c:choose>
-                    <c:when test="${pageContext.request.isUserInRole('DB_ADMIN')}">
-                        <select id="policy-access">
-                            <option value="GENERAL">GENERAL</option>
-                            <option value="SENSITIVE">SENSITIVE</option>
-                        </select>
-                    </c:when>
-                    <c:otherwise>
-                        <strong id="policy-access-read" class="resource-policy-value"></strong>
-                    </c:otherwise>
-                </c:choose>
             </div>
 
-            <div class="resource-policy-field">
-                <span>반출 정책<code>EXPORT_POLICY</code></span>
-                <c:choose>
-                    <c:when test="${pageContext.request.isUserInRole('DB_ADMIN')}">
-                        <select id="policy-export">
-                            <option value="ALLOW">ALLOW</option>
-                            <option value="BLOCK">BLOCK · 심사 필요</option>
-                        </select>
-                    </c:when>
-                    <c:otherwise>
-                        <strong id="policy-export-read" class="resource-policy-value"></strong>
-                    </c:otherwise>
-                </c:choose>
+            <div class="resource-policy-fields">
+                <div class="resource-policy-field">
+                    <label for="policy-access">조회 수준</label>
+                    <c:choose>
+                        <c:when test="${pageContext.request.isUserInRole('DB_ADMIN')}">
+                            <select id="policy-access">
+                                <option value="GENERAL">GENERAL</option>
+                                <option value="SENSITIVE">SENSITIVE</option>
+                            </select>
+                        </c:when>
+                        <c:otherwise>
+                            <strong id="policy-access-read" class="resource-policy-value"></strong>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+
+                <div class="resource-policy-field">
+                    <label for="policy-export">반출 정책</label>
+                    <c:choose>
+                        <c:when test="${pageContext.request.isUserInRole('DB_ADMIN')}">
+                            <select id="policy-export">
+                                <option value="ALLOW">ALLOW</option>
+                                <option value="BLOCK">BLOCK · 심사 필요</option>
+                            </select>
+                        </c:when>
+                        <c:otherwise>
+                            <strong id="policy-export-read" class="resource-policy-value"></strong>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+
+                <div class="resource-policy-field">
+                    <label for="policy-enabled">리소스 상태</label>
+                    <c:choose>
+                        <c:when test="${pageContext.request.isUserInRole('DB_ADMIN')}">
+                            <select id="policy-enabled">
+                                <option value="Y">활성</option>
+                                <option value="N">비활성</option>
+                            </select>
+                        </c:when>
+                        <c:otherwise>
+                            <strong id="policy-enabled-read" class="resource-policy-value"></strong>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+
+                <div class="resource-policy-save">
+                    <span id="policy-save-state" class="caption" aria-live="polite"></span>
+
+                    <c:if test="${pageContext.request.isUserInRole('DB_ADMIN')}">
+                        <button
+                            type="button"
+                            id="save-resource-policy"
+                            class="button primary">
+                            정책 저장
+                        </button>
+                    </c:if>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel resource-detail-panel resource-department-panel">
+            <div class="resource-section-heading">
+                <div class="resource-dept-heading">
+                    <h2>접근 권한 보유 부서</h2>
+                    <span id="detail-dept-count" class="caption"></span>
+                </div>
+
+                <c:if test="${pageContext.request.isUserInRole('DB_ADMIN')}">
+                    <button type="button" id="toggle-add-dept" class="button">
+                        + 부서 추가
+                    </button>
+                </c:if>
             </div>
 
-            <div class="resource-policy-field">
-                <span>리소스 상태<code>ENABLED</code></span>
-                <c:choose>
-                    <c:when test="${pageContext.request.isUserInRole('DB_ADMIN')}">
-                        <select id="policy-enabled">
-                            <option value="Y">활성</option>
-                            <option value="N">비활성</option>
-                        </select>
-                    </c:when>
-                    <c:otherwise>
-                        <strong id="policy-enabled-read" class="resource-policy-value"></strong>
-                    </c:otherwise>
-                </c:choose>
-            </div>
-        </div>
-
-        <div class="resource-section-footer">
-            <span id="policy-save-state" class="caption" aria-live="polite"></span>
-            <c:if test="${pageContext.request.isUserInRole('DB_ADMIN')}">
-                <button
-                    type="button"
-                    id="save-resource-policy"
-                    class="button primary">
-                    정책 저장
+            <div id="add-dept-row" class="resource-add-dept" hidden>
+                <select id="add-dept-select" aria-label="추가할 부서"></select>
+                <button type="button" id="confirm-add-dept" class="button primary">
+                    추가
                 </button>
-            </c:if>
-        </div>
-    </section>
-
-    <section class="panel resource-detail-panel">
-        <div class="resource-section-heading">
-            <div class="resource-dept-heading">
-                <h2>접근 권한 보유 부서</h2>
-                <span id="detail-dept-count" class="caption"></span>
+                <button type="button" id="cancel-add-dept" class="button">
+                    취소
+                </button>
             </div>
 
-            <c:if test="${pageContext.request.isUserInRole('DB_ADMIN')}">
-                <button type="button" id="toggle-add-dept" class="button">
-                    ＋ 부서 추가
-                </button>
-            </c:if>
-        </div>
+            <div class="table-scroll">
+                <table class="resource-dept-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">부서명</th>
+                            <th scope="col" class="numeric">활성 SQLFlow 계정</th>
+                            <th scope="col" aria-label="작업"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="detail-dept-rows"></tbody>
+                </table>
+            </div>
 
-        <div id="add-dept-row" class="resource-add-dept" hidden>
-            <select id="add-dept-select" aria-label="추가할 부서"></select>
-            <button type="button" id="confirm-add-dept" class="button primary">추가</button>
-            <button type="button" id="cancel-add-dept" class="button">취소</button>
-        </div>
+            <div class="resource-section-footer">
+                <span id="dept-save-state" class="caption" aria-live="polite"></span>
 
-        <div class="table-scroll">
-            <table class="resource-dept-table">
-                <thead>
-                    <tr>
-                        <th>부서명</th>
-                        <th class="numeric">활성 SQLFlow 계정</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="detail-dept-rows"></tbody>
-            </table>
-        </div>
+                <c:if test="${pageContext.request.isUserInRole('DB_ADMIN')}">
+                    <button
+                        type="button"
+                        id="save-resource-depts"
+                        class="button primary">
+                        부서 권한 저장
+                    </button>
+                </c:if>
+            </div>
+        </section>
 
-        <div class="resource-section-footer">
-            <span id="dept-save-state" class="caption" aria-live="polite"></span>
-            <c:if test="${pageContext.request.isUserInRole('DB_ADMIN')}">
-                <button
-                    type="button"
-                    id="save-resource-depts"
-                    class="button primary">
-                    부서 권한 저장
-                </button>
-            </c:if>
-        </div>
-    </section>
-
-    <p class="resource-role-note" id="resource-readonly-note" hidden>
-        조회 전용: 정책과 접근 부서를 변경하려면 DB_ADMIN 권한이 필요합니다.
-    </p>
+        <p class="resource-role-note" id="resource-readonly-note" hidden>
+            조회 전용: 정책과 접근 부서를 변경하려면 DB_ADMIN 권한이 필요합니다.
+        </p>
+    </div>
 </div>
 
 <script>
@@ -251,16 +248,18 @@
     const isAdmin = ${pageContext.request.isUserInRole('DB_ADMIN')};
     const initialResourceId = ${empty resourceId ? 'null' : resourceId};
     const pageSize = 10;
+    const pageBlockSize = 10;
 
     const rows = document.getElementById('resource-rows');
     const search = document.getElementById('resource-search');
     const departmentSelect = document.getElementById('add-dept-select');
     const listView = document.getElementById('resource-list-view');
     const detailView = document.getElementById('resource-detail-view');
-    const listHeading = document.querySelector('.resource-page-heading');
+    const listHeading = document.getElementById('resource-list-heading');
     const pagination = document.getElementById('resource-pagination');
     const previousPageButton = document.getElementById('resource-previous-page');
     const nextPageButton = document.getElementById('resource-next-page');
+    const pageNumbers = document.getElementById('resource-page-numbers');
     const pageStatus = document.getElementById('resource-page-status');
 
     let objects = [];
@@ -276,10 +275,16 @@
             return '<span class="caption">—</span>';
         }
 
-        return '<span class="resource-code">'
-            + esc(object.accessLevel || 'GENERAL')
-            + '</span><span class="resource-separator">/</span><span class="resource-code">'
-            + esc(object.exportPolicy || 'BLOCK')
+        const accessLevel = object.accessLevel || 'GENERAL';
+        const exportPolicy = object.exportPolicy || 'BLOCK';
+        const sensitive = accessLevel === 'SENSITIVE';
+
+        return '<span class="resource-policy-summary'
+            + (sensitive ? ' is-sensitive' : '')
+            + '">'
+            + (sensitive ? '민감 조회' : '일반 조회')
+            + ' / '
+            + (exportPolicy === 'ALLOW' ? '반출 허용' : '반출 차단')
             + '</span>';
     }
 
@@ -290,11 +295,70 @@
             const searchableText = [
                 object.schemaName,
                 object.objectName,
+                object.resourceName,
                 object.description
             ].join(' ').toLowerCase();
 
             return searchableText.includes(keyword);
         });
+    }
+
+    function renderPageNumbers() {
+        pageNumbers.replaceChildren();
+
+        if (totalPages <= 0) {
+            return;
+        }
+
+        const firstPageInBlock =
+            Math.floor((currentPage - 1) / pageBlockSize)
+            * pageBlockSize
+            + 1;
+
+        const lastPageInBlock = Math.min(
+            firstPageInBlock + pageBlockSize - 1,
+            totalPages
+        );
+
+        for (
+            let page = firstPageInBlock;
+            page <= lastPageInBlock;
+            page += 1
+        ) {
+            const button = document.createElement('button');
+
+            button.type = 'button';
+            button.className = 'resource-page-button';
+            button.textContent = String(page);
+            button.setAttribute('aria-label', page + '페이지');
+
+            if (page === currentPage) {
+                button.classList.add('is-current');
+                button.setAttribute('aria-current', 'page');
+            }
+
+            button.addEventListener('click', () => {
+                if (page !== currentPage) {
+                    currentPage = page;
+                    renderRows();
+                }
+            });
+
+            pageNumbers.appendChild(button);
+        }
+    }
+
+    function renderPagination() {
+        pagination.hidden = totalPages === 0;
+        previousPageButton.disabled = currentPage <= 1;
+        nextPageButton.disabled =
+            totalPages === 0 || currentPage >= totalPages;
+
+        pageStatus.textContent = totalPages === 0
+            ? '페이지가 없습니다.'
+            : currentPage + ' / ' + totalPages + ' 페이지';
+
+        renderPageNumbers();
     }
 
     function renderRows() {
@@ -313,62 +377,68 @@
 
         if (visibleObjects.length === 0) {
             rows.innerHTML =
-                '<tr><td colspan="6" class="empty">'
+                '<tr><td colspan="4" class="empty">'
                 + (search.value.trim()
-                    ? '검색 조건에 맞는 뷰가 없습니다.'
+                    ? '검색 조건에 맞는 리소스가 없습니다.'
                     : '등록된 뷰가 없습니다.')
                 + '</td></tr>';
         } else {
             rows.innerHTML = visibleObjects.map(object => {
                 const resourceRegistered = Number(object.resourceId) > 0;
-                const enabled = resourceRegistered && object.resourceEnabled;
-                const departmentCount = (object.policies || []).length;
+                const enabled =
+                    resourceRegistered
+                    && object.resourceEnabled === true;
 
-                const manage = resourceRegistered
-                    ? '<a class="text-button open-resource" href="'
+                const resourceName =
+                    object.resourceName || object.objectName || '—';
+
+                const viewName = resourceRegistered
+                    ? '<a class="resource-view-link" href="'
                         + BASE
                         + '/db-admin/resources/'
                         + encodeURIComponent(object.resourceId)
-                        + '">정책 상세　→</a>'
+                        + '">'
+                        + esc(object.objectName)
+                        + '</a>'
+                    : '<strong class="resource-view-name">'
+                        + esc(object.objectName)
+                        + '</strong>';
+
+                const registerAction = resourceRegistered
+                    ? ''
                     : '<button type="button" class="text-button register-resource"'
                         + ' data-schema="' + esc(object.schemaName) + '"'
                         + ' data-object="' + esc(object.objectName) + '"'
                         + ' data-description="' + esc(object.description || '') + '">'
-                        + '리소스 등록　＋</button>';
+                        + '리소스 등록 +</button>';
 
                 return '<tr>'
-                    + '<td><strong class="resource-name">'
-                    + esc(object.objectName)
-                    + '</strong><small>'
+                    + '<td>'
+                    + viewName
+                    + '<small class="resource-schema-name">'
                     + esc(object.schemaName)
-                    + '</small></td>'
-                    + '<td><span class="resource-type">VIEW</span></td>'
-                    + '<td>' + resourcePolicyLabel(object) + '</td>'
-                    + '<td>' + (resourceRegistered
-                        ? departmentCount + '개 부서'
-                        : '—')
+                    + '</small>'
+                    + (registerAction
+                        ? '<span class="resource-register-action">'
+                            + registerAction
+                            + '</span>'
+                        : '')
                     + '</td>'
-                    + '<td><span class="resource-state '
-                    + (enabled ? 'is-active' : '')
+                    + '<td>' + esc(resourceName) + '</td>'
+                    + '<td>' + resourcePolicyLabel(object) + '</td>'
+                    + '<td><span class="resource-state-pill'
+                    + (enabled ? ' is-active' : '')
                     + '">'
                     + (enabled ? '활성' : resourceRegistered ? '비활성' : '미등록')
                     + '</span></td>'
-                    + '<td>' + manage + '</td>'
                     + '</tr>';
             }).join('');
         }
 
         document.getElementById('resource-total').textContent =
-            '검색 결과 ' + filteredObjects.length + '개 뷰';
+            '총 ' + filteredObjects.length + '건';
 
-        pagination.hidden = totalPages <= 1;
-        previousPageButton.disabled = currentPage <= 1;
-        nextPageButton.disabled =
-            totalPages === 0 || currentPage >= totalPages;
-
-        pageStatus.textContent = totalPages === 0
-            ? '0 페이지'
-            : currentPage + ' / ' + totalPages + ' 페이지';
+        renderPagination();
 
         rows.querySelectorAll('.register-resource').forEach(button => {
             button.addEventListener('click', async () => {
@@ -398,12 +468,9 @@
 
         tbody.innerHTML = activeDepartments.length
             ? activeDepartments.map(department =>
-                '<tr><td><span class="resource-dept-name">'
-                + '<span class="dept-initial">'
-                + esc((department.deptName || '').slice(0, 1))
-                + '</span>'
+                '<tr><td>'
                 + esc(department.deptName)
-                + '</span></td>'
+                + '</td>'
                 + '<td class="numeric">'
                 + Number(department.activeAccountCount || 0).toLocaleString('ko-KR')
                 + '명</td>'
@@ -413,7 +480,7 @@
                         + department.deptId
                         + '" aria-label="'
                         + esc(department.deptName)
-                        + ' 접근 권한 제거">−</button>'
+                        + ' 접근 권한 제외">제외</button>'
                     : '')
                 + '</td></tr>'
             ).join('')
@@ -422,7 +489,7 @@
                 + '</td></tr>';
 
         document.getElementById('detail-dept-count').textContent =
-            activeDepartments.length + '개';
+            activeDepartments.length + '개 부서';
 
         const availableDepartments = departments.filter(department =>
             !selectedDepartmentIds.has(Number(department.deptId))
@@ -470,12 +537,15 @@
             selected.objectName;
 
         document.getElementById('detail-object-meta').textContent =
-            selected.schemaName
-            + '　·　VIEW'
-            + (selected.description ? '　·　' + selected.description : '');
+            (selected.description || selected.resourceName || '')
+            + (selected.schemaName ? ' · ' + selected.schemaName : '');
 
-        document.getElementById('detail-resource-state').textContent =
-            selected.resourceEnabled ? '활성 리소스' : '비활성 리소스';
+        const resourceState = selected.resourceEnabled === true;
+        const stateElement =
+            document.getElementById('detail-resource-state');
+
+        stateElement.textContent = resourceState ? '활성' : '비활성';
+        stateElement.classList.toggle('is-active', resourceState);
 
         if (isAdmin) {
             document.getElementById('policy-access').value =
@@ -483,7 +553,7 @@
             document.getElementById('policy-export').value =
                 selected.exportPolicy || 'BLOCK';
             document.getElementById('policy-enabled').value =
-                selected.resourceEnabled ? 'Y' : 'N';
+                resourceState ? 'Y' : 'N';
         } else {
             document.getElementById('policy-access-read').textContent =
                 selected.accessLevel || 'GENERAL';
@@ -494,7 +564,7 @@
                 + (exportPolicy === 'BLOCK' ? ' · 심사 필요' : '');
 
             document.getElementById('policy-enabled-read').textContent =
-                selected.resourceEnabled ? '활성' : '비활성';
+                resourceState ? '활성' : '비활성';
         }
 
         document.getElementById('policy-save-state').textContent =
@@ -527,7 +597,6 @@
                 api('/db-admin/resources/departments')
             ]);
 
-            // 화면 목록은 VIEW만 표시한다. 테이블은 기존 목록에서 제외한다.
             objects = results[0].filter(object => object.objectType === 'VIEW');
             departments = results[1];
 
@@ -540,19 +609,37 @@
             }
         } catch (error) {
             rows.innerHTML =
-                '<tr><td colspan="6" class="empty">'
+                '<tr><td colspan="4" class="empty">'
                 + esc(error.message || '뷰 목록을 불러오지 못했습니다.')
                 + '</td></tr>';
 
             document.getElementById('resource-total').textContent = '';
             pagination.hidden = true;
+            pageNumbers.replaceChildren();
         }
     }
 
-    search.addEventListener('input', () => {
+    function applySearch() {
         currentPage = 1;
         renderRows();
+    }
+
+    document.getElementById('search-resources')
+        .addEventListener('click', applySearch);
+
+    search.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            applySearch();
+        }
     });
+
+    document.getElementById('reset-resource-search')
+        .addEventListener('click', () => {
+            search.value = '';
+            currentPage = 1;
+            renderRows();
+        });
 
     previousPageButton.addEventListener('click', () => {
         if (currentPage > 1) {
@@ -567,9 +654,6 @@
             renderRows();
         }
     });
-
-    document.getElementById('reload-resources')
-        .addEventListener('click', load);
 
     if (isAdmin) {
         ['policy-access', 'policy-export', 'policy-enabled']

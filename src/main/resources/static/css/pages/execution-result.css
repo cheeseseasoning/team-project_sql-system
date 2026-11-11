@@ -1,13 +1,370 @@
-/* CSV 미리보기 컬럼명 고정 */
+.execution-detail-page {
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+}
+
+.execution-detail-heading {
+    align-items: flex-end;
+    margin-bottom: 28px;
+}
+
+.execution-detail-heading h1 {
+    color: #1d3543;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.execution-detail-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+    color: #607487;
+    font-size: 13px;
+}
+
+.execution-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.execution-detail-loading {
+    padding: 22px 0;
+    color: var(--muted);
+}
+
+.execution-detail-content {
+    display: grid;
+    gap: 14px;
+    padding: 28px;
+    background: #fff;
+}
+
+.execution-detail-card {
+    min-width: 0;
+    border: 1px solid #cbd9e3;
+    border-radius: 7px;
+    background: #fff;
+}
+
+.execution-request-card {
+    display: grid;
+    grid-template-columns: minmax(190px, 0.9fr) minmax(0, 2.8fr) 40px;
+    align-items: center;
+    gap: 24px;
+    min-height: 88px;
+    padding: 16px;
+}
+
+.execution-run-card {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: center;
+    gap: 24px;
+    min-height: 88px;
+    padding: 16px;
+}
+
+.execution-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.execution-info-label {
+    color: #607487;
+    font-size: 13px;
+}
+
+.execution-info-item strong {
+    overflow-wrap: anywhere;
+    color: #1f3748;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.execution-purpose-item strong {
+    line-height: 1.5;
+}
+
+.execution-open-request {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid #cbd9e3;
+    border-radius: 6px;
+    background: #f0f5f8;
+    color: var(--accent);
+    font-size: 23px;
+    line-height: 1;
+}
+
+.execution-open-request:hover {
+    background: var(--tint);
+    text-decoration: none;
+}
+
+.execution-sql-section {
+    min-width: 0;
+}
+
+.execution-sql-section h2,
+.execution-result-heading h2,
+.execution-preview-heading h2 {
+    color: #203847;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.execution-sql-code {
+    min-height: 84px;
+    margin-top: 8px;
+    padding: 14px;
+    border: 1px solid #cbd9e3;
+    border-radius: 6px;
+    background: #edf3f6;
+    color: #243b4c;
+    font: 14px/1.5 Consolas, 'Malgun Gothic', monospace;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.execution-error-card {
+    padding: 18px;
+}
+
+.execution-error-card .panel-heading {
+    margin-bottom: 8px;
+}
+
+.execution-error-card pre {
+    margin-top: 8px;
+}
+
+.execution-result-section {
+    min-width: 0;
+    padding-top: 20px;
+}
+
+.execution-result-heading,
+.execution-preview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.execution-result-heading .button {
+    min-width: 138px;
+}
+
+.execution-result-message,
+.execution-download-message {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.execution-result-metadata {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    margin-top: 18px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #f7f9fa;
+}
+
+.execution-preview-section {
+    min-width: 0;
+}
+
+.execution-preview-heading {
+    margin-bottom: 8px;
+}
+
+.execution-preview-heading .caption {
+    white-space: nowrap;
+}
+
+.execution-preview-expiration {
+    margin-top: 7px;
+    color: #607487;
+    font-size: 13px;
+}
+
+.execution-preview-expiration strong {
+    margin-left: 5px;
+    color: #203847;
+    font-weight: 600;
+}
+
+.execution-preview-section > .caption {
+    margin: 8px 0 12px;
+}
+
+.execution-preview-scroll {
+    max-height: 360px;
+    overflow: auto;
+    border-radius: 4px;
+}
+
 #csv-preview-scroll table {
+    min-width: 100%;
     border-collapse: separate;
     border-spacing: 0;
+    font-size: 14px;
 }
 
 #csv-preview-scroll thead th {
     position: sticky;
     top: 0;
     z-index: 1;
-    background: var(--soft);
+    padding: 11px 10px;
+    background: #edf3f6;
     box-shadow: inset 0 -1px 0 var(--line);
+    color: #263d4c;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+#csv-preview-scroll tbody td {
+    padding: 11px 10px;
+    border-bottom: 1px solid var(--line);
+    color: #263d4c;
+    font-size: 14px;
+    vertical-align: top;
+}
+
+#csv-preview-scroll tbody tr:last-child td {
+    border-bottom: 1px solid var(--line);
+}
+
+#csv-preview-message {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+#csv-preview-retry {
+    margin-top: 10px;
+}
+
+.execution-legacy-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.execution-legacy-meta strong {
+    margin-left: 5px;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.execution-legacy-meta .table-title {
+    margin-left: 4px;
+}
+
+@media (max-width: 900px) {
+    .execution-detail-content {
+        padding: 20px;
+    }
+
+    .execution-run-card {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .execution-result-metadata {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+}
+
+@media (max-width: 600px) {
+    .execution-detail-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .execution-detail-heading h1 {
+        font-size: 21px;
+    }
+
+    .execution-detail-actions {
+        width: 100%;
+    }
+
+    .execution-detail-actions .button {
+        flex: 1;
+    }
+
+    .execution-detail-content {
+        gap: 12px;
+        padding: 14px;
+    }
+
+    .execution-request-card {
+        grid-template-columns: minmax(0, 1fr) 38px;
+        gap: 14px;
+    }
+
+    .execution-purpose-item {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+
+    .execution-open-request {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .execution-run-card {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px 12px;
+    }
+
+    .execution-result-heading,
+    .execution-preview-heading {
+        align-items: flex-start;
+    }
+
+    .execution-result-heading {
+        flex-direction: column;
+    }
+
+    .execution-result-heading .button {
+        width: 100%;
+    }
+
+    .execution-preview-heading {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .execution-preview-heading .caption {
+        white-space: normal;
+    }
+
+    #csv-preview-scroll table {
+        min-width: 440px;
+    }
+
+    .execution-legacy-meta {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
 }

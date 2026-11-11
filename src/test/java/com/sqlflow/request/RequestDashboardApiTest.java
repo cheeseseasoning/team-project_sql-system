@@ -162,9 +162,9 @@ class RequestDashboardApiTest {
         assertEquals(0L, summary.getWithdrawnCount());
 
         assertTrue(
-        		requestMapper.selectMyRequestsPage(
-        		        0L, "", "", "", 0L, 5
-        		).isEmpty()
+		requestMapper.selectMyRequestsPage(
+		        0L, "", "", "", 0L, 5
+		).isEmpty()
         );
     }
 

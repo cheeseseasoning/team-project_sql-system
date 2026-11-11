@@ -41,11 +41,11 @@ public class RequestService {
 	private final RequestMapper requestMapper;
 
 	private final ObjectProvider<ApprovalLineCreator> approvalLineCreatorProvider;
-	
+
 	private final RequestSqlValidationService requestSqlValidationService;
-	
+
     private final ViewCreateSqlValidationService viewCreateSqlValidationService;
-    
+
     private final DmlSqlValidationService dmlSqlValidationService;
 
 	@Transactional
@@ -107,7 +107,7 @@ public class RequestService {
 		saveViewSqlItems(requestId, input);
 		return requestId;
 	}
-	
+
     /** 선택한 변경 유형과 SQL을 저장해 초안을 다시 열 때 복원할 수 있게 한다. */
     @Transactional(transactionManager = "managementTransactionManager")
     public Long createDmlDraft(DmlDraftRequest input, Long drafterId, Long deptId) {
@@ -284,9 +284,9 @@ public class RequestService {
 
 	@Transactional(readOnly = true)
 	public RequestDetailResponse getMyRequestDetail(Long requestId, Long drafterId) {
-		
+
 	    RequestDetailResponse detail = requestMapper.selectMyRequestDetail(requestId, drafterId);
-	    
+
 	    if (detail == null) {
 	        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
 	    }
@@ -336,7 +336,7 @@ public class RequestService {
         return content.toString()
                 .getBytes(java.nio.charset.StandardCharsets.UTF_8);
     }
-	
+
     /**
      * 작성 중인 SQL을 입력 순서대로 검사한다.
      * 요청을 저장하거나 실제 SQL을 실행하지 않는다.
@@ -352,7 +352,7 @@ public class RequestService {
                 .map(viewCreateSqlValidationService::validate)
                 .toList();
     }
-	
+
     /**
      * 작성자 본인의 뷰 생성 초안에 저장된 SQL을 검사한다.
      * 검사 결과는 반환만 하며 DB에는 저장하지 않는다.
@@ -836,7 +836,7 @@ public class RequestService {
 	        }
 	    }
 	}
-	
+
 	private String normalizeOptionalText(String value) {
 	    return value == null || value.isBlank()
 	            ? null

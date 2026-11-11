@@ -26,13 +26,7 @@
 	    FROM DUAL
 	</select>
 	
-	<!--
-	    실행 이력 목록·상세·파일 조회의 공통 열람 자격.
-	    R은 QUERY_REQUEST의 별칭이다.
-	
-	    drafterId 파라미터에는 로그인한 열람자의 ID가 전달된다.
-	    부서는 요청자의 현재 부서가 아닌 기안서에 저장된 부서를 기준으로 한다.
-	-->
+	<!-- 실행 이력 열람 자격: 본인 요청, 같은 부서 요청 또는 DB팀 사용자 -->
 	<sql id="resultHistoryEligibility">
 	    AND EXISTS (
 	        SELECT 1
@@ -47,7 +41,7 @@
 	    )
 	</sql>
 
-    <!-- 본인 요청의 SQL별 실행 이력에 최신 순위 부여 -->
+    <!-- SQL별 최신 실행 이력 -->
     <sql id="myRankedExecutions">
         SELECT E.EXECUTION_ID,
                E.QUERY_ID,
@@ -59,6 +53,9 @@
                R.REQUEST_ID,
                R.REQUEST_NO,
                R.TITLE AS REQUEST_TITLE,
+               R.DEPT_ID,
+               D.DEPT_NAME,
+               U.USER_NAME AS DRAFTER_NAME,
                I.QUERY_TITLE,
                ROW_NUMBER() OVER (
 				    PARTITION BY E.QUERY_ID
@@ -69,6 +66,10 @@
 		  ON I.QUERY_ID = E.QUERY_ID
 		JOIN QUERY_REQUEST R
 		  ON R.REQUEST_ID = I.REQUEST_ID
+		LEFT JOIN DEPARTMENT D
+		  ON D.DEPT_ID = R.DEPT_ID 
+		LEFT JOIN USERS U 
+		  ON U.USER_ID = R.DRAFTER_ID 
 		LEFT JOIN EXECUTION_BATCH B
 		  ON B.BATCH_ID = E.BATCH_ID
 		 AND B.REQUEST_ID = R.REQUEST_ID
@@ -80,13 +81,15 @@
         <include refid="resultHistoryEligibility"/>
     </sql>
 
-	<!-- SQL별 최신 실행을 선택한 뒤 적용하는 검색 조건 -->
+	<!-- 검색 및 상태 조건 -->
 	<sql id="latestResultSearchConditions">
 	    <if test="keyword != null and keyword != ''">
 	        AND (
 	            INSTR(UPPER(E.REQUEST_NO), UPPER(#{keyword})) &gt; 0
 	            OR INSTR(UPPER(E.REQUEST_TITLE), UPPER(#{keyword})) &gt; 0
 	            OR INSTR(UPPER(E.QUERY_TITLE), UPPER(#{keyword})) &gt; 0
+	            OR INSTR(UPPER(E.DEPT_NAME), UPPER(#{keyword})) &gt; 0
+	            OR INSTR(UPPER(E.DRAFTER_NAME), UPPER(#{keyword})) &gt; 0
 	        )
 	    </if>
 	
@@ -114,18 +117,22 @@
                E.REQUEST_NO,
                E.REQUEST_TITLE,
                E.QUERY_TITLE,
+               E.DEPT_NAME AS DEPARTMENT_NAME,
+               E.DRAFTER_NAME,
                E.BATCH_ID,
                E.STATUS,
                F.ROW_COUNT,
                E.REQUESTED_AT,
                E.STARTED_AT,
-               E.DURATION_MS
+               E.DURATION_MS,
+               F.CREATED_AT AS RESULT_CREATED_AT
         FROM (
             <include refid="myRankedExecutions"/>
         ) E
         LEFT JOIN (
             SELECT EXECUTION_ID,
                    ROW_COUNT,
+                   CREATED_AT,
                    ROW_NUMBER() OVER (
                        PARTITION BY EXECUTION_ID
                        ORDER BY CREATED_AT DESC,
@@ -150,6 +157,9 @@
 	           R.REQUEST_ID,
 	           R.REQUEST_NO,
 	           R.TITLE AS REQUEST_TITLE,
+	           R.PURPOSE AS REQUEST_PURPOSE,
+	           DRAFTER.USER_NAME AS REQUESTER_NAME,
+	           EXECUTOR.USER_NAME AS EXECUTOR_NAME,
 	           I.QUERY_TITLE,
 	           I.SQL_TEXT,
 	           E.ATTEMPT_NO,
@@ -170,6 +180,10 @@
 	      ON I.QUERY_ID = E.QUERY_ID
 	    JOIN QUERY_REQUEST R
 	      ON R.REQUEST_ID = I.REQUEST_ID
+	    LEFT JOIN USERS DRAFTER
+	      ON DRAFTER.USER_ID = R.DRAFTER_ID
+	    LEFT JOIN USERS EXECUTOR
+	      ON EXECUTOR.USER_ID = E.EXECUTED_BY
 	    LEFT JOIN EXECUTION_BATCH B
 	      ON B.BATCH_ID = E.BATCH_ID
 	     AND B.REQUEST_ID = R.REQUEST_ID
@@ -238,10 +252,7 @@
 	    <include refid="resultHistoryEligibility"/>
 	</select>
     
-    <!--
-        제출 시 저장한 SQL별 조회 대상.
-        누락된 리소스를 조용히 제외하지 않도록 LEFT JOIN한다.
-    -->
+    <!-- 제출 시 저장한 SQL별 조회 대상 -->
     <select id="selectResultTargets"
             resultType="com.sqlflow.execution.domain.QueryObjectName">
         SELECT DISTINCT

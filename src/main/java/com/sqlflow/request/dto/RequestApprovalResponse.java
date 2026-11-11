@@ -18,6 +18,6 @@ public class RequestApprovalResponse {
     private String approverName;
     private String deptName;
     private String positionName;
-    
+
     private LocalDateTime decidedAt;
 }

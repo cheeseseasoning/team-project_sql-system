@@ -145,9 +145,9 @@ class RequestPaginationApiTest {
         );
 
         assertTrue(
-        		requestMapper.selectMyRequestsPage(
-        		        0L, prefix, "", "", 0L, 10
-        		).isEmpty()
+		requestMapper.selectMyRequestsPage(
+		        0L, prefix, "", "", 0L, 10
+		).isEmpty()
         );
     }
 

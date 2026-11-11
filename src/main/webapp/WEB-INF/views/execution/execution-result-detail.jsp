@@ -6,240 +6,272 @@
      hidden>
 </div>
 
-<a class="back-link"
-   href="${pageContext.request.contextPath}/execution-results">
-    ← 실행 결과 목록
-</a>
-
-<div class="page-heading">
-    <h1 id="execution-detail-title">SQL 실행 결과 상세</h1>
-
-    <button id="execution-detail-refresh"
-            type="button"
-            class="button">
-        새로고침
-    </button>
-</div>
-
-<p id="execution-detail-loading" role="status">
-    실행 정보를 불러오는 중입니다.
-</p>
-
-<div id="execution-detail-content" hidden>
-    <section class="panel">
-        <div class="panel-heading">
-            <h2>실행 정보</h2>
-            <span id="execution-detail-status"></span>
+<div class="execution-detail-page">
+    <div class="page-heading execution-detail-heading">
+        <div>
+            <h1 id="execution-detail-title">SQL 실행 결과 상세</h1>
+            <p class="execution-detail-subtitle">
+                <span id="execution-detail-number"></span>
+                <span aria-hidden="true">·</span>
+                <span id="execution-detail-summary">실행 정보를 불러오는 중입니다.</span>
+            </p>
         </div>
 
-        <div class="detail-meta">
-            <span>
-                기안서 번호
-                <a id="execution-request-link" class="table-title"></a>
-            </span>
-            <span>요청 제목 <strong id="execution-request-title"></strong></span>
+        <div class="execution-detail-actions">
+            <a class="button"
+               href="${pageContext.request.contextPath}/execution-results">
+                실행 결과 목록
+            </a>
+            <button id="execution-detail-refresh"
+                    type="button"
+                    class="button">
+                새로고침
+            </button>
+        </div>
+    </div>
+
+    <p id="execution-detail-loading" class="execution-detail-loading" role="status">
+        실행 정보를 불러오는 중입니다.
+    </p>
+
+    <div id="execution-detail-content" class="execution-detail-content" hidden>
+        <section class="execution-detail-card execution-request-card"
+                 aria-label="요청 정보">
+            <div class="execution-info-item">
+                <span class="execution-info-label">요청자</span>
+                <strong id="execution-requester">—</strong>
+            </div>
+
+            <div class="execution-info-item execution-purpose-item">
+                <span class="execution-info-label">요청 목적</span>
+                <strong id="execution-request-title">—</strong>
+            </div>
+
+            <a id="execution-request-link"
+               class="execution-open-request"
+               href="#"
+               aria-label="요청 상세 보기">
+                <span aria-hidden="true">↗</span>
+            </a>
+        </section>
+
+        <section class="execution-detail-card execution-run-card"
+                 aria-label="실행 정보">
+            <div class="execution-info-item">
+                <span class="execution-info-label">실행자</span>
+                <strong id="execution-runner">—</strong>
+            </div>
+
+            <div class="execution-info-item">
+                <span class="execution-info-label">실행 시각</span>
+                <strong id="execution-started-at">—</strong>
+            </div>
+
+            <div class="execution-info-item">
+                <span class="execution-info-label">조회 행 수</span>
+                <strong id="execution-row-count">—</strong>
+            </div>
+
+            <div class="execution-info-item">
+                <span class="execution-info-label">실행 결과</span>
+                <strong id="execution-detail-status"></strong>
+            </div>
+        </section>
+
+        <section class="execution-sql-section" aria-labelledby="execution-sql-heading">
+            <h2 id="execution-sql-heading">실행한 SQL 원문</h2>
+            <pre class="execution-sql-code"><code id="execution-sql"></code></pre>
+        </section>
+
+        <section id="execution-error-section"
+                 class="execution-detail-card execution-error-card"
+                 hidden>
+            <div class="panel-heading">
+                <h2>실행 오류</h2>
+            </div>
+
+            <p class="error-text">
+                오류 코드:
+                <span id="execution-error-code"></span>
+            </p>
+
+            <pre id="execution-error-message"></pre>
+        </section>
+
+        <section class="execution-result-section"
+                 aria-labelledby="execution-result-heading">
+            <div class="execution-result-heading">
+                <h2 id="execution-result-heading">결과 미리보기</h2>
+
+                <button id="execution-result-download"
+                        type="button"
+                        class="button"
+                        hidden>
+                    CSV 다운로드
+                </button>
+            </div>
+
+            <p id="execution-result-message" class="execution-result-message" role="status"></p>
+
+            <p id="execution-download-message"
+               class="execution-download-message"
+               role="status"
+               aria-live="polite"></p>
+
+            <div id="execution-result-metadata"
+                 class="execution-result-metadata"
+                 hidden>
+                <div class="execution-info-item">
+                    <span class="execution-info-label">조회 건수</span>
+                    <strong id="execution-result-count"></strong>
+                </div>
+                <div class="execution-info-item">
+                    <span class="execution-info-label">결과 파일 크기</span>
+                    <strong id="execution-result-size"></strong>
+                </div>
+                <div class="execution-info-item">
+                    <span class="execution-info-label">결과 보관 만료 시각</span>
+                    <strong id="execution-result-expires"></strong>
+                </div>
+            </div>
+        </section>
+
+        <section id="execution-preview-section"
+                 class="execution-preview-section"
+                 hidden>
+            <div class="execution-preview-heading">
+                <div>
+                    <h2>결과 미리보기</h2>
+                    <p class="execution-preview-expiration">
+                        결과 보관 만료
+                        <strong id="execution-preview-expires">—</strong>
+                    </p>
+                </div>
+
+                <span id="csv-preview-count" class="caption"></span>
+            </div>
+
+            <p class="caption">
+                아래로 스크롤하면 25행씩 추가됩니다. 최대 100행까지 표시합니다.
+            </p>
+
+            <div id="csv-preview-scroll"
+                 class="table-scroll execution-preview-scroll"
+                 tabindex="0"
+                 aria-label="CSV 미리보기 스크롤 영역">
+
+                <table>
+                    <caption class="sr-only">SQL 실행 결과 CSV 미리보기</caption>
+                    <thead>
+                        <tr id="csv-preview-columns"></tr>
+                    </thead>
+                    <tbody id="csv-preview-rows"></tbody>
+                </table>
+            </div>
+
+            <p id="csv-preview-message" role="status"></p>
+
+            <button id="csv-preview-retry"
+                    type="button"
+                    class="button"
+                    hidden>
+                다시 불러오기
+            </button>
+        </section>
+
+        <section class="execution-legacy-meta" aria-label="추가 실행 정보">
+            <span>기안서 번호 <a id="execution-request-number" class="table-title"></a></span>
             <span>배치 번호 <strong id="execution-batch-id"></strong></span>
             <span>실행 번호 <strong id="execution-id"></strong></span>
             <span>실행 차수 <strong id="execution-attempt"></strong></span>
-        </div>
-
-        <div class="status-grid">
-            <div>
-                <span>실행 시작</span>
-                <strong id="execution-started-at"></strong>
-            </div>
-            <div>
-                <span>실행 종료</span>
-                <strong id="execution-finished-at"></strong>
-            </div>
-            <div>
-                <span>소요 시간</span>
-                <strong id="execution-duration"></strong>
-            </div>
-        </div>
-
-        <p class="caption">
-            실행 등록 시각:
-            <span id="execution-requested-at"></span>
-        </p>
-    </section>
-
-    <section class="panel section-gap">
-        <div class="panel-heading">
-            <h2>SQL 원문</h2>
-        </div>
-
-        <pre><code id="execution-sql"></code></pre>
-    </section>
-
-    <section id="execution-error-section"
-             class="panel section-gap"
-             hidden>
-        <div class="panel-heading">
-            <h2>실행 오류</h2>
-        </div>
-
-        <p class="error-text">
-            오류 코드:
-            <span id="execution-error-code"></span>
-        </p>
-
-        <pre id="execution-error-message"></pre>
-    </section>
-
-    <section class="panel section-gap">
-		<div class="panel-heading">
-		    <h2>조회 결과</h2>
-
-			<button id="execution-result-download"
-			        type="button"
-			        class="button"
-			        hidden>
-			    CSV 다운로드
-			</button>
-		</div>
-
-        <p id="execution-result-message" role="status"></p>
-		
-		<p id="execution-download-message"
-		   role="status"
-		   aria-live="polite"></p>
-
-        <div id="execution-result-metadata" class="status-grid" hidden>
-            <div>
-                <span>조회 건수</span>
-                <strong id="execution-result-count"></strong>
-            </div>
-            <div>
-                <span>결과 파일 크기</span>
-                <strong id="execution-result-size"></strong>
-            </div>
-            <div>
-                <span>결과 보관 만료 시각</span>
-                <strong id="execution-result-expires"></strong>
-            </div>
-        </div>
-    </section>
-</div>
-
-<section id="execution-preview-section"
-     	 class="panel section-gap"
-    	 hidden>
-	<div class="panel-heading">
-	     <h2>CSV 결과 미리보기</h2>
-	     <span id="csv-preview-count" class="caption"></span>
-	</div>
-
-    <p class="caption">
-        아래로 스크롤하면 25행씩 추가됩니다. 최대 100행까지 표시합니다.
-    </p>
-
-    <div id="csv-preview-scroll"
-         class="table-scroll"
-         style="height: 360px; overflow: auto;"
-         tabindex="0"
-         aria-label="CSV 미리보기 스크롤 영역">
-
-        <table>
-            <caption class="sr-only">SQL 실행 결과 CSV 미리보기</caption>
-            <thead>
-                <tr id="csv-preview-columns"></tr>
-            </thead>
-            <tbody id="csv-preview-rows"></tbody>
-        </table>
+            <span>실행 종료 <strong id="execution-finished-at"></strong></span>
+            <span>소요 시간 <strong id="execution-duration"></strong></span>
+            <span>실행 등록 시각 <strong id="execution-requested-at"></strong></span>
+        </section>
     </div>
-
-    <p id="csv-preview-message" role="status"></p>
-
-    <button id="csv-preview-retry"
-            type="button"
-            class="button"
-            hidden>
-        다시 불러오기
-    </button>
-</section>
+</div>
 
 <script>
     const executionId =
         $('#execution-detail-config').dataset.executionId;
 
     let executionDetailVersion = 0;
-	let downloading = false;
-	
-	// 결과 화면의 GET 요청에만 사용한다.
-	// 공통 api()를 수정하지 않고 HTTP 상태를 전달한다.
-	async function executionResultApi(path) {
-	    const controller = new AbortController();
+    let downloading = false;
 
-	    const timer = setTimeout(function () {
-	        controller.abort();
-	    }, 30000);
+    // 결과 화면의 GET 요청에만 사용한다.
+    // 공통 api()를 수정하지 않고 HTTP 상태를 전달한다.
+    async function executionResultApi(path) {
+        const controller = new AbortController();
 
-	    try {
-	        const response = await fetch(
-	            BASE + '/api' + path,
-	            {
-	                method: 'GET',
-	                credentials: 'same-origin',
-	                cache: 'no-store',
-	                headers: {
-	                    Accept: 'application/json'
-	                },
-	                signal: controller.signal
-	            }
-	        );
+        const timer = setTimeout(function () {
+            controller.abort();
+        }, 30000);
 
-	        const data = await response.json().catch(function (error) {
-	            if (error.name === 'AbortError') {
-	                throw error;
-	            }
+        try {
+            const response = await fetch(
+                BASE + '/api' + path,
+                {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                    headers: {
+                        Accept: 'application/json'
+                    },
+                    signal: controller.signal
+                }
+            );
 
-	            return null;
-	        });
+            const data = await response.json().catch(function (error) {
+                if (error.name === 'AbortError') {
+                    throw error;
+                }
 
-	        if (!response.ok) {
-	            const error = new Error(
-	                data?.message
-	                || data?.detail
-	                || '결과 요청을 처리하지 못했습니다.'
-	            );
+                return null;
+            });
 
-	            error.status = response.status;
+            if (!response.ok) {
+                const error = new Error(
+                    data?.message
+                    || data?.detail
+                    || '결과 요청을 처리하지 못했습니다.'
+                );
 
-	            throw error;
-	        }
+                error.status = response.status;
 
-	        if (data == null) {
-	            throw new Error('서버 응답을 확인할 수 없습니다.');
-	        }
+                throw error;
+            }
 
-	        return data;
+            if (data == null) {
+                throw new Error('서버 응답을 확인할 수 없습니다.');
+            }
 
-	    } catch (error) {
-	        if (error.name === 'AbortError') {
-	            throw new Error(
-	                '응답 시간이 초과되었습니다. 다시 시도해 주세요.'
-	            );
-	        }
+            return data;
 
-	        throw error;
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error(
+                    '응답 시간이 초과되었습니다. 다시 시도해 주세요.'
+                );
+            }
 
-	    } finally {
-	        clearTimeout(timer);
-	    }
-	}
+            throw error;
 
-	function executionResultErrorMessage(error) {
-	    if (error.status === 401) {
-	        return '로그인이 만료되었습니다. 다시 로그인해 주세요.';
-	    }
+        } finally {
+            clearTimeout(timer);
+        }
+    }
 
-	    if (error.status >= 500) {
-	        return '서버에서 결과를 제공하지 못했습니다. 잠시 후 다시 시도해 주세요.';
-	    }
+    function executionResultErrorMessage(error) {
+        if (error.status === 401) {
+            return '로그인이 만료되었습니다. 다시 로그인해 주세요.';
+        }
 
-	    return error.message || '결과를 불러오지 못했습니다.';
-	}
+        if (error.status >= 500) {
+            return '서버에서 결과를 제공하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+        }
+
+        return error.message || '결과를 불러오지 못했습니다.';
+    }
 
     function formatExecutionDetailDate(value) {
         return value
@@ -265,19 +297,33 @@
         $('#execution-detail-title').textContent =
             detail.queryTitle || '제목 없는 SQL';
 
+        $('#execution-detail-number').textContent =
+            detail.requestNo || '실행 결과';
+
+        $('#execution-detail-summary').textContent =
+            detail.requestTitle || 'SQL 실행 결과';
+
         $('#execution-detail-status').innerHTML = badge(
             statusNames[detail.status] || detail.status || '—',
             statusKind
         );
 
         const requestLink = $('#execution-request-link');
+        const requestNumberLink = $('#execution-request-number');
 
-        requestLink.textContent = detail.requestNo || '요청 보기';
-		requestLink.href =
-			BASE + '/department-requests/' + encodeURIComponent(detail.requestId);
+        requestLink.href =
+            BASE + '/department-requests/' + encodeURIComponent(detail.requestId);
+        requestNumberLink.href = requestLink.href;
+        requestNumberLink.textContent = detail.requestNo || '요청 보기';
 
         $('#execution-request-title').textContent =
-            detail.requestTitle || '—';
+            detail.requestPurpose || detail.requestTitle || '—';
+
+        $('#execution-requester').textContent =
+            detail.requesterName || detail.requester || '—';
+
+        $('#execution-runner').textContent =
+            detail.executorName || detail.executedBy || '—';
 
         $('#execution-batch-id').textContent = detail.batchId ?? '—';
         $('#execution-id').textContent = detail.executionId ?? '—';
@@ -308,28 +354,28 @@
             detail.errorMessage || '저장된 오류 내용이 없습니다.';
 
         const hasResult = detail.resultId != null;
-		
-		// 현재 API의 expiresAt은 한국 시간 기준 LocalDateTime이다.
-		const expiresAt = detail.expiresAt
-		    ? Date.parse(detail.expiresAt + '+09:00')
-		    : null;
 
-		const expired =
-		    expiresAt !== null
-		    && (!Number.isFinite(expiresAt) || expiresAt <= Date.now());
+        // 현재 API의 expiresAt은 한국 시간 기준 LocalDateTime이다.
+        const expiresAt = detail.expiresAt
+            ? Date.parse(detail.expiresAt + '+09:00')
+            : null;
 
-		const downloadButton = $('#execution-result-download');
+        const expired =
+            expiresAt !== null
+            && (!Number.isFinite(expiresAt) || expiresAt <= Date.now());
 
-		const canRequestDownload =
-		    detail.status === 'SUCCESS'
-		    && hasResult
-		    && !detail.deletedAt
-		    && !expired;
+        const downloadButton = $('#execution-result-download');
 
-		downloadButton.hidden = !canRequestDownload;
-		downloadButton.disabled = downloading;
+        const canRequestDownload =
+            detail.status === 'SUCCESS'
+            && hasResult
+            && !detail.deletedAt
+            && !expired;
 
-		$('#execution-download-message').textContent = '';
+        downloadButton.hidden = !canRequestDownload;
+        downloadButton.disabled = downloading;
+
+        $('#execution-download-message').textContent = '';
 
         $('#execution-result-metadata').hidden = !hasResult;
 
@@ -338,12 +384,20 @@
                 ? '—'
                 : String(detail.rowCount) + '건';
 
+        $('#execution-row-count').textContent =
+            detail.rowCount == null
+                ? '—'
+                : String(detail.rowCount) + '행';
+
         $('#execution-result-size').textContent =
             detail.fileSize == null
                 ? '—'
                 : String(detail.fileSize) + ' bytes';
 
         $('#execution-result-expires').textContent =
+            formatExecutionDetailDate(detail.expiresAt);
+
+        $('#execution-preview-expires').textContent =
             formatExecutionDetailDate(detail.expiresAt);
 
         let resultMessage;
@@ -358,164 +412,162 @@
             case 'FAILED':
                 resultMessage = 'SQL 실행에 실패했습니다. 오류 내용을 확인해 주세요.';
                 break;
-				case 'SUCCESS':
-				resultMessage = detail.deletedAt
-				    ? '보관된 결과 파일이 삭제되었습니다.'
-				    : expired
-				        ? '결과 파일의 보관 기간이 만료되었습니다.'
-				        : hasResult
-				            ? ''
-				            : '실행은 성공했지만 저장된 결과 정보가 없습니다.';
-				break;
+            case 'SUCCESS':
+                resultMessage = detail.deletedAt
+                    ? '보관된 결과 파일이 삭제되었습니다.'
+                    : expired
+                        ? '결과 파일의 보관 기간이 만료되었습니다.'
+                        : hasResult
+                            ? ''
+                            : '실행은 성공했지만 저장된 결과 정보가 없습니다.';
+                break;
             default:
                 resultMessage = '실행 상태를 확인해 주세요.';
         }
 
-		const resultMessageElement = $('#execution-result-message');
+        const resultMessageElement = $('#execution-result-message');
 
-		resultMessageElement.textContent = resultMessage;
-		resultMessageElement.hidden = !resultMessage;
-		
-		return canRequestDownload;
+        resultMessageElement.textContent = resultMessage;
+        resultMessageElement.hidden = !resultMessage;
+
+        return canRequestDownload;
     }
-	
-	async function downloadExecutionCsv() {
-	    const button = $('#execution-result-download');
-	    const message = $('#execution-download-message');
 
-	    if (downloading || button.hidden) {
-	        return;
-	    }
+    async function downloadExecutionCsv() {
+        const button = $('#execution-result-download');
+        const message = $('#execution-download-message');
 
-	    const version = executionDetailVersion;
+        if (downloading || button.hidden) {
+            return;
+        }
 
-	    downloading = true;
-	    button.disabled = true;
-	    button.textContent = '다운로드 준비 중…';
-	    message.textContent = 'CSV 파일을 요청하고 있습니다.';
+        const version = executionDetailVersion;
 
-	    try {
-	        const response = await fetch(
-	            BASE
-	            + '/api/execution-results/mine/'
-	            + encodeURIComponent(executionId)
-	            + '/csv',
-	            {
-	                method: 'GET',
-	                credentials: 'same-origin',
-	                cache: 'no-store',
-	                headers: {
-	                    Accept: 'text/csv, application/json'
-	                }
-	            }
-	        );
+        downloading = true;
+        button.disabled = true;
+        button.textContent = '다운로드 준비 중…';
+        message.textContent = 'CSV 파일을 요청하고 있습니다.';
 
-	        if (!response.ok) {
-	            const data = await response.json().catch(() => null);
+        try {
+            const response = await fetch(
+                BASE
+                + '/api/execution-results/mine/'
+                + encodeURIComponent(executionId)
+                + '/csv',
+                {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                    headers: {
+                        Accept: 'text/csv, application/json'
+                    }
+                }
+            );
 
-	            const error = new Error(
-	                data?.message
-	                || data?.detail
-	                || 'CSV 다운로드에 실패했습니다.'
-	            );
+            if (!response.ok) {
+                const data = await response.json().catch(() => null);
 
-	            error.status = response.status;
+                const error = new Error(
+                    data?.message
+                    || data?.detail
+                    || 'CSV 다운로드에 실패했습니다.'
+                );
 
-	            throw error;
-	        }
+                error.status = response.status;
 
-	        const contentType =
-	            response.headers.get('Content-Type') || '';
+                throw error;
+            }
 
-	        if (!contentType.toLowerCase().startsWith('text/csv')) {
-	            throw new Error(
-	                'CSV 파일 응답을 받지 못했습니다. 로그인 상태를 확인해 주세요.'
-	            );
-	        }
+            const contentType =
+                response.headers.get('Content-Type') || '';
 
-	        const blob = await response.blob();
+            if (!contentType.toLowerCase().startsWith('text/csv')) {
+                throw new Error(
+                    'CSV 파일 응답을 받지 못했습니다. 로그인 상태를 확인해 주세요.'
+                );
+            }
 
-	        // 새로고침 이후 도착한 이전 요청의 결과는 사용하지 않는다.
-	        if (version !== executionDetailVersion) {
-	            return;
-	        }
+            const blob = await response.blob();
 
-	        const objectUrl = URL.createObjectURL(blob);
-	        const link = document.createElement('a');
+            // 새로고침 이후 도착한 이전 요청의 결과는 사용하지 않는다.
+            if (version !== executionDetailVersion) {
+                return;
+            }
 
-	        link.href = objectUrl;
-	        link.download = 'sqlflow-execution-' + executionId + '.csv';
+            const objectUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
 
-	        document.body.appendChild(link);
-	        link.click();
-	        link.remove();
+            link.href = objectUrl;
+            link.download = 'sqlflow-execution-' + executionId + '.csv';
 
-	        setTimeout(function () {
-	            URL.revokeObjectURL(objectUrl);
-	        }, 60000);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
 
-	        message.textContent =
-	            '브라우저의 다운로드 목록을 확인해 주세요.';
+            setTimeout(function () {
+                URL.revokeObjectURL(objectUrl);
+            }, 60000);
 
-	    } catch (error) {
-	        if (version !== executionDetailVersion) {
-	            return;
-	        }
+            message.textContent =
+                '브라우저의 다운로드 목록을 확인해 주세요.';
 
-	        switch (error.status) {
-	            case 401:
-	                message.textContent =
-	                    '로그인이 만료되었습니다. 다시 로그인해 주세요.';
-	                break;
+        } catch (error) {
+            if (version !== executionDetailVersion) {
+                return;
+            }
 
-	            case 403:
-	                // 조회 거부와 반출 거부는 서버 메시지로 구분한다.
-	                // 다운로드 실패로 미리보기 표를 지우지 않는다.
-	                message.textContent =
-	                    error.message || 'CSV 다운로드 권한이 없습니다.';
-	                break;
+            switch (error.status) {
+                case 401:
+                    message.textContent =
+                        '로그인이 만료되었습니다. 다시 로그인해 주세요.';
+                    break;
 
-	            case 404:
-	                message.textContent =
-	                    error.message || 'CSV 결과 파일을 찾을 수 없습니다.';
-	                break;
+                case 403:
+                    message.textContent =
+                        error.message || 'CSV 다운로드 권한이 없습니다.';
+                    break;
 
-	            case 409:
-	                message.textContent =
-	                    error.message || '현재 상태에서는 다운로드할 수 없습니다.';
-	                break;
+                case 404:
+                    message.textContent =
+                        error.message || 'CSV 결과 파일을 찾을 수 없습니다.';
+                    break;
 
-	            case 410:
-	                message.textContent =
-	                    error.message || '결과가 만료되었거나 삭제되었습니다.';
-	                break;
+                case 409:
+                    message.textContent =
+                        error.message || '현재 상태에서는 다운로드할 수 없습니다.';
+                    break;
 
-	            default:
-	                message.textContent = error.status >= 500
-	                    ? '서버에서 파일을 제공하지 못했습니다. 잠시 후 다시 시도해 주세요.'
-	                    : error.message || '서버에 연결하지 못했습니다.';
-	        }
+                case 410:
+                    message.textContent =
+                        error.message || '결과가 만료되었거나 삭제되었습니다.';
+                    break;
 
-	    } finally {
-	        downloading = false;
-	        button.disabled = false;
-	        button.textContent = 'CSV 다운로드';
-	    }
-	}
+                default:
+                    message.textContent = error.status >= 500
+                        ? '서버에서 파일을 제공하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+                        : error.message || '서버에 연결하지 못했습니다.';
+            }
 
-	$('#execution-result-download').addEventListener(
-	    'click',
-	    downloadExecutionCsv
-	);
+        } finally {
+            downloading = false;
+            button.disabled = false;
+            button.textContent = 'CSV 다운로드';
+        }
+    }
+
+    $('#execution-result-download').addEventListener(
+        'click',
+        downloadExecutionCsv
+    );
 
     async function loadExecutionDetail() {
         const version = ++executionDetailVersion;
-		
-		$('#execution-result-download').hidden = true;
 
-		document.dispatchEvent(
-		    new Event('execution-preview-reset')
-		);
+        $('#execution-result-download').hidden = true;
+
+        document.dispatchEvent(
+            new Event('execution-preview-reset')
+        );
 
         $('#execution-detail-refresh').disabled = true;
         $('#execution-detail-loading').hidden = false;
@@ -535,31 +587,31 @@
                 return;
             }
 
-			const canRequestPreview = renderExecutionDetail(detail);
+            const canRequestPreview = renderExecutionDetail(detail);
 
-			$('#execution-detail-loading').hidden = true;
-			$('#execution-detail-content').hidden = false;
+            $('#execution-detail-loading').hidden = true;
+            $('#execution-detail-content').hidden = false;
 
-			document.dispatchEvent(
-			    new CustomEvent(
-			        'execution-result-ready',
-			        {
-			            detail: {
-			                available: canRequestPreview
-			            }
-			        }
-			    )
-			);
+            document.dispatchEvent(
+                new CustomEvent(
+                    'execution-result-ready',
+                    {
+                        detail: {
+                            available: canRequestPreview
+                        }
+                    }
+                )
+            );
 
         } catch (error) {
             if (version !== executionDetailVersion) {
                 return;
             }
 
-			const message = executionResultErrorMessage(error);
+            const message = executionResultErrorMessage(error);
 
-			$('#execution-detail-loading').textContent = message;
-			notify(message, true);
+            $('#execution-detail-loading').textContent = message;
+            notify(message, true);
 
         } finally {
             if (version === executionDetailVersion) {

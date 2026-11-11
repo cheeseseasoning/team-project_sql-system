@@ -18,7 +18,7 @@ public final class RequestSearchValidator {
             "FAILED",
             "REJECTED",
             "WITHDRAWN");
-    
+
     private static final Set<String> SEARCHABLE_TYPES = Set.of(
             "SELECT",
             "DB_CHANGE");
@@ -54,7 +54,7 @@ public final class RequestSearchValidator {
                     "올바르지 않은 요청 유형입니다.");
         }
     }
-    
+
     public static void validatePage(int page, int size) {
         if (page < 1) {
             throw new ResponseStatusException(

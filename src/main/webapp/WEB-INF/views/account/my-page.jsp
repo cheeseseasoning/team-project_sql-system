@@ -377,7 +377,7 @@
 
         phoneInput.value = formatPhone(profile.phoneNumber);
         emailInput.value = profile.email || '';
-		
+
 		$('#profile-phone-view').textContent = phoneInput.value || '—';
 		$('#profile-email-view').textContent = emailInput.value || '—';
 
@@ -398,7 +398,7 @@
 
         try {
             const profile = await api('/me');
-			
+
             renderProfile(profile);
             $('#profile-content').hidden = false;
         } catch (error) {
@@ -411,7 +411,7 @@
             updateSaveButton();
         }
     }
-	
+
 	editButton.addEventListener('click', () => {
 	    if (loading || saving || original === null) return;
 
@@ -468,7 +468,7 @@
                 method: 'PATCH',
                 body: JSON.stringify(payload)
             });
-			
+
 			editing = false;
             renderProfile(profile);
             notify('연락처를 저장했습니다.');

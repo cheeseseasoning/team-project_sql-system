@@ -99,16 +99,16 @@ async function loadDetail() {
 		$('#request-redraft').hidden =
 		    !['REJECTED', 'WITHDRAWN'].includes(request.requestStatus);
 
-		
+
 		detailItems = (request.items || []).map(function (item) {
 			return {
 				...item,
 				validationStatus: item.validationStatus || 'PENDING'
 			};
 		});
-		
+
 		validationMessages = restoreValidationMessages(detailItems);
-		
+
 		$('#sql-validation-controls').hidden =
 			request.requestStatus !== 'DRAFT';
 
@@ -116,9 +116,9 @@ async function loadDetail() {
 			renderDetailItems(detailItems);
 
 		renderRequestApprovalLine(request);
-		
+
 		$('#request-info').hidden = false;
-		
+
 		await RequestDetailRenderer.loadRejectionReason(
 		    request.requestStatus,
 		    '/approvals/'
@@ -235,12 +235,12 @@ async function validateSavedSqls() {
 	if (sqlValidationInProgress) {
 	    return;
 	}
-	
+
 	if (['CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType)) {
 	    await validateSavedViewSqls();
 	    return;
 	}
-	
+
 	sqlValidationInProgress = true;
 	try {
 		const results = await api(
