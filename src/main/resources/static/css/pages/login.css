@@ -1,31 +1,113 @@
-/* 로그인 화면 */
-
-body {
+/* 로그인 전용: 공통 화면과 인증 폼 동작은 유지한다. */
+body.login-page {
     min-height: 100vh;
+    min-height: 100dvh;
     display: grid;
     place-items: center;
+    padding: 32px 16px;
     background: var(--soft);
 }
 
-.login-panel {
-    width: min(420px, calc(100vw - 32px));
+.login-page .login-panel {
+    width: 100%;
+    max-width: 410px;
+    padding: 36px 34px;
+    border-radius: 12px;
+}
+
+/* 로고·제목을 한 줄로 묶고 안내 아래에서 폼을 구분한다. */
+.login-panel .login-heading {
+    margin-bottom: 26px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+}
+
+.login-panel .login-title-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.login-panel .brand {
+    font-size: 25px;
+    line-height: 1.2;
 }
 
 .login-panel h1 {
-    margin-bottom: 8px;
+    margin: 0;
+    padding-left: 15px;
+    border-left: 1px solid var(--line);
+    font-size: 18px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.login-panel .login-heading p {
+    margin-top: 12px;
+    font-size: 12px;
+}
+
+.login-panel form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
 
 .login-panel label {
-    margin-top: 18px;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.login-panel input:not([type="hidden"]) {
+    height: 46px;
+    margin-top: 9px;
+    padding: 0 13px;
+    border-radius: 6px;
+}
+
+.login-panel input::placeholder {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 400;
 }
 
 .login-panel .button {
     width: 100%;
-    margin-top: 24px;
+    min-height: 46px;
+    margin-top: 6px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
 }
 
-.login-error {
+/* 오류는 입력칸 아래, 로그아웃·비밀번호 변경 안내는 폼 위에 표시한다. */
+.login-panel .login-error,
+.login-panel .login-status {
+    padding: 11px 12px;
+    border-radius: 5px;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.login-panel .login-error {
     color: var(--error);
-    margin-top: 16px;
-    font-size: 13px;
+    background: #fff3f3;
+}
+
+.login-panel .login-status {
+    margin-bottom: 18px;
+    color: var(--accent);
+    background: var(--tint);
+}
+
+@media (max-width: 440px) {
+    .login-page .login-panel {
+        padding: 30px 24px;
+    }
+
+    .login-panel input:not([type="hidden"]) {
+        font-size: 16px;
+    }
 }
