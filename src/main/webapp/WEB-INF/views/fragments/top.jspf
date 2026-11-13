@@ -110,7 +110,7 @@
 
     <c:if test="${page == 'execution-result-detail'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/execution-result.css">
+              href="${pageContext.request.contextPath}/css/pages/execution-result.css?v=20261113-preview-meta-row">
     </c:if>
 
     <c:if test="${page == 'approval-pending' or page == 'approval-detail'}">

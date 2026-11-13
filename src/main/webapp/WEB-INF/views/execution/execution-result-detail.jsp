@@ -7,27 +7,10 @@
 </div>
 
 <div class="execution-detail-page">
-    <div class="page-heading execution-detail-heading">
-        <div>
-            <h1 id="execution-detail-title">쿼리 실행 결과 상세</h1>
-            <p class="execution-detail-subtitle">
-                <span id="execution-detail-number"></span>
-                <span aria-hidden="true">·</span>
-                <span id="execution-detail-summary">실행 정보를 불러오는 중입니다.</span>
-            </p>
-        </div>
+    <h1 class="sr-only">쿼리 실행 결과 상세</h1>
+    <div class="execution-detail-toolbar">
+        <a class="execution-back-link" href="${pageContext.request.contextPath}/execution-results">← 실행 결과 목록</a>
 
-        <div class="execution-detail-actions">
-            <a class="button"
-               href="${pageContext.request.contextPath}/execution-results">
-                실행 결과 목록
-            </a>
-            <button id="execution-detail-refresh"
-                    type="button"
-                    class="button">
-                새로고침
-            </button>
-        </div>
     </div>
 
     <p id="execution-detail-loading" class="execution-detail-loading" role="status">
@@ -35,24 +18,29 @@
     </p>
 
     <div id="execution-detail-content" class="execution-detail-content" hidden>
-        <section class="execution-detail-card execution-request-card"
-                 aria-label="요청 정보">
-            <div class="execution-info-item">
+        <section class="execution-detail-card execution-request-card" aria-label="요청 정보">
+            <div class="execution-info-item execution-request-number-item">
+                <span class="execution-info-label">요청번호</span>
+                <strong id="execution-detail-number">—</strong>
+            </div>
+            <div class="execution-info-item execution-request-name-item">
+                <span class="execution-info-label">요청명</span>
+                <strong id="execution-detail-summary" class="execution-title-emphasis">—</strong>
+            </div>
+            <div class="execution-info-item execution-query-name-item">
+                <span class="execution-info-label">SQL 제목</span>
+                <strong id="execution-detail-title" class="execution-title-emphasis">—</strong>
+            </div>
+            <div class="execution-info-item execution-requester-item">
                 <span class="execution-info-label">요청자</span>
                 <strong id="execution-requester">—</strong>
             </div>
-
             <div class="execution-info-item execution-purpose-item">
                 <span class="execution-info-label">요청 목적</span>
                 <strong id="execution-request-title">—</strong>
             </div>
-
-            <a id="execution-request-link"
-               class="execution-open-request"
-               href="#"
-               aria-label="요청 상세 보기">
-                <span aria-hidden="true">↗</span>
-            </a>
+            <a id="execution-request-link" class="execution-open-request" href="#"
+               title="요청 상세 보기" aria-label="요청 상세 보기"><span aria-hidden="true">↗</span></a>
         </section>
 
         <section class="execution-detail-card execution-run-card"
@@ -63,7 +51,7 @@
             </div>
 
             <div class="execution-info-item">
-                <span class="execution-info-label">실행 시각</span>
+                <span class="execution-info-label">실행 완료 시각</span>
                 <strong id="execution-started-at">—</strong>
             </div>
 
@@ -105,7 +93,7 @@
 
                 <button id="execution-result-download"
                         type="button"
-                        class="button"
+                        class="button primary"
                         hidden>
                     CSV 다운로드
                 </button>
@@ -121,7 +109,7 @@
             <div id="execution-result-metadata"
                  class="execution-result-metadata"
                  hidden>
-                <div class="execution-info-item">
+                <div class="execution-info-item" hidden>
                     <span class="execution-info-label">조회 건수</span>
                     <strong id="execution-result-count"></strong>
                 </div>
@@ -133,28 +121,13 @@
                     <span class="execution-info-label">결과 보관 만료 시각</span>
                     <strong id="execution-result-expires"></strong>
                 </div>
+                <span id="csv-preview-count" class="caption execution-preview-count"></span>
+                <span id="execution-preview-expires" hidden></span>
             </div>
-        </section>
 
         <section id="execution-preview-section"
                  class="execution-preview-section"
                  hidden>
-            <div class="execution-preview-heading">
-                <div>
-                    <h2>결과 미리보기</h2>
-                    <p class="execution-preview-expiration">
-                        결과 보관 만료
-                        <strong id="execution-preview-expires">—</strong>
-                    </p>
-                </div>
-
-                <span id="csv-preview-count" class="caption"></span>
-            </div>
-
-            <p class="caption">
-                아래로 스크롤하면 25행씩 추가됩니다. 최대 100행까지 표시합니다.
-            </p>
-
             <div id="csv-preview-scroll"
                  class="table-scroll execution-preview-scroll"
                  tabindex="0"
@@ -179,15 +152,22 @@
             </button>
         </section>
 
-        <section class="execution-legacy-meta" aria-label="추가 실행 정보">
-            <span>기안서 번호 <a id="execution-request-number" class="table-title"></a></span>
-            <span>배치 번호 <strong id="execution-batch-id"></strong></span>
-            <span>실행 번호 <strong id="execution-id"></strong></span>
-            <span>실행 차수 <strong id="execution-attempt"></strong></span>
-            <span>실행 종료 <strong id="execution-finished-at"></strong></span>
-            <span>소요 시간 <strong id="execution-duration"></strong></span>
-            <span>실행 등록 시각 <strong id="execution-requested-at"></strong></span>
         </section>
+
+        <details class="execution-history-section">
+            <summary>현재 실행 기록</summary>
+            <div class="table-scroll">
+                <table class="execution-history-table">
+                    <thead><tr><th scope="col">실행번호</th><th scope="col">실행 차수</th><th scope="col">시작 시각</th><th scope="col">완료 시각</th><th scope="col">소요 시간</th></tr></thead>
+                    <tbody><tr><td id="execution-id">—</td><td id="execution-attempt">—</td><td id="execution-history-started">—</td><td id="execution-finished-at">—</td><td id="execution-duration">—</td></tr></tbody>
+                </table>
+            </div>
+            <div class="execution-history-footer">
+                <span>배치 번호 <strong id="execution-batch-id">—</strong></span>
+                <span>실행 등록 시각 <strong id="execution-requested-at">—</strong></span>
+                <a id="execution-request-number" hidden></a>
+            </div>
+        </details>
     </div>
 </div>
 
@@ -333,7 +313,8 @@
             formatExecutionDetailDate(detail.requestedAt);
 
         $('#execution-started-at').textContent =
-            formatExecutionDetailDate(detail.startedAt);
+            formatExecutionDetailDate(detail.finishedAt);
+        $('#execution-history-started').textContent = formatExecutionDetailDate(detail.startedAt);
 
         $('#execution-finished-at').textContent =
             formatExecutionDetailDate(detail.finishedAt);
@@ -408,7 +389,7 @@
                 resultMessage = '아직 실행되지 않았습니다.';
                 break;
             case 'RUNNING':
-                resultMessage = 'SQL을 실행하고 있습니다. 잠시 후 새로고침해 주세요.';
+                resultMessage = 'SQL을 실행하고 있습니다. 잠시 후 화면을 다시 확인해 주세요.';
                 break;
             case 'FAILED':
                 resultMessage = 'SQL 실행에 실패했습니다. 오류 내용을 확인해 주세요.';
@@ -570,7 +551,7 @@
             new Event('execution-preview-reset')
         );
 
-        $('#execution-detail-refresh').disabled = true;
+
         $('#execution-detail-loading').hidden = false;
         $('#execution-detail-loading').textContent =
             '실행 정보를 불러오는 중입니다.';
@@ -614,17 +595,9 @@
             $('#execution-detail-loading').textContent = message;
             notify(message, true);
 
-        } finally {
-            if (version === executionDetailVersion) {
-                $('#execution-detail-refresh').disabled = false;
-            }
         }
     }
 
-    $('#execution-detail-refresh').addEventListener(
-        'click',
-        loadExecutionDetail
-    );
 </script>
 
 <script>
