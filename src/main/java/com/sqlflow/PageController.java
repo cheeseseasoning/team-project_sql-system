@@ -58,7 +58,7 @@ public class PageController {
             Model model,
             Authentication authentication) {
         accountService.assertActiveSystemAdmin(loginId(authentication));
-        return view(model, "admin-user-form", "계정 생성·역할 부여");
+        return view(model, "admin-user-form", "계정 생성");
     }
 
     @GetMapping("/admin/users/{userId}")
@@ -83,7 +83,7 @@ public class PageController {
 
     @GetMapping("/my-page")
     public String myPage(Model model) {
-        return view(model, "my-page", "내 프로필");
+        return view(model, "my-page", "마이페이지");
     }
 
     @GetMapping("/requests/new")
@@ -101,7 +101,7 @@ public class PageController {
 
     @GetMapping("/requests")
     public String list(Model model) {
-        return view(model, "requests", "내 기안함");
+        return view(model, "requests", "내 요청함");
     }
 
     @GetMapping("/requests/{id}")
@@ -126,7 +126,7 @@ public class PageController {
 
     @GetMapping("/department-requests")
     public String departmentRequests(Model model) {
-        return view(model, "department-requests", "부서 기안함");
+        return view(model, "department-requests", "부서 요청함");
     }
 
     @GetMapping("/department-requests/{requestId}")
@@ -134,7 +134,7 @@ public class PageController {
             Model model,
             @PathVariable("requestId") Long requestId) {
         model.addAttribute("requestId", requestId);
-        return view(model, "department-request-detail", "부서 기안 상세");
+        return view(model, "department-request-detail", "기안서 상세");
     }
 
     @GetMapping("/approvals/pending")
@@ -145,7 +145,7 @@ public class PageController {
     @GetMapping("/approvals/{id}")
     public String approvalDetail(Model model, @PathVariable Long id) {
         model.addAttribute("requestId", id);
-        return view(model, "approval-detail", "결재 요청 상세");
+        return view(model, "approval-detail", "기안서 상세");
     }
 
     @GetMapping("/execution-results")
@@ -173,7 +173,7 @@ public class PageController {
             Authentication authentication) {
         executionQueueService.assertCanAccess(principal(authentication));
         model.addAttribute("requestId", requestId);
-        return view(model, "execution-queue-detail", "실행 요청 상세");
+        return view(model, "execution-queue-detail", "기안서 상세");
     }
 
     @GetMapping("/execution-results/{executionId}")
@@ -181,7 +181,7 @@ public class PageController {
             Model model,
             @PathVariable("executionId") Long executionId) {
         model.addAttribute("executionId", executionId);
-        return view(model, "execution-result-detail", "SQL 실행 결과 상세");
+        return view(model, "execution-result-detail", "쿼리 실행 결과 상세");
     }
 
     @GetMapping("/view-create-requests/new")
@@ -227,7 +227,7 @@ public class PageController {
         Long userId = userId(authentication);
         resourcePolicyAdminService.assertCanView(userId);
         model.addAttribute("resourceId", resourceId);
-        return view(model, "db-resource-admin", "리소스 정책 상세");
+        return view(model, "db-resource-admin", "리소스·접근 정책 상세");
     }
 
     @GetMapping("/notices")
@@ -309,9 +309,9 @@ public class PageController {
 			        new MenuPath("데이터 조회·변경", "데이터 변경 요청",
 			                "/view-create-requests/new");
             case "requests" ->
-                    new MenuPath("기안·결재", "내 기안함", "/requests");
+                    new MenuPath("기안·결재", "내 요청함", "/requests");
             case "department-requests" ->
-                    new MenuPath("기안·결재", "부서 기안함", "/department-requests");
+                    new MenuPath("기안·결재", "부서 요청함", "/department-requests");
             case "approvals" ->
                     new MenuPath("기안·결재", "받은 결재", "/approvals/pending");
             case "execution-results" ->
@@ -325,7 +325,7 @@ public class PageController {
             case "notices" ->
                     new MenuPath(null, "공지사항", "/notices");
             case "my-page" ->
-                    new MenuPath(null, "내 프로필", "/my-page");
+                    new MenuPath(null, "마이페이지", "/my-page");
             default -> null;
         };
 

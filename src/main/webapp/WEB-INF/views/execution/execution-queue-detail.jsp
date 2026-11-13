@@ -3,9 +3,9 @@
 
 <div class="execution-detail-page">
     <nav class="execution-detail-breadcrumb" aria-label="현재 위치">
-        <a href="${pageContext.request.contextPath}/execution-queue">실행 목록</a>
-        <span aria-hidden="true">/</span>
-        <span>실행 요청 상세</span>
+        <a href="${pageContext.request.contextPath}/execution-queue">쿼리 실행 대기</a>
+        <span aria-hidden="true">›</span>
+        <span>기안서 상세</span>
     </nav>
 
     <section class="execution-document" aria-labelledby="document-title">

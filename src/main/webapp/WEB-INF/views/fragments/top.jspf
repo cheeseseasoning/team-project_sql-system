@@ -14,11 +14,11 @@
     <link rel="stylesheet"
           href="${pageContext.request.contextPath}/css/sqlflow.css">
     <link rel="stylesheet"
-          href="${pageContext.request.contextPath}/css/layout.css">
+              href="${pageContext.request.contextPath}/css/layout.css?v=20261113-content-top">
 
     <c:if test="${page == 'home'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/dashboard.css">
+              href="${pageContext.request.contextPath}/css/pages/dashboard.css?v=20261113-home-icon">
     </c:if>
 
     <c:if test="${page == 'my-page'}">
@@ -34,9 +34,15 @@
                or page == 'department-requests'
                or page == 'department-request-detail'
                or page == 'view-create-request-form'
-               or page == 'execution-results'}">
+               or page == 'approval-pending'
+               or page == 'execution-results'
+               or page == 'accounts'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261111-editor-split">
+              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261113-account-list">
+    </c:if>
+
+    <c:if test="${page == 'view-create-request-form'}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/db-change-editor.css?v=20261113-compact-type">
     </c:if>
 
     <c:if test="${page == 'request-form' or page == 'request-edit'}">
@@ -45,8 +51,14 @@
     </c:if>
 
     <c:if test="${page == 'request-detail' or page == 'department-request-detail'}">
+        <script src="${pageContext.request.contextPath}/js/request-sql-download.js?v=20261113-all-sql"></script>
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261111-css-split">
+              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261113-sql-meta">
+    </c:if>
+
+    <c:if test="${page == 'request-detail' or page == 'department-request-detail'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/change-sql-result.css?v=20261113-summary">
     </c:if>
 
     <c:if test="${page == 'request-detail'}">
@@ -56,7 +68,7 @@
 
     <c:if test="${page == 'execution-queue' or page == 'execution-queue-detail'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/execution-queue.css">
+              href="${pageContext.request.contextPath}/css/pages/execution-queue.css?v=20261113-list-search-fix">
     </c:if>
 
     <c:if test="${page == 'notices'}">
@@ -69,6 +81,10 @@
               href="${pageContext.request.contextPath}/css/pages/views.css">
     </c:if>
 
+    <c:if test="${page == 'views' or page == 'accounts'}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/list-search.css?v=20261113-search">
+    </c:if>
+
     <c:if test="${page == 'db-resource-admin'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/db-resource-admin.css">
@@ -79,26 +95,46 @@
               href="${pageContext.request.contextPath}/css/pages/view-detail.css">
     </c:if>
 
+    <c:if test="${page == 'accounts' or page == 'admin-user-form' or page == 'admin-user-detail'}">
+        <script src="${pageContext.request.contextPath}/js/account-roles.js?v=20261113-labels"></script>
+    </c:if>
+
+    <c:if test="${page == 'accounts'}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/accounts.css?v=20261113-employee">
+    </c:if>
+
     <c:if test="${page == 'admin-user-form' or page == 'admin-user-detail'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/admin-user.css">
+              href="${pageContext.request.contextPath}/css/pages/admin-user.css?v=20261113-center-layout">
+    </c:if>
+
+    <c:if test="${page == 'admin-user-detail'}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/account-detail.css?v=20261113-center-layout">
     </c:if>
 
     <c:if test="${page == 'execution-result-detail'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/execution-result.css">
+              href="${pageContext.request.contextPath}/css/pages/execution-result.css?v=20261113-preview-meta-row">
     </c:if>
 
     <c:if test="${page == 'approval-pending' or page == 'approval-detail'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/approval.css">
     </c:if>
+    <c:if test="${page == 'view-detail'
+               or page == 'request-detail'
+               or page == 'department-request-detail'
+               or page == 'execution-result-detail'}">
+        <script src="${pageContext.request.contextPath}/js/vendor/sql-formatter.min.js"></script>
+        <script src="${pageContext.request.contextPath}/js/sql-display.js?v=20261113-format"></script>
+    </c:if>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/list-titles.css?v=20261113-ellipsis">
+    <script src="${pageContext.request.contextPath}/js/list-titles.js?v=20261113-ellipsis" defer></script>
 </head>
 <body>
     <div class="app-shell">
         <aside class="sidebar">
             <a class="brand" href="${pageContext.request.contextPath}/">SQLFlow</a>
-            <p class="brand-sub">데이터 조회·통제 시스템</p>
             <hr>
 
             <nav aria-label="업무 메뉴">
@@ -106,7 +142,7 @@
                    href="${pageContext.request.contextPath}/"
                    ${activeMenu == 'home' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/House.svg" alt="">
-                    HOME
+                    Home
                 </a>
 
                 <details class="nav-group" ${activeMenu == 'create' or activeMenu == 'view-create-requests' or activeMenu == 'views' ? 'open' : ''}>
@@ -143,13 +179,13 @@
                            href="${pageContext.request.contextPath}/requests"
                            ${activeMenu == 'requests' ? 'aria-current="page"' : ''}>
                             <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
-                            내 기안함
+                            내 요청함
                         </a>
                         <a class="nav-item ${activeMenu == 'department-requests' ? 'active' : ''}"
                            href="${pageContext.request.contextPath}/department-requests"
                            ${activeMenu == 'department-requests' ? 'aria-current="page"' : ''}>
                             <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
-                            부서 기안함
+                            부서 요청함
                         </a>
                         <a class="nav-item ${activeMenu == 'approvals' ? 'active' : ''}"
                            href="${pageContext.request.contextPath}/approvals/pending"
@@ -210,13 +246,10 @@
                    href="${pageContext.request.contextPath}/my-page"
                    ${activeMenu == 'my-page' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
-                    내 프로필
+                    마이페이지
                 </a>
             </nav>
 
-            <div class="sidebar-foot">
-                SELECT 전용<br>허용된 VIEW만 조회
-            </div>
         </aside>
 
         <div class="workspace">
@@ -247,20 +280,13 @@
                     <form class="header-search"
                           action="${pageContext.request.contextPath}/requests"
                           method="get">
-                        <label class="sr-only" for="header-keyword">요청 검색</label>
+                        <label class="sr-only" for="header-keyword">내 요청번호·제목 검색</label>
                         <span aria-hidden="true">⌕</span>
                         <input id="header-keyword"
                                name="keyword"
-                               placeholder="요청번호, 제목 검색">
+                               placeholder="내 요청번호·제목 검색">
                         <button type="submit" class="sr-only">검색</button>
                     </form>
-
-                    <a class="icon-button notification"
-                       href="${pageContext.request.contextPath}/notices"
-                       aria-label="공지사항">
-                        <img src="${pageContext.request.contextPath}/icons/Bell.svg" alt="">
-                        <i></i>
-                    </a>
 
                     <button id="help-button"
                             class="help-link"

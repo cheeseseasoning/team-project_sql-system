@@ -16,6 +16,7 @@
             <arg column="POSITION_NAME" javaType="java.lang.String"/>
             <arg column="ROLE_NAMES" javaType="java.lang.String"/>
             <arg column="ENABLED" javaType="java.lang.String"/>
+            <arg column="EMPLOYEE_NO" javaType="java.lang.String"/>
         </constructor>
     </resultMap>
 
@@ -88,6 +89,7 @@
     <select id="selectAllAccountListItems"
             resultMap="accountListItemResponseMap">
         SELECT U.USER_ID,
+               U.EMPLOYEE_NO,
                U.LOGIN_ID,
                U.USER_NAME,
                D.DEPT_NAME,
@@ -108,6 +110,7 @@
         LEFT JOIN ROLE R
           ON R.ROLE_ID = UR.ROLE_ID
         GROUP BY U.USER_ID,
+                 U.EMPLOYEE_NO,
                  U.LOGIN_ID,
                  U.USER_NAME,
                  D.DEPT_NAME,
@@ -119,6 +122,7 @@
     <select id="selectAccountListItems"
             resultMap="accountListItemResponseMap">
         SELECT U.USER_ID,
+               U.EMPLOYEE_NO,
                U.LOGIN_ID,
                U.USER_NAME,
                D.DEPT_NAME,
@@ -139,6 +143,7 @@
         LEFT JOIN ROLE R
           ON R.ROLE_ID = UR.ROLE_ID
         GROUP BY U.USER_ID,
+                 U.EMPLOYEE_NO,
                  U.LOGIN_ID,
                  U.USER_NAME,
                  D.DEPT_NAME,
@@ -147,6 +152,74 @@
         ORDER BY U.USER_ID
         OFFSET #{offset} ROWS
         FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+    <!-- INSTR는 %와 _도 일반 문자로 검색하며, 목록과 총 건수에 같은 조건을 쓴다. -->
+    <sql id="accountKeywordCondition">
+        (INSTR(UPPER(U.LOGIN_ID), UPPER(#{keyword})) > 0
+         OR INSTR(UPPER(U.USER_NAME), UPPER(#{keyword})) > 0
+         OR INSTR(UPPER(D.DEPT_NAME), UPPER(#{keyword})) > 0
+         OR INSTR(UPPER(P.POSITION_NAME), UPPER(#{keyword})) > 0
+         OR EXISTS (
+             SELECT 1 FROM USER_ROLE SEARCH_UR
+             JOIN ROLE SEARCH_R ON SEARCH_R.ROLE_ID = SEARCH_UR.ROLE_ID
+             WHERE SEARCH_UR.USER_ID = U.USER_ID
+               AND (INSTR(UPPER(SEARCH_R.ROLE_CODE), UPPER(#{keyword})) > 0
+                    OR INSTR(UPPER(CASE SEARCH_R.ROLE_CODE
+                        WHEN 'SYSTEM_ADMIN' THEN '시스템 관리'
+                        WHEN 'DB_ADMIN' THEN 'DB 운영 관리'
+                        WHEN 'DB_APPROVER' THEN '조회 SQL 실행'
+                        WHEN 'SENSITIVE_DATA_READER' THEN '민감 데이터 조회'
+                        ELSE SEARCH_R.ROLE_CODE
+                    END), UPPER(#{keyword})) > 0)
+         )
+         OR (INSTR('일반 사용자', #{keyword}) > 0
+             AND NOT EXISTS (
+                 SELECT 1 FROM USER_ROLE SEARCH_UR WHERE SEARCH_UR.USER_ID = U.USER_ID
+             )))
+    </sql>
+
+    <select id="searchAccountListItems"
+            resultMap="accountListItemResponseMap">
+        SELECT U.USER_ID,
+               U.EMPLOYEE_NO,
+               U.LOGIN_ID,
+               U.USER_NAME,
+               D.DEPT_NAME,
+               P.POSITION_NAME,
+               NVL(
+                   LISTAGG(R.ROLE_CODE, ', ')
+                       WITHIN GROUP (ORDER BY R.ROLE_CODE),
+                   '일반 사용자'
+               ) AS ROLE_NAMES,
+               U.ENABLED
+        FROM USERS U
+        JOIN DEPARTMENT D
+          ON D.DEPT_ID = U.DEPT_ID
+        JOIN POSITION P
+          ON P.POSITION_ID = U.POSITION_ID
+        LEFT JOIN USER_ROLE UR
+          ON UR.USER_ID = U.USER_ID
+        LEFT JOIN ROLE R
+          ON R.ROLE_ID = UR.ROLE_ID
+        WHERE <include refid="accountKeywordCondition"/>
+        GROUP BY U.USER_ID,
+                 U.EMPLOYEE_NO,
+                 U.LOGIN_ID,
+                 U.USER_NAME,
+                 D.DEPT_NAME,
+                 P.POSITION_NAME,
+                 U.ENABLED
+        ORDER BY U.USER_ID
+        OFFSET #{offset} ROWS
+        FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+    <select id="countMatchingAccounts" resultType="long">
+        SELECT COUNT(*) FROM USERS U
+        JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+        JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
+        WHERE <include refid="accountKeywordCondition"/>
     </select>
 
     <select id="countAllAccounts" resultType="long">

@@ -225,6 +225,10 @@
         <result property="changeExecutedBy" column="CHANGE_EXECUTED_BY"/>
         <result property="changeRegisteredBy" column="CHANGE_REGISTERED_BY"/>
         <result property="changeRegisteredAt" column="CHANGE_REGISTERED_AT"/>
+        <result property="changeExecutedByName" column="CHANGE_EXECUTED_BY_NAME"/>
+        <result property="changeExecutedDeptName" column="CHANGE_EXECUTED_DEPT_NAME"/>
+        <result property="changeRegisteredByName" column="CHANGE_REGISTERED_BY_NAME"/>
+        <result property="changeRegisteredDeptName" column="CHANGE_REGISTERED_DEPT_NAME"/>
         <collection
             property="changeResultHistory"
             column="QUERY_ID"
@@ -242,7 +246,11 @@
                CR.RESULT_NOTE AS CHANGE_RESULT_NOTE,
                CR.EXECUTED_BY AS CHANGE_EXECUTED_BY,
                CR.REGISTERED_BY AS CHANGE_REGISTERED_BY,
-               CR.REGISTERED_AT AS CHANGE_REGISTERED_AT
+               CR.REGISTERED_AT AS CHANGE_REGISTERED_AT,
+               EXECUTOR.USER_NAME AS CHANGE_EXECUTED_BY_NAME,
+               EXECUTOR_DEPT.DEPT_NAME AS CHANGE_EXECUTED_DEPT_NAME,
+               REGISTRAR.USER_NAME AS CHANGE_REGISTERED_BY_NAME,
+               REGISTRAR_DEPT.DEPT_NAME AS CHANGE_REGISTERED_DEPT_NAME
         FROM DB_CHANGE_SQL V
         JOIN QUERY_REQUEST R
           ON R.REQUEST_ID = V.REQUEST_ID
@@ -252,6 +260,10 @@
           ON REQUEST_DEPT.DEPT_ID = R.DEPT_ID
         LEFT JOIN DB_CHANGE_SQL_RESULT CR
           ON CR.QUERY_ID = V.QUERY_ID
+        LEFT JOIN USERS EXECUTOR ON EXECUTOR.USER_ID = CR.EXECUTED_BY
+        LEFT JOIN DEPARTMENT EXECUTOR_DEPT ON EXECUTOR_DEPT.DEPT_ID = EXECUTOR.DEPT_ID
+        LEFT JOIN USERS REGISTRAR ON REGISTRAR.USER_ID = CR.REGISTERED_BY
+        LEFT JOIN DEPARTMENT REGISTRAR_DEPT ON REGISTRAR_DEPT.DEPT_ID = REGISTRAR.DEPT_ID
         WHERE R.REQUEST_ID = #{requestId}
           AND R.REQUEST_TYPE IN (
               'CREATE_VIEW',

@@ -7,10 +7,10 @@
 	<div class="request-detail-layout">
 
         <div class="request-information-summary">
-		    <h2 class="request-information-heading">기안 정보</h2>
+		    <h2 class="request-information-heading">요청 정보</h2>
 
 		    <table class="request-info-table">
-		        <caption class="sr-only">기안 정보</caption>
+		        <caption class="sr-only">요청 정보</caption>
 
 		        <colgroup>
 		            <col class="request-info-label-column">
@@ -156,9 +156,9 @@
 			    <span id="sql-count" class="request-sql-count"></span>
 			</h2>
 
-            <c:if test="${requestDetailReadOnly and deptName == 'DB팀' and pageContext.request.isUserInRole('DB_APPROVER')}">
-	            <button id="view-sql-download" type="button" class="button primary" hidden>
-	                승인된 뷰 SQL 다운로드
+            <c:if test="${deptName == 'DB팀'}">
+	            <button id="view-sql-download" type="button" class="button sql-download-button" hidden>
+	                sql 다운로드
 	            </button>
 	            <span id="view-sql-download-message" class="caption" role="status"></span>
             </c:if>

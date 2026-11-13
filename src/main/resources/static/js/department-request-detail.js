@@ -26,7 +26,9 @@
 	        const form = document.createElement('form');
 	        form.className = 'change-sql-result-form';
 	        form.innerHTML = `
-	            <label>처리 상태
+                <h4>${hasResult ? '외부 실행 결과 변경' : '외부 실행 결과 등록'}</h4>
+                <div class="change-result-fields">
+	            <label>처리 상태 <span class="required">*</span>
 	                <select name="resultStatus" required>
 	                    <option value="COMPLETED">성공</option>
 	                    <option value="FAILED">실패</option>
@@ -34,24 +36,25 @@
 	                </select>
 	            </label>
 	            ${canLinkView ? `
-	                <label hidden>생성된 뷰
+	                <label class="change-result-full" hidden>생성된 뷰 <span class="required">*</span>
 	                    <select name="resourceId">
 	                        <option value="">등록된 뷰를 선택하세요</option>
 	                    </select>
 	                    <small class="caption" data-view-options-status></small>
 	                </label>
 	            ` : ''}
-	            <label>처리 메모
-	                <textarea name="resultNote" maxlength="1000"></textarea>
-	            </label>
 	            <div class="change-executor-picker">
-	                <label>외부 실행자
+	                <label>외부 실행자 <span class="required" data-executor-required>*</span>
 	                    <input name="executorSearch" type="search"
 	                           placeholder="이름 또는 부서로 검색" autocomplete="off">
 	                </label>
 	                <input name="executedBy" type="hidden">
 	                <div class="change-executor-options" aria-label="직원 검색 결과" role="group" hidden></div>
 	            </div>
+                <label class="change-result-full change-result-note-field">처리 메모 <span class="required" data-note-required hidden>*</span>
+                    <textarea name="resultNote" maxlength="1000" rows="2"
+                              placeholder="처리 내용이나 확인 사항을 입력하세요."></textarea>
+                </label>
 	            ${hasResult ? `
 	                <label>변경 유형
 	                    <select name="changeType">
@@ -61,14 +64,19 @@
 	                            : ''}
 	                    </select>
 	                </label>
-	                <label>변경 사유
-	                    <textarea name="changeReason" maxlength="1000" required></textarea>
+	                <label class="change-result-full">변경 사유 <span class="required">*</span>
+	                    <textarea name="changeReason" maxlength="1000" rows="2"
+                                  placeholder="기존 결과를 변경하는 이유를 입력하세요." required></textarea>
 	                </label>
 	            ` : ''}
+                </div>
+                <div class="change-result-form-footer">
+                <p class="caption" role="status"></p>
+                <button class="button" type="button" data-result-close>닫기</button>
 	            <button class="button primary" type="submit">
 	                ${hasResult ? '결과 변경 저장' : '결과 등록'}
 	            </button>
-	            <p class="caption" role="status"></p>
+                </div>
 	        `;
 
 	        const fields = form.elements;
@@ -86,6 +94,8 @@
 	        function updateRequiredFields() {
 	            const status = fields.resultStatus.value;
 	            fields.resultNote.required = status !== 'COMPLETED';
+                form.querySelector('[data-note-required]').hidden = status === 'COMPLETED';
+                form.querySelector('[data-executor-required]').hidden = status === 'CANCELLED';
 	            updateExecutorPicker(status === 'CANCELLED');
 	            if (canLinkView) {
 	                const showViewPicker = status === 'COMPLETED';
@@ -102,14 +112,41 @@
 	            saveChangeSqlResult(form, item.queryId, hasResult);
 	        });
 
-			// 현재 결과는 카드에 표시하고, 입력 폼은 필요할 때 펼친다.
-			const resultEditor = document.createElement('details');
+            // 요약은 항상 표시하고, 기존 입력·저장 로직은 필요할 때만 펼친다.
+			const resultEditor = document.createElement('div');
 			resultEditor.className = 'change-sql-result-editor';
+            resultEditor.id = 'change-result-editor-' + item.queryId;
+            resultEditor.hidden = true;
+            resultEditor.open = false;
+            resultEditor.append(form);
 
-			const summary = document.createElement('summary');
-			summary.textContent = hasResult ? '결과 변경' : '결과 등록';
-
-			resultEditor.append(summary, form);
+            let resultSummary = cards[index].querySelector('.change-result-summary');
+            if (!resultSummary) {
+                resultSummary = document.createElement('section');
+                resultSummary.className = 'change-result-summary';
+                resultSummary.setAttribute('aria-label', '외부 실행 결과');
+                resultSummary.innerHTML = '<div class="change-result-heading"><h4>외부 실행 결과</h4>'
+                    + '<span class="change-result-muted">미등록</span><span class="change-result-actions"></span></div>';
+                (cards[index].querySelector('.request-sql-body') || cards[index]).append(resultSummary);
+            }
+            const toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'button change-result-toggle';
+            toggle.setAttribute('aria-controls', resultEditor.id);
+            function setEditorOpen(open) {
+                resultEditor.open = open;
+                resultEditor.hidden = !open;
+                toggle.textContent = open ? '입력 닫기' : hasResult ? '결과 변경' : '결과 등록';
+                toggle.setAttribute('aria-expanded', String(open));
+                resultEditor.dispatchEvent(new Event('toggle'));
+            }
+            toggle.addEventListener('click', () => setEditorOpen(!resultEditor.open));
+            form.querySelector('[data-result-close]').addEventListener('click', () => {
+                setEditorOpen(false);
+                toggle.focus();
+            });
+            resultSummary.querySelector('.change-result-actions').append(toggle);
+            setEditorOpen(false);
 			if (item.changeExecutedBy != null) {
 			    resultEditor.addEventListener('toggle', () => {
 			        if (resultEditor.open && fields.executedBy.value) {
@@ -138,7 +175,7 @@
 			        }
 			    });
 			}
-			cards[index].append(resultEditor);
+            resultSummary.after(resultEditor);
 	    });
 	}
 
@@ -309,19 +346,6 @@
             RequestDetailRenderer.renderRequestInfo(detail);
             RequestDetailRenderer.renderSavedApprovalLine(detail);
 
-			const downloadButton = $('#view-sql-download');
-			const isChangeRequest = ['CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE']
-			    .includes(detail.requestType);
-
-			// 최종 승인되어 외부 처리 대기 중인 변경 요청에 다운로드를 표시한다.
-			if (downloadButton) {
-			    downloadButton.hidden = !(
-			        isChangeRequest
-			        && detail.requestStatus === 'READY'
-			        && detail.approvalStatus === 'APPROVED'
-			    );
-			}
-
             $('#detail-items').innerHTML =
                 RequestDetailRenderer.renderItems(
                     detail.items,
@@ -347,43 +371,6 @@
             notify(error.message, true);
             return;
         }
-    }
-
-    const downloadButton = $('#view-sql-download');
-    if (downloadButton) {
-        downloadButton.addEventListener('click', async () => {
-            const message = $('#view-sql-download-message');
-            downloadButton.disabled = true;
-            message.textContent = '다운로드 준비 중…';
-            try {
-                const response = await fetch(BASE + '/api/requests/'
-                        + encodeURIComponent(requestId) + '/view-sql/download', {
-                    headers: {
-                        'Accept': 'application/sql',
-                        [document.querySelector('meta[name="csrf-header"]')?.content || 'X-CSRF-TOKEN']:
-                            document.querySelector('meta[name="csrf-token"]')?.content || ''
-                    }
-                });
-                if (!response.ok) {
-                    let error = {};
-                    try { error = await response.json(); } catch (ignored) { }
-                    throw new Error(error.message || 'SQL 다운로드에 실패했습니다.');
-                }
-                const url = URL.createObjectURL(await response.blob());
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = 'view-create-request-' + requestId + '.sql';
-                document.body.append(link);
-                link.click();
-                link.remove();
-                URL.revokeObjectURL(url);
-                message.textContent = 'SQL 파일을 다운로드했습니다.';
-            } catch (error) {
-                message.textContent = error.message || 'SQL 다운로드에 실패했습니다.';
-            } finally {
-                downloadButton.disabled = false;
-            }
-        });
     }
 
     loadDetail();

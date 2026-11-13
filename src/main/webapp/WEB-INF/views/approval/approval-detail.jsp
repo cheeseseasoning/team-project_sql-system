@@ -8,7 +8,7 @@
 <main class="approval-page">
     <a class="caption approval-detail-breadcrumb"
        href="${pageContext.request.contextPath}/approvals/pending">
-        내 결재함 / 결재 요청 상세
+        받은 결재 › 기안서 상세
     </a>
 
     <section class="approval-detail-card">

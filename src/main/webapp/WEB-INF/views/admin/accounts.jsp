@@ -1,257 +1,10 @@
 <%@ page pageEncoding="UTF-8" %>
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
-<style>
-    .account-list-page {
-        width: 100%;
-    }
-
-    .account-list-heading {
-        margin-bottom: 20px;
-    }
-
-    .account-list-heading h1 {
-        color: #263d4c;
-        font-size: 24px;
-        font-weight: 700;
-    }
-
-    .account-list-heading p {
-        margin-top: 2px;
-        color: #607487;
-        font-size: 13px;
-    }
-
-    .account-list-heading .button {
-        min-width: 112px;
-    }
-
-    .account-list-panel {
-        padding: 24px 26px 18px;
-        border: 1px solid #cbd9e3;
-        border-radius: 7px;
-        background: #fff;
-    }
-
-    .account-list-toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 16px;
-        margin-bottom: 16px;
-    }
-
-    .account-count {
-        color: #607487;
-        font-size: 13px;
-        text-align: right;
-    }
-
-    .account-list-table {
-        width: 100%;
-        min-width: 900px;
-        table-layout: fixed;
-        border-collapse: collapse;
-        text-align: left;
-    }
-
-    .account-list-table col.account-login-column {
-        width: 12%;
-    }
-
-    .account-list-table col.account-name-column {
-        width: 12%;
-    }
-
-    .account-list-table col.account-department-column {
-        width: 16%;
-    }
-
-    .account-list-table col.account-position-column {
-        width: 10%;
-    }
-
-    .account-list-table col.account-role-column {
-        width: 34%;
-    }
-
-    .account-list-table col.account-status-column {
-        width: 16%;
-    }
-
-    .account-list-table th,
-    .account-list-table td {
-        overflow-wrap: anywhere;
-    }
-
-    .account-list-table th {
-        padding: 13px 10px;
-        background: #edf3f6;
-        color: #425d70;
-        font-size: 13px;
-        font-weight: 600;
-        white-space: nowrap;
-    }
-
-    .account-list-table td {
-        height: 57px;
-        padding: 11px 10px;
-        border-bottom: 1px solid #cbd9e3;
-        color: #263d4c;
-        font-size: 14px;
-        vertical-align: middle;
-    }
-
-    .account-login-link {
-        color: #263d4c;
-        font-size: 14px;
-    }
-
-    .account-login-link:hover {
-        color: #1e627f;
-    }
-
-    .account-role-list {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 4px 8px;
-    }
-
-    .account-role-item {
-        display: inline;
-        color: #263d4c;
-        font-size: 13px;
-    }
-
-    .account-role-item + .account-role-item::before {
-        content: "·";
-        margin-right: 8px;
-        color: #607487;
-    }
-
-    .account-status-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 64px;
-        padding: 6px 10px;
-        border-radius: 4px;
-        background: #e7f2ec;
-        color: #326446;
-        font-size: 12px;
-        font-weight: 500;
-        white-space: nowrap;
-    }
-
-    .account-status-badge.is-disabled {
-        background: #f0f3f5;
-        color: #607487;
-    }
-
-    .account-pagination {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        margin-top: 18px;
-    }
-
-    .account-pagination[hidden] {
-        display: none;
-    }
-
-    .account-page-numbers {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-    }
-
-    .account-page-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 40px;
-        height: 40px;
-        padding: 0 8px;
-        border: 0;
-        border-radius: 5px;
-        background: transparent;
-        color: #536c7e;
-        font-size: 14px;
-        cursor: pointer;
-    }
-
-    .account-page-button:hover:not(:disabled):not(.is-current) {
-        background: #f1f4f6;
-    }
-
-    .account-page-button.is-current {
-        background: #e2f0f4;
-        color: #21627b;
-        font-weight: 700;
-    }
-
-    .account-page-button:disabled {
-        cursor: not-allowed;
-        color: #b9c2c9;
-    }
-
-    .account-page-button:focus-visible {
-        outline: 2px solid #276b84;
-        outline-offset: 2px;
-    }
-
-    .account-list-message {
-        margin-top: 10px;
-    }
-
-    @media (max-width: 700px) {
-        .account-list-heading {
-            align-items: flex-start;
-            gap: 14px;
-        }
-
-        .account-list-heading h1 {
-            font-size: 21px;
-        }
-
-        .account-list-heading .button {
-            min-width: 94px;
-            padding-right: 10px;
-            padding-left: 10px;
-        }
-
-        .account-list-panel {
-            padding: 17px 14px 14px;
-        }
-
-        .account-list-table {
-            min-width: 850px;
-        }
-
-        .account-pagination {
-            gap: 6px;
-        }
-
-        .account-page-numbers {
-            gap: 2px;
-        }
-
-        .account-page-button {
-            min-width: 36px;
-            height: 38px;
-            padding: 0 6px;
-        }
-    }
-</style>
-
 <div class="account-list-page">
     <div class="page-heading account-list-heading">
         <div>
             <h1>계정 목록</h1>
-            <p>사용자 계정과 부여된 역할을 확인합니다.</p>
         </div>
 
         <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
@@ -263,17 +16,30 @@
         </c:if>
     </div>
 
-    <section class="panel account-list-panel" aria-labelledby="account-list-title">
-        <div class="account-list-toolbar">
-            <h2 id="account-list-title" class="sr-only">계정</h2>
-            <span id="account-count" class="account-count" aria-live="polite"></span>
+    <section id="account-list-panel" class="panel account-list-panel" aria-labelledby="account-list-title">
+        <form id="account-filter-form" class="account-filter list-search-bar">
+            <label for="account-keyword">
+                <span class="account-search-label filter-label-text">계정 검색</span>
+                <input id="account-keyword" type="search" maxlength="120"
+                       placeholder="ID, 이름, 부서, 직급 또는 역할" autocomplete="off">
+            </label>
+            <button id="account-search" class="button primary" type="submit">검색</button>
+            <button id="account-reset" class="button list-search-reset" type="button"
+                    title="검색 조건 초기화 및 새로고침" aria-label="검색 조건 초기화 및 새로고침">
+                <img src="${pageContext.request.contextPath}/icons/RefreshCw.svg" alt="">
+            </button>
+        </form>
+        <div class="panel-heading account-list-toolbar request-list-heading">
+            <h2 id="account-list-title">계정 목록</h2>
+            <span id="account-count" class="account-count caption request-list-count" aria-live="polite"></span>
         </div>
 
         <div class="table-scroll">
-            <table class="account-list-table">
+            <table class="account-list-table request-list-table">
                 <caption class="sr-only">사용자 계정 목록</caption>
 
                 <colgroup>
+                    <col class="account-employee-column">
                     <col class="account-login-column">
                     <col class="account-name-column">
                     <col class="account-department-column">
@@ -286,6 +52,7 @@
 
                 <thead>
                     <tr>
+                        <th scope="col">사번</th>
                         <th scope="col">ID</th>
                         <th scope="col">이름</th>
                         <th scope="col">부서</th>
@@ -300,7 +67,7 @@
                 <tbody id="account-rows" aria-busy="true">
                     <tr>
                         <td
-                            colspan="${pageContext.request.isUserInRole('SYSTEM_ADMIN') ? 6 : 5}"
+                            colspan="${pageContext.request.isUserInRole('SYSTEM_ADMIN') ? 7 : 6}"
                             class="empty">
                             계정 목록을 불러오는 중입니다.
                         </td>
@@ -311,12 +78,12 @@
 
         <nav
             id="account-pagination"
-            class="account-pagination"
+            class="account-pagination request-pagination"
             aria-label="계정 목록 페이지 이동"
             hidden>
             <button
                 id="account-previous-page"
-                class="account-page-button"
+                class="account-page-button request-page-direction"
                 type="button"
                 aria-label="이전 페이지">
                 ‹ 이전
@@ -324,12 +91,12 @@
 
             <div
                 id="account-page-numbers"
-                class="account-page-numbers"
+                class="account-page-numbers request-page-numbers"
                 aria-label="페이지 번호"></div>
 
             <button
                 id="account-next-page"
-                class="account-page-button"
+                class="account-page-button request-page-direction"
                 type="button"
                 aria-label="다음 페이지">
                 다음 ›
@@ -357,10 +124,11 @@
     const isSystemAdmin =
         ${pageContext.request.isUserInRole('SYSTEM_ADMIN')};
 
-    const columnCount = isSystemAdmin ? 6 : 5;
+    const columnCount = isSystemAdmin ? 7 : 6;
     const pageSize = 10;
     const pageBlockSize = 10;
 
+    let activeKeyword = "";
     let currentPage = 1;
     let totalPages = 0;
     let isLoading = false;
@@ -388,7 +156,8 @@
         const roles = (roleNames || "")
             .split(",")
             .map(role => role.trim())
-            .filter(Boolean);
+            .filter(Boolean)
+            .map(role => window.AccountRoles.label(role));
 
         if (roles.length === 0) {
             cell.textContent = "-";
@@ -398,12 +167,13 @@
         const roleList = document.createElement("div");
         roleList.className = "account-role-list";
 
-        roles.forEach(role => {
-            const roleItem = document.createElement("span");
-            roleItem.className = "account-role-item";
-            roleItem.textContent = role;
-            roleList.appendChild(roleItem);
-        });
+        // 목록에서는 대표 역할만 표시하고, 전체 역할은 마우스를 올려 확인한다.
+        const roleItem = document.createElement("span");
+        roleItem.className = "account-role-item";
+        roleItem.textContent = roles[0] + (roles.length > 1 ? " 외 " + (roles.length - 1) + "개" : "");
+        roleList.title = roles.join(", ");
+        roleList.setAttribute("aria-label", roles.join(", "));
+        roleList.appendChild(roleItem);
 
         cell.appendChild(roleList);
         return cell;
@@ -411,7 +181,7 @@
 
     function renderAccounts(accounts) {
         if (accounts.length === 0) {
-            showTableMessage("등록된 계정이 없습니다.");
+            showTableMessage(activeKeyword ? "검색 조건에 맞는 계정이 없습니다." : "등록된 계정이 없습니다.");
             return;
         }
 
@@ -433,6 +203,7 @@
             }
 
             row.append(
+                createCell(account.employeeNo),
                 loginCell,
                 createCell(account.userName),
                 createCell(account.deptName),
@@ -484,7 +255,7 @@
         ) {
             const button = document.createElement("button");
             button.type = "button";
-            button.className = "account-page-button";
+            button.className = "account-page-button request-page-number";
             button.textContent = String(page);
             button.setAttribute("aria-label", page + "페이지");
 
@@ -529,6 +300,8 @@
         }
 
         isLoading = true;
+        $("#account-search").disabled = true;
+        $("#account-reset").disabled = true;
         rowsElement.setAttribute("aria-busy", "true");
         messageElement.textContent = "";
 
@@ -536,6 +309,7 @@
             const response = await api(
                 "/accounts?page=" + encodeURIComponent(page)
                 + "&size=" + encodeURIComponent(pageSize)
+                + "&keyword=" + encodeURIComponent(activeKeyword)
             );
 
             if (!response || !Array.isArray(response.items)) {
@@ -554,6 +328,8 @@
         } finally {
             rowsElement.setAttribute("aria-busy", "false");
             isLoading = false;
+            $("#account-search").disabled = false;
+            $("#account-reset").disabled = false;
         }
     }
 
@@ -567,6 +343,21 @@
         if (currentPage < totalPages) {
             loadAccounts(currentPage + 1);
         }
+    });
+
+    // 검색 조건을 확정한 뒤 첫 페이지를 조회하고, 이후 페이지에도 유지한다.
+    $("#account-filter-form").addEventListener("submit", event => {
+        event.preventDefault();
+        if (isLoading) return;
+        activeKeyword = $("#account-keyword").value.trim();
+        loadAccounts(1);
+    });
+
+    $("#account-reset").addEventListener("click", () => {
+        if (isLoading) return;
+        $("#account-keyword").value = "";
+        activeKeyword = "";
+        loadAccounts(1);
     });
 
     loadAccounts(currentPage);

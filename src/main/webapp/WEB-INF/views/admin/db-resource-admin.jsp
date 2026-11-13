@@ -108,7 +108,7 @@
         </a>
 
         <div class="resource-detail-title">
-            <h1>리소스 정책 상세</h1>
+            <h1>리소스·접근 정책 상세</h1>
             <span class="resource-admin-label">DB팀 관리</span>
         </div>
 
@@ -238,7 +238,7 @@
         </section>
 
         <p class="resource-role-note" id="resource-readonly-note" hidden>
-            조회 전용: 정책과 접근 부서를 변경하려면 DB_ADMIN 권한이 필요합니다.
+            조회 전용: 정책과 접근 부서를 변경하려면 DB 운영 관리 권한이 필요합니다.
         </p>
     </div>
 </div>

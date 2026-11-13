@@ -30,6 +30,13 @@ public interface UserAccountMapper {
     
     long countAllAccounts();
 
+    List<AccountListItemResponse> searchAccountListItems(
+            @Param("offset") long offset,
+            @Param("size") int size,
+            @Param("keyword") String keyword);
+
+    long countMatchingAccounts(@Param("keyword") String keyword);
+
     int countByLoginId(@Param("loginId") String loginId);
     
     int countByUserId(@Param("userId") Long userId);

@@ -7,73 +7,89 @@
     const statusConfig = {
         PENDING_APPROVAL: {
             label: '결재 대기',
-            tone: 'warning'
+            tone: 'warning',
+            className: 'is-pending'
         },
         READY: {
             label: '실행 대기',
-            tone: 'neutral'
+            tone: 'neutral',
+            className: 'is-ready'
         },
         RUNNING: {
             label: '실행 중',
-            tone: 'info'
+            tone: 'info',
+            className: 'is-running'
         },
         RETRY_REVIEW: {
             label: '재실행 검토',
-            tone: 'warning'
+            tone: 'warning',
+            className: 'is-pending'
         },
         COMPLETED: {
             label: '실행 완료',
-            tone: 'success'
+            tone: 'success',
+            className: 'is-completed'
         },
         PARTIAL_FAILED: {
             label: '일부 실패',
-            tone: 'warning'
+            tone: 'warning',
+            className: 'is-partial-failed'
         },
         FAILED: {
             label: '실패',
-            tone: 'error'
+            tone: 'error',
+            className: 'is-failed'
         },
         REJECTED: {
             label: '반려',
-            tone: 'neutral'
+            tone: 'neutral',
+            className: 'is-rejected'
         },
         WITHDRAWN: {
             label: '회수',
-            tone: 'neutral'
+            tone: 'neutral',
+            className: 'is-withdrawn'
         }
     };
 
     const approvalStageConfig = {
         APPROVER: {
             label: '부서 결재 중',
-            tone: 'warning'
+            tone: 'warning',
+            className: 'is-pending'
         },
         INTERMEDIATE: {
             label: '부서 결재 중',
-            tone: 'warning'
+            tone: 'warning',
+            className: 'is-pending'
         },
         DIRECTOR: {
             label: '부서장 결재 중',
-            tone: 'warning'
+            tone: 'warning',
+            className: 'is-pending'
         },
         DB_EXECUTION: {
             label: 'DB팀 결재 중',
-            tone: 'warning'
+            tone: 'warning',
+            className: 'is-pending'
         }
     };
 
     const resultStatusConfig = {
         PENDING: {
             label: '외부 처리 대기',
-            tone: 'warning'
+            tone: 'warning',
+            className: 'is-pending'
         },
         COMPLETED: {
             label: '결과 완료',
-            tone: 'success'
+            tone: 'success',
+            className: 'is-completed'
         },
         FAILED: {
             label: '결과 실패',
-            tone: 'error'
+            tone: 'error',
+            className: 'is-failed'
         }
     };
 
@@ -100,7 +116,7 @@
             timeZone: 'Asia/Seoul',
             month: '2-digit',
             day: '2-digit'
-        }).format(date).replace(/\s/g, '');
+        }).format(date).replace(/\s/g, '').replace(/\.$/, '');
     }
 
     function emptyRow(message) {
@@ -207,28 +223,33 @@
             const status = getStatus(item);
 
             return '<tr>'
-                + '<td>' + esc(item.requestNo || '-') + '</td>'
+                + '<td class="request-number-cell" title="'
+                + esc(item.requestNo || '') + '">'
+                + esc(item.requestNo || '-') + '</td>'
                 + '<td>'
-                + '<a class="department-request-link" href="'
-                + esc(detailUrl) + '">'
-                + esc(item.title || '제목 없음')
-                + '</a>'
+                + '<div class="request-title-content">'
                 + (item.isUrgent === 'Y'
                     ? '<span class="badge urgent-badge">긴급</span>'
                     : '')
+                + '<a class="request-title-link" href="'
+                + esc(detailUrl) + '" title="' + esc(item.title || '') + '">'
+                + esc(item.title || '제목 없음')
+                + '</a></div>'
                 + '</td>'
                 + '<td>' + esc(typeLabel) + '</td>'
                 + '<td>' + esc(item.drafterName || '-') + '</td>'
-                + '<td>' + esc(item.deptName || '-') + '</td>'
+                + '<td class="request-department-cell" title="'
+                + esc(item.deptName || '') + '">'
+                + esc(item.deptName || '-') + '</td>'
                 + '<td>'
-                + '<span class="department-status is-'
-                + esc(status.tone)
+                + '<span class="request-status-text '
+                + esc(status.className || 'is-draft')
                 + '">'
-                + '<span class="department-status-dot" aria-hidden="true"></span>'
-                + '<span>' + esc(status.label) + '</span>'
+                + esc(status.label)
                 + '</span>'
                 + '</td>'
-                + '<td>' + esc(formatDate(item.submittedAt)) + '</td>'
+                + '<td class="request-date-cell">'
+                + esc(formatDate(item.submittedAt)) + '</td>'
                 + '</tr>';
         }).join('');
     }
@@ -253,19 +274,22 @@
 
         buttons.push(
             '<button type="button"'
-            + ' class="department-page-button department-page-move"'
+            + ' class="department-page-button request-page-direction"'
             + ' data-page="' + (currentPage - 1) + '"'
             + (currentPage <= 1 ? ' disabled' : '')
             + ' aria-label="이전 페이지">'
             + '‹ 이전</button>'
         );
 
+        // 번호 묶음의 간격도 내 기안함 공통 스타일을 사용한다.
+        buttons.push('<div class="request-page-numbers">');
+
         for (let page = blockStart; page <= blockEnd; page += 1) {
             const isCurrent = page === currentPage;
 
             buttons.push(
                 '<button type="button"'
-                + ' class="department-page-button'
+                + ' class="department-page-button request-page-number'
                 + (isCurrent ? ' is-current' : '')
                 + '" data-page="' + page + '"'
                 + (isCurrent ? ' aria-current="page"' : '')
@@ -275,9 +299,11 @@
             );
         }
 
+        buttons.push('</div>');
+
         buttons.push(
             '<button type="button"'
-            + ' class="department-page-button department-page-move"'
+            + ' class="department-page-button request-page-direction"'
             + ' data-page="' + (currentPage + 1) + '"'
             + (currentPage >= totalPages ? ' disabled' : '')
             + ' aria-label="다음 페이지">'
@@ -335,9 +361,7 @@
                 totalCount
             );
 
-            count.textContent =
-                '총 ' + totalCount + '건 중 '
-                + firstItem + '–' + lastItem + '건';
+            count.textContent = '총 ' + totalCount + '건';
 
             renderPagination(totalPages);
         } catch (error) {

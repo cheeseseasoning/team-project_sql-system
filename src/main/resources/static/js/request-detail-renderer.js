@@ -46,7 +46,39 @@ window.RequestDetailRenderer = (() => {
             : '-';
     }
 
+    // 내 요청·부서 요청 상세에서 같은 외부 처리 결과 요약을 사용한다.
+    function renderExternalResultSummary(item) {
+        const names = { COMPLETED: '성공', FAILED: '실패', CANCELLED: '취소' };
+        const status = names[item.changeResultStatus];
+        if (!status) return '';
+
+        const changed = Boolean(item.changeResultHistory?.length);
+        const person = (name, department, userId) => {
+            if (!name) return userId == null ? '—' : '사용자 #' + esc(userId);
+            return esc(name) + (department
+                ? ' <span class="change-result-muted">· ' + esc(department) + '</span>' : '');
+        };
+        const statusClass = { COMPLETED: 'is-completed', FAILED: 'is-failed', CANCELLED: 'is-cancelled' }[item.changeResultStatus];
+
+        return '<section class="change-result-summary" aria-label="외부 실행 결과">'
+            + '<div class="change-result-heading"><h4>외부 실행 결과</h4>'
+            + '<span class="change-result-badge ' + statusClass + '">' + esc(status) + '</span>'
+            + '<span class="change-result-actions"></span></div>'
+            + '<dl class="change-result-meta">'
+            + '<div><dt>외부 실행자</dt><dd>'
+            + person(item.changeExecutedByName, item.changeExecutedDeptName, item.changeExecutedBy) + '</dd></div>'
+            + '<div><dt>' + (changed ? '최종 수정자' : '결과 등록자') + '</dt><dd>'
+            + person(item.changeRegisteredByName, item.changeRegisteredDeptName, item.changeRegisteredBy) + '</dd></div>'
+            + '<div><dt>' + (changed ? '최종 수정 일시' : '등록 일시') + '</dt><dd>'
+            + esc(formatDate(item.changeRegisteredAt).substring(0, 16)) + '</dd></div>'
+            + '</dl><dl class="change-result-note"><dt>처리 메모</dt><dd>'
+            + esc(item.changeResultNote || '—') + '</dd></dl></section>';
+    }
+
 	function renderChangeResult(item) {
+        if (document.querySelector('#department-detail-config, #detail-config')) {
+            return renderExternalResultSummary(item);
+        }
 	    const statusNames = {
 	        COMPLETED: '성공',
 	        FAILED: '실패',
@@ -134,13 +166,13 @@ window.RequestDetailRenderer = (() => {
 	                + '</p>'
 	            : '';
 
+	        // 문서형 상세에서는 순서·작성 방식을 SQL 제목 옆에 모아 표시한다.
+	        const itemMeta = '순서 ' + esc(item.queryOrder ?? index + 1)
+	            + ' · ' + esc(authoringLabel);
 	        const sqlBody =
-	            '<p class="caption">순서 '
-	            + esc(item.queryOrder)
-	            + ' · ' + esc(authoringLabel)
-	            + '</p>'
+	            (useAccordion ? '' : '<p class="caption">' + itemMeta + '</p>')
 	            + '<pre><code>'
-	            + esc(item.sqlText)
+	            + esc(window.SqlDisplay?.format(item.sqlText) ?? item.sqlText)
 	            + '</code></pre>'
 	            + validationDetail
 	            + renderChangeResult(item)
@@ -180,6 +212,7 @@ window.RequestDetailRenderer = (() => {
 	            + '<span class="request-sql-summary-title">'
 	            + 'SQL ' + esc(number)
 	            + ' · ' + esc(title)
+	            + '<span class="request-sql-item-meta">' + itemMeta + '</span>'
 	            + '</span>'
 	            + '<span class="request-sql-validation-state '
 	            + stateClass + '">'
@@ -201,6 +234,20 @@ window.RequestDetailRenderer = (() => {
 
 	    const statusNames = { COMPLETED: '성공', FAILED: '실패', CANCELLED: '취소' };
 	    const changeNames = { CORRECTION: '결과 정정', REEXECUTION: '외부 재실행' };
+
+        if (document.querySelector('#department-detail-config, #detail-config')) {
+            const rows = history.map(entry => '<li>'
+                + '<div class="change-result-history-heading"><strong>'
+                + esc(changeNames[entry.changeType] || entry.changeType || '변경')
+                + ' · 이전 결과 ' + esc(statusNames[entry.previousResultStatus] || '—')
+                + '</strong><span>' + esc(entry.changedByName || '—') + ' · '
+                + esc(formatDate(entry.changedAt).substring(0, 16)) + '</span></div>'
+                + '<p>변경 사유 · ' + esc(entry.changeReason || '—') + '</p>'
+                + (entry.previousResultNote ? '<p>이전 메모 · ' + esc(entry.previousResultNote) + '</p>' : '')
+                + '</li>').join('');
+            return '<details class="change-result-history"><summary>변경 이력 '
+                + '<span>' + history.length + '건</span></summary><ol>' + rows + '</ol></details>';
+        }
 
 	    // 현재 결과는 카드에 표시하고, 변경 전 상태와 메모는 이력에서 보여준다.
 	    const rows = history.map(entry => {
@@ -396,7 +443,7 @@ window.RequestDetailRenderer = (() => {
 	    const navigation = $('#approval-card-navigation');
 	    const range = $('#approval-card-range');
 
-	    const pageSize = 3;
+	    const pageSize = 4;
 	    let start = 0;
 
 	    const statusLabels = {
@@ -412,10 +459,15 @@ window.RequestDetailRenderer = (() => {
 	        navigation.hidden = rows.length <= pageSize;
 
 	        if (rows.length === 0) {
-	            list.innerHTML =
-	                '<li class="approval-card-empty">'
-	                + esc(emptyMessage)
+            // 미지정 상태도 한 페이지의 4칸 구조와 높이를 유지한다.
+	            // 실제 결재자·상태는 만들지 않고 머리칸, 본문, 날짜칸만 비워 둔다.
+	            const emptyCard =
+	                '<li class="approval-card" aria-label="결재자 미지정">'
+	                + '<div class="approval-card-step" aria-hidden="true">&nbsp;</div>'
+	                + '<div class="approval-card-person" aria-hidden="true"></div>'
+	                + '<div class="approval-card-date" aria-hidden="true">&nbsp;</div>'
 	                + '</li>';
+	            list.innerHTML = emptyCard.repeat(pageSize);
 
 	            previous.disabled = true;
 	            next.disabled = true;
@@ -481,7 +533,10 @@ window.RequestDetailRenderer = (() => {
 			if (emptyCount > 0) {
 			    const placeholder =
 			        '<li class="approval-card-placeholder"'
-			        + ' aria-hidden="true"></li>';
+			        + ' aria-hidden="true">'
+                    + '<div class="approval-card-step">&nbsp;</div>'
+                    + '<div class="approval-card-person"></div>'
+                    + '<div class="approval-card-date">&nbsp;</div></li>';
 
 			    list.insertAdjacentHTML(
 			        'beforeend',
@@ -512,6 +567,7 @@ window.RequestDetailRenderer = (() => {
 	}
 
 	function renderRequestInfo(request) {
+        window.RequestSqlDownload?.update(request);
 	    $('#request-number').textContent = request.requestNo;
 	    $('#detail-title').textContent = request.title;
 

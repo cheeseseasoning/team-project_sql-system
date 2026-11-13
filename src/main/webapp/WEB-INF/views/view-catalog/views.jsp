@@ -7,7 +7,7 @@
 	</div>
 
     <section class="panel">
-        <form id="view-filter-form" class="views-filter">
+        <form id="view-filter-form" class="views-filter list-search-bar">
             <label for="view-department" class="views-department-field">
                 <span class="sr-only">부서</span>
                 <select id="view-department" name="deptId" disabled>
@@ -33,9 +33,11 @@
 
                 <button id="view-reset"
                         type="button"
-                        class="button"
+                        class="button list-search-reset"
+                        title="검색 조건 초기화 및 새로고침"
+                        aria-label="검색 조건 초기화 및 새로고침"
                         disabled>
-                    초기화
+                    <img src="${pageContext.request.contextPath}/icons/RefreshCw.svg" alt="">
                 </button>
             </div>
         </form>

@@ -11,14 +11,14 @@
     <section class="panel execution-queue-panel" aria-label="실행 요청 목록">
         <form id="queue-search" class="queue-search">
             <label for="queue-department" class="queue-department-field">
-                부서
+                <span class="queue-filter-label">부서</span>
                 <select id="queue-department" name="deptId" disabled>
                     <option value="">전체 부서</option>
                 </select>
             </label>
 
             <label class="queue-keyword-field" for="queue-keyword">
-                <span class="sr-only">요청 검색</span>
+                <span class="queue-filter-label">요청 검색</span>
                 <input
                     id="queue-keyword"
                     name="keyword"
@@ -37,13 +37,16 @@
 
             <button
                 id="queue-refresh"
-                class="button"
-                type="button">
-                새로고침
+                class="button refresh-button"
+                type="button"
+                title="검색 조건 초기화 및 새로고침"
+                aria-label="검색 조건 초기화 및 새로고침">
+                <img src="${pageContext.request.contextPath}/icons/RefreshCw.svg" alt="">
             </button>
         </form>
 
         <div class="queue-table-heading">
+            <h2>쿼리 실행 대기 목록</h2>
             <span id="queue-total-count" class="queue-total-count" aria-live="polite">
                 총 0건
             </span>

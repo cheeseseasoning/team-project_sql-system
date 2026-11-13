@@ -368,3 +368,176 @@
         gap: 8px;
     }
 }
+/* 계정·요청 상세와 같은 공통 색상, 글자 크기, 패널 간격으로 정돈한다. */
+.execution-detail-page { max-width: none; margin: 0; }
+.execution-detail-page .execution-detail-heading { align-items: center; margin-bottom: 24px; gap: 16px; }
+.execution-detail-page .execution-detail-heading h1 { color: var(--text); font-size: 22px; font-weight: 600; overflow-wrap: anywhere; }
+.execution-detail-page .execution-detail-subtitle { flex-wrap: wrap; color: var(--muted); font-size: 12px; margin-top: 6px; gap: 6px; }
+.execution-detail-actions { flex-shrink: 0; }
+.execution-detail-page .execution-refresh-button { width: 39px; padding: 0; }
+.execution-refresh-button img { width: 17px; height: 17px; }
+.execution-detail-page .execution-detail-content { gap: 20px; padding: 22px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
+.execution-detail-page :is(.execution-request-card, .execution-run-card) { min-height: 0; padding: 16px 18px; border: 0; border-radius: 5px; background: var(--soft); gap: 16px 24px; }
+.execution-detail-page .execution-request-card { grid-template-columns: minmax(120px, 1fr) minmax(0, 3fr) 32px; }
+.execution-detail-page .execution-run-card { grid-template-columns: 1fr 1.5fr 1fr 1fr; }
+.execution-detail-page .execution-info-label { color: var(--muted); font-size: 12px; }
+.execution-detail-page .execution-info-item { gap: 5px; }
+.execution-detail-page .execution-info-item strong { color: var(--text); font-size: 13px; font-weight: 500; }
+.execution-detail-page .execution-open-request { width: 32px; height: 32px; font-size: 20px; background: var(--bg); border-color: var(--line); border-radius: 5px; }
+.execution-detail-page :is(.execution-sql-section h2, .execution-result-heading h2) { color: var(--text); font-size: 15px; font-weight: 600; }
+.execution-detail-page .execution-sql-code { min-height: 0; margin: 10px 0 0; padding: 14px 16px; border-color: var(--line); border-radius: 5px; background: var(--soft); color: var(--text); font-size: 13px; line-height: 1.7; }
+.execution-detail-page .execution-result-section { padding-top: 18px; border-top: 1px solid var(--line); }
+.execution-detail-page .execution-result-heading { min-height: 34px; gap: 12px; }
+.execution-detail-page .execution-result-heading .button { min-width: 0; min-height: 34px; padding: 6px 12px; font-size: 12px; }
+.execution-detail-page .execution-result-metadata { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; margin-top: 10px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.execution-detail-page .execution-result-metadata .execution-info-item { flex-direction: row; align-items: baseline; gap: 8px; }
+.execution-detail-page .execution-result-metadata strong { font-size: 12px; }
+.execution-detail-page :is(.execution-result-message, .execution-download-message):empty { display: none; }
+.execution-preview-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0 8px; }
+.execution-detail-page #csv-preview-scroll { border: 1px solid var(--line); border-radius: 5px; max-height: 320px; }
+.execution-detail-page #csv-preview-scroll table { font-size: 12px; }
+.execution-detail-page #csv-preview-scroll th { padding: 10px 12px; color: var(--muted); background: var(--rail); font-size: 11px; font-weight: 500; }
+.execution-detail-page #csv-preview-scroll td { padding: 10px 12px; color: var(--text); font-size: 12px; }
+.execution-detail-page .execution-error-card { padding: 16px; border-color: #e6c6c6; background: #fff8f7; }
+.execution-detail-page .execution-error-card pre { margin-bottom: 0; background: var(--bg); border-color: var(--line); }
+.execution-extra-details { border-top: 1px solid var(--line); padding-top: 14px; }
+.execution-extra-details > summary { color: var(--muted); font-size: 12px; cursor: pointer; }
+.execution-extra-details .execution-legacy-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 20px; border-top: 0; padding: 14px 0 0; }
+@media (min-width: 1600px) {
+    .execution-detail-page .execution-detail-content { padding: 24px; }
+}
+@media (max-width: 900px) {
+    .execution-detail-page .execution-detail-content { padding: 18px; }
+    .execution-detail-page .execution-run-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .execution-extra-details .execution-legacy-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+    .execution-detail-page .execution-detail-heading { align-items: flex-start; }
+    .execution-detail-page .execution-request-card { grid-template-columns: minmax(0, 1fr) 32px; }
+    .execution-detail-page .execution-detail-actions { width: auto; }
+    .execution-detail-page .execution-detail-actions .button { flex: none; }
+    .execution-detail-page .execution-result-heading { flex-direction: row; align-items: center; }
+    .execution-detail-page .execution-result-heading .button { width: auto; }
+    .execution-detail-page .execution-result-metadata .execution-info-item { flex-wrap: wrap; }
+    .execution-extra-details .execution-legacy-meta { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 요청 정보는 뷰 상세처럼 제목과 속성을 한 박스 안에 모은다. */
+.execution-detail-page .execution-request-card { grid-template-columns: minmax(120px, 1fr) minmax(0, 3fr) 32px; gap: 16px 24px; background: var(--bg); border: 1px solid var(--line); padding: 18px; }
+.execution-request-overview { grid-column: 1 / 3; display: grid; gap: 5px; min-width: 0; }
+.execution-request-overview > strong { font-size: 17px; font-weight: 600; color: var(--accent); overflow-wrap: anywhere; }
+.execution-detail-page .execution-request-card .execution-open-request { grid-column: 3; grid-row: 1; align-self: start; }
+.execution-detail-page .execution-request-card > .execution-info-item { padding-top: 14px; border-top: 1px solid var(--line); }
+.execution-detail-page .execution-request-card .execution-purpose-item { grid-column: 2 / 4; grid-row: auto; }
+.execution-detail-page .execution-run-card { padding: 16px 18px; }
+.execution-detail-page .execution-sql-section { overflow: hidden; border: 1px solid var(--line); border-radius: 5px; background: var(--soft); }
+.execution-detail-page .execution-sql-section h2 { margin: 0; padding: 10px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.execution-detail-page .execution-sql-code { margin: 0; border: 0; border-radius: 0; background: transparent; }
+.execution-history-section { min-width: 0; padding-top: 18px; border-top: 1px solid var(--line); }
+.execution-history-section > h2 { margin: 0 0 10px; font-size: 15px; }
+.execution-history-table { width: 100%; min-width: 660px; table-layout: fixed; }
+.execution-history-table th { padding: 9px 12px; background: var(--rail); color: var(--muted); font-size: 11px; }
+.execution-history-table td { padding: 12px; color: var(--text); font-size: 12px; }
+.execution-history-table th:nth-child(3), .execution-history-table th:nth-child(4) { width: 27%; }
+.execution-history-footer { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 10px; color: var(--muted); font-size: 11px; }
+.execution-history-footer strong { margin-left: 6px; color: var(--text); font-weight: 400; }
+@media (max-width: 600px) {
+    .execution-detail-page .execution-request-card { grid-template-columns: minmax(0, 1fr) 32px; gap: 14px; }
+    .execution-request-overview { grid-column: 1; }
+    .execution-detail-page .execution-request-card .execution-open-request { grid-column: 2; }
+    .execution-detail-page .execution-request-card > .execution-info-item { grid-column: 1 / -1; }
+}
+
+/* 제목 대신 작은 목록 복귀 링크를 두고, 속성명과 값을 같은 줄로 읽게 한다. */
+.execution-detail-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 32px; margin-bottom: 12px; }
+.execution-back-link { color: var(--accent); font-size: 12px; }
+.execution-detail-toolbar .execution-refresh-button { width: 32px; min-height: 32px; padding: 0; }
+.execution-detail-page .execution-request-card { position: relative; grid-template-columns: minmax(160px, 1fr) minmax(0, 3fr); padding: 18px 20px; }
+.execution-request-overview { grid-column: 1 / -1; grid-template-columns: 80px minmax(0, 1fr); align-items: baseline; gap: 8px 12px; padding-right: 22px; }
+.execution-request-overview .execution-detail-subtitle { grid-column: 2; margin-top: 0; }
+.execution-detail-page .execution-request-card .execution-open-request {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 19px;
+}
+.execution-detail-page .execution-request-card .execution-open-request:hover { background: var(--tint); color: var(--accent); }
+.execution-detail-page .execution-request-card .execution-purpose-item { grid-column: 2; }
+.execution-detail-page :is(.execution-request-card, .execution-run-card) .execution-info-item { flex-direction: row; align-items: baseline; gap: 12px; }
+.execution-detail-page .execution-request-card .execution-info-label { flex: 0 0 80px; }
+.execution-detail-page .execution-info-item strong { min-width: 0; }
+.execution-detail-page .execution-run-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.execution-detail-page .execution-run-card .execution-info-label { flex: 0 0 90px; }
+@media (max-width: 700px) {
+    .execution-detail-page .execution-request-card { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+    .execution-detail-page .execution-request-card .execution-purpose-item { grid-column: 1; }
+    .execution-detail-page .execution-run-card { grid-template-columns: minmax(0, 1fr); }
+    .execution-request-overview { grid-template-columns: 80px minmax(0, 1fr); }
+}
+@media (pointer: coarse) {
+    .execution-detail-page .execution-request-card .execution-open-request { width: 44px; height: 44px; top: 2px; right: 2px; }
+    .execution-request-overview { padding-right: 30px; }
+}
+
+/* 뷰 정보와 같은 속성형 레이아웃: 윗줄에 주요 항목, 아랫줄에 요청 목적을 둔다. */
+.execution-detail-page .execution-request-card {
+    grid-template-columns: minmax(150px, 1.1fr) minmax(0, 1.6fr) minmax(0, 1.6fr) minmax(90px, .7fr);
+    gap: 16px 24px;
+    padding: 18px 22px;
+}
+.execution-detail-page .execution-request-card > .execution-info-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding-top: 0;
+    border-top: 0;
+}
+.execution-detail-page .execution-request-card .execution-info-label { flex: none; }
+.execution-detail-page .execution-request-card .execution-title-emphasis { font-size: 15px; font-weight: 600; }
+.execution-detail-page .execution-request-card .execution-request-number-item strong { font-size: 12px; }
+.execution-detail-page .execution-request-card .execution-requester-item { padding-right: 14px; }
+.execution-detail-page .execution-request-card .execution-purpose-item {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+}
+.execution-detail-page .execution-request-card .execution-purpose-item .execution-info-label { flex: 0 0 auto; }
+.execution-history-section > summary { font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; }
+.execution-history-section[open] > summary { margin-bottom: 12px; color: var(--text); }
+@media (max-width: 1000px) {
+    .execution-detail-page .execution-request-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+    .execution-detail-page .execution-request-card { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+    .execution-detail-page .execution-request-card .execution-purpose-item { flex-direction: column; gap: 6px; }
+}
+
+/* 결과 제목과 다운로드를 같은 중심선에 두고 표 앞의 간격을 줄인다. */
+.execution-detail-page .execution-result-heading { display: flex; align-items: center; min-height: 34px; margin: 0; }
+.execution-detail-page .execution-result-heading h2 { margin: 0; line-height: 1.5; }
+.execution-detail-page .execution-result-heading .button { margin: 0; }
+.execution-detail-page .execution-result-section { padding-top: 14px; }
+.execution-detail-page .execution-result-metadata { margin-top: 6px; }
+.execution-detail-page .execution-preview-toolbar { justify-content: flex-end; margin: 4px 0 6px; }
+
+/* 파일 정보와 표시 행 수는 표 바로 위 한 줄에 모은다. */
+.execution-detail-page .execution-result-section { padding-top: 10px; }
+.execution-detail-page .execution-result-heading { margin-bottom: 8px; }
+.execution-detail-page .execution-result-metadata { align-items: center; gap: 6px 20px; margin: 0 0 10px; }
+.execution-detail-page .execution-result-metadata .execution-preview-count { margin-left: auto; white-space: nowrap; }
+.execution-detail-page .execution-preview-section { margin: 0; }
+@media (max-width: 600px) {
+    .execution-detail-page .execution-result-metadata { gap: 6px 14px; }
+}

@@ -1,0 +1,273 @@
+/* 계정 상세 전용: 기존 저장·역할 관리 동작은 유지하고 목록과 색상·간격을 맞춘다. */
+.account-detail-page .account-detail-heading {
+    max-width: none;
+    min-height: 40px;
+    margin-bottom: 24px;
+}
+.account-detail-page .account-detail-heading h1 {
+    color: var(--text);
+    font-size: 22px;
+    font-weight: 600;
+}
+.account-detail-page .account-detail-form {
+    max-width: none;
+    gap: 20px;
+}
+.account-detail-page :is(.account-info-panel, .account-role-panel) {
+    padding: 22px;
+    border-color: var(--line);
+    border-radius: 9px;
+    background: var(--bg);
+}
+.account-detail-page .account-section-heading {
+    min-height: 34px;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+}
+.account-detail-page .account-section-heading h2 {
+    padding-left: 2px;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+}
+.account-detail-page .account-section-heading .button {
+    min-height: 34px;
+    padding: 6px 12px;
+    border-color: var(--line);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 400;
+}
+.account-detail-page .account-info-list {
+    max-width: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 24px;
+}
+.account-detail-page .account-info-row {
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+.account-detail-page .account-info-label {
+    min-height: 42px;
+    padding: 0 2px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 400;
+}
+.account-detail-page .account-info-value {
+    height: 42px;
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: #f5f8fa;
+    color: var(--text);
+    font-size: 13px;
+    transition: background-color 120ms, border-color 120ms;
+}
+.account-detail-page .account-info-value[readonly] {
+    background: var(--soft);
+    color: var(--muted);
+}
+.account-detail-page select.account-info-value {
+    appearance: auto;
+    padding-right: 8px;
+}
+.account-detail-page .account-role-panel .account-section-heading { margin-bottom: 18px; }
+.account-detail-page .account-role-add {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.account-detail-page .account-role-add select {
+    height: 42px;
+    min-height: 42px;
+    border-color: transparent;
+    border-radius: 4px;
+    background: #f5f8fa;
+    color: var(--text);
+}
+.account-detail-page .account-role-add .button { min-height: 42px; }
+.account-detail-page .account-role-list { gap: 0; border-top: 1px solid var(--line); }
+.account-detail-page .account-role-row {
+    min-height: 44px;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+}
+.account-detail-page .account-role-name {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+.account-detail-page .account-role-remove { color: var(--muted); font-size: 12px; }
+.account-detail-page .account-role-empty {
+    padding: 16px 12px;
+    background: var(--soft);
+    color: var(--muted);
+    font-size: 12px;
+}
+.account-detail-page .account-detail-actions { gap: 8px; }
+.account-detail-page .account-detail-actions .button { min-height: 39px; padding: 9px 15px; }
+.account-detail-page .account-notice {
+    max-width: none;
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--tint);
+    color: var(--accent);
+    font-size: 13px;
+}
+.account-detail-page .account-notice.error { background: #fff1f0; color: var(--error); }
+@media (min-width: 1600px) {
+    .account-detail-page :is(.account-info-panel, .account-role-panel) { padding: 24px; }
+}
+@media (max-width: 1200px) {
+    .account-detail-page :is(.account-info-panel, .account-role-panel) { padding: 18px; }
+}
+@media (max-width: 760px) {
+    .account-detail-page .account-info-list { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .account-detail-page .account-section-heading { align-items: center; flex-wrap: wrap; }
+}
+@media (max-width: 480px) {
+    .account-detail-page .account-role-add { grid-template-columns: minmax(0, 1fr); }
+    .account-detail-page .account-info-row { grid-template-columns: 72px minmax(0, 1fr); gap: 8px; }
+}
+
+/* 사번은 첫 행에 두되 값 칸의 너비는 아래 2열 입력칸과 동일하게 맞춘다. */
+.account-detail-page .account-employee-row {
+    grid-column: 1 / -1;
+    width: calc((100% - 24px) / 2);
+}
+.account-detail-page #account-employee-no { width: 100%; background: var(--soft); }
+
+/* 평소에는 연한 면으로 표시하고, 편집할 때만 테두리를 드러낸다. */
+.account-detail-page :is(.account-info-value, #account-role-select):hover:not([readonly]):not(:disabled) {
+    border-color: #c6d6df;
+    background: var(--tint);
+}
+.account-detail-page input.account-info-value:not([readonly]):not(:disabled) { cursor: text; }
+.account-detail-page :is(select.account-info-value, #account-role-select):not(:disabled) { cursor: pointer; }
+.account-detail-page :is(.account-info-value, #account-role-select):focus:not([readonly]) {
+    border-color: var(--accent);
+    background: var(--bg);
+    outline: 2px solid var(--tint);
+    outline-offset: 1px;
+}
+.account-detail-page .account-info-value[readonly]:focus-visible {
+    outline: 2px solid var(--line);
+    outline-offset: 1px;
+}
+
+/* 역할 선택은 제목 오른쪽 버튼으로 열고, 기존 역할 목록은 아래에 유지한다. */
+.account-detail-page .account-role-panel .account-role-list {
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: #f7fafb;
+}
+.account-detail-page .account-role-row {
+    min-height: 46px;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+}
+.account-detail-page .account-role-row:last-child { border-bottom: 0; }
+.account-detail-page .account-role-name {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+}
+.account-detail-page .account-role-name::before {
+    content: '';
+    flex: 0 0 5px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: .7;
+}
+.account-detail-page .account-role-remove {
+    padding: 4px 9px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--muted);
+    line-height: 1.5;
+}
+.account-detail-page .account-role-remove:hover {
+    border-color: #c6d6df;
+    background: var(--tint);
+    color: var(--accent);
+    text-decoration: none;
+}
+.account-detail-page .account-role-empty {
+    padding: 20px 14px;
+    background: transparent;
+    text-align: center;
+}
+@media (max-width: 760px) {
+    .account-detail-page .account-employee-row { width: 100%; }
+}
+.account-detail-page .account-role-dialog {
+    width: min(440px, calc(100vw - 32px));
+    max-height: calc(100dvh - 48px);
+    margin: auto;
+    padding: 0;
+    overflow-y: auto;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 16px 48px rgb(25 45 60 / 18%);
+}
+.account-role-dialog::backdrop { background: rgb(25 40 55 / 32%); }
+.account-role-dialog-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--line);
+}
+.account-role-dialog-close {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 22px;
+}
+.account-role-dialog-close:hover { background: var(--soft); }
+.account-role-dialog-body { padding: 22px; }
+.account-role-dialog-body label { margin-bottom: 8px; color: var(--muted); }
+.account-role-dialog-body select { height: 42px; margin: 0; }
+.account-role-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 14px 22px;
+    border-top: 1px solid var(--line);
+}
+
+/* 직원 정보 아래 로그인 정보·계정 상태를 배치한다. */
+.account-detail-page .account-info-row.account-employee-row { grid-column: auto; width: 100%; }
+.account-detail-page .account-info-list { gap: 16px 24px; }
+.account-detail-page .account-info-row:has(#account-login),
+.account-detail-page .account-info-row:has(#account-enabled) { margin-top: 8px; }
+@media (max-width: 760px) {
+    .account-detail-page .account-info-list { gap: 12px; }
+    .account-detail-page .account-info-row:has(#account-enabled) { margin-top: 0; }
+}

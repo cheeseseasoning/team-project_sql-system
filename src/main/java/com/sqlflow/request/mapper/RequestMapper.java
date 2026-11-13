@@ -42,6 +42,10 @@ public interface RequestMapper {
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);
 
+    List<RequestItemResponse> selectApprovedQuerySqlItems(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId);
+
 
     List<RequestListResponse> selectMyRequests(
             @Param("drafterId") Long drafterId,

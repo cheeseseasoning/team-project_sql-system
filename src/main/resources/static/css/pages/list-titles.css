@@ -1,0 +1,19 @@
+/* 목록 제목은 한 줄로 줄이고 상세 화면의 본문은 그대로 표시한다. */
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-title-link,
+#execution-result-list .result-request-title,
+.execution-queue-panel .queue-title-link,
+.notices-page .notice-table tbody td:first-child a,
+.views-page :is(.views-object-name, .views-resource-name),
+.resource-list-table :is(.resource-view-link, .resource-view-name),
+.resource-list-table tbody td:nth-child(2),
+.home-dashboard-grid :is(.dashboard-recent-link, .dashboard-notice-title) {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -webkit-line-clamp: unset;
+    -webkit-box-orient: initial;
+}
+.notices-page .notice-table { table-layout: fixed; }

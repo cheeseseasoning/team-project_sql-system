@@ -24,6 +24,11 @@ public class RequestItemResponse {
     private Long changeExecutedBy;
     private Long changeRegisteredBy;
     private LocalDateTime changeRegisteredAt;
+    // 표시용 이름만 추가하며, 결과 저장 시 사용하는 사용자 ID는 유지한다.
+    private String changeExecutedByName;
+    private String changeExecutedDeptName;
+    private String changeRegisteredByName;
+    private String changeRegisteredDeptName;
     
     private java.util.List<ChangeResultHistoryItem> changeResultHistory;
 

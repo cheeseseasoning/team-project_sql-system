@@ -29,7 +29,7 @@
 		                   type="text"
 		                   required
 		                   maxlength="200"
-		                   placeholder="요청 제목을 입력하세요.">
+		                   placeholder="예: 활성 상품 목록 조회">
 		        </label>
 
 		        <label for="desired-date" class="request-input-field">
@@ -56,7 +56,7 @@
 		        <textarea id="purpose"
 		                  rows="1"
 		                  required
-		                  placeholder="데이터가 필요한 목적을 입력하세요."></textarea>
+		                  placeholder="예: 월간 상품 운영 보고서 작성을 위해 판매 중인 상품 목록을 확인합니다."></textarea>
 		    </label>
 
 		    <label for="detail-content" class="request-input-field">
@@ -64,7 +64,7 @@
 
 		        <textarea id="detail-content"
 		                  rows="2"
-		                  placeholder="요청 배경, 조회 범위, 주의사항을 입력하세요."></textarea>
+		                  placeholder="예: 상품 ID와 상품명만 조회하며, 판매 중인 상품 전체를 대상으로 합니다."></textarea>
 		    </label>
 
 		    <p id="request-priority-help" class="sr-only">
@@ -240,7 +240,7 @@
 	                       class="sql-title-input"
 						   aria-required="true"
 	                       maxlength="200"
-	                       placeholder="SQL 제목을 입력하세요.">
+	                       placeholder="예: 판매 중인 상품 ID·상품명 조회">
 	            </label>
 
 	            <div class="request-sql-editor-grid">
@@ -297,7 +297,7 @@
 	        editor.id = 'sql-' + index;
 	        editor.value = item.sqlText;
 	        editor.placeholder =
-	            'SQL을 직접 입력하거나, AI로 생성한 SQL을 검토·수정하세요.';
+	            "SELECT product_id, product_name\nFROM sqlflow_demo.v_active_product_catalog;";
 
 	        function updateStatus() {
 	            status.textContent = editor.value.trim()

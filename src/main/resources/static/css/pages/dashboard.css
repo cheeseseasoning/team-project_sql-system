@@ -137,7 +137,7 @@
 
 .home-dashboard-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
     gap: 12px;
 }
@@ -381,3 +381,142 @@
 .dashboard-schedule-dialog .dashboard-actions {
     justify-content: flex-end;
 }
+
+/* 하단 두 패널은 긴 요청명에도 행이 늘어나지 않도록 일정한 밀도로 표시한다. */
+.home-dashboard-grid .dashboard-recent-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+}
+.dashboard-recent-table .dashboard-recent-name-column { width: 54%; }
+.dashboard-recent-table .dashboard-recent-status-column { width: 26%; }
+.dashboard-recent-table .dashboard-recent-date-column { width: 20%; }
+.home-dashboard-grid .dashboard-recent-table th {
+    height: 32px;
+    padding: 6px 10px;
+    font-size: 11px;
+    white-space: nowrap;
+}
+.home-dashboard-grid .dashboard-recent-table td {
+    height: 42px;
+    padding: 8px 10px;
+    font-size: 12px;
+    vertical-align: middle;
+}
+.dashboard-recent-title-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.dashboard-recent-title-line .urgent-badge { flex: none; margin: 0; font-size: 10px; }
+.home-dashboard-grid .dashboard-recent-link {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 500;
+}
+.dashboard-recent-table .dashboard-recent-date { white-space: nowrap; color: var(--muted); font-size: 11px; }
+.home-dashboard-grid .dashboard-notice-list > li {
+    min-height: 52px;
+    align-items: center;
+    padding: 10px 0;
+}
+.home-dashboard-grid [aria-labelledby="dashboard-recent-title"] .empty { height: 158px; }
+@media (max-width: 520px) {
+    .dashboard-recent-table .dashboard-recent-name-column { width: 48%; }
+    .dashboard-recent-table .dashboard-recent-status-column { width: 29%; }
+    .dashboard-recent-table .dashboard-recent-date-column { width: 23%; }
+    .home-dashboard-grid .dashboard-recent-table :is(th, td) { padding-inline: 5px; }
+}
+
+/* 두 하단 목록은 같은 머리글·행 높이와 상태 배지를 사용한다. */
+.home-dashboard-grid :is(.dashboard-recent-table, .dashboard-notice-table) {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+}
+.home-dashboard-grid :is(.dashboard-recent-table, .dashboard-notice-table) th {
+    height: 30px;
+    padding: 5px 10px;
+    background: var(--rail);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.home-dashboard-grid :is(.dashboard-recent-table, .dashboard-notice-table) td {
+    height: 38px;
+    padding: 6px 10px;
+    font-size: 12px;
+    vertical-align: middle;
+}
+.dashboard-notice-date-column { width: 20%; }
+.home-dashboard-grid .dashboard-notice-title { display: block; color: var(--accent); font-weight: 500; }
+.home-dashboard-grid .dashboard-notice-date { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.home-dashboard-grid :is(.dashboard-recent-table, .dashboard-notice-table) .empty { height: 114px; }
+.dashboard-status {
+    --status-color: #475569;
+    --status-background: #f1f5f9;
+    --status-border: #cbd5e1;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 7px;
+    border: 1px solid var(--status-border);
+    border-radius: 5px;
+    background: var(--status-background);
+    color: var(--status-color);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+.dashboard-status::before { content: ''; width: 6px; height: 6px; flex: none; border-radius: 50%; background: currentColor; }
+.dashboard-status:is(.is-pending_approval, .is-retry_review) { --status-color: #92400e; --status-background: #fffbeb; --status-border: #fcd34d; }
+.dashboard-status.is-ready { --status-color: #1d4ed8; --status-background: #eff6ff; --status-border: #93c5fd; }
+.dashboard-status.is-running { --status-color: #6d28d9; --status-background: #f5f3ff; --status-border: #c4b5fd; }
+.dashboard-status.is-completed { --status-color: #15803d; --status-background: #f0fdf4; --status-border: #86efac; }
+.dashboard-status.is-partial_failed { --status-color: #c2410c; --status-background: #fff7ed; --status-border: #fdba74; }
+.dashboard-status:is(.is-failed, .is-rejected) { --status-color: #b91c1c; --status-background: #fef2f2; --status-border: #fca5a5; }
+@media (max-width: 520px) {
+    .home-dashboard-grid :is(.dashboard-recent-table, .dashboard-notice-table) :is(th, td) { padding-inline: 5px; }
+}
+
+/* 상단 두 패널은 일정 등록 버튼 유무와 관계없이 제목 줄 높이를 맞춘다. */
+.home-dashboard-grid > .panel:is([aria-labelledby="dashboard-work-title"], [aria-labelledby="dashboard-calendar-title"]) > .panel-heading {
+    min-height: 34px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.home-dashboard-grid .dashboard-calendar-heading {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+.home-dashboard-grid .dashboard-calendar-heading h2 { flex-shrink: 0; }
+.home-dashboard-grid .dashboard-dept-badge {
+    min-width: 0;
+    padding: 0 0 0 10px;
+    border-left: 1px solid var(--line);
+    border-radius: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Home 아이콘은 별도 배경 없이 제목 글자와 가깝게 정렬한다. */
+.home-heading .home-title { gap: 7px; }
+.home-title-icon {
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    border-radius: 0;
+    background: transparent;
+}
+.home-title-icon > img { width: 20px; height: 20px; }

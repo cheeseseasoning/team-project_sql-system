@@ -4,8 +4,7 @@
 <main class="account-create-page">
     <header class="account-create-heading">
         <div>
-            <h1>계정 생성·역할 부여</h1>
-            <p>시스템 관리 / 계정 관리</p>
+            <h1>계정 생성</h1>
         </div>
     </header>
 
@@ -13,6 +12,7 @@
         <section
             class="panel account-create-panel account-create-info"
             aria-labelledby="account-info-title">
+            <div class="account-form-inner">
 
             <div class="account-create-section-heading">
                 <h2 id="account-info-title">기본 정보</h2>
@@ -20,38 +20,7 @@
             </div>
 
             <div class="account-create-grid">
-                <label class="account-create-field" for="account-login">
-                    <span class="account-create-label">
-                        로그인 ID <span class="required">*</span>
-                    </span>
-                    <input
-                        id="account-login"
-                        name="loginId"
-                        autocomplete="off"
-                        maxlength="50"
-                        pattern="[A-Za-z0-9._-]{3,50}"
-                        title="영문, 숫자, 마침표, 밑줄, 하이픈으로 3~50자 입력하세요."
-                        required
-                        placeholder="로그인에 사용할 아이디">
-                    <small class="caption">
-                        영문·숫자·마침표·밑줄·하이픈으로 3~50자 입력하세요.
-                    </small>
-                </label>
-
-                <label class="account-create-field" for="account-name">
-                    <span class="account-create-label">
-                        이름 <span class="required">*</span>
-                    </span>
-                    <input
-                        id="account-name"
-                        name="userName"
-                        autocomplete="off"
-                        maxlength="100"
-                        required
-                        placeholder="사용자 이름">
-                </label>
-				
-				<label class="account-create-field" for="account-employee-no">
+                <label class="account-create-field" for="account-employee-no">
 				    <span class="account-create-label">
 						사번 <span class="required">*</span>
 					</span>
@@ -65,7 +34,18 @@
 				           title="입사연도 4자리와 일련번호 5자리를 하이픈으로 구분해 입력하세요."
 				           placeholder="2026-00042">
 				</label>
-
+                <label class="account-create-field" for="account-name">
+                    <span class="account-create-label">
+                        이름 <span class="required">*</span>
+                    </span>
+                    <input
+                        id="account-name"
+                        name="userName"
+                        autocomplete="off"
+                        maxlength="100"
+                        required
+                        placeholder="사용자 이름">
+                </label>
                 <label class="account-create-field" for="account-dept">
                     <span class="account-create-label">
                         부서 <span class="required">*</span>
@@ -79,7 +59,6 @@
                         <option value="">부서 목록을 불러오는 중…</option>
                     </select>
                 </label>
-
                 <label class="account-create-field" for="account-position">
                     <span class="account-create-label">
                         직급 <span class="required">*</span>
@@ -98,6 +77,26 @@
             <p id="organization-help" class="caption account-create-help">
                 등록된 부서와 직급 중에서 선택하세요.
             </p>
+
+            <div class="account-create-login-group">
+                <label class="account-create-field" for="account-login">
+                    <span class="account-create-label">
+                        아이디 <span class="required">*</span>
+                    </span>
+                    <input
+                        id="account-login"
+                        name="loginId"
+                        autocomplete="off"
+                        maxlength="50"
+                        pattern="[A-Za-z0-9._-]{3,50}"
+                        title="영문, 숫자, 마침표, 밑줄, 하이픈으로 3~50자 입력하세요."
+                        required
+                        placeholder="로그인에 사용할 아이디">
+                    <small class="caption">
+                        영문·숫자·마침표·밑줄·하이픈으로 3~50자 입력하세요.
+                    </small>
+                </label>
+            </div>
 
             <div class="account-create-grid">
                 <label class="account-create-field" for="account-password">
@@ -139,30 +138,17 @@
             <p class="caption account-create-help">
                 발급한 초기 비밀번호는 사용자에게 별도로 전달하세요.
             </p>
+            </div>
         </section>
 
         <section
             class="panel account-create-panel account-create-roles"
             aria-labelledby="account-roles-title">
+            <div class="account-form-inner">
 
             <div class="account-create-section-heading">
                 <h2 id="account-roles-title">역할 관리</h2>
-            </div>
-
-            <div class="account-create-role-add">
-                <label class="sr-only" for="account-role-select">
-                    추가할 역할 선택
-                </label>
-                <select id="account-role-select" aria-label="추가할 역할 선택">
-                    <option value="">추가할 역할 선택</option>
-                </select>
-                <button
-                    id="account-role-add-button"
-                    type="button"
-                    class="button primary"
-                    disabled>
-                    역할 추가
-                </button>
+                <button id="account-role-open" class="button" type="button" disabled>+ 역할 추가</button>
             </div>
 
             <div
@@ -178,6 +164,7 @@
                 부서·직급과 업무 역할은 별개입니다. 결재자는 기안 작성자가 지정하며,
                 SQL 실행에는 별도 실행 권한이 필요합니다.
             </p>
+            </div>
         </section>
 
         <div class="account-create-actions">
@@ -185,6 +172,23 @@
             <button type="submit" class="button primary">계정 생성</button>
         </div>
     </form>
+    <dialog id="account-create-role-dialog" class="account-create-role-dialog" aria-labelledby="create-role-dialog-title">
+        <div class="create-role-dialog-heading">
+            <h2 id="create-role-dialog-title">역할 추가</h2>
+            <button id="account-role-close" class="create-role-dialog-close" type="button" aria-label="역할 추가 닫기">×</button>
+        </div>
+        <div class="create-role-dialog-body">
+            <label for="account-role-select">추가할 역할</label>
+            <select id="account-role-select" autofocus>
+                <option value="">추가할 역할 선택</option>
+            </select>
+            <p id="create-role-description" class="caption" style="margin-top: 10px;" aria-live="polite"></p>
+        </div>
+        <div class="create-role-dialog-actions">
+            <button id="account-role-cancel" class="button" type="button">취소</button>
+            <button id="account-role-add-button" class="button primary" type="button" disabled>추가</button>
+        </div>
+    </dialog>
 </main>
 
 <script>
@@ -199,27 +203,12 @@
         const roleAddButton =
             document.getElementById('account-role-add-button');
         const roleList = document.getElementById('account-role-list');
+        const roleDialog = document.getElementById('account-create-role-dialog');
+        const openRoleButton = document.getElementById('account-role-open');
         const showPassword =
             document.getElementById('show-account-password');
 
-        const roleDetails = {
-            SYSTEM_ADMIN: {
-                label: '시스템 관리자',
-                description: '계정 생성 및 사용자 역할 부여'
-            },
-            DB_ADMIN: {
-                label: 'DB 관리자',
-                description: '변경 실행 결과 등록·정정 및 리소스·접근·반출 정책 관리'
-            },
-            DB_APPROVER: {
-                label: 'SQL 실행 담당자',
-                description: 'SELECT 조회 실행'
-            },
-            SENSITIVE_DATA_READER: {
-                label: '민감 데이터 조회자',
-                description: '부서 접근 정책에서 허용한 민감 데이터 조회'
-            }
-        };
+        const roleDetails = window.AccountRoles.details;
 
         let selectedRoles = [];
 
@@ -296,6 +285,7 @@
             }
 
             roleAddButton.disabled = !roleSelect.value;
+            openRoleButton.disabled = roleSelect.options.length <= 1;
         }
 
         function validatePasswordConfirmation() {
@@ -346,7 +336,18 @@
             confirmation.type = inputType;
         });
 
+        // 모달에서는 화면의 역할 선택만 바꾸며 실제 저장은 계정 생성 시 처리한다.
+        openRoleButton.addEventListener('click', () => {
+            roleSelect.value = '';
+            document.getElementById('create-role-description').textContent = '';
+            roleAddButton.disabled = true;
+            roleDialog.showModal();
+        });
+        document.getElementById('account-role-close').addEventListener('click', () => roleDialog.close());
+        document.getElementById('account-role-cancel').addEventListener('click', () => roleDialog.close());
+
         roleSelect.addEventListener('change', () => {
+            document.getElementById('create-role-description').textContent = roleDetails[roleSelect.value]?.description || '';
             roleAddButton.disabled = !roleSelect.value;
         });
 
@@ -360,6 +361,7 @@
             selectedRoles = [...selectedRoles, roleCode];
             renderSelectedRoles();
             updateRoleOptions(Object.keys(roleDetails));
+            roleDialog.close();
         });
 
         roleList.addEventListener('click', event => {
