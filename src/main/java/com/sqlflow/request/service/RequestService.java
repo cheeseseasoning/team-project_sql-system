@@ -307,8 +307,13 @@ public class RequestService {
         List<RequestItemResponse> items =
                 requestMapper.selectApprovedChangeSqlItems(requestId, actorId);
 
+        // 두 SQL 저장 테이블은 분리돼 있지만 파일 생성 방식과 열람 조건은 같다.
         if (items.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "다운로드할 수 있는 승인된 변경 SQL이 없습니다.");
+            items = requestMapper.selectApprovedQuerySqlItems(requestId, actorId);
+        }
+
+        if (items.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "다운로드 권한이 없거나 최종 승인된 SQL이 없습니다.");
         }
 
         StringBuilder content = new StringBuilder(

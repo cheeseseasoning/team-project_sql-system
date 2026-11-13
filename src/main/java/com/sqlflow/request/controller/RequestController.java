@@ -327,7 +327,7 @@ public class RequestController {
                         org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
                         org.springframework.http.ContentDisposition.attachment()
                                 .filename(
-                                        "view-create-request-" + requestId + ".sql",
+                                        "request-" + requestId + ".sql",
                                         java.nio.charset.StandardCharsets.UTF_8)
                                 .build()
                                 .toString())

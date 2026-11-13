@@ -1,0 +1,241 @@
+/* 내 요청·부서 요청 상세의 외부 실행 결과에만 적용한다. */
+.change-result-summary {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+}
+
+.change-result-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.change-result-heading h4,
+.change-sql-result-form h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.change-result-actions {
+    margin-left: auto;
+}
+
+.change-result-actions .change-result-toggle {
+    min-height: 34px;
+    padding: 6px 12px;
+    color: var(--accent);
+    font-size: 12px;
+}
+
+.change-result-badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--soft);
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.change-result-badge.is-completed {
+    background: var(--good);
+    color: var(--good-text);
+}
+
+.change-result-badge.is-failed {
+    background: #fff1f1;
+    color: var(--error);
+}
+
+.change-result-muted {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.change-result-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 28px;
+    margin: 0 0 18px;
+}
+
+.change-result-meta > div,
+.change-result-note {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 10px;
+    align-items: baseline;
+    font-size: 13px;
+}
+
+.change-result-meta dt,
+.change-result-note dt {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.change-result-meta dd,
+.change-result-note dd {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.change-result-note {
+    margin: 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+}
+
+.change-sql-result-editor {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+}
+
+.change-sql-result-form h4 {
+    margin-bottom: 16px;
+}
+
+.change-result-fields {
+    display: grid;
+    grid-template-columns: minmax(150px, 0.55fr) minmax(0, 1fr);
+    gap: 16px 20px;
+}
+
+.change-result-fields > label:first-child { order: 1; }
+.change-result-fields > .change-executor-picker { order: 2; }
+.change-result-fields > label:has([name="resourceId"]) { order: 3; }
+.change-result-fields > .change-result-note-field { order: 4; }
+.change-result-fields > label:has([name="changeType"]) { order: 5; }
+.change-result-fields > label:has([name="changeReason"]) { order: 6; }
+
+.change-result-fields label {
+    min-width: 0;
+    font-size: 12px;
+}
+
+.change-result-fields .change-result-full {
+    grid-column: 1 / -1;
+}
+
+.change-result-fields input:not([type="hidden"]),
+.change-result-fields select {
+    height: 42px;
+    margin-top: 7px;
+    padding: 9px 12px;
+    font-size: 13px;
+}
+
+.change-result-fields textarea {
+    min-height: 74px;
+    margin: 7px 0 0;
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
+.change-result-fields input:disabled {
+    background: var(--soft);
+}
+
+/* 검색 목록만 입력창 아래에 띄워, 검색할 때 폼 높이가 달라지지 않게 한다. */
+.change-result-fields .change-executor-picker {
+    position: relative;
+    min-width: 0;
+}
+
+.change-result-fields .change-executor-options {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    z-index: 10;
+    box-shadow: 0 5px 14px #00000012;
+}
+
+.change-result-form-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+}
+
+.change-result-form-footer [role="status"] {
+    flex: 1;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.change-result-form-footer .button {
+    flex-shrink: 0;
+    min-height: 38px;
+    font-size: 12px;
+}
+
+.request-document-page .change-result-history {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+}
+
+.request-document-page .change-result-history > summary {
+    display: list-item;
+    padding: 3px 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.change-result-history ol {
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.change-result-history li {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.change-result-history-heading {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.change-result-history-heading span,
+.change-result-history li p {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.change-result-history li p {
+    margin: 4px 0 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 650px) {
+    .change-result-fields,
+    .change-result-meta {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .change-result-heading,
+    .change-result-form-footer {
+        flex-wrap: wrap;
+    }
+
+    .change-result-fields input:not([type="hidden"]),
+    .change-result-fields select,
+    .change-result-fields textarea {
+        font-size: 16px;
+    }
+}

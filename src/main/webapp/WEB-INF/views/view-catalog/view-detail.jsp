@@ -163,7 +163,6 @@
     </div>
 </div>
 
-<script src="${pageContext.request.contextPath}/js/vendor/sql-formatter.min.js"></script>
 
 <script>
 (() => {
@@ -392,20 +391,7 @@
 	 * 정렬할 수 없는 구문은 원문으로 표시한다.
 	 */
 	function formatCreateStatement(sql) {
-	    if (!window.sqlFormatter) {
-	        return sql;
-	    }
-
-	    try {
-	        return window.sqlFormatter.format(sql, {
-	            language: 'mysql',
-	            tabWidth: 4,
-	            keywordCase: 'upper'
-	        });
-	    } catch (error) {
-	        console.warn('CREATE문 정렬에 실패해 원문을 표시합니다.');
-	        return sql;
-	    }
+        return window.SqlDisplay?.format(sql) ?? sql;
 	}
 
 	async function bindColumnEditor(detail) {

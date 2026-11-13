@@ -46,8 +46,14 @@
     </c:if>
 
     <c:if test="${page == 'request-detail' or page == 'department-request-detail'}">
+        <script src="${pageContext.request.contextPath}/js/request-sql-download.js?v=20261113-all-sql"></script>
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261111-css-split">
+              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261113-sql-meta">
+    </c:if>
+
+    <c:if test="${page == 'request-detail' or page == 'department-request-detail'}">
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/change-sql-result.css?v=20261113-summary">
     </c:if>
 
     <c:if test="${page == 'request-detail'}">
@@ -93,6 +99,13 @@
     <c:if test="${page == 'approval-pending' or page == 'approval-detail'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/approval.css">
+    </c:if>
+    <c:if test="${page == 'view-detail'
+               or page == 'request-detail'
+               or page == 'department-request-detail'
+               or page == 'execution-result-detail'}">
+        <script src="${pageContext.request.contextPath}/js/vendor/sql-formatter.min.js"></script>
+        <script src="${pageContext.request.contextPath}/js/sql-display.js?v=20261113-format"></script>
     </c:if>
 </head>
 <body>

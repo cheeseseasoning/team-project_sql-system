@@ -80,17 +80,27 @@
         )
     </insert>
 
-	<select id="selectMyViewSqlItems" resultType="com.sqlflow.request.dto.RequestItemResponse">
+    <!-- 결과 표시·이력 매핑을 부서 상세와 공유하되, 작성자 본인 조회 조건은 유지한다. -->
+	<select id="selectMyViewSqlItems"
+            resultMap="com.sqlflow.request.mapper.DepartmentRequestMapper.visibleChangeSqlItemMap">
 	    SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
 	           V.SQL_CONTENT AS SQL_TEXT,
 	           CR.RESULT_STATUS AS CHANGE_RESULT_STATUS,
 	           CR.RESULT_NOTE AS CHANGE_RESULT_NOTE,
 	           CR.EXECUTED_BY AS CHANGE_EXECUTED_BY,
 	           CR.REGISTERED_BY AS CHANGE_REGISTERED_BY,
-	           CR.REGISTERED_AT AS CHANGE_REGISTERED_AT
+	           CR.REGISTERED_AT AS CHANGE_REGISTERED_AT,
+               EXECUTOR.USER_NAME AS CHANGE_EXECUTED_BY_NAME,
+               EXECUTOR_DEPT.DEPT_NAME AS CHANGE_EXECUTED_DEPT_NAME,
+               REGISTRAR.USER_NAME AS CHANGE_REGISTERED_BY_NAME,
+               REGISTRAR_DEPT.DEPT_NAME AS CHANGE_REGISTERED_DEPT_NAME
 	    FROM DB_CHANGE_SQL V
 	    JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
 	    LEFT JOIN DB_CHANGE_SQL_RESULT CR ON CR.QUERY_ID = V.QUERY_ID
+        LEFT JOIN USERS EXECUTOR ON EXECUTOR.USER_ID = CR.EXECUTED_BY
+        LEFT JOIN DEPARTMENT EXECUTOR_DEPT ON EXECUTOR_DEPT.DEPT_ID = EXECUTOR.DEPT_ID
+        LEFT JOIN USERS REGISTRAR ON REGISTRAR.USER_ID = CR.REGISTERED_BY
+        LEFT JOIN DEPARTMENT REGISTRAR_DEPT ON REGISTRAR_DEPT.DEPT_ID = REGISTRAR.DEPT_ID
 	    WHERE R.REQUEST_ID = #{requestId}
 	      AND R.DRAFTER_ID = #{drafterId}
 	    ORDER BY V.QUERY_ORDER, V.QUERY_ID
@@ -108,7 +118,22 @@
           )
     </delete>
 
-    <!-- 승인 상태와 사용자 권한을 같은 조회에서 확인해 다운로드할 SQL만 반환한다. -->
+    <!-- SQL 파일 열람 권한만 확인한다. 실제 실행·결과 등록 권한과는 별개다. -->
+    <sql id="approvedSqlDownloadConditions">
+        R.REQUEST_ID = #{requestId}
+        AND R.APPROVAL_STATUS = 'APPROVED'
+        AND R.REQUEST_STATUS IN (
+            'READY', 'RUNNING', 'RETRY_REVIEW', 'COMPLETED', 'PARTIAL_FAILED', 'FAILED'
+        )
+        AND EXISTS (
+            SELECT 1 FROM USERS U
+            JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+            WHERE U.USER_ID = #{actorId}
+              AND U.ENABLED = 'Y'
+              AND D.DEPT_NAME = 'DB팀'
+        )
+    </sql>
+
     <select id="selectApprovedChangeSqlItems"
             resultType="com.sqlflow.request.dto.RequestItemResponse">
         SELECT C.QUERY_ID,
@@ -117,22 +142,20 @@
                C.SQL_CONTENT AS SQL_TEXT
         FROM DB_CHANGE_SQL C
         JOIN QUERY_REQUEST R ON R.REQUEST_ID = C.REQUEST_ID
-        WHERE R.REQUEST_ID = #{requestId}
+        WHERE <include refid="approvedSqlDownloadConditions"/>
           AND R.REQUEST_TYPE IN ('CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE')
-          AND R.REQUEST_STATUS = 'READY'
-          AND R.APPROVAL_STATUS = 'APPROVED'
-          AND EXISTS (
-              SELECT 1
-              FROM USERS U
-              JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
-              JOIN USER_ROLE UR ON UR.USER_ID = U.USER_ID
-              JOIN ROLE RL ON RL.ROLE_ID = UR.ROLE_ID
-              WHERE U.USER_ID = #{actorId}
-                AND U.ENABLED = 'Y'
-                AND D.DEPT_NAME = 'DB팀'
-                AND RL.ROLE_CODE = 'DB_APPROVER'
-          )
         ORDER BY C.QUERY_ORDER, C.QUERY_ID
+    </select>
+
+    <!-- SELECT 요청도 동일한 권한·승인 조건으로 저장된 원문을 반환한다. -->
+    <select id="selectApprovedQuerySqlItems"
+            resultType="com.sqlflow.request.dto.RequestItemResponse">
+        SELECT I.QUERY_ID, I.QUERY_ORDER, I.QUERY_TITLE, I.SQL_TEXT
+        FROM QUERY_ITEM I
+        JOIN QUERY_REQUEST R ON R.REQUEST_ID = I.REQUEST_ID
+        WHERE <include refid="approvedSqlDownloadConditions"/>
+          AND R.REQUEST_TYPE = 'SELECT'
+        ORDER BY I.QUERY_ORDER, I.QUERY_ID
     </select>
 
     <!-- 작성자의 요청 목록 및 검색 -->

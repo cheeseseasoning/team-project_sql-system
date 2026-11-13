@@ -1595,7 +1595,7 @@
 
 .request-detail-page .request-body-content
     > .request-content-section {
-    margin: 16px 0 0;
+    margin: 24px 0 0;
     padding: 0;
     border: 0;
 }
@@ -1649,4 +1649,170 @@
     .request-detail-page .request-body-layout.has-rejection {
         grid-template-columns: minmax(0, 1fr);
     }
+}
+
+/* 내 요청·부서 요청 상세: 제목은 세로선으로 구분하고 본문 시작선을 맞춘다. */
+.request-detail-page.request-document-page .request-content-section > h2,
+.request-detail-page.request-document-page .request-sql-heading h2 {
+    position: relative;
+    padding-left: 12px;
+}
+
+.request-detail-page.request-document-page .request-content-section > h2::before,
+.request-detail-page.request-document-page .request-sql-heading h2::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 3px;
+    height: 14px;
+    border-radius: 1px;
+    background: var(--accent);
+    transform: translateY(-50%);
+}
+
+.request-detail-page.request-document-page .request-content-section > .notice-body {
+    margin-top: 8px;
+    padding-left: 12px;
+}
+
+.request-detail-page.request-document-page .request-sql-panel {
+    margin-top: 24px;
+}
+
+.request-detail-page.request-document-page .request-sql-heading {
+    margin-bottom: 8px;
+}
+
+.request-detail-page.request-document-page #detail-items {
+    margin-left: 12px;
+}
+
+/* 두 요청 상세의 글자와 셀 여백을 함께 조정해 문서 배치를 유지한다. */
+.request-detail-page.request-document-page .request-information-heading,
+.request-detail-page.request-document-page #request-approval-title,
+.request-detail-page.request-document-page .request-content-section > h2,
+.request-detail-page.request-document-page .request-sql-heading h2 {
+    font-size: 15px;
+}
+
+.request-detail-page.request-document-page .request-info-table th,
+.request-detail-page.request-document-page .request-info-table td,
+.request-detail-page.request-document-page .request-info-table .badge,
+.request-detail-page.request-document-page .request-info-table #detail-state .badge {
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.request-detail-page.request-document-page .request-info-table th,
+.request-detail-page.request-document-page .request-info-table td {
+    padding: 8px 10px;
+}
+
+/* 항목명이 길어져도 값 영역을 침범하지 않도록 제목 칸만 조금 넓힌다. */
+.request-detail-page.request-document-page .request-info-label-column {
+    width: 17%;
+}
+
+.request-detail-page.request-document-page .request-info-value-column {
+    width: 33%;
+}
+
+.request-detail-page.request-document-page .approval-card-person strong {
+    font-size: 14px;
+}
+
+.request-detail-page.request-document-page .approval-card-person {
+    min-height: 82px;
+    padding: 9px 6px;
+    gap: 4px;
+}
+
+/* 결재란은 4칸씩 표시하며, 미지정 칸도 같은 머리칸·날짜칸을 유지한다. */
+.request-detail-page.request-document-page .request-approval-cards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.request-detail-page.request-document-page .approval-card-placeholder {
+    background: var(--bg);
+}
+
+.request-detail-page.request-document-page .approval-card-person > span,
+.request-detail-page.request-document-page .approval-card-step,
+.request-detail-page.request-document-page .approval-card-range {
+    font-size: 12px;
+}
+
+.request-detail-page.request-document-page .approval-card-date {
+    font-size: 12px;
+}
+
+.request-detail-page.request-document-page .approval-card-step,
+.request-detail-page.request-document-page .approval-card-date {
+    padding: 5px 6px;
+}
+
+.request-detail-page.request-document-page .request-content-section > .notice-body {
+    font-size: 14px;
+    line-height: 1.75;
+    margin-top: 10px;
+}
+
+.request-detail-page.request-document-page .request-sql-accordion > summary,
+.request-detail-page.request-document-page .request-sql-body pre {
+    font-size: 14px;
+}
+
+.request-detail-page.request-document-page .request-sql-body pre {
+    padding: 14px;
+    line-height: 1.75;
+}
+
+.request-detail-page.request-document-page .request-sql-validation-state,
+.request-detail-page.request-document-page .request-sql-body > .caption {
+    font-size: 12px;
+}
+
+/* 첨부 SQL 제목과 같은 줄 오른쪽에 작은 다운로드 버튼을 정렬한다. */
+.request-detail-page.request-document-page .request-sql-heading-main:has(#view-sql-download:not([hidden])) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px 12px;
+    width: 100%;
+}
+
+.request-detail-page.request-document-page #view-sql-download {
+    width: auto;
+    min-height: 30px;
+    margin: 0;
+    padding: 4px 10px;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.request-detail-page.request-document-page #view-sql-download-message {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+}
+
+.request-detail-page.request-document-page #view-sql-download-message:empty {
+    display: none;
+}
+
+.request-detail-page.request-document-page #view-sql-download {
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.request-detail-page.request-document-page .request-sql-item-meta {
+    display: inline-block;
+    margin-left: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
 }

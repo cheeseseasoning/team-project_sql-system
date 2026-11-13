@@ -342,7 +342,8 @@
             detail.durationMs == null ? '—' : detail.durationMs + ' ms';
 
         $('#execution-sql').textContent =
-            detail.sqlText || '저장된 SQL이 없습니다.';
+            (window.SqlDisplay?.format(detail.sqlText) ?? detail.sqlText)
+                || '저장된 SQL이 없습니다.';
 
         $('#execution-error-section').hidden =
             detail.status !== 'FAILED';
