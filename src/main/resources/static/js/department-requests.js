@@ -361,9 +361,7 @@
                 totalCount
             );
 
-            count.textContent =
-                '총 ' + totalCount + '건 중 '
-                + firstItem + '–' + lastItem + '건';
+            count.textContent = '총 ' + totalCount + '건';
 
             renderPagination(totalPages);
         } catch (error) {

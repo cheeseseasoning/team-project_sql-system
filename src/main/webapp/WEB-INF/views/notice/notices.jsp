@@ -4,6 +4,11 @@
 <div class="notices-page">
 <div class="page-heading panel-aligned-heading">
     <h1>공지사항</h1>
+        <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
+            <button id="notice-create" type="button" class="button primary">
+                공지 등록
+            </button>
+        </c:if>
 </div>
 
 <section id="notice-list-view" hidden>
@@ -25,13 +30,7 @@
         <nav id="notice-pagination" class="notice-pagination" aria-label="공지사항 페이지" hidden></nav>
     </div>
 
-    <div class="notice-list-actions">
-        <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
-            <button id="notice-create" type="button" class="button primary">
-                공지 등록
-            </button>
-        </c:if>
-    </div>
+
 </section>
 
 <section id="notice-detail-view" hidden>
@@ -150,6 +149,8 @@
         }
 
         function showView(view) {
+            const createButton = $('#notice-create');
+            if (createButton) createButton.hidden = view !== listView;
             listView.hidden = view !== listView;
             detailView.hidden = view !== detailView;
 

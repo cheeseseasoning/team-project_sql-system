@@ -1,0 +1,50 @@
+/* 데이터 변경 요청은 조회 요청 작성의 입력·간격 규격에 맞추고 ID와 동작은 유지한다. */
+#view-create-request-form .db-change-request-top { grid-template-columns: minmax(0, 1fr) 206px 82px; gap: 24px; margin-bottom: 12px; }
+#view-create-request-form :is(.db-change-request-top label, label[for="view-request-purpose"], label[for="view-request-detail"], .db-change-sql-field-heading label, .db-change-sql-workspace label) { font-size: 12px; font-weight: 600; }
+#view-create-request-form .db-change-request-top input:not([type="checkbox"]) { height: 34px; padding: 7px 10px; border-radius: 4px; font-size: 12px; line-height: 1.5; margin-top: 6px; }
+#view-create-request-form .db-change-urgent { min-height: 34px; font-size: 12px; }
+#view-create-request-form .db-change-urgent input { width: 14px; height: 14px; }
+#view-create-request-form :is(#view-request-purpose, #view-request-detail) { padding: 7px 10px; border-radius: 4px; font-size: 12px; line-height: 1.5; margin: 6px 0 12px; }
+#view-create-request-form #view-request-purpose { height: 36px; min-height: 36px; }
+#view-create-request-form #view-request-detail { height: 46px; min-height: 46px; }
+#view-create-request-form .db-change-sql-header { margin-top: 20px; padding-top: 20px; gap: 12px; }
+#view-create-request-form .db-change-write-modes { border: 0; }
+#view-create-request-form .db-change-write-modes > button { min-height: 30px; padding: 5px 16px; font-size: 12px; font-weight: 600; border: 1px solid transparent; }
+#view-create-request-form .db-change-write-modes > button[aria-pressed="true"] { border-color: var(--line); }
+#view-create-request-form .db-change-sql-toolbar { margin: 10px 0 0; }
+#view-create-request-form .db-change-sql-tabs > button { padding: 8px 14px; font-size: 12px; }
+#view-create-request-form #view-add-sql { min-height: 30px; padding: 5px 16px; font-size: 12px; }
+#view-create-request-form #view-sql-items > .sql-item { padding-top: 10px; }
+#view-create-request-form .view-sql-title { height: 32px; margin-top: 5px; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: 400; }
+#view-create-request-form .db-change-sql-workspace { margin-top: 10px; }
+#view-create-request-form .db-change-sql-workspace textarea,
+#view-create-request-form[data-write-mode="ai"] .db-change-sql-workspace textarea { height: 132px; min-height: 104px; margin: 5px 0 0; padding: 7px 10px; font-size: 12px; font-weight: 400; }
+#view-create-request-form .sql-editor { background: var(--soft); font: 12px/1.6 Consolas, 'Malgun Gothic', monospace; }
+#view-create-request-form .db-change-ai-actions .button { min-height: 32px; padding: 6px 16px; font-size: 12px; }
+@media (min-width: 1000px) {
+    .main:has(#view-create-request-form) { padding: 16px 24px; }
+    .main:has(#view-create-request-form) > .page-heading { margin-bottom: 12px; }
+    #view-create-request-form { padding: 16px; }
+    #view-create-request-form .db-change-request-top { margin-bottom: 8px; }
+    #view-create-request-form :is(#view-request-purpose, #view-request-detail) { margin: 4px 0 8px; }
+    #view-create-request-form .db-change-sql-header { margin-top: 12px; padding-top: 12px; }
+    #view-create-request-form .db-change-sql-toolbar { margin-top: 6px; }
+    #view-create-request-form #view-sql-items > .sql-item { padding-top: 8px; }
+    #view-create-request-form .db-change-sql-workspace textarea,
+    #view-create-request-form[data-write-mode="ai"] .db-change-sql-workspace textarea { height: clamp(96px, 15vh, 132px); min-height: 96px; overflow-y: auto; }
+    #view-create-request-form .form-footer { margin-top: 12px; padding-top: 12px; gap: 12px; }
+}
+@media (max-width: 760px) {
+    #view-create-request-form .db-change-request-top { grid-template-columns: minmax(0, 1fr) 82px; gap: 12px; }
+    #view-create-request-form .db-change-request-top > label:first-child { grid-column: 1 / -1; }
+    #view-create-request-form[data-write-mode="ai"] .db-change-sql-workspace { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 유형 선택은 SQL 작성 제목 옆의 보조 컨트롤로 작게 정렬한다. */
+#view-create-request-form #db-change-type {
+    height: 28px;
+    min-height: 28px;
+    padding: 2px 8px;
+    font-size: 12px;
+    line-height: 1.5;
+}

@@ -14,7 +14,7 @@
     <link rel="stylesheet"
           href="${pageContext.request.contextPath}/css/sqlflow.css">
     <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/layout.css?v=20261113-header-wide">
+              href="${pageContext.request.contextPath}/css/layout.css?v=20261113-content-top">
 
     <c:if test="${page == 'home'}">
         <link rel="stylesheet"
@@ -41,6 +41,10 @@
               href="${pageContext.request.contextPath}/css/pages/request.css?v=20261113-account-list">
     </c:if>
 
+    <c:if test="${page == 'view-create-request-form'}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/db-change-editor.css?v=20261113-compact-type">
+    </c:if>
+
     <c:if test="${page == 'request-form' or page == 'request-edit'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/request-editor.css?v=20261111-editor-split">
@@ -64,7 +68,7 @@
 
     <c:if test="${page == 'execution-queue' or page == 'execution-queue-detail'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/execution-queue.css">
+              href="${pageContext.request.contextPath}/css/pages/execution-queue.css?v=20261113-list-search-fix">
     </c:if>
 
     <c:if test="${page == 'notices'}">
@@ -124,12 +128,13 @@
         <script src="${pageContext.request.contextPath}/js/vendor/sql-formatter.min.js"></script>
         <script src="${pageContext.request.contextPath}/js/sql-display.js?v=20261113-format"></script>
     </c:if>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/list-titles.css?v=20261113-ellipsis">
+    <script src="${pageContext.request.contextPath}/js/list-titles.js?v=20261113-ellipsis" defer></script>
 </head>
 <body>
     <div class="app-shell">
         <aside class="sidebar">
             <a class="brand" href="${pageContext.request.contextPath}/">SQLFlow</a>
-            <p class="brand-sub">데이터 조회·통제 시스템</p>
             <hr>
 
             <nav aria-label="업무 메뉴">
@@ -245,9 +250,6 @@
                 </a>
             </nav>
 
-            <div class="sidebar-foot">
-                SELECT 전용<br>허용된 VIEW만 조회
-            </div>
         </aside>
 
         <div class="workspace">
@@ -278,11 +280,11 @@
                     <form class="header-search"
                           action="${pageContext.request.contextPath}/requests"
                           method="get">
-                        <label class="sr-only" for="header-keyword">요청 검색</label>
+                        <label class="sr-only" for="header-keyword">내 요청번호·제목 검색</label>
                         <span aria-hidden="true">⌕</span>
                         <input id="header-keyword"
                                name="keyword"
-                               placeholder="요청번호, 제목 검색">
+                               placeholder="내 요청번호·제목 검색">
                         <button type="submit" class="sr-only">검색</button>
                     </form>
 

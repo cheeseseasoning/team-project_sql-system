@@ -761,3 +761,37 @@
         gap: 8px;
     }
 }
+/* 실행 대기 목록은 다른 요청함과 같은 검색·표·페이지 규격을 사용한다. */
+.execution-queue-page { gap: 24px; }
+.execution-queue-page > .page-heading { min-height: 40px; }
+.execution-queue-panel { padding: 22px; }
+.execution-queue-panel .queue-search { grid-template-columns: 150px minmax(0, 1fr) auto 46px; align-items: end; gap: 16px; margin-bottom: 24px; padding-bottom: 25px; border-bottom: 1px solid var(--line); }
+.execution-queue-panel .queue-search > label { display: grid; gap: 8px; min-width: 0; margin: 0; }
+.queue-filter-label { padding-left: 2px; font-size: 13px; }
+.execution-queue-panel .queue-search :is(input, select, .button) { height: 46px; min-height: 46px; margin: 0; }
+.execution-queue-panel .queue-search .button { width: auto; padding: 9px 15px; }
+.execution-queue-panel .queue-search #queue-refresh { width: 46px; padding: 0; }
+.execution-queue-panel .queue-table-heading { justify-content: space-between; align-items: center; gap: 12px; }
+.execution-queue-panel .queue-table-heading h2 { padding-left: 2px; font-size: 15px; }
+.execution-queue-panel .queue-total-count { color: var(--muted); font-size: 12px; }
+.execution-queue-panel .queue-table { min-width: 900px; font-size: 12px; }
+.execution-queue-panel .queue-table th { padding: 10px 12px; background: var(--rail); color: var(--muted); font-size: 11px; }
+.execution-queue-panel .queue-table td { padding: 12px; border-color: var(--line); line-height: 1.5; }
+.execution-queue-panel .queue-table :is(th, td):nth-child(1) { width: 18%; }
+.execution-queue-panel .queue-table :is(th, td):nth-child(2) { width: 27%; }
+.execution-queue-panel .queue-table :is(th, td):nth-child(3) { width: 11%; }
+.execution-queue-panel .queue-table :is(th, td):nth-child(4) { width: 12%; }
+.execution-queue-panel .queue-table :is(th, td):nth-child(5) { width: 6%; }
+.execution-queue-panel .queue-table :is(th, td):nth-child(6) { width: 14%; }
+.execution-queue-panel .queue-table :is(th, td):nth-child(7) { width: 12%; }
+.execution-queue-panel .queue-request-link { color: var(--muted); font-size: 11px; }
+.execution-queue-panel .queue-title-link { color: var(--accent); font-weight: 600; }
+.execution-queue-panel .queue-pagination { min-height: 32px; margin-top: 16px; padding-top: 4px; border-top: 0; }
+.execution-queue-panel :is(.queue-page-move, .queue-page-button) { height: 32px; font-size: 12px; color: var(--muted); }
+.execution-queue-panel .queue-page-button.is-current { background: var(--tint); color: var(--accent); }
+@media (min-width: 1600px) { .execution-queue-panel { padding: 24px; } }
+@media (max-width: 1200px) { .execution-queue-panel { padding: 18px; } }
+@media (max-width: 760px) {
+    .execution-queue-panel .queue-search { grid-template-columns: minmax(0, 1fr) auto 46px; gap: 12px; }
+    .execution-queue-panel .queue-keyword-field { grid-column: 1 / -1; grid-row: 1; }
+}

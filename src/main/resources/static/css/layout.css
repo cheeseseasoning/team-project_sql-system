@@ -25,7 +25,7 @@ html {
    ================================================== */
 
 .sidebar {
-    padding: 24px 16px;
+    padding: 20px 16px;
     background: var(--rail);
     border-right: 1px solid var(--line);
     display: flex;
@@ -814,4 +814,17 @@ button.help-link:focus-visible,
         right: 16px;
         bottom: 16px;
     }
+}
+
+/* 하위 링크와 구분되도록 독립 메뉴도 그룹 제목과 같은 굵기로 표시한다. */
+.sidebar nav > .nav-item { font-weight: 600; }
+.sidebar > hr { margin-block: 12px; }
+
+/* 조회·변경 요청 편집 화면은 유지하고 나머지 화면 시작점만 4px 올린다. */
+.main:not(:has(.request-editor, #view-create-request-form)) { padding-top: 20px; }
+@media (max-width: 850px) {
+    .main:not(:has(.request-editor, #view-create-request-form)) { padding-top: 14px; }
+}
+@media (max-width: 560px) {
+    .main:not(:has(.request-editor, #view-create-request-form)) { padding-top: 12px; }
 }
