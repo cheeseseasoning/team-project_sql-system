@@ -60,13 +60,20 @@ public class AccountService {
             int size,
             String actorLoginId) {
 
+        return getAccountListForActor(page, size, actorLoginId, "");
+    }
+
+    /** 검색어는 ID·이름·부서·직급·역할에 부분 일치시키며, 기존 계정 상태 공개 권한을 유지한다. */
+    @Transactional(readOnly = true)
+    public AccountListPageResponse getAccountListForActor(
+            int page, int size, String actorLoginId, String keyword) {
         boolean includeAccountStatus =
                 actorLoginId != null
                 && !actorLoginId.isBlank()
                 && userAccountMapper.countActiveSystemAdminByLoginId(actorLoginId) == 1;
 
         AccountListPageResponse response =
-                getAccountListPage(page, size, includeAccountStatus);
+                getAccountListPage(page, size, includeAccountStatus, keyword);
 
         return response;
     }
@@ -76,9 +83,20 @@ public class AccountService {
             int size,
             boolean includeAccountStatus) {
 
+        return getAccountListPage(page, size, includeAccountStatus, "");
+    }
+
+    private AccountListPageResponse getAccountListPage(
+            int page, int size, boolean includeAccountStatus, String keyword) {
+        String search = keyword == null ? "" : keyword.trim();
+        if (search.length() > 120) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "검색어는 120자 이하로 입력하세요.");
+        }
         validatePageParameters(page, size);
 
-        long totalCount = userAccountMapper.countAllAccounts();
+        long totalCount = search.isEmpty()
+                ? userAccountMapper.countAllAccounts()
+                : userAccountMapper.countMatchingAccounts(search);
         long totalPages = totalCount == 0
                 ? 0
                 : (totalCount - 1) / size + 1;
@@ -90,7 +108,9 @@ public class AccountService {
         long offset = (long) (actualPage - 1) * size;
 
         List<AccountListItemResponse> items =
-                userAccountMapper.selectAccountListItems(offset, size)
+                (search.isEmpty()
+                        ? userAccountMapper.selectAccountListItems(offset, size)
+                        : userAccountMapper.searchAccountListItems(offset, size, search))
                         .stream()
                         .map(account -> new AccountListItemResponse(
                                 account.getUserId(),

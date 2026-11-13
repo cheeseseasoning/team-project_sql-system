@@ -264,6 +264,18 @@
     </div>
 
     <section class="panel account-list-panel" aria-labelledby="account-list-title">
+        <form id="account-filter-form" class="account-filter list-search-bar">
+            <label for="account-keyword">
+                <span class="account-search-label">계정 검색</span>
+                <input id="account-keyword" type="search" maxlength="120"
+                       placeholder="ID, 이름, 부서, 직급 또는 역할" autocomplete="off">
+            </label>
+            <button id="account-search" class="button primary" type="submit">검색</button>
+            <button id="account-reset" class="button list-search-reset" type="button"
+                    title="검색 조건 초기화 및 새로고침" aria-label="검색 조건 초기화 및 새로고침">
+                <img src="${pageContext.request.contextPath}/icons/RefreshCw.svg" alt="">
+            </button>
+        </form>
         <div class="account-list-toolbar">
             <h2 id="account-list-title" class="sr-only">계정</h2>
             <span id="account-count" class="account-count" aria-live="polite"></span>
@@ -361,6 +373,7 @@
     const pageSize = 10;
     const pageBlockSize = 10;
 
+    let activeKeyword = "";
     let currentPage = 1;
     let totalPages = 0;
     let isLoading = false;
@@ -411,7 +424,7 @@
 
     function renderAccounts(accounts) {
         if (accounts.length === 0) {
-            showTableMessage("등록된 계정이 없습니다.");
+            showTableMessage(activeKeyword ? "검색 조건에 맞는 계정이 없습니다." : "등록된 계정이 없습니다.");
             return;
         }
 
@@ -529,6 +542,8 @@
         }
 
         isLoading = true;
+        $("#account-search").disabled = true;
+        $("#account-reset").disabled = true;
         rowsElement.setAttribute("aria-busy", "true");
         messageElement.textContent = "";
 
@@ -536,6 +551,7 @@
             const response = await api(
                 "/accounts?page=" + encodeURIComponent(page)
                 + "&size=" + encodeURIComponent(pageSize)
+                + "&keyword=" + encodeURIComponent(activeKeyword)
             );
 
             if (!response || !Array.isArray(response.items)) {
@@ -554,6 +570,8 @@
         } finally {
             rowsElement.setAttribute("aria-busy", "false");
             isLoading = false;
+            $("#account-search").disabled = false;
+            $("#account-reset").disabled = false;
         }
     }
 
@@ -567,6 +585,21 @@
         if (currentPage < totalPages) {
             loadAccounts(currentPage + 1);
         }
+    });
+
+    // 검색 조건을 확정한 뒤 첫 페이지를 조회하고, 이후 페이지에도 유지한다.
+    $("#account-filter-form").addEventListener("submit", event => {
+        event.preventDefault();
+        if (isLoading) return;
+        activeKeyword = $("#account-keyword").value.trim();
+        loadAccounts(1);
+    });
+
+    $("#account-reset").addEventListener("click", () => {
+        if (isLoading) return;
+        $("#account-keyword").value = "";
+        activeKeyword = "";
+        loadAccounts(1);
     });
 
     loadAccounts(currentPage);

@@ -76,6 +76,10 @@
               href="${pageContext.request.contextPath}/css/pages/views.css">
     </c:if>
 
+    <c:if test="${page == 'views' or page == 'accounts'}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/list-search.css?v=20261113-search">
+    </c:if>
+
     <c:if test="${page == 'db-resource-admin'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/db-resource-admin.css">

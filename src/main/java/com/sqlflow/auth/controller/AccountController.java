@@ -23,6 +23,7 @@ public class AccountController {
     public AccountListPageResponse getAccountList(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "") String keyword,
             Authentication authentication) {
     	
     	String actorLoginId = null;
@@ -35,6 +36,6 @@ public class AccountController {
         return accountService.getAccountListForActor(
         		page, 
         		size,
-        		actorLoginId);
+                actorLoginId, keyword);
     }
 }
