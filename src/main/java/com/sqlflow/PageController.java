@@ -101,7 +101,7 @@ public class PageController {
 
     @GetMapping("/requests")
     public String list(Model model) {
-        return view(model, "requests", "내 기안함");
+        return view(model, "requests", "내 요청함");
     }
 
     @GetMapping("/requests/{id}")
@@ -126,7 +126,7 @@ public class PageController {
 
     @GetMapping("/department-requests")
     public String departmentRequests(Model model) {
-        return view(model, "department-requests", "부서 기안함");
+        return view(model, "department-requests", "부서 요청함");
     }
 
     @GetMapping("/department-requests/{requestId}")
@@ -309,9 +309,9 @@ public class PageController {
 			        new MenuPath("데이터 조회·변경", "데이터 변경 요청",
 			                "/view-create-requests/new");
             case "requests" ->
-                    new MenuPath("기안·결재", "내 기안함", "/requests");
+                    new MenuPath("기안·결재", "내 요청함", "/requests");
             case "department-requests" ->
-                    new MenuPath("기안·결재", "부서 기안함", "/department-requests");
+                    new MenuPath("기안·결재", "부서 요청함", "/department-requests");
             case "approvals" ->
                     new MenuPath("기안·결재", "받은 결재", "/approvals/pending");
             case "execution-results" ->

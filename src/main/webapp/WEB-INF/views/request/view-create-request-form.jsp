@@ -74,7 +74,7 @@
 
 			<div class="form-footer">
 				<span id="view-save-guide" class="caption">
-					초안 저장 후 내 기안함에서 결재선을 지정하고 제출할 수 있습니다.
+					초안 저장 후 내 요청함에서 결재선을 지정하고 제출할 수 있습니다.
 				</span>
 
 				<div class="db-change-form-actions">

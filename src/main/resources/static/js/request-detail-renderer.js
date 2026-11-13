@@ -412,10 +412,15 @@ window.RequestDetailRenderer = (() => {
 	        navigation.hidden = rows.length <= pageSize;
 
 	        if (rows.length === 0) {
-	            list.innerHTML =
-	                '<li class="approval-card-empty">'
-	                + esc(emptyMessage)
+	            // 미지정 상태도 기존 한 페이지의 3칸 구조와 높이를 유지한다.
+	            // 실제 결재자·상태는 만들지 않고 머리칸, 본문, 날짜칸만 비워 둔다.
+	            const emptyCard =
+	                '<li class="approval-card" aria-label="결재자 미지정">'
+	                + '<div class="approval-card-step" aria-hidden="true">&nbsp;</div>'
+	                + '<div class="approval-card-person" aria-hidden="true"></div>'
+	                + '<div class="approval-card-date" aria-hidden="true">&nbsp;</div>'
 	                + '</li>';
+	            list.innerHTML = emptyCard.repeat(pageSize);
 
 	            previous.disabled = true;
 	            next.disabled = true;

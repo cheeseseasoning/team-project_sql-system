@@ -5,19 +5,19 @@
 	const TYPE = {
 	    CREATE_VIEW: {
 	        placeholder: 'CREATE VIEW v_product AS\nSELECT product_id FROM demo_product;',
-	        saveGuide: '초안 저장 후 내 기안함에서 결재선을 지정하고 제출할 수 있습니다.'
+	        saveGuide: '초안 저장 후 내 요청함에서 결재선을 지정하고 제출할 수 있습니다.'
 	    },
 	    INSERT: {
 	        placeholder: "INSERT INTO demo_product (product_id, product_name)\nVALUES (1, '상품명');",
-	        saveGuide: '초안 저장 후 내 기안함에서 다시 열어 수정할 수 있습니다.'
+	        saveGuide: '초안 저장 후 내 요청함에서 다시 열어 수정할 수 있습니다.'
 	    },
 	    UPDATE: {
 	        placeholder: "UPDATE demo_product\nSET product_name = '새 상품명'\nWHERE product_id = 1;",
-	        saveGuide: '초안 저장 후 내 기안함에서 다시 열어 수정할 수 있습니다.'
+	        saveGuide: '초안 저장 후 내 요청함에서 다시 열어 수정할 수 있습니다.'
 	    },
 	    DELETE: {
 	        placeholder: 'DELETE FROM demo_product\nWHERE product_id = 1;',
-	        saveGuide: '초안 저장 후 내 기안함에서 다시 열어 수정할 수 있습니다.'
+	        saveGuide: '초안 저장 후 내 요청함에서 다시 열어 수정할 수 있습니다.'
 	    }
 	};
 

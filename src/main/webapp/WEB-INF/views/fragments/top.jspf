@@ -37,7 +37,7 @@
                or page == 'approval-pending'
                or page == 'execution-results'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261113-inbox-results">
+              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261113-request-labels">
     </c:if>
 
     <c:if test="${page == 'request-form' or page == 'request-edit'}">
@@ -144,13 +144,13 @@
                            href="${pageContext.request.contextPath}/requests"
                            ${activeMenu == 'requests' ? 'aria-current="page"' : ''}>
                             <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
-                            내 기안함
+                            내 요청함
                         </a>
                         <a class="nav-item ${activeMenu == 'department-requests' ? 'active' : ''}"
                            href="${pageContext.request.contextPath}/department-requests"
                            ${activeMenu == 'department-requests' ? 'aria-current="page"' : ''}>
                             <img src="${pageContext.request.contextPath}/icons/Files.svg" alt="">
-                            부서 기안함
+                            부서 요청함
                         </a>
                         <a class="nav-item ${activeMenu == 'approvals' ? 'active' : ''}"
                            href="${pageContext.request.contextPath}/approvals/pending"

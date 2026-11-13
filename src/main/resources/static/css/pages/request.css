@@ -236,6 +236,12 @@
 }
 
 /* 기안함·받은 결재 공통: 표 위 제목과 전체 건수 */
+/* 글자만 살짝 들여 입력창·표·구분선의 시작 위치는 유지한다. */
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .filter-label-text,
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-list-heading > h2 {
+    padding-inline-start: 2px;
+}
+
 :is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-list-heading {
     align-items: center;
     margin-bottom: 10px;

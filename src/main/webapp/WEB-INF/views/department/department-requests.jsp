@@ -9,7 +9,7 @@
     <section id="department-request-list" class="panel">
         <form id="department-filter-form" class="filter-bar">
             <label class="department-filter-keyword" for="department-keyword">
-                요청 검색
+                <span class="filter-label-text">요청 검색</span>
                 <input id="department-keyword"
                        name="keyword"
                        maxlength="120"
@@ -17,7 +17,7 @@
             </label>
 
             <label class="request-type-filter" for="department-type">
-                요청 유형
+                <span class="filter-label-text">요청 유형</span>
                 <select id="department-type" name="type">
                     <option value="">전체 유형</option>
                     <option value="SELECT">조회</option>
@@ -29,7 +29,7 @@
             </label>
 
             <label for="department-status">
-                처리 상태
+                <span class="filter-label-text">처리 상태</span>
                 <select id="department-status" name="status">
                     <option value="">전체 상태</option>
                 </select>
@@ -46,13 +46,13 @@
         </form>
 
         <div class="panel-heading request-list-heading">
-            <h2>요청 목록</h2>
+            <h2>부서 요청 목록</h2>
             <span id="department-count" class="caption request-list-count" aria-live="polite"></span>
         </div>
 
         <div class="table-scroll">
             <table class="request-list-table">
-                <caption class="sr-only">부서 기안함 목록</caption>
+                <caption class="sr-only">부서 요청함 목록</caption>
                 <colgroup>
                     <col class="request-number-column">
                     <col class="request-title-column">
@@ -65,11 +65,11 @@
                 <thead>
                     <tr>
                         <th scope="col">요청번호</th>
-                        <th scope="col">요청명</th>
+                        <th scope="col">제목</th>
                         <th scope="col">유형</th>
                         <th scope="col">작성자</th>
                         <th scope="col">부서</th>
-                        <th scope="col">처리현황</th>
+                        <th scope="col">처리 상태</th>
                         <th scope="col">요청일</th>
                     </tr>
                 </thead>
@@ -83,7 +83,7 @@
 
         <nav id="department-pagination"
              class="request-pagination"
-             aria-label="부서 기안함 페이지 이동">
+             aria-label="부서 요청함 페이지 이동">
         </nav>
     </section>
 </div>

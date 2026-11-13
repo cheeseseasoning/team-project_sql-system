@@ -10,7 +10,7 @@
     <a id="department-back"
        class="back-link"
        href="${pageContext.request.contextPath}/department-requests">
-        ← 부서 기안함
+        ← 부서 요청함
     </a>
 
     <article class="request-document" aria-labelledby="detail-title">
@@ -31,7 +31,7 @@
 
 </div>
 
-<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261106-flexible-approval-dml"></script>
+<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261113-empty-approval"></script>
 <script src="${pageContext.request.contextPath}/js/department-request-detail.js?v=20261106-flexible-approval-dml"></script>
 
 <%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

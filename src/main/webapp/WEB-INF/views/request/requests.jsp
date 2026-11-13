@@ -3,18 +3,18 @@
 		<div class="page-heading">
 		    <h1><c:out value="${pageTitle}"/></h1>
 		    <a class="button primary"
-		       href="${pageContext.request.contextPath}/requests/new">새 조회 요청</a>
+		       href="${pageContext.request.contextPath}/requests/new">데이터 조회 요청</a>
 		</div>
 		
 		<section id="my-request-list" class="panel">
 			<form id="filter-form" class="filter-bar">
 				<label>
-					요청 검색
+					<span class="filter-label-text">요청 검색</span>
 					<input name="keyword" id="keyword" placeholder="요청번호 또는 제목" maxlength="120">
 				</label>
 
 				<label class="request-type-filter">
-				    요청 유형
+				    <span class="filter-label-text">요청 유형</span>
 				    <select id="request-type" name="requestType">
 				        <option value="">전체</option>
 				        <option value="SELECT">조회</option>
@@ -23,7 +23,7 @@
 				</label>
 
 				<label>
-					처리 상태
+					<span class="filter-label-text">처리 상태</span>
 					<select id="status" name="status">
 						<option value="">전체</option>
 						<option value="DRAFT">초안</option>
@@ -52,7 +52,7 @@
 			</form>
 
 			<div class="panel-heading request-list-heading">
-			    <h2>조회 요청 목록</h2>
+			    <h2>내 요청 목록</h2>
 
 			    <span id="result-count"
 			          class="caption request-list-count"
@@ -61,7 +61,7 @@
 
 			<div class="table-scroll">
 			    <table class="request-list-table">
-			        <caption class="sr-only">내 기안함 목록</caption>
+			        <caption class="sr-only">내 요청함 목록</caption>
 
 			        <colgroup>
 			            <col class="request-number-column">
@@ -76,11 +76,11 @@
 			        <thead>
 			            <tr>
 			                <th scope="col">요청번호</th>
-			                <th scope="col">요청명</th>
+			                <th scope="col">제목</th>
 			                <th scope="col">유형</th>
 			                <th scope="col">작성자</th>
 			                <th scope="col">부서</th>
-			                <th scope="col">처리현황</th>
+			                <th scope="col">처리 상태</th>
 			                <th scope="col">요청일</th>
 			            </tr>
 			        </thead>
@@ -91,7 +91,7 @@
 
 			<nav id="request-pagination"
 			     class="request-pagination"
-			     aria-label="조회 요청 페이지 이동">
+			     aria-label="내 요청함 페이지 이동">
 			    <button id="previous-page"
 			            type="button"
 			            class="request-page-direction"
@@ -339,7 +339,7 @@
 			        if (sequence !== listSequence) return;
 
 			        if (!data || !Array.isArray(data.items)) {
-			            throw Error('조회 요청 목록 응답을 확인할 수 없습니다.');
+			            throw Error('내 요청 목록 응답을 확인할 수 없습니다.');
 			        }
 
 			        currentPage = data.page;
