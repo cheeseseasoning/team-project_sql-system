@@ -18,7 +18,6 @@
         <div class="panel-heading">
             <div>
                 <h2 id="dashboard-work-title">내 업무 현황</h2>
-                <span class="caption">현재 상태 기준</span>
             </div>
         </div>
         <div id="dashboard-counts">업무 현황을 불러오는 중입니다.</div>
@@ -64,7 +63,12 @@
             <a href="${pageContext.request.contextPath}/requests">전체 보기</a>
         </div>
         <div class="table-scroll">
-            <table>
+            <table class="dashboard-recent-table">
+                <colgroup>
+                    <col class="dashboard-recent-name-column">
+                    <col class="dashboard-recent-status-column">
+                    <col class="dashboard-recent-date-column">
+                </colgroup>
                 <thead>
                     <tr>
                         <th scope="col">요청명</th>
@@ -163,9 +167,11 @@
 		        const statusName = dashboardStatusName(request.requestStatus);
 
 		        return '<tr>'
-		            + '<td>' + urgentBadge + '<a class="table-title" href="' + href + '">' + esc(request.title) + '</a></td>'
-		            + '<td>' + badge(statusName) + '</td>'
-		            + '<td>' + esc(desiredDate) + '</td>'
+		            + '<td><div class="dashboard-recent-title-line">' + urgentBadge
+		            + '<a class="dashboard-recent-link" href="' + href + '" title="' + esc(request.title) + '">'
+		            + esc(request.title) + '</a></div></td>'
+		            + '<td><span class="dashboard-status is-' + esc(String(request.requestStatus || 'DRAFT').toLowerCase()) + '">' + esc(statusName) + '</span></td>'
+		            + '<td class="dashboard-recent-date">' + esc(desiredDate) + '</td>'
 		            + '</tr>';
 		    }).join('');
 		}
@@ -204,23 +210,20 @@
 
 		let dashboardNoticeSequence = 0;
 
-		function renderDashboardNotices(notices) {
-		    if (notices.length === 0) {
-		        return '<p class="caption">등록된 공지가 없습니다.</p>';
-		    }
-
-		    return '<ul class="dashboard-notice-list">'
-		        + notices.map(function (notice) {
-		            const href = BASE + '/notices?page=1&id=' + encodeURIComponent(notice.noticeId);
-		            const registeredDate = notice.createdAt ? notice.createdAt.substring(5, 10).replace('-', '.') : '-';
-
-		            return '<li>'
-		                + '<a class="dashboard-notice-title" href="' + esc(href) + '">' + esc(notice.title) + '</a>'
-		                + '<span class="caption">' + esc(registeredDate) + '</span>'
-		                + '</li>';
-		        }).join('')
-		        + '</ul>';
-		}
+        function renderDashboardNotices(notices) {
+            const rows = notices.length === 0
+                ? '<tr><td colspan="2" class="empty">등록된 공지가 없습니다.</td></tr>'
+                : notices.map(function (notice) {
+                    const href = BASE + '/notices?page=1&id=' + encodeURIComponent(notice.noticeId);
+                    const date = notice.createdAt ? notice.createdAt.substring(5, 10).replace('-', '.') : '-';
+                    return '<tr><td><a class="dashboard-notice-title" href="' + esc(href)
+                        + '" title="' + esc(notice.title) + '">' + esc(notice.title) + '</a></td>'
+                        + '<td class="dashboard-notice-date">' + esc(date) + '</td></tr>';
+                }).join('');
+            return '<table class="dashboard-notice-table"><colgroup><col><col class="dashboard-notice-date-column"></colgroup>'
+                + '<thead><tr><th scope="col">제목</th><th scope="col">등록일</th></tr></thead>'
+                + '<tbody>' + rows + '</tbody></table>';
+        }
 
 		async function loadDashboardNotices() {
 		    const sequence = ++dashboardNoticeSequence;

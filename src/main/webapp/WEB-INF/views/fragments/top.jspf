@@ -18,7 +18,7 @@
 
     <c:if test="${page == 'home'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/dashboard.css">
+              href="${pageContext.request.contextPath}/css/pages/dashboard.css?v=20261113-home-icon">
     </c:if>
 
     <c:if test="${page == 'my-page'}">
