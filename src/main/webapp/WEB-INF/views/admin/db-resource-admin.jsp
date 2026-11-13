@@ -108,7 +108,7 @@
         </a>
 
         <div class="resource-detail-title">
-            <h1>리소스 정책 상세</h1>
+            <h1>리소스·접근 정책 상세</h1>
             <span class="resource-admin-label">DB팀 관리</span>
         </div>
 

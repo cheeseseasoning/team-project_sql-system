@@ -154,14 +154,15 @@ html {
    ================================================== */
 
 .header {
-    height: 74px;
+    min-height: 68px;
+    flex-shrink: 0;
     background: var(--bg);
     border-bottom: 1px solid var(--line);
-    padding: 14px 24px;
+    padding: 10px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
 }
 
 
@@ -172,9 +173,10 @@ html {
     flex: 1;
     min-width: 0;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     font-size: 12px;
     color: var(--muted);
+    white-space: nowrap;
 }
 
 .breadcrumb > a,
@@ -195,7 +197,7 @@ html {
 .header-tools {
     display: flex;
     align-items: center;
-    gap: 22px;
+    gap: 16px;
     flex-shrink: 0;
     white-space: nowrap;
 }
@@ -204,14 +206,19 @@ html {
 /* 요청 검색 */
 
 .header-search {
-    width: 326px;
+    width: clamp(240px, 24vw, 340px);
+    height: 38px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     background: var(--soft);
-    border: 1px solid #e1e8f0;
-    border-radius: 7px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
     padding: 8px 12px;
+}
+
+.header-search:focus-within {
+    border-color: var(--accent);
 }
 
 .header-search input {
@@ -224,25 +231,7 @@ html {
 }
 
 
-/* 알림·도움말 */
-
-.icon-button {
-    position: relative;
-    display: grid;
-    place-items: center;
-    width: 24px;
-    height: 30px;
-}
-
-.notification i {
-    position: absolute;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #c74747;
-    right: 1px;
-    top: 2px;
-}
+/* 도움말 */
 
 .help-link {
     font-size: 12px;
@@ -257,13 +246,28 @@ html {
     align-items: center;
     gap: 10px;
     border-left: 1px solid var(--line);
-    padding-left: 18px;
-    min-width: 150px;
+    padding-left: 16px;
+    min-width: 0;
+}
+
+.header-user > div {
+    min-width: 0;
+    max-width: 190px;
+    display: grid;
+    gap: 2px;
+    line-height: 1.4;
 }
 
 .header-user strong {
     font-size: 12px;
     font-weight: 600;
+}
+
+.header-user strong,
+.header-user div > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .header-user div > span {
@@ -283,6 +287,17 @@ html {
 .avatar.small {
     width: 34px;
     height: 34px;
+    font-size: 12px;
+}
+
+.header-user .avatar {
+    flex-shrink: 0;
+}
+
+/* 검색창과 로그아웃 버튼의 높이를 맞추되 본문 버튼에는 적용하지 않는다. */
+.header-tools .button {
+    min-height: 38px;
+    padding: 7px 12px;
     font-size: 12px;
 }
 
@@ -384,7 +399,11 @@ html {
     }
 
     .header-user {
-        min-width: 120px;
+        padding-left: 14px;
+    }
+
+    .header-user > div {
+        max-width: 140px;
     }
 }
 
@@ -397,8 +416,8 @@ html {
 @media (max-width: 1100px) {
     .header {
         height: auto;
-        min-height: 74px;
-        padding: 14px 24px;
+        min-height: 68px;
+        padding: 10px 24px;
         flex-wrap: wrap;
         gap: 12px;
     }
@@ -439,7 +458,7 @@ html {
     }
 
     .header {
-        padding: 14px 18px;
+        padding: 10px 18px;
     }
 
     .header-user {
@@ -497,7 +516,7 @@ html {
         height: auto;
         gap: 12px;
         flex-wrap: wrap;
-        padding: 14px 16px;
+        padding: 10px 16px;
     }
 
     .header-tools {
@@ -576,7 +595,8 @@ html {
 
 /* 도움말 버튼 */
 button.help-link {
-    padding: 6px 0;
+    min-height: 38px;
+    padding: 7px 2px;
     border: 0;
     background: transparent;
     font: inherit;

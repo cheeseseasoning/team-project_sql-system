@@ -4,7 +4,7 @@
 <main class="account-create-page">
     <header class="account-create-heading">
         <div>
-            <h1>계정 생성·역할 부여</h1>
+            <h1>계정 생성</h1>
             <p>시스템 관리 / 계정 관리</p>
         </div>
     </header>

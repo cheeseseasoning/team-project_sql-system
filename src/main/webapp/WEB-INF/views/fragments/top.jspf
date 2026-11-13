@@ -14,7 +14,7 @@
     <link rel="stylesheet"
           href="${pageContext.request.contextPath}/css/sqlflow.css">
     <link rel="stylesheet"
-          href="${pageContext.request.contextPath}/css/layout.css">
+              href="${pageContext.request.contextPath}/css/layout.css?v=20261113-header-wide">
 
     <c:if test="${page == 'home'}">
         <link rel="stylesheet"
@@ -34,9 +34,10 @@
                or page == 'department-requests'
                or page == 'department-request-detail'
                or page == 'view-create-request-form'
+               or page == 'approval-pending'
                or page == 'execution-results'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261111-editor-split">
+              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261113-inbox-results">
     </c:if>
 
     <c:if test="${page == 'request-form' or page == 'request-edit'}">
@@ -106,7 +107,7 @@
                    href="${pageContext.request.contextPath}/"
                    ${activeMenu == 'home' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/House.svg" alt="">
-                    HOME
+                    Home
                 </a>
 
                 <details class="nav-group" ${activeMenu == 'create' or activeMenu == 'view-create-requests' or activeMenu == 'views' ? 'open' : ''}>
@@ -210,7 +211,7 @@
                    href="${pageContext.request.contextPath}/my-page"
                    ${activeMenu == 'my-page' ? 'aria-current="page"' : ''}>
                     <img src="${pageContext.request.contextPath}/icons/UserRound.svg" alt="">
-                    내 프로필
+                    마이페이지
                 </a>
             </nav>
 
@@ -254,13 +255,6 @@
                                placeholder="요청번호, 제목 검색">
                         <button type="submit" class="sr-only">검색</button>
                     </form>
-
-                    <a class="icon-button notification"
-                       href="${pageContext.request.contextPath}/notices"
-                       aria-label="공지사항">
-                        <img src="${pageContext.request.contextPath}/icons/Bell.svg" alt="">
-                        <i></i>
-                    </a>
 
                     <button id="help-button"
                             class="help-link"

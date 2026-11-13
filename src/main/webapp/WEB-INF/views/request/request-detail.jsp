@@ -9,7 +9,7 @@
 
 		    <a class="back-link"
 		       href="${pageContext.request.contextPath}/requests">
-		        ← 내 요청 목록
+		        ← 내 기안함
 		    </a>
 
 			<article class="request-document"

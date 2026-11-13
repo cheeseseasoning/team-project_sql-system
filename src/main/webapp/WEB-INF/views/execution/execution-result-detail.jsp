@@ -9,7 +9,7 @@
 <div class="execution-detail-page">
     <div class="page-heading execution-detail-heading">
         <div>
-            <h1 id="execution-detail-title">SQL 실행 결과 상세</h1>
+            <h1 id="execution-detail-title">쿼리 실행 결과 상세</h1>
             <p class="execution-detail-subtitle">
                 <span id="execution-detail-number"></span>
                 <span aria-hidden="true">·</span>
