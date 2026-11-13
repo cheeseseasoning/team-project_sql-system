@@ -121,7 +121,8 @@ public class AccountService {
                                 account.getRoleNames(),
                                 includeAccountStatus
                                         ? account.getEnabled()
-                                        : null))
+                                        : null,
+                                account.getEmployeeNo()))
                         .toList();
 
         return new AccountListPageResponse(
@@ -158,7 +159,8 @@ public class AccountService {
                 account.getPositionId(),
                 account.getPositionName(),
                 account.getEnabled(),
-                roleCodes);
+                roleCodes,
+                account.getEmployeeNo());
     }
 
     @Transactional

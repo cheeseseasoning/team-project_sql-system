@@ -237,23 +237,23 @@
 
 /* 기안함·받은 결재 공통: 표 위 제목과 전체 건수 */
 /* 글자만 살짝 들여 입력창·표·구분선의 시작 위치는 유지한다. */
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .filter-label-text,
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-list-heading > h2 {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .filter-label-text,
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-list-heading > h2 {
     padding-inline-start: 2px;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-list-heading {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-list-heading {
     align-items: center;
     margin-bottom: 10px;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-list-count {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-list-count {
     margin-left: auto;
     white-space: nowrap;
 }
 
 /* 기안함·받은 결재 공통: 표 아래 가운데 페이지 이동 */
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-pagination {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-pagination {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -263,18 +263,18 @@
     padding-top: 4px;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-pagination[hidden] {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-pagination[hidden] {
     display: none;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-page-numbers {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-page-numbers {
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-page-number,
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-page-direction {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-page-number,
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-page-direction {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -292,30 +292,30 @@
     cursor: pointer;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-page-number:hover,
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-page-direction:hover:not(:disabled) {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-page-number:hover,
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-page-direction:hover:not(:disabled) {
     background: var(--soft);
     color: var(--accent);
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-page-number[aria-current="page"] {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-page-number[aria-current="page"] {
     background: var(--tint);
     color: var(--accent);
     font-weight: 700;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-page-direction:disabled {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-page-direction:disabled {
     opacity: 0.4;
     cursor: not-allowed;
 }
 
 @media (max-width: 520px) {
-    :is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-pagination {
+    :is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-pagination {
         gap: 4px;
     }
 
-    :is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-page-number,
-    :is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-page-direction {
+    :is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-page-number,
+    :is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-page-direction {
         min-width: 28px;
         padding: 0 6px;
     }
@@ -323,42 +323,42 @@
 
 
 /* 기안함·받은 결재 공통: 목록 표 */
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-list-table {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-list-table {
     width: 100%;
     min-width: 900px;
     table-layout: fixed;
     font-size: 12px;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-number-column {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-number-column {
     width: 16%;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-title-column {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-title-column {
     width: 30%;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-type-column {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-type-column {
     width: 9%;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-drafter-column {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-drafter-column {
     width: 13%;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-department-column {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-department-column {
     width: 11%;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-status-column {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-status-column {
     width: 14%;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-date-column {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-date-column {
     width: 7%;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-list-table th {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-list-table th {
     padding: 10px 12px;
     background: var(--rail);
     color: var(--muted);
@@ -367,46 +367,46 @@
     white-space: nowrap;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-list-table td {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-list-table td {
     padding: 12px;
     border-bottom: 1px solid var(--line);
     vertical-align: middle;
     line-height: 1.5;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-list-table tbody tr:hover {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-list-table tbody tr:hover {
     background: #f8fbfc;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-number-cell,
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-date-cell {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-number-cell,
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-date-cell {
     color: var(--muted);
     font-size: 11px;
     white-space: nowrap;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-number-cell,
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-department-cell {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-number-cell,
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-department-cell {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 /* 긴급 배지와 제목을 한 줄에 배치 */
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-title-content {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-title-content {
     display: flex;
     align-items: flex-start;
     gap: 6px;
     min-width: 0;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-title-content .urgent-badge {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-title-content .urgent-badge {
     flex-shrink: 0;
     margin: 0;
     font-size: 10px;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-title-link {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-title-link {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
@@ -422,12 +422,12 @@
     overflow-wrap: anywhere;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-title-link:hover {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-title-link:hover {
     text-decoration: underline;
 }
 
 /* 상태: 배경·테두리·점·텍스트로 구분 */
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-status-text {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-status-text {
     --status-color: #475569;
     --status-background: #f1f5f9;
     --status-border: #cbd5e1;
@@ -448,7 +448,7 @@
     white-space: nowrap;
 }
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-status-text::before {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-status-text::before {
     content: "";
     flex-shrink: 0;
     width: 7px;
@@ -458,64 +458,64 @@
 }
 
 /* 결재 진행·재실행 검토 */
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-status-text.is-pending {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-status-text.is-pending {
     --status-color: #92400e;
     --status-background: #fffbeb;
     --status-border: #fcd34d;
 }
 
 /* 실행 대기 */
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-status-text.is-ready {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-status-text.is-ready {
     --status-color: #1d4ed8;
     --status-background: #eff6ff;
     --status-border: #93c5fd;
 }
 
 /* 실행 중 */
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-status-text.is-running {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-status-text.is-running {
     --status-color: #6d28d9;
     --status-background: #f5f3ff;
     --status-border: #c4b5fd;
 }
 
 /* 실행 완료 */
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-status-text.is-completed {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-status-text.is-completed {
     --status-color: #15803d;
     --status-background: #f0fdf4;
     --status-border: #86efac;
 }
 
 /* 일부 실패 */
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-status-text.is-partial-failed {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-status-text.is-partial-failed {
     --status-color: #c2410c;
     --status-background: #fff7ed;
     --status-border: #fdba74;
 }
 
 /* 실패·반려 */
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-status-text.is-failed,
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-status-text.is-rejected {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-status-text.is-failed,
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-status-text.is-rejected {
     --status-color: #b91c1c;
     --status-background: #fef2f2;
     --status-border: #fca5a5;
 }
 
 /* 회수 */
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .request-status-text.is-withdrawn {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .request-status-text.is-withdrawn {
     --status-color: #64748b;
     --status-background: #f8fafc;
     --status-border: #cbd5e1;
 }
 
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .filter-bar > label.request-type-filter,
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .filter-bar > label:has(select[name="status"], #approval-stage) {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .filter-bar > label.request-type-filter,
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) .filter-bar > label:has(select[name="status"], #approval-stage) {
     flex: 0 0 150px;
     width: 150px;
 }
 
 
-:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) :is(#clear-filter, #department-clear, #approval-reset, #reset-button) {
+:is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list, #account-list-panel) :is(#clear-filter, #department-clear, #approval-reset, #reset-button) {
     flex: 0 0 46px;
     width: 46px;
     height: 46px;

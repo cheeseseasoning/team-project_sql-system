@@ -16,6 +16,7 @@
             <arg column="POSITION_NAME" javaType="java.lang.String"/>
             <arg column="ROLE_NAMES" javaType="java.lang.String"/>
             <arg column="ENABLED" javaType="java.lang.String"/>
+            <arg column="EMPLOYEE_NO" javaType="java.lang.String"/>
         </constructor>
     </resultMap>
 
@@ -88,6 +89,7 @@
     <select id="selectAllAccountListItems"
             resultMap="accountListItemResponseMap">
         SELECT U.USER_ID,
+               U.EMPLOYEE_NO,
                U.LOGIN_ID,
                U.USER_NAME,
                D.DEPT_NAME,
@@ -108,6 +110,7 @@
         LEFT JOIN ROLE R
           ON R.ROLE_ID = UR.ROLE_ID
         GROUP BY U.USER_ID,
+                 U.EMPLOYEE_NO,
                  U.LOGIN_ID,
                  U.USER_NAME,
                  D.DEPT_NAME,
@@ -119,6 +122,7 @@
     <select id="selectAccountListItems"
             resultMap="accountListItemResponseMap">
         SELECT U.USER_ID,
+               U.EMPLOYEE_NO,
                U.LOGIN_ID,
                U.USER_NAME,
                D.DEPT_NAME,
@@ -139,6 +143,7 @@
         LEFT JOIN ROLE R
           ON R.ROLE_ID = UR.ROLE_ID
         GROUP BY U.USER_ID,
+                 U.EMPLOYEE_NO,
                  U.LOGIN_ID,
                  U.USER_NAME,
                  D.DEPT_NAME,
@@ -161,10 +166,10 @@
              WHERE SEARCH_UR.USER_ID = U.USER_ID
                AND (INSTR(UPPER(SEARCH_R.ROLE_CODE), UPPER(#{keyword})) > 0
                     OR INSTR(UPPER(CASE SEARCH_R.ROLE_CODE
-                        WHEN 'SYSTEM_ADMIN' THEN '시스템 관리자'
-                        WHEN 'DB_ADMIN' THEN 'DB 관리자'
-                        WHEN 'DB_APPROVER' THEN 'DB 결재자'
-                        WHEN 'SENSITIVE_DATA_READER' THEN '민감 데이터 조회자'
+                        WHEN 'SYSTEM_ADMIN' THEN '시스템 관리'
+                        WHEN 'DB_ADMIN' THEN 'DB 운영 관리'
+                        WHEN 'DB_APPROVER' THEN '조회 SQL 실행'
+                        WHEN 'SENSITIVE_DATA_READER' THEN '민감 데이터 조회'
                         ELSE SEARCH_R.ROLE_CODE
                     END), UPPER(#{keyword})) > 0)
          )
@@ -177,6 +182,7 @@
     <select id="searchAccountListItems"
             resultMap="accountListItemResponseMap">
         SELECT U.USER_ID,
+               U.EMPLOYEE_NO,
                U.LOGIN_ID,
                U.USER_NAME,
                D.DEPT_NAME,
@@ -198,6 +204,7 @@
           ON R.ROLE_ID = UR.ROLE_ID
         WHERE <include refid="accountKeywordCondition"/>
         GROUP BY U.USER_ID,
+                 U.EMPLOYEE_NO,
                  U.LOGIN_ID,
                  U.USER_NAME,
                  D.DEPT_NAME,

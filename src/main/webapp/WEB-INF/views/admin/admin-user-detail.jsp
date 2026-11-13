@@ -5,7 +5,6 @@
     <div class="page-heading account-detail-heading">
         <div>
             <h1>계정 상세</h1>
-            <p class="caption">시스템 관리 / 계정 관리</p>
         </div>
     </div>
 
@@ -18,6 +17,7 @@
     <form id="account-form" class="account-detail-form">
         <section class="panel account-info-panel"
                  aria-labelledby="account-info-title">
+            <div class="account-form-inner">
             <div class="account-section-heading">
                 <h2 id="account-info-title">기본 정보</h2>
 
@@ -29,16 +29,10 @@
             </div>
 
             <div class="account-info-list">
-                <div class="account-info-row">
-                    <label class="account-info-label" for="account-login">
-                        로그인 ID
-                    </label>
-                    <input id="account-login"
-                           class="account-info-value"
-                           type="text"
-                           readonly>
+                <div class="account-info-row account-employee-row">
+                    <label class="account-info-label" for="account-employee-no">사번</label>
+                    <input id="account-employee-no" class="account-info-value" type="text" readonly>
                 </div>
-
                 <div class="account-info-row">
                     <label class="account-info-label" for="account-name">
                         이름
@@ -50,7 +44,6 @@
                            maxlength="100"
                            required>
                 </div>
-
                 <div class="account-info-row">
                     <label class="account-info-label" for="account-dept">
                         부서
@@ -60,7 +53,6 @@
                             name="deptId"
                             required></select>
                 </div>
-
                 <div class="account-info-row">
                     <label class="account-info-label" for="account-position">
                         직급
@@ -70,7 +62,15 @@
                             name="positionId"
                             required></select>
                 </div>
-
+                <div class="account-info-row">
+                    <label class="account-info-label" for="account-login">
+                        아이디
+                    </label>
+                    <input id="account-login"
+                           class="account-info-value"
+                           type="text"
+                           readonly>
+                </div>
                 <div class="account-info-row">
                     <label class="account-info-label" for="account-enabled">
                         계정 상태
@@ -84,29 +84,15 @@
                     </select>
                 </div>
             </div>
+            </div>
         </section>
 
         <section class="panel account-role-panel"
                  aria-labelledby="account-role-title">
+            <div class="account-form-inner">
             <div class="account-section-heading">
                 <h2 id="account-role-title">역할 관리</h2>
-            </div>
-
-            <div class="account-role-add">
-                <label class="sr-only" for="account-role-select">
-                    추가할 역할 선택
-                </label>
-
-                <select id="account-role-select">
-                    <option value="">추가할 역할 선택</option>
-                </select>
-
-                <button id="add-account-role"
-                        class="button primary"
-                        type="button"
-                        disabled>
-                    역할 추가
-                </button>
+                <button id="open-account-role" class="button" type="button" disabled>+ 역할 추가</button>
             </div>
 
             <div id="account-role-list"
@@ -114,9 +100,11 @@
                  aria-live="polite">
                 <p class="caption">역할 정보를 불러오는 중입니다.</p>
             </div>
+            </div>
         </section>
 
         <div class="account-detail-actions">
+            <a class="button" href="${pageContext.request.contextPath}/accounts">목록으로</a>
             <button id="save-account"
                     type="submit"
                     class="button primary">
@@ -124,6 +112,24 @@
             </button>
         </div>
     </form>
+
+    <dialog id="account-role-dialog" class="account-role-dialog" aria-labelledby="account-role-dialog-title">
+        <div class="account-role-dialog-heading">
+            <h2 id="account-role-dialog-title">역할 추가</h2>
+            <button id="close-account-role" class="account-role-dialog-close" type="button" aria-label="역할 추가 닫기">×</button>
+        </div>
+        <div class="account-role-dialog-body">
+            <label for="account-role-select">추가할 역할</label>
+            <select id="account-role-select" autofocus>
+                <option value="">추가할 역할 선택</option>
+            </select>
+            <p id="detail-role-description" class="caption" style="margin-top: 10px;" aria-live="polite"></p>
+        </div>
+        <div class="account-role-dialog-actions">
+            <button id="cancel-account-role" class="button" type="button">취소</button>
+            <button id="add-account-role" class="button primary" type="button" disabled>추가</button>
+        </div>
+    </dialog>
 </div>
 
 <script>
@@ -134,13 +140,10 @@
     const roleSelect = document.getElementById("account-role-select");
     const roleList = document.getElementById("account-role-list");
     const addRoleButton = document.getElementById("add-account-role");
+    const roleDialog = document.getElementById("account-role-dialog");
+    const openRoleButton = document.getElementById("open-account-role");
 
-    const roleLabels = {
-        SYSTEM_ADMIN: "시스템 관리자",
-        DB_ADMIN: "DB 관리자",
-        DB_APPROVER: "DB 결재자",
-        SENSITIVE_DATA_READER: "민감 데이터 조회자"
-    };
+    const roleLabels = window.AccountRoles.labels;
 
     let availableRoles = [];
     let selectedRoles = [];
@@ -186,6 +189,7 @@
         }
 
         addRoleButton.disabled = !roleSelect.value;
+        openRoleButton.disabled = roleSelect.options.length <= 1;
     }
 
     function renderRoleList() {
@@ -241,6 +245,8 @@
                 api("/admin/users/options")
             ]);
 
+            document.getElementById("account-employee-no").value = account.employeeNo || "미등록";
+
             document.getElementById("account-login").value =
                 account.loginId || "";
 
@@ -271,7 +277,18 @@
         }
     }
 
+    // 모달의 추가는 화면 선택 목록만 바꾸고, 서버 반영은 기존 저장 버튼에서 처리한다.
+    openRoleButton.addEventListener("click", () => {
+        roleSelect.value = "";
+        document.getElementById("detail-role-description").textContent = "";
+        renderRoleSelect();
+        roleDialog.showModal();
+    });
+    document.getElementById("close-account-role").addEventListener("click", () => roleDialog.close());
+    document.getElementById("cancel-account-role").addEventListener("click", () => roleDialog.close());
+
     roleSelect.addEventListener("change", () => {
+        document.getElementById("detail-role-description").textContent = window.AccountRoles.details[roleSelect.value]?.description || "";
         addRoleButton.disabled = !roleSelect.value;
     });
 
@@ -284,6 +301,7 @@
 
         selectedRoles = [...selectedRoles, roleCode];
         renderRoleList();
+        roleDialog.close();
     });
 
     roleList.addEventListener("click", event => {

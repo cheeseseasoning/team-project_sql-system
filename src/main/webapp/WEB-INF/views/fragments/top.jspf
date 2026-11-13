@@ -35,9 +35,10 @@
                or page == 'department-request-detail'
                or page == 'view-create-request-form'
                or page == 'approval-pending'
-               or page == 'execution-results'}">
+               or page == 'execution-results'
+               or page == 'accounts'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261113-request-labels">
+              href="${pageContext.request.contextPath}/css/pages/request.css?v=20261113-account-list">
     </c:if>
 
     <c:if test="${page == 'request-form' or page == 'request-edit'}">
@@ -90,9 +91,21 @@
               href="${pageContext.request.contextPath}/css/pages/view-detail.css">
     </c:if>
 
+    <c:if test="${page == 'accounts' or page == 'admin-user-form' or page == 'admin-user-detail'}">
+        <script src="${pageContext.request.contextPath}/js/account-roles.js?v=20261113-labels"></script>
+    </c:if>
+
+    <c:if test="${page == 'accounts'}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/accounts.css?v=20261113-employee">
+    </c:if>
+
     <c:if test="${page == 'admin-user-form' or page == 'admin-user-detail'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/admin-user.css">
+              href="${pageContext.request.contextPath}/css/pages/admin-user.css?v=20261113-center-layout">
+    </c:if>
+
+    <c:if test="${page == 'admin-user-detail'}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/account-detail.css?v=20261113-center-layout">
     </c:if>
 
     <c:if test="${page == 'execution-result-detail'}">

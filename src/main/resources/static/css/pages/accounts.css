@@ -1,0 +1,54 @@
+/* 계정 목록은 요청함의 공통 표·페이지 스타일을 재사용하고 열 배치만 정의한다. */
+.account-list-page { width: 100%; }
+.account-list-page .account-list-heading { min-height: 40px; }
+#account-list-panel .account-filter {
+    gap: 16px;
+    padding-bottom: 25px;
+    margin-bottom: 24px;
+}
+#account-list-panel .account-search-label { font-size: 13px; }
+#account-list-panel .account-list-table col.account-login-column { width: 12%; }
+#account-list-panel .account-list-table col.account-name-column { width: 12%; }
+#account-list-panel .account-list-table col.account-department-column { width: 15%; }
+#account-list-panel .account-list-table col.account-position-column { width: 10%; }
+#account-list-panel .account-list-table col.account-role-column { width: 27%; }
+#account-list-panel .account-list-table col.account-status-column { width: 12%; }
+#account-list-panel .account-login-link { color: var(--accent); font-weight: 600; }
+#account-list-panel .account-login-link:hover { text-decoration: underline; }
+#account-list-panel .account-role-list { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+#account-list-panel .account-role-item { overflow-wrap: anywhere; }
+#account-list-panel .account-role-item + .account-role-item::before {
+    content: '·';
+    margin-right: 8px;
+    color: var(--muted);
+}
+#account-list-panel .account-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid #86efac;
+    border-radius: 5px;
+    background: #f0fdf4;
+    color: #15803d;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+#account-list-panel .account-status-badge::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+#account-list-panel .account-status-badge.is-disabled {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #64748b;
+}
+#account-list-panel .account-list-message:not(:empty) { margin-top: 12px; }
+
+#account-list-panel .account-list-table col.account-employee-column { width: 12%; }
+#account-list-panel .account-list-table td:first-child { white-space: nowrap; color: var(--muted); }
