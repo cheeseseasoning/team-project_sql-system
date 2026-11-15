@@ -10,6 +10,8 @@ public class ExecutionQueueSqlResponse {
     private Integer queryOrder;
     private String queryTitle;
     private String sqlText;
+    private String authoringType;
+    private String validationStatus;
     private Long executionId;
     private String executionStatus;
     private LocalDateTime startedAt;

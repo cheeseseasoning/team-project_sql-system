@@ -24,6 +24,7 @@ public class AccountController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "ALL") String searchType,
             Authentication authentication) {
     	
     	String actorLoginId = null;
@@ -36,6 +37,6 @@ public class AccountController {
         return accountService.getAccountListForActor(
         		page, 
         		size,
-                actorLoginId, keyword);
+                actorLoginId, keyword, searchType);
     }
 }

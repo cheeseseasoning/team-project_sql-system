@@ -71,7 +71,7 @@
 				        <th scope="col">뷰 이름</th>
 				        <th scope="col">등록 이름</th>
 				        <th scope="col">스키마</th>
-				        <th scope="col">활성 상태</th>
+				        <th scope="col">활성 여부</th>
 				    </tr>
 				</thead>
 
@@ -237,8 +237,8 @@
 
         if (view.enabled === 'N') {
             return {
-                label: '비활성 등록',
-                kind: 'waiting'
+                label: '비활성',
+                kind: 'neutral'
             };
         }
 
@@ -278,8 +278,12 @@
 	         nameCell.appendChild(objectName);
 
 	         const resourceCell = document.createElement('td');
-	         resourceCell.className = 'views-resource-name';
-	         resourceCell.textContent = view.resourceName || '등록 이름 없음';
+	         // 셀은 table-cell로 유지하고 내부 글자에만 한 줄 말줄임을 적용한다.
+	         const resourceName = document.createElement('span');
+	         resourceName.className = 'views-resource-name';
+	         resourceName.textContent = view.resourceName || '등록 이름 없음';
+	         resourceName.title = resourceName.textContent;
+	         resourceCell.appendChild(resourceName);
 
 	         const schemaCell = document.createElement('td');
 	         schemaCell.className = 'views-schema';

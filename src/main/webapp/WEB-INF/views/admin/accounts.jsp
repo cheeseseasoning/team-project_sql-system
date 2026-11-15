@@ -18,8 +18,18 @@
 
     <section id="account-list-panel" class="panel account-list-panel" aria-labelledby="account-list-title">
         <form id="account-filter-form" class="account-filter list-search-bar">
+            <label for="account-search-type">
+                <span class="sr-only">검색 유형</span>
+                <select id="account-search-type">
+                    <option value="ALL">전체</option>
+                    <option value="NAME">이름</option>
+                    <option value="DEPARTMENT">부서</option>
+                    <option value="POSITION">직급</option>
+                    <option value="ROLE">역할</option>
+                </select>
+            </label>
             <label for="account-keyword">
-                <span class="account-search-label filter-label-text">계정 검색</span>
+                <span class="account-search-label filter-label-text sr-only">계정 검색</span>
                 <input id="account-keyword" type="search" maxlength="120"
                        placeholder="이름, 부서, 직급 또는 역할" autocomplete="off">
             </label>
@@ -30,7 +40,7 @@
             </button>
         </form>
         <div class="panel-heading account-list-toolbar request-list-heading">
-            <h2 id="account-list-title">계정 목록</h2>
+            <h2 id="account-list-title" class="sr-only">계정 목록</h2>
             <span id="account-count" class="account-count caption request-list-count" aria-live="polite"></span>
         </div>
 
@@ -126,6 +136,7 @@
     const pageBlockSize = 10;
 
     let activeKeyword = "";
+    let activeSearchType = "ALL";
     let currentPage = 1;
     let totalPages = 0;
     let isLoading = false;
@@ -304,6 +315,7 @@
                 "/accounts?page=" + encodeURIComponent(page)
                 + "&size=" + encodeURIComponent(pageSize)
                 + "&keyword=" + encodeURIComponent(activeKeyword)
+                + "&searchType=" + encodeURIComponent(activeSearchType)
             );
 
             if (!response || !Array.isArray(response.items)) {
@@ -344,6 +356,7 @@
         event.preventDefault();
         if (isLoading) return;
         activeKeyword = $("#account-keyword").value.trim();
+        activeSearchType = $("#account-search-type").value;
         loadAccounts(1);
     });
 
@@ -351,6 +364,8 @@
         if (isLoading) return;
         $("#account-keyword").value = "";
         activeKeyword = "";
+        activeSearchType = "ALL";
+        $("#account-search-type").value = "ALL";
         loadAccounts(1);
     });
 

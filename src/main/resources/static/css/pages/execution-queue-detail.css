@@ -1,0 +1,65 @@
+/* 문서·정보표·결재·본문·SQL 폰트는 요청 상세 공통 스타일을 그대로 사용한다. */
+.execution-detail-page #batch-actions { margin-left: auto; }
+.execution-detail-page.request-document-page .request-sql-heading-main {
+    flex: 0 1 auto;
+    align-items: baseline;
+    gap: 8px;
+    width: auto;
+}
+.execution-detail-page #execution-pending-count {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
+    white-space: nowrap;
+}
+.execution-detail-page #batch-actions .button,
+.execution-detail-page .execution-item-actions .button {
+    min-height: 30px;
+    margin: 0;
+    padding: 4px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.execution-detail-page.request-document-page .execution-item-toolbar {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-left: auto;
+}
+.execution-detail-page.request-document-page .execution-item-states {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: baseline;
+    gap: 6px;
+    white-space: nowrap;
+}
+.execution-detail-page .execution-state-separator { color: var(--muted); font-weight: 400; }
+.execution-detail-page .execution-item-actions {
+    display: inline-flex;
+    align-items: center;
+}
+.execution-detail-page .request-sql-accordion:not([open]) .execution-item-actions { display: none; }
+.execution-detail-page .execution-item-status { color: var(--muted); font-size: 12px; }
+.execution-detail-page .execution-item-status.status-success { color: #15803d; }
+.execution-detail-page .execution-item-status.status-danger { color: #b91c1c; }
+.execution-detail-page .queue-error {
+    margin: 10px 0 0;
+    padding: 10px 12px;
+    border-left: 3px solid #c55353;
+    background: #fff7f7;
+    color: #991b1b;
+    font-size: 12px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.execution-detail-page #detail-message { margin: 0; font-size: 12px; }
+.execution-detail-page .request-document-footer:has(#detail-message:empty) { display: none; }
+@media (max-width: 650px) {
+    .execution-detail-page .request-sql-heading { flex-wrap: wrap; gap: 8px; }
+    .execution-detail-page .request-sql-accordion > summary { flex-wrap: wrap; }
+    .execution-detail-page.request-document-page .execution-item-toolbar { flex-wrap: wrap; }
+}

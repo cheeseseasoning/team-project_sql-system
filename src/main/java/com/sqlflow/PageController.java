@@ -163,7 +163,7 @@ public class PageController {
             Model model,
             Authentication authentication) {
         executionQueueService.assertCanAccess(principal(authentication));
-        return view(model, "execution-queue", "쿼리 실행 대기");
+        return view(model, "execution-queue", "쿼리 실행 대기 목록");
     }
 
     @GetMapping("/execution-queue/{requestId}")
@@ -216,7 +216,7 @@ public class PageController {
             Authentication authentication) {
         Long userId = userId(authentication);
         resourcePolicyAdminService.assertCanView(userId);
-        return view(model, "db-resource-admin", "리소스·접근 정책 관리");
+        return view(model, "db-resource-admin", "리소스·정책 관리");
     }
 
     @GetMapping("/db-admin/resources/{resourceId}")
@@ -227,7 +227,7 @@ public class PageController {
         Long userId = userId(authentication);
         resourcePolicyAdminService.assertCanView(userId);
         model.addAttribute("resourceId", resourceId);
-        return view(model, "db-resource-admin", "리소스·접근 정책 상세");
+        return view(model, "db-resource-admin", "리소스·정책 상세");
     }
 
     @GetMapping("/notices")
@@ -317,9 +317,9 @@ public class PageController {
             case "execution-results" ->
                     new MenuPath(null, "쿼리 실행 결과", "/execution-results");
             case "execution-queue" ->
-                    new MenuPath("DB 운영", "쿼리 실행 대기", "/execution-queue");
+                    new MenuPath("DB 운영", "쿼리 실행 대기 목록", "/execution-queue");
             case "db-resource-admin" ->
-                    new MenuPath("DB 운영", "리소스·접근 정책 관리", "/db-admin/resources");
+                    new MenuPath("DB 운영", "리소스·정책 관리", "/db-admin/resources");
             case "accounts", "admin-users" ->
                     new MenuPath(null, "계정 목록", "/accounts");
             case "notices" ->

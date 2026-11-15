@@ -1,670 +1,119 @@
-.resource-admin-page {
-    width: 100%;
-}
-
-/* 목록 화면 */
-
-.resource-page-heading {
-    margin-bottom: 26px;
-}
-
-.resource-page-heading > div {
-    display: grid;
-    gap: 8px;
-}
-
-.resource-page-heading .caption {
-    font-size: 12px;
-}
-
+.resource-admin-page { width: 100%; }
 .resource-page-heading h1,
-.resource-detail-title h1 {
-    color: #26313e;
-    font-size: 24px;
-    font-weight: 700;
-}
+.resource-detail-title h1 { color: var(--text); font-size: 24px; font-weight: 700; }
 
-.resource-list-panel {
-    overflow: hidden;
-    padding: 0;
-    border: 1px solid #cbd9e3;
-    border-radius: 10px;
-    background: #fff;
-}
-
-.resource-search-block {
-    padding: 26px 27px 24px;
-    border-bottom: 1px solid #cbd9e3;
-}
-
-.resource-search-block > label {
-    margin-bottom: 14px;
-    color: #263d4c;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.resource-search-controls {
+/* 표의 글꼴·행 높이·배지는 views.css와 공통 badge를 그대로 사용한다. */
+#resource-list-view > .resource-list-panel { overflow: hidden; }
+#resource-list-view .resource-search-block { padding: 0; border: 0; }
+#resource-list-view .resource-search-block .resource-search-controls {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 74px 88px;
-    gap: 10px;
-    align-items: center;
-}
-
-.resource-search-controls input {
-    min-height: 48px;
-    margin: 0;
-    padding: 12px 15px;
-    border: 1px solid #cbd9e3;
-    border-radius: 6px;
-    background: #fff;
-    color: #263d4c;
-    font-size: 14px;
-}
-
-.resource-search-controls input::placeholder {
-    color: #607487;
-}
-
-.resource-search-controls .button {
-    min-height: 48px;
-    padding: 10px 14px;
-    font-size: 14px;
-}
-
-.resource-search-block > .caption {
-    margin-top: 14px;
-    color: #607487;
-    font-size: 12px;
-}
-
-.resource-list-content {
-    padding: 26px 27px 22px;
-}
-
-.resource-list-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 20px;
-}
-
-.resource-list-heading h2 {
-    color: #263d4c;
-    font-size: 17px;
-    font-weight: 600;
-}
-
-.resource-list-heading .caption {
-    color: #607487;
-    font-size: 12px;
-}
-
-.resource-list-table {
-    min-width: 700px;
-    border-collapse: collapse;
-    text-align: left;
-}
-
-.resource-list-table th {
-    padding: 13px 12px;
-    background: #f0f3f5;
-    color: #607487;
-    font-size: 12px;
-    font-weight: 400;
-    white-space: nowrap;
-}
-
-.resource-list-table td {
-    height: 76px;
-    padding: 15px 12px;
-    border-bottom: 1px solid #cbd9e3;
-    color: #263d4c;
-    font-size: 14px;
-}
-
-.resource-list-table th:first-child,
-.resource-list-table td:first-child {
-    width: 31%;
-}
-
-.resource-list-table th:nth-child(2),
-.resource-list-table td:nth-child(2) {
-    width: 28%;
-}
-
-.resource-list-table th:nth-child(3),
-.resource-list-table td:nth-child(3) {
-    width: 27%;
-}
-
-.resource-list-table th:last-child,
-.resource-list-table td:last-child {
-    width: 14%;
-}
-
-.resource-view-link,
-.resource-view-name {
-    color: #1e627f;
-    font-size: 14px;
-    font-weight: 500;
-    overflow-wrap: anywhere;
-}
-
-.resource-view-link:hover {
-    color: #17495d;
-}
-
-.resource-schema-name {
-    display: block;
-    margin-top: 3px;
-    color: #607487;
-    font-size: 11px;
-}
-
-.resource-register-action {
-    display: block;
-    margin-top: 5px;
-}
-
-.resource-register-action .text-button {
-    font-size: 11px;
-}
-
-.resource-policy-summary {
-    color: #263d4c;
-    white-space: nowrap;
-}
-
-.resource-policy-summary.is-sensitive {
-    color: #8a5a15;
-}
-
-.resource-state-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 78px;
-    padding: 7px 12px;
-    border-radius: 5px;
-    background: #f1f3f5;
-    color: #626d7a;
-    font-size: 12px;
-    white-space: nowrap;
-}
-
-.resource-state-pill.is-active {
-    background: #e7f2ec;
-    color: #326446;
-}
-
-/* 시안과 같은 페이징 */
-
-.resource-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 22px;
-}
-
-.resource-pagination[hidden] {
-    display: none;
-}
-
-.resource-page-numbers {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-}
-
-.resource-page-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 40px;
-    height: 40px;
-    padding: 0 8px;
-    border: 0;
-    border-radius: 5px;
-    background: transparent;
-    color: #536c7e;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-.resource-page-button:hover:not(:disabled):not(.is-current) {
-    background: #f1f4f6;
-}
-
-.resource-page-button.is-current {
-    background: #e2f0f4;
-    color: #21627b;
-    font-weight: 700;
-}
-
-.resource-page-button:disabled {
-    color: #b9c2c9;
-    cursor: not-allowed;
-}
-
-.resource-page-button:focus-visible {
-    outline: 2px solid #276b84;
-    outline-offset: 2px;
-}
-
-/* 상세 화면 */
-
-.resource-detail-view[hidden] {
-    display: none;
-}
-
-.resource-back {
-    display: inline-block;
-    margin: 0 0 14px;
-    color: #1e627f;
-    font-size: 13px;
-}
-
-.resource-detail-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 20px;
-}
-
-.resource-admin-label {
-    color: #607487;
-    font-size: 13px;
-    white-space: nowrap;
-}
-
-.resource-object-summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    min-height: 82px;
-    margin: 0 0 18px;
-    padding: 16px 22px;
-    border: 1px solid #cbd9e3;
-    border-radius: 7px;
-    background: #fff;
-}
-
-.resource-object-main {
-    display: grid;
-    gap: 3px;
-    min-width: 0;
-}
-
-.resource-object-main strong {
-    color: #263d4c;
-    font-size: 19px;
-    font-weight: 600;
-    overflow-wrap: anywhere;
-}
-
-.resource-object-main .caption {
-    color: #607487;
-    font-size: 13px;
-}
-
-.resource-state-badge {
-    flex: none;
-    color: #626d7a;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.resource-state-badge.is-active {
-    color: #326446;
-}
-
-.resource-detail-panel {
-    overflow: hidden;
-    margin: 0 0 18px;
-    padding: 0;
-    border: 1px solid #cbd9e3;
-    border-radius: 7px;
-    background: #fff;
-}
-
-.resource-section-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    padding: 16px 21px;
-}
-
-.resource-section-heading h2 {
-    color: #263d4c;
-    font-size: 17px;
-    font-weight: 600;
-}
-
-.resource-dept-heading {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-}
-
-.resource-dept-heading .caption {
-    color: #607487;
-    font-size: 12px;
-}
-
-/* 조회 수준, 반출 정책, 리소스 상태, 저장 버튼을 한 행에 배치 */
-
-.resource-policy-fields {
-    display: grid;
-    grid-template-columns:
-        minmax(0, 1fr)
-        minmax(0, 1fr)
-        minmax(0, 1fr)
-        auto;
+    grid-template-columns: 180px minmax(0, 1fr) auto 46px;
     align-items: end;
-    gap: 20px;
-    padding: 0 21px 20px;
+    gap: 12px;
+    margin: 0;
 }
+#resource-list-view .resource-search-controls :is(input, select, .button) {
+    box-sizing: border-box;
+    height: 46px;
+    min-height: 46px;
+    margin: 0;
+}
+#resource-list-view .resource-search-controls :is(input, select) { width: 100%; min-width: 0; }
+#resource-list-view .resource-search-reset { display: inline-flex; align-items: center; justify-content: center; width: 46px; min-width: 46px; padding: 0; }
+#resource-list-view .resource-search-reset img { width: 18px; height: 18px; }
+#resource-list-view .resource-list-content { padding: 0; }
+.resource-list-table .resource-object-column { width: 25%; }
+.resource-list-table .resource-name-column { width: 22%; }
+.resource-list-table .resource-schema-column { width: 17%; }
+.resource-list-table .resource-access-column { width: 13%; }
+.resource-list-table .resource-export-column { width: 13%; }
+.resource-list-table .resource-state-column { width: 10%; }
+.resource-list-table td:nth-child(n+3) { white-space: nowrap; }
+.resource-list-table .resource-view-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.resource-list-table .resource-view-cell > :is(a, strong) { flex: 1; min-width: 0; }
+.resource-register-action { flex: 0 0 auto; }
+.resource-register-action .text-button { padding: 0; font-size: 11px; white-space: nowrap; }
+.resource-pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; margin-top: 20px; }
+.resource-pagination[hidden] { display: none; }
+.resource-page-numbers { display: flex; gap: 4px; }
+.resource-page-button { min-width: 32px; min-height: 32px; padding: 4px 8px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
+.resource-page-button:hover:not(:disabled), .resource-page-button.is-current { background: var(--tint); color: var(--accent); }
+.resource-page-button.is-current { font-weight: 700; }
+.resource-page-button:disabled { opacity: 0.45; }
 
-.resource-policy-field {
+/* 상세 상단은 view-detail.css의 정보·설명 박스를 그대로 사용한다. */
+.resource-detail-view[hidden] { display: none; }
+#resource-detail-view .resource-section-heading { padding: 0; }
+#resource-detail-view .resource-policy-fields {
     display: grid;
-    gap: 8px;
-    min-width: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+    gap: 12px;
 }
-
-.resource-policy-field > label {
-    color: #607487;
-    font-size: 13px;
-}
-
-.resource-policy-field select {
+#resource-detail-view .resource-policy-field { min-width: 0; }
+#resource-detail-view .resource-policy-field select,
+#resource-detail-view .resource-policy-value {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    width: 100%;
     min-height: 42px;
     margin: 0;
     padding: 9px 12px;
-    border: 1px solid #cbd9e3;
-    border-radius: 6px;
-    background: #fff;
-    color: #263d4c;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--bg);
+    color: var(--text);
     font-size: 14px;
-}
-
-.resource-policy-value {
-    display: flex;
-    align-items: center;
-    min-height: 42px;
-    padding: 9px 12px;
-    border: 1px solid #cbd9e3;
-    border-radius: 6px;
-    background: #fff;
-    color: #263d4c;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.resource-policy-save {
-    display: flex;
-    align-items: flex-end;
-    justify-content: flex-end;
-    gap: 10px;
-    min-width: max-content;
-}
-
-.resource-policy-save .caption {
-    align-self: center;
-    color: #607487;
-    font-size: 11px;
-}
-
-.resource-policy-save .button {
-    min-width: 125px;
-    min-height: 42px;
-    white-space: nowrap;
-}
-
-.resource-department-panel .resource-section-heading {
-    padding-bottom: 14px;
-}
-
-.resource-dept-table {
-    min-width: 0;
-    border-collapse: collapse;
-}
-
-.resource-dept-table th {
-    padding: 11px 14px;
-    background: #f0f5f7;
-    color: #607487;
-    font-size: 12px;
     font-weight: 400;
 }
-
-.resource-dept-table td {
-    height: 52px;
-    padding: 11px 14px;
-    border-bottom: 1px solid #cbd9e3;
-    color: #263d4c;
-    font-size: 14px;
-}
-
-.resource-dept-table th:first-child,
-.resource-dept-table td:first-child {
-    width: 65%;
-}
-
-.resource-dept-table .numeric {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-}
-
-.resource-add-dept {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 21px;
-    border-top: 1px solid #e1e7eb;
-    background: #f8fafb;
-}
-
-.resource-add-dept[hidden] {
-    display: none;
-}
-
-.resource-add-dept select {
-    max-width: 350px;
-    min-height: 39px;
-    margin: 0;
-    padding: 8px 10px;
-}
-
-.remove-dept {
-    padding: 4px 8px;
-    border: 0;
-    background: transparent;
-    color: #1e627f;
-    font-size: 13px;
-}
-
-.remove-dept:hover {
-    text-decoration: underline;
-}
-
-.resource-section-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 14px;
-    min-height: 58px;
-    padding: 10px 21px;
-    border-top: 1px solid #e1e7eb;
-    background: #fff;
-}
-
-.resource-section-footer .caption {
-    margin-right: auto;
-    color: #607487;
-    font-size: 11px;
-}
-
-.resource-role-note {
-    margin: 0 0 18px;
-    color: #607487;
-    font-size: 12px;
-}
-
-/* 작은 화면 대응 */
-
-@media (max-width: 900px) {
-    .resource-search-block,
-    .resource-list-content {
-        padding-right: 20px;
-        padding-left: 20px;
-    }
-
-    .resource-policy-fields {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px;
-        padding-right: 18px;
-        padding-left: 18px;
-    }
-
-    .resource-policy-save {
-        grid-column: 1 / -1;
-        justify-content: flex-end;
-    }
-
-    .resource-section-heading,
-    .resource-section-footer {
-        padding-right: 18px;
-        padding-left: 18px;
-    }
+#resource-detail-view .resource-policy-save { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+#resource-detail-view #policy-save-state:empty { display: none; }
+#resource-detail-view #policy-save-state { font-size: 12px; text-align: right; }
+#resource-detail-view #save-resource-policy { min-height: 42px; white-space: nowrap; }
+#resource-detail-view .resource-dept-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+#resource-detail-view .resource-section-heading .button,
+#resource-detail-view .resource-section-footer .button,
+#resource-detail-view .resource-add-dept .button { min-height: 32px; padding: 5px 12px; font-size: 12px; }
+#resource-detail-view .resource-dept-table { table-layout: fixed; min-width: 440px; }
+#resource-detail-view .resource-dept-table th:first-child { width: 55%; }
+#resource-detail-view .resource-dept-table th:nth-child(2) { width: 30%; }
+#resource-detail-view .resource-dept-table th:last-child { width: 15%; }
+#resource-detail-view .resource-dept-table .numeric { text-align: right; font-variant-numeric: tabular-nums; }
+#resource-detail-view .resource-dept-table td:last-child { text-align: right; }
+#resource-detail-view .remove-dept { padding: 4px 8px; border: 0; background: transparent; color: var(--accent); font: inherit; cursor: pointer; }
+#resource-detail-view .remove-dept:hover { text-decoration: underline; }
+#resource-detail-view .resource-add-dept { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 12px; background: var(--soft); border-radius: 5px; }
+#resource-detail-view .resource-add-dept[hidden] { display: none; }
+#resource-detail-view .resource-add-dept select { flex: 1; min-width: 0; margin: 0; min-height: 34px; padding: 5px 10px; }
+#resource-detail-view .resource-section-footer { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+#resource-detail-view #dept-save-state { margin-right: auto; }
+#resource-detail-view .resource-role-note { margin: 0; color: var(--muted); font-size: 12px; }
+@media (max-width: 650px) {
+    #resource-detail-view .resource-policy-fields { grid-template-columns: minmax(0, 1fr); }
+    #resource-detail-view .resource-policy-save { justify-content: flex-end; }
+    #resource-detail-view .resource-add-dept { flex-wrap: wrap; }
+    #resource-detail-view .resource-add-dept select { flex-basis: 100%; }
 }
 
 @media (max-width: 650px) {
-    .resource-page-heading h1,
-    .resource-detail-title h1 {
-        font-size: 21px;
-    }
-
-    .resource-search-controls {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .resource-search-controls input {
-        grid-column: 1 / -1;
-    }
-
-    .resource-search-controls .button {
-        width: 100%;
-    }
-
-    .resource-search-block,
-    .resource-list-content {
-        padding: 17px 14px;
-    }
-
-    .resource-list-heading {
-        align-items: flex-start;
-    }
-
-    .resource-detail-title {
-        align-items: flex-start;
-    }
-
-    .resource-object-summary {
-        min-height: 72px;
-        padding: 14px;
-    }
-
-    .resource-object-main strong {
-        font-size: 16px;
-    }
-
-    .resource-policy-fields {
-        grid-template-columns: 1fr;
-        gap: 14px;
-        padding: 0 14px 16px;
-    }
-
-    .resource-policy-save {
-        grid-column: auto;
-        justify-content: space-between;
-        min-width: 0;
-        padding-top: 2px;
-    }
-
-    .resource-policy-save .button {
-        min-width: 115px;
-    }
-
-    .resource-section-heading,
-    .resource-section-footer {
-        padding-right: 14px;
-        padding-left: 14px;
-    }
-
-    .resource-section-heading {
-        align-items: flex-start;
-    }
-
-    .resource-dept-heading {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 2px;
-    }
-
-    .resource-section-heading > .button {
-        padding: 7px 9px;
-        white-space: nowrap;
-    }
-
-    .resource-dept-table {
-        min-width: 460px;
-    }
-
-    .resource-dept-table th,
-    .resource-dept-table td {
-        padding-right: 10px;
-        padding-left: 10px;
-    }
-
-    .resource-section-footer {
-        flex-wrap: wrap;
-        justify-content: flex-end;
-    }
-
-    .resource-section-footer .caption {
-        flex-basis: 100%;
-        margin-right: 0;
-    }
-
-    .resource-add-dept {
-        flex-wrap: wrap;
-        padding: 11px 14px;
-    }
-
-    .resource-add-dept select {
-        flex-basis: 100%;
-        max-width: none;
-    }
-
-    .resource-pagination {
-        gap: 6px;
-    }
-
-    .resource-page-numbers {
-        gap: 2px;
-    }
-
-    .resource-page-button {
-        min-width: 36px;
-        height: 38px;
-        padding: 0 6px;
-    }
+    #resource-list-view .resource-search-block .resource-search-controls { grid-template-columns: minmax(0, 1fr) auto 46px; }
+    #resource-list-view .resource-search-controls select { grid-column: 1 / -1; }
+    #resource-list-view .resource-search-controls input { grid-column: auto; }
+    #resource-list-view .resource-search-controls .button { width: auto; }
+    #resource-list-view .resource-page-button { min-width: 32px; height: 32px; padding: 4px 8px; }
 }
+
+/* 저장 동작과 미저장 안내는 각 패널 제목 오른쪽에 함께 배치한다. */
+#resource-detail-view .resource-section-heading { flex-wrap: wrap; gap: 10px 16px; }
+#resource-detail-view .resource-policy-save,
+#resource-detail-view .resource-heading-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+#resource-detail-view #save-resource-policy { min-height: 32px; }
+#resource-detail-view #policy-save-state,
+#resource-detail-view #dept-save-state { flex: 0 1 auto; margin: 0; font-size: 12px; color: var(--muted); }
+#resource-detail-view #dept-save-state:empty { display: none; }
+#resource-detail-view #dept-save-state { order: 0; }
+#resource-detail-view #toggle-add-dept { order: 1; }
+#resource-detail-view #save-resource-depts { order: 2; }
+#resource-detail-view .resource-heading-actions .button { min-height: 32px; padding: 5px 12px; font-size: 12px; }
+#approval-line-dialog #resource-dept-keyword { flex: 1; min-width: 0; margin: 0; }

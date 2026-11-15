@@ -52,7 +52,7 @@
 		        </div>
 
 		        <div>
-		            <dt>등록 상태</dt>
+		            <dt>활성 여부</dt>
 		            <dd><span id="view-detail-registration" class="badge"></span></dd>
 		        </div>
 
@@ -234,11 +234,11 @@
         let kind = 'neutral';
 
         if (detail.registered && detail.enabled === 'Y') {
-            label = '활성 등록';
+            label = '활성';
             kind = 'success';
         } else if (detail.registered && detail.enabled === 'N') {
-            label = '비활성 등록';
-            kind = 'waiting';
+            label = '비활성';
+            kind = 'neutral';
         } else if (detail.registered) {
             label = '상태 확인 필요';
             kind = 'waiting';

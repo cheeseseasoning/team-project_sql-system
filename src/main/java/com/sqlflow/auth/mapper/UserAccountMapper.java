@@ -37,6 +37,15 @@ public interface UserAccountMapper {
 
     long countMatchingAccounts(@Param("keyword") String keyword);
 
+    /** 목록과 건수 조회에 같은 검색 유형을 적용한다. */
+    List<AccountListItemResponse> searchAccountListItemsByType(
+            @Param("offset") long offset,
+            @Param("size") int size,
+            @Param("keyword") String keyword,
+            @Param("searchType") String searchType);
+
+    long countMatchingAccountsByType(@Param("keyword") String keyword, @Param("searchType") String searchType);
+
     int countByLoginId(@Param("loginId") String loginId);
     
     int countByUserId(@Param("userId") Long userId);

@@ -13,6 +13,16 @@ public interface NoticeMapper {
     // 페이징 화면에 표시할 전체 공지 수.
     long countNotices();
 
+    /** 선택한 검색 조건에 해당하는 공지 수를 반환한다. */
+    long countMatchingNotices(@Param("keyword") String keyword, @Param("searchType") String searchType);
+
+    /** 선택한 검색 결과를 최신 등록 순으로 조회한다. */
+    List<Notice> searchNoticePage(
+            @Param("offset") long offset,
+            @Param("size") int size,
+            @Param("keyword") String keyword,
+            @Param("searchType") String searchType);
+
     // 목록에서는 본문을 제외하고 필요한 정보만 조회한다.
     List<Notice> selectNoticePage(
             @Param("offset") long offset,

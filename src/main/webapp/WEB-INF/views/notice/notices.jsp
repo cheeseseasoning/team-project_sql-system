@@ -12,9 +12,34 @@
 </div>
 
 <section id="notice-list-view" hidden>
-    <div class="panel">
+    <div class="panel" id="notice-list-panel">
+        <form id="notice-filter-form" class="notice-filter list-search-bar" action="${pageContext.request.contextPath}/notices" method="get">
+            <input type="hidden" name="page" value="1">
+            <label for="notice-search-type">
+                <span class="filter-label-text sr-only">검색 유형</span>
+                <select id="notice-search-type" name="searchType">
+                    <option value="TITLE">제목</option>
+                    <option value="AUTHOR">작성자</option>
+                    <option value="TITLE_AUTHOR">제목+작성자</option>
+                </select>
+            </label>
+            <label for="notice-keyword">
+                <span class="filter-label-text sr-only">공지 검색</span>
+                <input id="notice-keyword" name="keyword" type="search" maxlength="120"
+                       placeholder="검색어 입력" autocomplete="off">
+            </label>
+            <button class="button primary" type="submit">검색</button>
+            <a id="notice-reset" class="button list-search-reset" href="${pageContext.request.contextPath}/notices?page=1"
+               title="검색 조건 초기화 및 새로고침" aria-label="검색 조건 초기화 및 새로고침">
+                <img src="${pageContext.request.contextPath}/icons/RefreshCw.svg" alt="">
+            </a>
+        </form>
+        <div class="panel-heading request-list-heading">
+            <span id="notice-count" class="caption request-list-count" aria-live="polite"></span>
+        </div>
         <div class="table-scroll">
-            <table class="notice-table">
+            <table class="notice-table request-list-table">
+                <caption class="sr-only">공지사항 목록</caption>
                 <thead>
                     <tr>
                         <th scope="col">제목</th>
@@ -94,7 +119,17 @@
             && requestedPage >= 1 && requestedPage <= 2147483647
             ? requestedPage : 1;
         const noticeId = params.get('id');
+        const keyword = (params.get('keyword') || '').trim();
+        const searchType = params.get('searchType') || 'TITLE';
         const pageSize = 10;
+
+        $('#notice-keyword').value = keyword;
+        $('#notice-search-type').value = searchType;
+
+        // 검색은 첫 페이지에서 시작하고 상세·페이지 링크에는 검색 조건을 유지한다.
+        $('#notice-filter-form').addEventListener('submit', () => {
+            $('#notice-keyword').value = $('#notice-keyword').value.trim();
+        });
 
         const listView = $('#notice-list-view');
         const detailView = $('#notice-detail-view');
@@ -104,12 +139,14 @@
 
         let selectedNotice = null;
 
-        function listUrl(pageNumber) {
-            return BASE + '/notices?page=' + pageNumber;
+        function listUrl(pageNumber, searchKeyword = keyword, type = searchType) {
+            const query = new URLSearchParams({ page: String(pageNumber), searchType: type });
+            if (searchKeyword) query.set('keyword', searchKeyword);
+            return BASE + '/notices?' + query.toString();
         }
 
-        function detailUrl(id, pageNumber) {
-            return listUrl(pageNumber) + '&id=' + encodeURIComponent(id);
+        function detailUrl(id, pageNumber, searchKeyword = keyword, type = searchType) {
+            return listUrl(pageNumber, searchKeyword, type) + '&id=' + encodeURIComponent(id);
         }
 
         function formatDate(value) {
@@ -163,7 +200,8 @@
             showView(listView);
 
             try {
-                const data = await api('/notices?page=' + page + '&size=' + pageSize);
+                const query = new URLSearchParams({ page: String(page), size: String(pageSize), keyword, searchType });
+                const data = await api('/notices?' + query.toString());
 
                 // 마지막 페이지의 마지막 공지를 삭제했으면 이전 페이지로 이동한다.
                 const lastPage = Math.max(1, data.totalPages);
@@ -173,6 +211,7 @@
                     return;
                 }
 
+                $('#notice-count').textContent = '총 ' + Number(data.totalCount).toLocaleString('ko-KR') + '건';
                 $('#notices-body').innerHTML = data.notices.length
                     ? data.notices.map(notice =>
                         '<tr>' +
@@ -183,12 +222,16 @@
                             '<td>' + esc(formatDate(notice.createdAt)) + '</td>' +
                         '</tr>'
                     ).join('')
-                    : '<tr><td colspan="3">등록된 공지사항이 없습니다.</td></tr>';
+                    : '<tr><td colspan="3" class="empty">'
+                        + (keyword ? '검색 조건에 맞는 공지사항이 없습니다.' : '등록된 공지사항이 없습니다.')
+                        + '</td></tr>';
 
                 renderPagination(data.totalPages);
             } catch (error) {
+                $('#notice-count').textContent = '';
+                $('#notice-pagination').hidden = true;
                 $('#notices-body').innerHTML =
-                    '<tr><td colspan="3">공지사항을 불러오지 못했습니다.</td></tr>';
+                    '<tr><td colspan="3" class="empty">공지사항을 불러오지 못했습니다.</td></tr>';
                 notify(error.message, true);
             }
         }
@@ -281,7 +324,7 @@
                     });
 
                     // 수정 후에는 보던 목록 페이지를 유지하고, 새 공지는 1페이지로 연결한다.
-                    location.assign(detailUrl(noticeId || result.noticeId, noticeId ? page : 1));
+                    location.assign(detailUrl(noticeId || result.noticeId, noticeId ? page : 1, noticeId ? keyword : '', noticeId ? searchType : 'TITLE'));
                 } catch (error) {
                     notify(error.message, true);
                 } finally {

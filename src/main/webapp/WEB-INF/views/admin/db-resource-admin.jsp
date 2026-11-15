@@ -2,61 +2,72 @@
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="resource-admin-page">
-    <div id="resource-list-heading" class="page-heading resource-page-heading">
+    <div id="resource-list-heading" class="page-heading panel-aligned-heading resource-page-heading">
         <div>
-            <h1>리소스·접근 정책 관리</h1>
+            <h1>리소스·정책 관리</h1>
         </div>
     </div>
 
-    <div id="resource-list-view">
+    <div id="resource-list-view" class="views-page">
         <section class="panel resource-list-panel">
             <div class="resource-search-block">
-                <label for="resource-search">리소스 검색</label>
+                <label for="resource-search" class="sr-only">리소스 검색</label>
 
-                <div class="resource-search-controls">
+                <form id="resource-search-form" class="resource-search-controls">
+                    <label for="resource-search-type" class="sr-only">검색 유형</label>
+                    <select id="resource-search-type" aria-label="검색 유형">
+                        <option value="ALL">전체</option>
+                        <option value="OBJECT">뷰 이름</option>
+                        <option value="RESOURCE">등록 이름</option>
+                        <option value="SCHEMA">스키마</option>
+                        <option value="DESCRIPTION">설명</option>
+                    </select>
                     <input
                         id="resource-search"
                         type="search"
-                        placeholder="뷰 이름, 스키마 또는 설명 검색"
-                        aria-label="뷰 이름, 스키마 또는 설명 검색">
+                        placeholder="검색어 입력"
+                        aria-label="검색어 입력">
 
                     <button id="search-resources"
                             class="button primary"
-                            type="button">
+                            type="submit">
                         검색
                     </button>
 
                     <button id="reset-resource-search"
-                            class="button"
-                            type="button">
-                        초기화
+                            class="button resource-search-reset"
+                            type="button" title="검색 조건 초기화 및 새로고침" aria-label="검색 조건 초기화 및 새로고침">
+                        <img src="${pageContext.request.contextPath}/icons/RefreshCw.svg" alt="">
                     </button>
-                </div>
-
-                <p class="caption">
-                    뷰 이름, 스키마, 설명에 포함된 단어로 리소스를 찾을 수 있습니다.
-                </p>
+                </form>
             </div>
 
             <div class="resource-list-content">
                 <div class="resource-list-heading">
-                    <h2>리소스 목록</h2>
                     <span id="resource-total" class="caption"></span>
                 </div>
 
                 <div class="table-scroll">
-                    <table class="resource-list-table">
+                    <table class="resource-list-table views-table">
+                        <caption class="sr-only">리소스·정책 목록</caption>
+                        <colgroup>
+                            <col class="resource-object-column"><col class="resource-name-column">
+                            <col class="resource-schema-column"><col class="resource-access-column">
+                            <col class="resource-export-column"><col class="resource-state-column">
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th scope="col">뷰 이름</th>
                                 <th scope="col">등록 이름</th>
-                                <th scope="col">조회/반출정책</th>
-                                <th scope="col">활성 상태</th>
+                                <th scope="col">스키마</th>
+                                <th scope="col">조회 정책</th>
+                                <th scope="col">반출 정책</th>
+                                <th scope="col">활성 여부</th>
                             </tr>
                         </thead>
                         <tbody id="resource-rows">
                             <tr>
-                                <td colspan="4" class="empty">
+                                <td colspan="6" class="empty">
                                     뷰 목록을 불러오는 중입니다.
                                 </td>
                             </tr>
@@ -99,35 +110,41 @@
         </section>
     </div>
 
-    <div id="resource-detail-view" class="resource-detail-view" hidden>
-        <a
-            class="text-button resource-back"
-            id="resource-back"
-            href="${pageContext.request.contextPath}/db-admin/resources">
-            ← 리소스·접근 정책 관리
-        </a>
-
-        <div class="resource-detail-title">
-            <h1>리소스·접근 정책 상세</h1>
-            <span class="resource-admin-label">DB팀 관리</span>
+    <div id="resource-detail-view" class="resource-detail-view view-detail-page" hidden>
+        <div class="view-detail-toolbar">
+            <a class="view-back-link" id="resource-back" href="${pageContext.request.contextPath}/db-admin/resources">← 리소스·정책 관리</a>
         </div>
 
-        <section class="panel resource-object-summary">
-            <div class="resource-object-main">
-                <strong id="detail-object-name"></strong>
-                <span id="detail-object-meta" class="caption"></span>
-            </div>
-            <span id="detail-resource-state" class="resource-state-badge"></span>
+        <section class="panel view-panel" aria-label="뷰 기본 정보">
+            <dl class="view-info">
+                <div><dt>뷰 이름</dt><dd id="detail-object-name" class="view-info-emphasis"></dd></div>
+                <div><dt>등록 이름</dt><dd id="detail-resource-name" class="view-info-emphasis"></dd></div>
+                <div><dt>스키마</dt><dd id="detail-schema-name"></dd></div>
+                <div><dt>활성 여부</dt><dd><span id="detail-resource-state" class="badge"></span></dd></div>
+                <div class="view-info-description"><dt>설명</dt><dd id="detail-object-description"></dd></div>
+            </dl>
         </section>
 
-        <section class="panel resource-detail-panel resource-policy-panel">
-            <div class="resource-section-heading">
+        <section class="panel view-panel resource-detail-panel resource-policy-panel">
+            <div class="panel-heading resource-section-heading">
                 <h2>조회·반출 정책</h2>
+                <div class="resource-policy-save">
+                    <span id="policy-save-state" class="caption" aria-live="polite"></span>
+
+                    <c:if test="${pageContext.request.isUserInRole('DB_ADMIN')}">
+                        <button
+                            type="button"
+                            id="save-resource-policy"
+                            class="button primary">
+                            정책 저장
+                        </button>
+                    </c:if>
+                </div>
             </div>
 
             <div class="resource-policy-fields">
                 <div class="resource-policy-field">
-                    <label for="policy-access">조회 수준</label>
+                    <label class="sr-only" for="policy-access">조회 수준</label>
                     <c:choose>
                         <c:when test="${pageContext.request.isUserInRole('DB_ADMIN')}">
 							<select id="policy-access">
@@ -142,7 +159,7 @@
                 </div>
 
                 <div class="resource-policy-field">
-                    <label for="policy-export">반출 정책</label>
+                    <label class="sr-only" for="policy-export">반출 정책</label>
                     <c:choose>
                         <c:when test="${pageContext.request.isUserInRole('DB_ADMIN')}">
 							<select id="policy-export">
@@ -157,7 +174,7 @@
                 </div>
 
                 <div class="resource-policy-field">
-                    <label for="policy-enabled">리소스 상태</label>
+                    <label class="sr-only" for="policy-enabled">활성 여부</label>
                     <c:choose>
                         <c:when test="${pageContext.request.isUserInRole('DB_ADMIN')}">
                             <select id="policy-enabled">
@@ -171,43 +188,34 @@
                     </c:choose>
                 </div>
 
-                <div class="resource-policy-save">
-                    <span id="policy-save-state" class="caption" aria-live="polite"></span>
 
-                    <c:if test="${pageContext.request.isUserInRole('DB_ADMIN')}">
-                        <button
-                            type="button"
-                            id="save-resource-policy"
-                            class="button primary">
-                            정책 저장
-                        </button>
-                    </c:if>
-                </div>
             </div>
         </section>
 
-        <section class="panel resource-detail-panel resource-department-panel">
-            <div class="resource-section-heading">
+        <section class="panel view-panel resource-detail-panel resource-department-panel">
+            <div class="panel-heading resource-section-heading">
                 <div class="resource-dept-heading">
                     <h2>접근 권한 보유 부서</h2>
                     <span id="detail-dept-count" class="caption"></span>
                 </div>
 
+            <div class="resource-heading-actions">
                 <c:if test="${pageContext.request.isUserInRole('DB_ADMIN')}">
                     <button type="button" id="toggle-add-dept" class="button">
                         + 부서 추가
                     </button>
                 </c:if>
-            </div>
+                <span id="dept-save-state" class="caption" aria-live="polite"></span>
 
-            <div id="add-dept-row" class="resource-add-dept" hidden>
-                <select id="add-dept-select" aria-label="추가할 부서"></select>
-                <button type="button" id="confirm-add-dept" class="button primary">
-                    추가
-                </button>
-                <button type="button" id="cancel-add-dept" class="button">
-                    취소
-                </button>
+                <c:if test="${pageContext.request.isUserInRole('DB_ADMIN')}">
+                    <button
+                        type="button"
+                        id="save-resource-depts"
+                        class="button primary">
+                        권한 저장
+                    </button>
+                </c:if>
+            </div>
             </div>
 
             <div class="table-scroll">
@@ -223,18 +231,7 @@
                 </table>
             </div>
 
-            <div class="resource-section-footer">
-                <span id="dept-save-state" class="caption" aria-live="polite"></span>
 
-                <c:if test="${pageContext.request.isUserInRole('DB_ADMIN')}">
-                    <button
-                        type="button"
-                        id="save-resource-depts"
-                        class="button primary">
-                        부서 권한 저장
-                    </button>
-                </c:if>
-            </div>
         </section>
 
         <p class="resource-role-note" id="resource-readonly-note" hidden>
@@ -242,6 +239,41 @@
         </p>
     </div>
 </div>
+
+
+<c:if test="${pageContext.request.isUserInRole('DB_ADMIN')}">
+    <dialog id="approval-line-dialog" aria-labelledby="resource-dept-dialog-title" aria-describedby="resource-dept-dialog-help">
+        <header class="approval-line-dialog-heading">
+            <h2 id="resource-dept-dialog-title">접근 부서 추가</h2>
+            <p id="resource-dept-dialog-help">부서를 선택해 추가한 뒤, 상세 화면의 권한 저장을 눌러 반영하세요.</p>
+        </header>
+        <div class="approval-line-dialog-body">
+            <form id="resource-dept-search-form" class="approval-line-search-fields">
+                <div class="approval-line-search">
+                    <label class="sr-only" for="resource-dept-keyword">부서 검색</label>
+                    <input id="resource-dept-keyword" type="search" placeholder="부서명 검색" maxlength="120">
+                    <button type="submit" class="button">검색</button>
+                </div>
+            </form>
+            <section class="approval-line-candidate-area" aria-labelledby="resource-dept-candidate-title">
+                <h3 id="resource-dept-candidate-title" class="approval-line-list-heading">부서 목록</h3>
+                <div class="approval-line-table-scroll" id="resource-dept-candidates"></div>
+            </section>
+            <div class="approval-line-transfer-actions">
+                <button id="resource-dept-add" type="button" class="button primary" disabled>추가 →</button>
+                <button id="resource-dept-remove" type="button" class="button" disabled>← 제외</button>
+            </div>
+            <section class="approval-line-current-area" aria-labelledby="resource-dept-selected-title">
+                <h3 id="resource-dept-selected-title" class="approval-line-list-heading">추가할 부서 <span id="resource-dept-selected-count" class="approval-line-selected-count" aria-live="polite">0개</span></h3>
+                <div class="approval-line-current-scroll"><ul id="resource-dept-selected" class="approval-line-selected-list"></ul></div>
+            </section>
+        </div>
+        <footer class="approval-line-dialog-footer">
+            <button id="cancel-add-dept" type="button" class="button">취소</button>
+            <button id="confirm-add-dept" type="button" class="button primary" disabled>선택 부서 추가</button>
+        </footer>
+    </dialog>
+</c:if>
 
 <script>
 (() => {
@@ -252,7 +284,10 @@
 
     const rows = document.getElementById('resource-rows');
     const search = document.getElementById('resource-search');
-    const departmentSelect = document.getElementById('add-dept-select');
+    const departmentDialog = document.getElementById('approval-line-dialog');
+    const stagedDepartmentIds = new Set();
+    const candidateChecks = new Set();
+    const stagedChecks = new Set();
     const listView = document.getElementById('resource-list-view');
     const detailView = document.getElementById('resource-detail-view');
     const listHeading = document.getElementById('resource-list-heading');
@@ -270,36 +305,24 @@
     let currentPage = 1;
     let totalPages = 0;
 
-    function resourcePolicyLabel(object) {
-        if (!object.resourceId) {
-            return '<span class="caption">—</span>';
-        }
-
-        const accessLevel = object.accessLevel || 'GENERAL';
-        const exportPolicy = object.exportPolicy || 'BLOCK';
-        const sensitive = accessLevel === 'SENSITIVE';
-
-        return '<span class="resource-policy-summary'
-            + (sensitive ? ' is-sensitive' : '')
-            + '">'
-            + (sensitive ? '민감 조회' : '일반 조회')
-            + ' / '
-            + (exportPolicy === 'ALLOW' ? '반출 허용' : '반출 차단')
-            + '</span>';
+    function resourcePolicyLabel(object, type) {
+        if (!object.resourceId) return '—';
+        const labels = type === 'access'
+            ? { GENERAL: '일반 조회', SENSITIVE: '민감 조회' }
+            : { ALLOW: '반출 허용', BLOCK: '반출 차단' };
+        const value = type === 'access' ? object.accessLevel : object.exportPolicy;
+        return esc(labels[value] || '—');
     }
 
     function getFilteredObjects() {
         const keyword = search.value.trim().toLowerCase();
-
+        const searchType = document.getElementById('resource-search-type').value;
+        const fields = { OBJECT: 'objectName', RESOURCE: 'resourceName', SCHEMA: 'schemaName', DESCRIPTION: 'description' };
         return objects.filter(object => {
-            const searchableText = [
-                object.schemaName,
-                object.objectName,
-                object.resourceName,
-                object.description
-            ].join(' ').toLowerCase();
-
-            return searchableText.includes(keyword);
+            const values = searchType === 'ALL'
+                ? [object.objectName, object.resourceName, object.schemaName, object.description]
+                : [object[fields[searchType]]];
+            return values.some(value => String(value || '').toLowerCase().includes(keyword));
         });
     }
 
@@ -377,7 +400,7 @@
 
         if (visibleObjects.length === 0) {
             rows.innerHTML =
-                '<tr><td colspan="4" class="empty">'
+                '<tr><td colspan="6" class="empty">'
                 + (search.value.trim()
                     ? '검색 조건에 맞는 리소스가 없습니다.'
                     : '등록된 뷰가 없습니다.')
@@ -390,17 +413,17 @@
                     && object.resourceEnabled === true;
 
                 const resourceName =
-                    object.resourceName || object.objectName || '—';
+                    object.resourceName?.trim() || '등록 이름 없음';
 
                 const viewName = resourceRegistered
-                    ? '<a class="resource-view-link" href="'
+                    ? '<a class="resource-view-link views-object-name" href="'
                         + BASE
                         + '/db-admin/resources/'
                         + encodeURIComponent(object.resourceId)
                         + '">'
                         + esc(object.objectName)
                         + '</a>'
-                    : '<strong class="resource-view-name">'
+                    : '<strong class="resource-view-name views-object-name">'
                         + esc(object.objectName)
                         + '</strong>';
 
@@ -413,22 +436,20 @@
                         + '리소스 등록 +</button>';
 
                 return '<tr>'
-                    + '<td>'
+                    + '<td><div class="resource-view-cell">'
                     + viewName
-                    + '<small class="resource-schema-name">'
-                    + esc(object.schemaName)
-                    + '</small>'
+
                     + (registerAction
                         ? '<span class="resource-register-action">'
                             + registerAction
                             + '</span>'
                         : '')
-                    + '</td>'
-                    + '<td>' + esc(resourceName) + '</td>'
-                    + '<td>' + resourcePolicyLabel(object) + '</td>'
-                    + '<td><span class="resource-state-pill'
-                    + (enabled ? ' is-active' : '')
-                    + '">'
+                    + '</div></td>'
+                    + '<td><span class="views-resource-name">' + esc(resourceName) + '</span></td>'
+                    + '<td>' + esc(object.schemaName || '—') + '</td>'
+                    + '<td>' + resourcePolicyLabel(object, 'access') + '</td>'
+                    + '<td>' + resourcePolicyLabel(object, 'export') + '</td>'
+                    + '<td><span class="badge ' + (enabled ? 'success' : 'neutral') + '">'
                     + (enabled ? '활성' : resourceRegistered ? '비활성' : '미등록')
                     + '</span></td>'
                     + '</tr>';
@@ -457,6 +478,37 @@
                 }
             });
         });
+    }
+
+    function updateDepartmentDialogButtons() {
+        document.getElementById('resource-dept-add').disabled = candidateChecks.size === 0;
+        document.getElementById('resource-dept-remove').disabled = stagedChecks.size === 0;
+        document.getElementById('confirm-add-dept').disabled = stagedDepartmentIds.size === 0;
+    }
+
+    function renderDepartmentDialog() {
+        const keyword = document.getElementById('resource-dept-keyword').value.trim().toLowerCase();
+        const available = departments.filter(dept => !selectedDepartmentIds.has(Number(dept.deptId))
+            && !stagedDepartmentIds.has(Number(dept.deptId))
+            && String(dept.deptName || '').toLowerCase().includes(keyword));
+        // 검색으로 숨겨진 후보는 선택을 해제해 보이는 부서만 추가한다.
+        const visibleIds = new Set(available.map(dept => Number(dept.deptId)));
+        candidateChecks.forEach(id => { if (!visibleIds.has(id)) candidateChecks.delete(id); });
+        document.getElementById('resource-dept-candidates').innerHTML = available.length
+            ? available.map(dept => '<label class="approval-line-candidate-item">'
+                + '<input class="approval-line-candidate-check" type="checkbox" data-dept="' + Number(dept.deptId) + '"'
+                + (candidateChecks.has(Number(dept.deptId)) ? ' checked' : '') + '>'
+                + '<span>' + esc(dept.deptName) + '</span></label>').join('')
+            : '<p class="approval-line-empty">' + (keyword ? '검색 결과가 없습니다.' : '추가할 부서가 없습니다.') + '</p>';
+        const staged = departments.filter(dept => stagedDepartmentIds.has(Number(dept.deptId)));
+        document.getElementById('resource-dept-selected').innerHTML = staged.length
+            ? staged.map(dept => '<li class="approval-line-selected-item"><label class="approval-line-selected-label">'
+                + '<input class="approval-line-selected-check" type="checkbox" data-dept="' + Number(dept.deptId) + '"'
+                + (stagedChecks.has(Number(dept.deptId)) ? ' checked' : '') + '>'
+                + '<span class="approval-line-selected-person"><strong>' + esc(dept.deptName) + '</strong></span></label></li>').join('')
+            : '<li class="approval-line-empty">추가할 부서를 선택하세요.</li>';
+        document.getElementById('resource-dept-selected-count').textContent = staged.length + '개';
+        updateDepartmentDialogButtons();
     }
 
     function renderDepartments() {
@@ -491,18 +543,6 @@
         document.getElementById('detail-dept-count').textContent =
             activeDepartments.length + '개 부서';
 
-        const availableDepartments = departments.filter(department =>
-            !selectedDepartmentIds.has(Number(department.deptId))
-        );
-
-        if (departmentSelect) {
-            departmentSelect.innerHTML = availableDepartments.map(department =>
-                '<option value="' + department.deptId + '">'
-                + esc(department.deptName)
-                + '</option>'
-            ).join('');
-        }
-
         const currentIds = activeDepartments
             .map(department => Number(department.deptId))
             .sort()
@@ -520,8 +560,8 @@
 
         document.getElementById('dept-save-state').textContent =
             currentIds === savedIds
-                ? '저장된 부서 권한'
-                : '저장하지 않은 변경사항';
+                ? ''
+                : '저장되지 않은 항목이 있습니다.';
     }
 
 	function openDetail(resourceId) {
@@ -534,20 +574,17 @@
 	    }
 
 	    document.getElementById('detail-object-name').textContent = selected.objectName;
-	    document.getElementById('detail-object-meta').textContent =
-	        (selected.description || selected.resourceName || '')
-	        + (selected.schemaName ? ' · ' + selected.schemaName : '');
+	    document.getElementById('detail-resource-name').textContent = selected.resourceName?.trim() || '등록 이름 없음';
+        document.getElementById('detail-schema-name').textContent = selected.schemaName || '—';
+        document.getElementById('detail-object-description').textContent = selected.description?.trim() || '등록된 설명이 없습니다.';
+        const resourceState = selected.resourceEnabled === true;
+        const stateElement = document.getElementById('detail-resource-state');
+        stateElement.textContent = resourceState ? '활성' : '비활성';
+        stateElement.className = 'badge ' + (resourceState ? 'success' : 'neutral');
+        const accessLevel = selected.accessLevel || 'GENERAL';
+        const exportPolicy = selected.exportPolicy || 'BLOCK';
 
-	    const resourceState = selected.resourceEnabled === true;
-	    const stateElement = document.getElementById('detail-resource-state');
-
-	    stateElement.textContent = resourceState ? '활성' : '비활성';
-	    stateElement.classList.toggle('is-active', resourceState);
-
-	    const accessLevel = selected.accessLevel || 'GENERAL';
-	    const exportPolicy = selected.exportPolicy || 'BLOCK';
-
-	    if (isAdmin) {
+        if (isAdmin) {
 	        // 저장에 사용하는 정책 코드는 기존 값을 유지한다.
 	        document.getElementById('policy-access').value = accessLevel;
 	        document.getElementById('policy-export').value = exportPolicy;
@@ -571,7 +608,7 @@
 	            resourceState ? '활성' : '비활성';
 	    }
 
-	    document.getElementById('policy-save-state').textContent = '저장된 정책';
+	    document.getElementById('policy-save-state').textContent = '';
 
 	    const savePolicyButton = document.getElementById('save-resource-policy');
 
@@ -611,7 +648,7 @@
             }
         } catch (error) {
             rows.innerHTML =
-                '<tr><td colspan="4" class="empty">'
+                '<tr><td colspan="6" class="empty">'
                 + esc(error.message || '뷰 목록을 불러오지 못했습니다.')
                 + '</td></tr>';
 
@@ -626,22 +663,21 @@
         renderRows();
     }
 
-    document.getElementById('search-resources')
-        .addEventListener('click', applySearch);
-
-    search.addEventListener('keydown', event => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            applySearch();
-        }
+    // 검색 버튼과 Enter가 동일한 제출 경로를 사용한다.
+    document.getElementById('resource-search-form').addEventListener('submit', event => {
+        event.preventDefault();
+        applySearch();
     });
 
     document.getElementById('reset-resource-search')
         .addEventListener('click', () => {
             search.value = '';
+            document.getElementById('resource-search-type').value = 'ALL';
             currentPage = 1;
             renderRows();
         });
+
+    document.getElementById('resource-search-type').addEventListener('change', applySearch);
 
     previousPageButton.addEventListener('click', () => {
         if (currentPage > 1) {
@@ -664,7 +700,7 @@
                     document.getElementById('save-resource-policy').disabled =
                         false;
                     document.getElementById('policy-save-state').textContent =
-                        '저장하지 않은 변경사항';
+                        '저장되지 않은 항목이 있습니다.';
                 });
             });
 
@@ -695,26 +731,51 @@
                 }
             });
 
-        document.getElementById('toggle-add-dept')
-            .addEventListener('click', () => {
-                const row = document.getElementById('add-dept-row');
-                row.hidden = !row.hidden;
-            });
-
-        document.getElementById('cancel-add-dept')
-            .addEventListener('click', () => {
-                document.getElementById('add-dept-row').hidden = true;
-            });
-
-        document.getElementById('confirm-add-dept')
-            .addEventListener('click', () => {
-                if (departmentSelect.value) {
-                    selectedDepartmentIds.add(Number(departmentSelect.value));
-                    renderDepartments();
-                }
-
-                document.getElementById('add-dept-row').hidden = true;
-            });
+        document.getElementById('toggle-add-dept').addEventListener('click', () => {
+            stagedDepartmentIds.clear();
+            candidateChecks.clear();
+            stagedChecks.clear();
+            document.getElementById('resource-dept-keyword').value = '';
+            renderDepartmentDialog();
+            departmentDialog.showModal();
+            document.getElementById('resource-dept-keyword').focus();
+        });
+        departmentDialog.addEventListener('close', () => document.getElementById('toggle-add-dept').focus());
+        document.getElementById('cancel-add-dept').addEventListener('click', () => departmentDialog.close());
+        document.getElementById('resource-dept-search-form').addEventListener('submit', event => {
+            event.preventDefault();
+            renderDepartmentDialog();
+        });
+        document.getElementById('resource-dept-candidates').addEventListener('change', event => {
+            const check = event.target.closest('input[data-dept]');
+            if (!check) return;
+            const id = Number(check.dataset.dept);
+            if (check.checked) candidateChecks.add(id); else candidateChecks.delete(id);
+            updateDepartmentDialogButtons();
+        });
+        document.getElementById('resource-dept-selected').addEventListener('change', event => {
+            const check = event.target.closest('input[data-dept]');
+            if (!check) return;
+            const id = Number(check.dataset.dept);
+            if (check.checked) stagedChecks.add(id); else stagedChecks.delete(id);
+            updateDepartmentDialogButtons();
+        });
+        document.getElementById('resource-dept-add').addEventListener('click', () => {
+            candidateChecks.forEach(id => stagedDepartmentIds.add(id));
+            candidateChecks.clear();
+            renderDepartmentDialog();
+        });
+        document.getElementById('resource-dept-remove').addEventListener('click', () => {
+            stagedChecks.forEach(id => stagedDepartmentIds.delete(id));
+            stagedChecks.clear();
+            renderDepartmentDialog();
+        });
+        document.getElementById('confirm-add-dept').addEventListener('click', () => {
+            // 모달에서는 선택만 확정한다. DB 반영은 기존 권한 저장 API로 수행한다.
+            stagedDepartmentIds.forEach(id => selectedDepartmentIds.add(id));
+            renderDepartments();
+            departmentDialog.close();
+        });
 
         document.getElementById('detail-dept-rows')
             .addEventListener('click', event => {

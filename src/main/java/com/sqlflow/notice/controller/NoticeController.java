@@ -29,14 +29,16 @@ public class NoticeController {
 
     private final NoticeService noticeService;
 
-    /** 공지 목록과 페이징에 필요한 정보를 반환한다. */
+    /** 선택한 검색 유형의 결과와 페이징 정보를 반환한다. */
     @GetMapping
     public Map<String, Object> getNotices(
             @RequestParam(name = "page", defaultValue = "1") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size) {
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "keyword", defaultValue = "") String keyword,
+            @RequestParam(name = "searchType", defaultValue = "TITLE") String searchType) {
 
-        List<Notice> notices = noticeService.getNoticePage(page, size);
-        long totalCount = noticeService.countNotices();
+        List<Notice> notices = noticeService.getNoticePage(page, size, keyword, searchType);
+        long totalCount = noticeService.countNotices(keyword, searchType);
 
         // 나머지가 있으면 마지막 페이지가 하나 더 필요하다.
         long totalPages = totalCount / size + (totalCount % size == 0 ? 0 : 1);

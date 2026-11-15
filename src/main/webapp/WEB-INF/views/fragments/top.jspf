@@ -61,14 +61,19 @@
               href="${pageContext.request.contextPath}/css/pages/change-sql-result.css?v=20261113-summary">
     </c:if>
 
-    <c:if test="${page == 'request-detail'}">
+    <c:if test="${page == 'request-detail' or page == 'db-resource-admin'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/approval-line-modal.css?v=20261111-css-split">
     </c:if>
 
-    <c:if test="${page == 'execution-queue' or page == 'execution-queue-detail'}">
+    <c:if test="${page == 'execution-queue'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/execution-queue.css?v=20261113-list-search-fix">
+    </c:if>
+
+    <c:if test="${page == 'execution-queue-detail'}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261113-sql-meta">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/execution-queue-detail.css?v=20261115-shared-document">
     </c:if>
 
     <c:if test="${page == 'notices'}">
@@ -76,7 +81,7 @@
               href="${pageContext.request.contextPath}/css/pages/notices.css">
     </c:if>
 
-    <c:if test="${page == 'views'}">
+    <c:if test="${page == 'views' or page == 'db-resource-admin'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/views.css">
     </c:if>
@@ -87,10 +92,10 @@
 
     <c:if test="${page == 'db-resource-admin'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/db-resource-admin.css">
+              href="${pageContext.request.contextPath}/css/pages/db-resource-admin.css?v=20261115-department-dialog">
     </c:if>
 
-    <c:if test="${page == 'view-detail'}">
+    <c:if test="${page == 'view-detail' or page == 'db-resource-admin'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/view-detail.css">
     </c:if>
@@ -114,7 +119,7 @@
 
     <c:if test="${page == 'execution-result-detail'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/execution-result.css?v=20261113-preview-meta-row">
+              href="${pageContext.request.contextPath}/css/pages/execution-result.css?v=20261115-run-info-row">
     </c:if>
 
     <c:if test="${page == 'approval-pending' or page == 'approval-detail'}">
@@ -124,11 +129,12 @@
     <c:if test="${page == 'view-detail'
                or page == 'request-detail'
                or page == 'department-request-detail'
-               or page == 'execution-result-detail'}">
+               or page == 'execution-result-detail'
+               or page == 'execution-queue-detail'}">
         <script src="${pageContext.request.contextPath}/js/vendor/sql-formatter.min.js"></script>
         <script src="${pageContext.request.contextPath}/js/sql-display.js?v=20261113-format"></script>
     </c:if>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/list-titles.css?v=20261113-ellipsis">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/list-titles.css?v=20261115-list-spacing">
     <script src="${pageContext.request.contextPath}/js/list-titles.js?v=20261113-ellipsis" defer></script>
 </head>
 <body>
@@ -212,7 +218,7 @@
                                    href="${pageContext.request.contextPath}/execution-queue"
                                    ${activeMenu == 'execution-queue' ? 'aria-current="page"' : ''}>
                                     <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg" alt="">
-                                    쿼리 실행 대기
+                                    쿼리 실행 대기 목록
                                 </a>
                             </c:if>
                             <c:if test="${pageContext.request.isUserInRole('DB_ADMIN') or deptName == 'DB팀'}">
@@ -220,7 +226,7 @@
                                    href="${pageContext.request.contextPath}/db-admin/resources"
                                    ${activeMenu == 'db-resource-admin' ? 'aria-current="page"' : ''}>
                                     <img src="${pageContext.request.contextPath}/icons/SlidersHorizontal.svg" alt="">
-                                    리소스·접근 정책 관리
+                                    리소스·정책 관리
                                 </a>
                             </c:if>
                         </div>

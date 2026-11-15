@@ -63,17 +63,24 @@ public class AccountService {
         return getAccountListForActor(page, size, actorLoginId, "");
     }
 
-    /** 검색어는 ID·이름·부서·직급·역할에 부분 일치시키며, 기존 계정 상태 공개 권한을 유지한다. */
+    /** 검색어는 이름·부서·직급·역할에 부분 일치시키며, 기존 계정 상태 공개 권한을 유지한다. */
     @Transactional(readOnly = true)
     public AccountListPageResponse getAccountListForActor(
             int page, int size, String actorLoginId, String keyword) {
+        return getAccountListForActor(page, size, actorLoginId, keyword, "ALL");
+    }
+
+    /** 검색 유형을 검증하고 기존 계정 상태 공개 권한을 유지한다. */
+    @Transactional(readOnly = true)
+    public AccountListPageResponse getAccountListForActor(
+            int page, int size, String actorLoginId, String keyword, String searchType) {
         boolean includeAccountStatus =
                 actorLoginId != null
                 && !actorLoginId.isBlank()
                 && userAccountMapper.countActiveSystemAdminByLoginId(actorLoginId) == 1;
 
         AccountListPageResponse response =
-                getAccountListPage(page, size, includeAccountStatus, keyword);
+                getAccountListPage(page, size, includeAccountStatus, keyword, searchType);
 
         return response;
     }
@@ -88,6 +95,15 @@ public class AccountService {
 
     private AccountListPageResponse getAccountListPage(
             int page, int size, boolean includeAccountStatus, String keyword) {
+        return getAccountListPage(page, size, includeAccountStatus, keyword, "ALL");
+    }
+
+    private AccountListPageResponse getAccountListPage(
+            int page, int size, boolean includeAccountStatus, String keyword, String searchType) {
+        String type = searchType == null || searchType.isBlank() ? "ALL" : searchType.strip();
+        if (!List.of("ALL", "NAME", "DEPARTMENT", "POSITION", "ROLE").contains(type)) {
+            throw badRequest("올바른 검색 유형을 선택하세요.");
+        }
         String search = keyword == null ? "" : keyword.trim();
         if (search.length() > 120) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "검색어는 120자 이하로 입력하세요.");
@@ -96,7 +112,7 @@ public class AccountService {
 
         long totalCount = search.isEmpty()
                 ? userAccountMapper.countAllAccounts()
-                : userAccountMapper.countMatchingAccounts(search);
+                : userAccountMapper.countMatchingAccountsByType(search, type);
         long totalPages = totalCount == 0
                 ? 0
                 : (totalCount - 1) / size + 1;
@@ -110,7 +126,7 @@ public class AccountService {
         List<AccountListItemResponse> items =
                 (search.isEmpty()
                         ? userAccountMapper.selectAccountListItems(offset, size)
-                        : userAccountMapper.searchAccountListItems(offset, size, search))
+                        : userAccountMapper.searchAccountListItemsByType(offset, size, search, type))
                         .stream()
                         .map(account -> new AccountListItemResponse(
                                 account.getUserId(),
