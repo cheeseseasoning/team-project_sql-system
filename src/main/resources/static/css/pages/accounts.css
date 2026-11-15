@@ -7,14 +7,13 @@
     margin-bottom: 24px;
 }
 #account-list-panel .account-search-label { font-size: 13px; }
-#account-list-panel .account-list-table col.account-login-column { width: 12%; }
 #account-list-panel .account-list-table col.account-name-column { width: 12%; }
 #account-list-panel .account-list-table col.account-department-column { width: 15%; }
 #account-list-panel .account-list-table col.account-position-column { width: 10%; }
-#account-list-panel .account-list-table col.account-role-column { width: 27%; }
+#account-list-panel .account-list-table col.account-role-column { width: 39%; }
 #account-list-panel .account-list-table col.account-status-column { width: 12%; }
-#account-list-panel .account-login-link { color: var(--accent); font-weight: 600; }
-#account-list-panel .account-login-link:hover { text-decoration: underline; }
+#account-list-panel .account-name-link { color: var(--accent); font-weight: 600; }
+#account-list-panel .account-name-link:hover { text-decoration: underline; }
 #account-list-panel .account-role-list { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 #account-list-panel .account-role-item { overflow-wrap: anywhere; }
 #account-list-panel .account-role-item + .account-role-item::before {
