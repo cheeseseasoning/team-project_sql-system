@@ -29,14 +29,16 @@ jobs:
     env:
       TZ: Asia/Seoul
 
-      # 현재 확인한 DB 없는 테스트 목록입니다.
-      # 단위 테스트를 추가하거나 이름을 변경하면 이 목록도 함께 수정합니다.
+      # DB 연결 없이 실행 가능한 단위·MVC 테스트 목록입니다.
+      # 실제 Oracle/MySQL 연결이 필요한 통합 테스트는 별도 DB CI 환경을
+      # 마련한 뒤 추가합니다. 테스트를 추가하거나 이름을 바꾸면 목록도 갱신합니다.
       CI_TESTS: >-
         AccountServiceTest,
         AdminUserControllerTest,
         ApprovalDecisionServiceTest,
         ApprovalServiceTest,
         DataAccessValidationServiceTest,
+        DepartmentRequestApiTest,
         DepartmentRequestServiceTest,
         DepartmentScheduleServiceTest,
         DmlSqlValidationServiceTest,
@@ -46,6 +48,7 @@ jobs:
         ExecutionBatchRunServiceTest,
         ExecutionBatchStatusServiceTest,
         ExecutionQueueServiceTest,
+        ExecutionResultAccessLogApiTest,
         ExecutionResultAccessServiceTest,
         ExecutionResultDeliveryServiceTest,
         ExecutionResultServiceTest,
@@ -55,6 +58,8 @@ jobs:
         MySqlColumnResolverTest,
         MySqlQueryExecutionServiceTest,
         MySqlQueryMetadataValidationServiceTest,
+        MyPasswordControllerTest,
+        MyProfileControllerTest,
         OracleColumnValidationServiceTest,
         OracleObjectNameResolverTest,
         OracleTableValidationServiceTest,
@@ -62,12 +67,14 @@ jobs:
         PasswordHashTest,
         QueryExecutionRecordServiceTest,
         QueryExecutionServiceTest,
+        RemainingBatchControllerTest,
         RemainingBatchReservationTest,
         RequestSqlValidationServiceTest,
         RequestSubmissionServiceTest,
         ResultAccessLogServiceTest,
         ResultFileStorageServiceTest,
         SingleExecutionRecordServiceTest,
+        SingleExecutionControllerTest,
         SingleExecutionWorkflowTest,
         SqlColumnQualifierValidatorTest,
         SqlConditionValidatorTest,
