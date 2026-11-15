@@ -474,12 +474,21 @@
 .execution-detail-page :is(.execution-request-card, .execution-run-card) .execution-info-item { flex-direction: row; align-items: baseline; gap: 12px; }
 .execution-detail-page .execution-request-card .execution-info-label { flex: 0 0 80px; }
 .execution-detail-page .execution-info-item strong { min-width: 0; }
-.execution-detail-page .execution-run-card { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.execution-detail-page .execution-run-card .execution-info-label { flex: 0 0 90px; }
+/* 실행 정보는 4열로 배치하고, 각 열은 항목명 위·값 아래로 표시한다. */
+.execution-detail-page .execution-run-card {
+    grid-template-columns: minmax(120px, 1fr) minmax(190px, 1.5fr) minmax(100px, 1fr) minmax(100px, 1fr);
+    gap: 12px 24px;
+    overflow-x: auto;
+}
+.execution-detail-page .execution-run-card .execution-info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+.execution-detail-page .execution-run-card .execution-info-label { flex: 0 0 auto; }
 @media (max-width: 700px) {
     .execution-detail-page .execution-request-card { grid-template-columns: minmax(0, 1fr); padding: 16px; }
     .execution-detail-page .execution-request-card .execution-purpose-item { grid-column: 1; }
-    .execution-detail-page .execution-run-card { grid-template-columns: minmax(0, 1fr); }
     .execution-request-overview { grid-template-columns: 80px minmax(0, 1fr); }
 }
 @media (pointer: coarse) {
