@@ -7,11 +7,22 @@
     margin-bottom: 24px;
 }
 #account-list-panel .account-search-label { font-size: 13px; }
-#account-list-panel .account-list-table col.account-name-column { width: 12%; }
-#account-list-panel .account-list-table col.account-department-column { width: 15%; }
-#account-list-panel .account-list-table col.account-position-column { width: 10%; }
-#account-list-panel .account-list-table col.account-role-column { width: 39%; }
-#account-list-panel .account-list-table col.account-status-column { width: 12%; }
+
+/* 관리자: 계정 상태를 포함한 6개 열 */
+#account-list-panel [data-account-view="admin"] col.account-employee-column { width: 15%; }
+#account-list-panel [data-account-view="admin"] col.account-name-column { width: 15%; }
+#account-list-panel [data-account-view="admin"] col.account-department-column { width: 20%; }
+#account-list-panel [data-account-view="admin"] col.account-position-column { width: 15%; }
+#account-list-panel [data-account-view="admin"] col.account-role-column { width: 23%; }
+#account-list-panel [data-account-view="admin"] col.account-status-column { width: 12%; }
+
+/* 일반 사용자: 계정 상태를 제외한 5개 열 */
+#account-list-panel [data-account-view="user"] col.account-employee-column { width: 18%; }
+#account-list-panel [data-account-view="user"] col.account-name-column { width: 18%; }
+#account-list-panel [data-account-view="user"] col.account-department-column { width: 24%; }
+#account-list-panel [data-account-view="user"] col.account-position-column { width: 18%; }
+#account-list-panel [data-account-view="user"] col.account-role-column { width: 22%; }
+
 #account-list-panel .account-name-link { color: var(--accent); font-weight: 600; }
 #account-list-panel .account-name-link:hover { text-decoration: underline; }
 #account-list-panel .account-role-list { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
@@ -49,5 +60,4 @@
 }
 #account-list-panel .account-list-message:not(:empty) { margin-top: 12px; }
 
-#account-list-panel .account-list-table col.account-employee-column { width: 12%; }
 #account-list-panel .account-list-table td:first-child { white-space: nowrap; color: var(--muted); }

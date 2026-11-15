@@ -35,7 +35,8 @@
         </div>
 
         <div class="table-scroll">
-			<table class="account-list-table request-list-table">
+			<table class="account-list-table request-list-table"
+				data-account-view="${pageContext.request.isUserInRole('SYSTEM_ADMIN') ? 'admin' : 'user'}">
 			    <caption class="sr-only">사용자 계정 목록</caption>
 
 			    <colgroup>
