@@ -39,7 +39,10 @@ public class ResourcePolicyAdminService {
             row.put("schemaName", object.getDatabaseName());
             row.put("objectName", object.getObjectName());
             row.put("objectType", object.getObjectType());
-            row.put("description", object.getObjectComment() == null ? "" : object.getObjectComment());
+            // 등록 이름·설명은 뷰 조회와 같은 Oracle 등록 정보를 우선 사용한다.
+            row.put("resourceName", resource == null ? null : resource.getResourceName());
+            row.put("description", resource != null && !blank(resource.getDescription())
+                    ? resource.getDescription() : object.getObjectComment() == null ? "" : object.getObjectComment());
             row.put("resourceId", resource == null ? 0L : resource.getResourceId());
             row.put("resourceEnabled", resource != null && "Y".equals(resource.getEnabled()));
             row.put("accessLevel", resource == null ? null : resource.getAccessLevel());

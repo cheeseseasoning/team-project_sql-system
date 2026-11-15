@@ -5,7 +5,6 @@
 .notices-page .notice-table tbody td:first-child a,
 .views-page :is(.views-object-name, .views-resource-name),
 .resource-list-table :is(.resource-view-link, .resource-view-name),
-.resource-list-table tbody td:nth-child(2),
 .home-dashboard-grid :is(.dashboard-recent-link, .dashboard-notice-title) {
     display: block;
     min-width: 0;
@@ -18,7 +17,7 @@
 }
 .notices-page .notice-table { table-layout: fixed; }
 
-/* 목록 페이지는 뷰 조회처럼 검색·건수·표를 짧은 간격으로 배치한다.
+/* 목록 페이지의 검색·건수·표 간격을 함께 관리한다.
    상세 화면과 홈의 요약 카드에는 적용하지 않는다. */
 :is(#my-request-list, #department-request-list, #approval-request-list,
     #execution-result-list, #account-list-panel, #notice-list-panel),
@@ -30,8 +29,8 @@
     #execution-result-list, #account-list-panel, #notice-list-panel)
     :is(.filter-bar, .account-filter, .notice-filter),
 .execution-queue-page > .execution-queue-panel .queue-search {
-    padding-bottom: 6px;
-    margin-bottom: 6px;
+    padding-bottom: 16px;
+    margin-bottom: 12px;
 }
 
 :is(#my-request-list, #department-request-list, #approval-request-list,
@@ -43,13 +42,13 @@
     align-items: center;
     min-height: 0;
     padding: 0;
-    margin: 0 0 4px;
+    margin: 0 0 8px;
 }
 
-#resource-list-view .resource-search-block { padding-block: 14px 6px; }
+#resource-list-view .resource-search-block { padding: 0; }
 #resource-list-view .resource-search-block > label { margin-bottom: 8px; }
 #resource-list-view .resource-search-block > .caption { margin-block: 6px 0; }
-#resource-list-view .resource-list-content { padding-block: 6px 14px; }
+#resource-list-view .resource-list-content { padding: 0; }
 
 /* 목록 검색은 뷰 조회처럼 항목명 없이 컨트롤을 같은 높이로 정렬한다. */
 :is(#my-request-list, #department-request-list, #approval-request-list, #execution-result-list) .filter-bar {
@@ -115,3 +114,15 @@
         grid-column: 1 / -1;
     }
 }
+
+/* 구분선이 입력창에 붙지 않게 모든 목록의 검색 아래 공간을 확보한다. */
+#resource-list-view .resource-search-block .resource-search-controls {
+    padding-bottom: 16px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+}
+.views-page:not(#resource-list-view) .views-filter-description {
+    margin: 16px 0 12px;
+    padding-bottom: 12px;
+}
+.views-page:not(#resource-list-view) .views-list-summary { margin-bottom: 8px; }

@@ -81,7 +81,7 @@
               href="${pageContext.request.contextPath}/css/pages/notices.css">
     </c:if>
 
-    <c:if test="${page == 'views'}">
+    <c:if test="${page == 'views' or page == 'db-resource-admin'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/views.css">
     </c:if>
@@ -92,7 +92,7 @@
 
     <c:if test="${page == 'db-resource-admin'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/db-resource-admin.css">
+              href="${pageContext.request.contextPath}/css/pages/db-resource-admin.css?v=20261115-shared-view-table">
     </c:if>
 
     <c:if test="${page == 'view-detail'}">
@@ -134,7 +134,7 @@
         <script src="${pageContext.request.contextPath}/js/vendor/sql-formatter.min.js"></script>
         <script src="${pageContext.request.contextPath}/js/sql-display.js?v=20261113-format"></script>
     </c:if>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/list-titles.css?v=20261115-compact-lists">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/list-titles.css?v=20261115-list-spacing">
     <script src="${pageContext.request.contextPath}/js/list-titles.js?v=20261113-ellipsis" defer></script>
 </head>
 <body>
@@ -226,7 +226,7 @@
                                    href="${pageContext.request.contextPath}/db-admin/resources"
                                    ${activeMenu == 'db-resource-admin' ? 'aria-current="page"' : ''}>
                                     <img src="${pageContext.request.contextPath}/icons/SlidersHorizontal.svg" alt="">
-                                    리소스·접근 정책 관리
+                                    리소스·정책 관리
                                 </a>
                             </c:if>
                         </div>

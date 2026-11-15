@@ -2,40 +2,44 @@
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
 <div class="resource-admin-page">
-    <div id="resource-list-heading" class="page-heading resource-page-heading">
+    <div id="resource-list-heading" class="page-heading panel-aligned-heading resource-page-heading">
         <div>
-            <h1>리소스·접근 정책 관리</h1>
+            <h1>리소스·정책 관리</h1>
         </div>
     </div>
 
-    <div id="resource-list-view">
+    <div id="resource-list-view" class="views-page">
         <section class="panel resource-list-panel">
             <div class="resource-search-block">
                 <label for="resource-search" class="sr-only">리소스 검색</label>
 
-                <div class="resource-search-controls">
+                <form id="resource-search-form" class="resource-search-controls">
+                    <label for="resource-search-type" class="sr-only">검색 유형</label>
+                    <select id="resource-search-type" aria-label="검색 유형">
+                        <option value="ALL">전체</option>
+                        <option value="OBJECT">뷰 이름</option>
+                        <option value="RESOURCE">등록 이름</option>
+                        <option value="SCHEMA">스키마</option>
+                        <option value="DESCRIPTION">설명</option>
+                    </select>
                     <input
                         id="resource-search"
                         type="search"
-                        placeholder="뷰 이름, 스키마 또는 설명 검색"
-                        aria-label="뷰 이름, 스키마 또는 설명 검색">
+                        placeholder="검색어 입력"
+                        aria-label="검색어 입력">
 
                     <button id="search-resources"
                             class="button primary"
-                            type="button">
+                            type="submit">
                         검색
                     </button>
 
                     <button id="reset-resource-search"
-                            class="button"
-                            type="button">
-                        초기화
+                            class="button resource-search-reset"
+                            type="button" title="검색 조건 초기화 및 새로고침" aria-label="검색 조건 초기화 및 새로고침">
+                        <img src="${pageContext.request.contextPath}/icons/RefreshCw.svg" alt="">
                     </button>
-                </div>
-
-                <p class="caption">
-                    뷰 이름, 스키마, 설명에 포함된 단어로 리소스를 찾을 수 있습니다.
-                </p>
+                </form>
             </div>
 
             <div class="resource-list-content">
@@ -44,18 +48,26 @@
                 </div>
 
                 <div class="table-scroll">
-                    <table class="resource-list-table">
+                    <table class="resource-list-table views-table">
+                        <caption class="sr-only">리소스·정책 목록</caption>
+                        <colgroup>
+                            <col class="resource-object-column"><col class="resource-name-column">
+                            <col class="resource-schema-column"><col class="resource-access-column">
+                            <col class="resource-export-column"><col class="resource-state-column">
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th scope="col">뷰 이름</th>
                                 <th scope="col">등록 이름</th>
-                                <th scope="col">조회/반출정책</th>
+                                <th scope="col">스키마</th>
+                                <th scope="col">조회 정책</th>
+                                <th scope="col">반출 정책</th>
                                 <th scope="col">활성 상태</th>
                             </tr>
                         </thead>
                         <tbody id="resource-rows">
                             <tr>
-                                <td colspan="4" class="empty">
+                                <td colspan="6" class="empty">
                                     뷰 목록을 불러오는 중입니다.
                                 </td>
                             </tr>
@@ -103,11 +115,11 @@
             class="text-button resource-back"
             id="resource-back"
             href="${pageContext.request.contextPath}/db-admin/resources">
-            ← 리소스·접근 정책 관리
+            ← 리소스·정책 관리
         </a>
 
         <div class="resource-detail-title">
-            <h1>리소스·접근 정책 상세</h1>
+            <h1>리소스·정책 상세</h1>
             <span class="resource-admin-label">DB팀 관리</span>
         </div>
 
@@ -269,36 +281,24 @@
     let currentPage = 1;
     let totalPages = 0;
 
-    function resourcePolicyLabel(object) {
-        if (!object.resourceId) {
-            return '<span class="caption">—</span>';
-        }
-
-        const accessLevel = object.accessLevel || 'GENERAL';
-        const exportPolicy = object.exportPolicy || 'BLOCK';
-        const sensitive = accessLevel === 'SENSITIVE';
-
-        return '<span class="resource-policy-summary'
-            + (sensitive ? ' is-sensitive' : '')
-            + '">'
-            + (sensitive ? '민감 조회' : '일반 조회')
-            + ' / '
-            + (exportPolicy === 'ALLOW' ? '반출 허용' : '반출 차단')
-            + '</span>';
+    function resourcePolicyLabel(object, type) {
+        if (!object.resourceId) return '—';
+        const labels = type === 'access'
+            ? { GENERAL: '일반 조회', SENSITIVE: '민감 조회' }
+            : { ALLOW: '반출 허용', BLOCK: '반출 차단' };
+        const value = type === 'access' ? object.accessLevel : object.exportPolicy;
+        return esc(labels[value] || '—');
     }
 
     function getFilteredObjects() {
         const keyword = search.value.trim().toLowerCase();
-
+        const searchType = document.getElementById('resource-search-type').value;
+        const fields = { OBJECT: 'objectName', RESOURCE: 'resourceName', SCHEMA: 'schemaName', DESCRIPTION: 'description' };
         return objects.filter(object => {
-            const searchableText = [
-                object.schemaName,
-                object.objectName,
-                object.resourceName,
-                object.description
-            ].join(' ').toLowerCase();
-
-            return searchableText.includes(keyword);
+            const values = searchType === 'ALL'
+                ? [object.objectName, object.resourceName, object.schemaName, object.description]
+                : [object[fields[searchType]]];
+            return values.some(value => String(value || '').toLowerCase().includes(keyword));
         });
     }
 
@@ -376,7 +376,7 @@
 
         if (visibleObjects.length === 0) {
             rows.innerHTML =
-                '<tr><td colspan="4" class="empty">'
+                '<tr><td colspan="6" class="empty">'
                 + (search.value.trim()
                     ? '검색 조건에 맞는 리소스가 없습니다.'
                     : '등록된 뷰가 없습니다.')
@@ -389,17 +389,17 @@
                     && object.resourceEnabled === true;
 
                 const resourceName =
-                    object.resourceName || object.objectName || '—';
+                    object.resourceName?.trim() || '등록 이름 없음';
 
                 const viewName = resourceRegistered
-                    ? '<a class="resource-view-link" href="'
+                    ? '<a class="resource-view-link views-object-name" href="'
                         + BASE
                         + '/db-admin/resources/'
                         + encodeURIComponent(object.resourceId)
                         + '">'
                         + esc(object.objectName)
                         + '</a>'
-                    : '<strong class="resource-view-name">'
+                    : '<strong class="resource-view-name views-object-name">'
                         + esc(object.objectName)
                         + '</strong>';
 
@@ -412,23 +412,21 @@
                         + '리소스 등록 +</button>';
 
                 return '<tr>'
-                    + '<td>'
+                    + '<td><div class="resource-view-cell">'
                     + viewName
-                    + '<small class="resource-schema-name">'
-                    + esc(object.schemaName)
-                    + '</small>'
+
                     + (registerAction
                         ? '<span class="resource-register-action">'
                             + registerAction
                             + '</span>'
                         : '')
-                    + '</td>'
-                    + '<td>' + esc(resourceName) + '</td>'
-                    + '<td>' + resourcePolicyLabel(object) + '</td>'
-                    + '<td><span class="resource-state-pill'
-                    + (enabled ? ' is-active' : '')
-                    + '">'
-                    + (enabled ? '활성' : resourceRegistered ? '비활성' : '미등록')
+                    + '</div></td>'
+                    + '<td><span class="views-resource-name">' + esc(resourceName) + '</span></td>'
+                    + '<td>' + esc(object.schemaName || '—') + '</td>'
+                    + '<td>' + resourcePolicyLabel(object, 'access') + '</td>'
+                    + '<td>' + resourcePolicyLabel(object, 'export') + '</td>'
+                    + '<td><span class="badge ' + (enabled ? 'success' : resourceRegistered ? 'waiting' : 'neutral') + '">'
+                    + (enabled ? '활성' : resourceRegistered ? '비활성 등록' : '미등록')
                     + '</span></td>'
                     + '</tr>';
             }).join('');
@@ -610,7 +608,7 @@
             }
         } catch (error) {
             rows.innerHTML =
-                '<tr><td colspan="4" class="empty">'
+                '<tr><td colspan="6" class="empty">'
                 + esc(error.message || '뷰 목록을 불러오지 못했습니다.')
                 + '</td></tr>';
 
@@ -625,22 +623,21 @@
         renderRows();
     }
 
-    document.getElementById('search-resources')
-        .addEventListener('click', applySearch);
-
-    search.addEventListener('keydown', event => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            applySearch();
-        }
+    // 검색 버튼과 Enter가 동일한 제출 경로를 사용한다.
+    document.getElementById('resource-search-form').addEventListener('submit', event => {
+        event.preventDefault();
+        applySearch();
     });
 
     document.getElementById('reset-resource-search')
         .addEventListener('click', () => {
             search.value = '';
+            document.getElementById('resource-search-type').value = 'ALL';
             currentPage = 1;
             renderRows();
         });
+
+    document.getElementById('resource-search-type').addEventListener('change', applySearch);
 
     previousPageButton.addEventListener('click', () => {
         if (currentPage > 1) {
