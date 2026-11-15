@@ -98,11 +98,14 @@
     white-space: nowrap;
 }
 
+/* 뷰 이름은 상세 링크를 유지하면서 드래그 선택·복사를 허용한다. */
 .views-page .views-object-name {
     display: block;
     color: var(--accent);
     font-weight: 500;
     overflow-wrap: anywhere;
+    -webkit-user-select: text;
+    user-select: text;
 }
 
 .views-page .views-table .secondary {

@@ -130,10 +130,10 @@
                     <label for="policy-access">조회 수준</label>
                     <c:choose>
                         <c:when test="${pageContext.request.isUserInRole('DB_ADMIN')}">
-                            <select id="policy-access">
-                                <option value="GENERAL">GENERAL</option>
-                                <option value="SENSITIVE">SENSITIVE</option>
-                            </select>
+							<select id="policy-access">
+							    <option value="GENERAL">일반 조회 (GENERAL)</option>
+							    <option value="SENSITIVE">민감 조회 (SENSITIVE)</option>
+							</select>
                         </c:when>
                         <c:otherwise>
                             <strong id="policy-access-read" class="resource-policy-value"></strong>
@@ -145,10 +145,10 @@
                     <label for="policy-export">반출 정책</label>
                     <c:choose>
                         <c:when test="${pageContext.request.isUserInRole('DB_ADMIN')}">
-                            <select id="policy-export">
-                                <option value="ALLOW">ALLOW</option>
-                                <option value="BLOCK">BLOCK · 심사 필요</option>
-                            </select>
+							<select id="policy-export">
+							    <option value="ALLOW">반출 허용 (ALLOW)</option>
+							    <option value="BLOCK">반출 차단 (BLOCK)</option>
+							</select>
                         </c:when>
                         <c:otherwise>
                             <strong id="policy-export-read" class="resource-policy-value"></strong>
@@ -524,71 +524,73 @@
                 : '저장하지 않은 변경사항';
     }
 
-    function openDetail(resourceId) {
-        selected = objects.find(object =>
-            String(object.resourceId) === String(resourceId)
-        );
+	function openDetail(resourceId) {
+	    selected = objects.find(object =>
+	        String(object.resourceId) === String(resourceId)
+	    );
 
-        if (!selected) {
-            return;
-        }
+	    if (!selected) {
+	        return;
+	    }
 
-        document.getElementById('detail-object-name').textContent =
-            selected.objectName;
+	    document.getElementById('detail-object-name').textContent = selected.objectName;
+	    document.getElementById('detail-object-meta').textContent =
+	        (selected.description || selected.resourceName || '')
+	        + (selected.schemaName ? ' · ' + selected.schemaName : '');
 
-        document.getElementById('detail-object-meta').textContent =
-            (selected.description || selected.resourceName || '')
-            + (selected.schemaName ? ' · ' + selected.schemaName : '');
+	    const resourceState = selected.resourceEnabled === true;
+	    const stateElement = document.getElementById('detail-resource-state');
 
-        const resourceState = selected.resourceEnabled === true;
-        const stateElement =
-            document.getElementById('detail-resource-state');
+	    stateElement.textContent = resourceState ? '활성' : '비활성';
+	    stateElement.classList.toggle('is-active', resourceState);
 
-        stateElement.textContent = resourceState ? '활성' : '비활성';
-        stateElement.classList.toggle('is-active', resourceState);
+	    const accessLevel = selected.accessLevel || 'GENERAL';
+	    const exportPolicy = selected.exportPolicy || 'BLOCK';
 
-        if (isAdmin) {
-            document.getElementById('policy-access').value =
-                selected.accessLevel || 'GENERAL';
-            document.getElementById('policy-export').value =
-                selected.exportPolicy || 'BLOCK';
-            document.getElementById('policy-enabled').value =
-                resourceState ? 'Y' : 'N';
-        } else {
-            document.getElementById('policy-access-read').textContent =
-                selected.accessLevel || 'GENERAL';
+	    if (isAdmin) {
+	        // 저장에 사용하는 정책 코드는 기존 값을 유지한다.
+	        document.getElementById('policy-access').value = accessLevel;
+	        document.getElementById('policy-export').value = exportPolicy;
+	        document.getElementById('policy-enabled').value = resourceState ? 'Y' : 'N';
+	    } else {
+	        // 읽기 전용 화면에도 관리자 선택 항목과 같은 설명을 표시한다.
+	        const accessLabels = {
+	            GENERAL: '일반 조회 (GENERAL)',
+	            SENSITIVE: '민감 조회 (SENSITIVE)'
+	        };
+	        const exportLabels = {
+	            ALLOW: '반출 허용 (ALLOW)',
+	            BLOCK: '반출 차단 (BLOCK)'
+	        };
 
-            const exportPolicy = selected.exportPolicy || 'BLOCK';
-            document.getElementById('policy-export-read').textContent =
-                exportPolicy
-                + (exportPolicy === 'BLOCK' ? ' · 심사 필요' : '');
+	        document.getElementById('policy-access-read').textContent =
+	            accessLabels[accessLevel] || accessLevel;
+	        document.getElementById('policy-export-read').textContent =
+	            exportLabels[exportPolicy] || exportPolicy;
+	        document.getElementById('policy-enabled-read').textContent =
+	            resourceState ? '활성' : '비활성';
+	    }
 
-            document.getElementById('policy-enabled-read').textContent =
-                resourceState ? '활성' : '비활성';
-        }
+	    document.getElementById('policy-save-state').textContent = '저장된 정책';
 
-        document.getElementById('policy-save-state').textContent =
-            '저장된 정책';
+	    const savePolicyButton = document.getElementById('save-resource-policy');
 
-        const savePolicyButton =
-            document.getElementById('save-resource-policy');
+	    if (savePolicyButton) {
+	        savePolicyButton.disabled = true;
+	    }
 
-        if (savePolicyButton) {
-            savePolicyButton.disabled = true;
-        }
+	    savedDepartmentIds = new Set(
+	        (selected.policies || []).map(policy => Number(policy.deptId))
+	    );
+	    selectedDepartmentIds = new Set(savedDepartmentIds);
 
-        savedDepartmentIds = new Set(
-            (selected.policies || []).map(policy => Number(policy.deptId))
-        );
-        selectedDepartmentIds = new Set(savedDepartmentIds);
+	    renderDepartments();
 
-        renderDepartments();
-
-        listView.hidden = true;
-        listHeading.hidden = true;
-        detailView.hidden = false;
-        document.getElementById('resource-readonly-note').hidden = isAdmin;
-    }
+	    listView.hidden = true;
+	    listHeading.hidden = true;
+	    detailView.hidden = false;
+	    document.getElementById('resource-readonly-note').hidden = isAdmin;
+	}
 
     async function load() {
         try {

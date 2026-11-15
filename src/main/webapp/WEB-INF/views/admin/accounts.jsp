@@ -21,7 +21,7 @@
             <label for="account-keyword">
                 <span class="account-search-label filter-label-text">계정 검색</span>
                 <input id="account-keyword" type="search" maxlength="120"
-                       placeholder="ID, 이름, 부서, 직급 또는 역할" autocomplete="off">
+                       placeholder="이름, 부서, 직급 또는 역할" autocomplete="off">
             </label>
             <button id="account-search" class="button primary" type="submit">검색</button>
             <button id="account-reset" class="button list-search-reset" type="button"
@@ -35,45 +35,42 @@
         </div>
 
         <div class="table-scroll">
-            <table class="account-list-table request-list-table">
-                <caption class="sr-only">사용자 계정 목록</caption>
+			<table class="account-list-table request-list-table"
+				data-account-view="${pageContext.request.isUserInRole('SYSTEM_ADMIN') ? 'admin' : 'user'}">
+			    <caption class="sr-only">사용자 계정 목록</caption>
 
-                <colgroup>
-                    <col class="account-employee-column">
-                    <col class="account-login-column">
-                    <col class="account-name-column">
-                    <col class="account-department-column">
-                    <col class="account-position-column">
-                    <col class="account-role-column">
-                    <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
-                        <col class="account-status-column">
-                    </c:if>
-                </colgroup>
+			    <colgroup>
+			        <col class="account-employee-column">
+			        <col class="account-name-column">
+			        <col class="account-department-column">
+			        <col class="account-position-column">
+			        <col class="account-role-column">
+			        <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
+			            <col class="account-status-column">
+			        </c:if>
+			    </colgroup>
 
-                <thead>
-                    <tr>
-                        <th scope="col">사번</th>
-                        <th scope="col">ID</th>
-                        <th scope="col">이름</th>
-                        <th scope="col">부서</th>
-                        <th scope="col">직급</th>
-                        <th scope="col">역할</th>
-                        <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
-                            <th scope="col">계정 상태</th>
-                        </c:if>
-                    </tr>
-                </thead>
+			    <thead>
+			        <tr>
+			            <th scope="col">사번</th>
+			            <th scope="col">이름</th>
+			            <th scope="col">부서</th>
+			            <th scope="col">직급</th>
+			            <th scope="col">역할</th>
+			            <c:if test="${pageContext.request.isUserInRole('SYSTEM_ADMIN')}">
+			                <th scope="col">계정 상태</th>
+			            </c:if>
+			        </tr>
+			    </thead>
 
-                <tbody id="account-rows" aria-busy="true">
-                    <tr>
-                        <td
-                            colspan="${pageContext.request.isUserInRole('SYSTEM_ADMIN') ? 7 : 6}"
-                            class="empty">
-                            계정 목록을 불러오는 중입니다.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+			    <tbody id="account-rows" aria-busy="true">
+			        <tr>
+			            <td colspan="${pageContext.request.isUserInRole('SYSTEM_ADMIN') ? 6 : 5}" class="empty">
+			                계정 목록을 불러오는 중입니다.
+			            </td>
+			        </tr>
+			    </tbody>
+			</table>
         </div>
 
         <nav
@@ -124,7 +121,7 @@
     const isSystemAdmin =
         ${pageContext.request.isUserInRole('SYSTEM_ADMIN')};
 
-    const columnCount = isSystemAdmin ? 7 : 6;
+    const columnCount = isSystemAdmin ? 6 : 5;
     const pageSize = 10;
     const pageBlockSize = 10;
 
@@ -179,57 +176,54 @@
         return cell;
     }
 
-    function renderAccounts(accounts) {
-        if (accounts.length === 0) {
-            showTableMessage(activeKeyword ? "검색 조건에 맞는 계정이 없습니다." : "등록된 계정이 없습니다.");
-            return;
-        }
+	function renderAccounts(accounts) {
+	    if (accounts.length === 0) {
+	        showTableMessage(activeKeyword ? "검색 조건에 맞는 계정이 없습니다." : "등록된 계정이 없습니다.");
+	        return;
+	    }
 
-        const fragment = document.createDocumentFragment();
+	    const fragment = document.createDocumentFragment();
 
-        accounts.forEach(account => {
-            const row = document.createElement("tr");
-            const loginCell = document.createElement("td");
+	    accounts.forEach(account => {
+	        const row = document.createElement("tr");
+	        const nameCell = document.createElement("td");
 
-            if (isSystemAdmin) {
-                const link = document.createElement("a");
-                link.className = "account-login-link";
-                link.href = BASE + "/admin/users/"
-                    + encodeURIComponent(account.userId);
-                link.textContent = account.loginId || "-";
-                loginCell.appendChild(link);
-            } else {
-                loginCell.textContent = account.loginId || "-";
-            }
+	        // 관리자 상세 진입은 ID 대신 이름 링크로 제공한다.
+	        if (isSystemAdmin) {
+	            const link = document.createElement("a");
+	            link.className = "account-name-link";
+	            link.href = BASE + "/admin/users/" + encodeURIComponent(account.userId);
+	            link.textContent = account.userName || "-";
+	            nameCell.appendChild(link);
+	        } else {
+	            nameCell.textContent = account.userName || "-";
+	        }
 
-            row.append(
-                createCell(account.employeeNo),
-                loginCell,
-                createCell(account.userName),
-                createCell(account.deptName),
-                createCell(account.positionName),
-                createRoleCell(account.roleNames)
-            );
+	        row.append(
+	            createCell(account.employeeNo),
+	            nameCell,
+	            createCell(account.deptName),
+	            createCell(account.positionName),
+	            createRoleCell(account.roleNames)
+	        );
 
-            if (isSystemAdmin) {
-                const statusCell = document.createElement("td");
-                const badge = document.createElement("span");
-                const enabled = account.enabled === "Y";
+	        if (isSystemAdmin) {
+	            const statusCell = document.createElement("td");
+	            const badge = document.createElement("span");
+	            const enabled = account.enabled === "Y";
 
-                badge.className = enabled
-                    ? "account-status-badge"
-                    : "account-status-badge is-disabled";
-                badge.textContent = enabled ? "활성" : "비활성";
+	            badge.className = enabled ? "account-status-badge" : "account-status-badge is-disabled";
+	            badge.textContent = enabled ? "활성" : "비활성";
 
-                statusCell.appendChild(badge);
-                row.appendChild(statusCell);
-            }
+	            statusCell.appendChild(badge);
+	            row.appendChild(statusCell);
+	        }
 
-            fragment.appendChild(row);
-        });
+	        fragment.appendChild(row);
+	    });
 
-        rowsElement.replaceChildren(fragment);
-    }
+	    rowsElement.replaceChildren(fragment);
+	}
 
     function renderPageNumbers() {
         pageNumbersElement.replaceChildren();
