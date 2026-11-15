@@ -61,7 +61,7 @@
               href="${pageContext.request.contextPath}/css/pages/change-sql-result.css?v=20261113-summary">
     </c:if>
 
-    <c:if test="${page == 'request-detail'}">
+    <c:if test="${page == 'request-detail' or page == 'db-resource-admin'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/approval-line-modal.css?v=20261111-css-split">
     </c:if>
@@ -92,10 +92,10 @@
 
     <c:if test="${page == 'db-resource-admin'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/db-resource-admin.css?v=20261115-shared-view-table">
+              href="${pageContext.request.contextPath}/css/pages/db-resource-admin.css?v=20261115-department-dialog">
     </c:if>
 
-    <c:if test="${page == 'view-detail'}">
+    <c:if test="${page == 'view-detail' or page == 'db-resource-admin'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/view-detail.css">
     </c:if>
