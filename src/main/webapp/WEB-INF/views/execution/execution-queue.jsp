@@ -8,7 +8,7 @@
         </div>
     </div>
 
-    <section class="panel execution-queue-panel" aria-label="실행 요청 목록">
+    <section class="panel execution-queue-panel" aria-label="쿼리 실행 대기 목록">
         <form id="queue-search" class="queue-search">
             <label for="queue-department" class="queue-department-field">
                 <span class="queue-filter-label sr-only">부서</span>
