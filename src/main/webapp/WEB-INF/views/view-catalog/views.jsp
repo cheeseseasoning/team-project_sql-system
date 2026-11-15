@@ -271,6 +271,8 @@
 	         const nameCell = document.createElement('td');
 	         const objectName = document.createElement('a');
 	         objectName.className = 'views-object-name';
+			 // 링크 끌기 대신 뷰 이름을 드래그해서 선택할 수 있도록 한다.
+			 objectName.draggable = false;
 	         objectName.textContent = view.objectName;
 	         objectName.href = BASE + '/views/detail?' + detailParams.toString();
 	         nameCell.appendChild(objectName);
