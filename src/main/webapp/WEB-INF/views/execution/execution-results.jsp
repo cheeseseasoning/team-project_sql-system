@@ -4,13 +4,6 @@
 <div class="execution-results-page">
     <div class="page-heading request-inbox-heading">
         <h1><c:out value="${pageTitle}"/></h1>
-        <button type="button"
-                class="button refresh-button"
-                id="refresh-button"
-                title="현재 페이지 새로고침"
-                aria-label="현재 페이지 새로고침">
-            <img src="${pageContext.request.contextPath}/icons/RefreshCw.svg" alt="">
-        </button>
     </div>
 
     <section id="execution-result-list" class="panel">
@@ -349,9 +342,6 @@
 						loadResults(1);
 					});
 
-					document.getElementById("refresh-button").addEventListener("click", function () {
-						loadResults(currentPage);
-					});
 
 					pagination.addEventListener("click", function (event) {
 						const button = event.target.closest("button");
