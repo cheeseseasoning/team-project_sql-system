@@ -371,10 +371,13 @@
 
 	    sortedColumns.forEach(function (column) {
 	        const row = document.createElement('tr');
+	        const entry = metadata.get(column.columnName);
+
+	        // 논리명이 없거나 공백뿐이면 표시용 대시를 사용한다.
+	        const logicalName = entry?.logicalName?.trim() || '-';
 
 	        appendCell(row, column.ordinalPosition);
-	        const entry = metadata.get(column.columnName);
-	        appendCell(row, entry?.logicalName || '미등록');
+	        appendCell(row, logicalName);
 	        appendCell(row, column.columnName, 'view-column-name');
 	        appendCell(row, column.columnType, 'view-column-type');
 	        appendCell(row, nullableNames[column.isNullable] || '확인 필요');
