@@ -1,71 +1,22 @@
 <%@ page pageEncoding="UTF-8" %>
 <%@ include file="/WEB-INF/views/fragments/top.jspf" %>
 
-<div class="execution-detail-page">
-    <nav class="execution-detail-breadcrumb" aria-label="현재 위치">
-        <a href="${pageContext.request.contextPath}/execution-queue">쿼리 실행 대기</a>
-        <span aria-hidden="true">›</span>
-        <span>기안서 상세</span>
-    </nav>
-
-    <section class="execution-document" aria-labelledby="document-title">
-        <div class="execution-document-heading">
-            <h1 id="document-title">기안서</h1>
-            <button id="detail-refresh" class="button" type="button">
-                상태 새로고침
-            </button>
-        </div>
-
-        <div class="execution-document-overview">
-            <dl id="request-info" class="execution-document-meta"></dl>
-
-            <section class="execution-approval-section"
-                     aria-labelledby="approval-history-title">
-                <div class="execution-approval-heading">
-                    <h2 id="approval-history-title">결재란</h2>
-                    <span id="approval-overall-status" class="badge neutral">조회 중</span>
-                </div>
-                <ol id="approval-history" class="execution-approval-list">
-                    <li class="execution-approval-empty">결재 이력을 불러오는 중입니다.</li>
-                </ol>
-            </section>
-        </div>
-
-        <div class="execution-document-title-row">
-            <span>제목</span>
-            <strong id="request-title">불러오는 중</strong>
-        </div>
-
-        <section class="execution-document-section">
-            <h2>1. 요청 목적</h2>
-            <p id="request-purpose">불러오는 중</p>
-        </section>
-
-        <section class="execution-document-section">
-            <h2>2. 상세 내용</h2>
-            <p id="request-description">불러오는 중</p>
-        </section>
-
-        <section class="execution-sql-section" aria-labelledby="execution-sql-title">
-            <div class="execution-sql-heading">
-                <div>
-                    <h2 id="execution-sql-title">3. 실행 대상 SQL</h2>
-                    <p id="sql-summary" class="caption"></p>
-                </div>
-                <div id="batch-actions" class="execution-queue-actions"></div>
-            </div>
-
-            <div id="sql-items" class="queue-sql-list">
-                <p class="execution-sql-empty">SQL 목록을 불러오는 중입니다.</p>
-            </div>
-        </section>
-
-        <p id="detail-message"
-           class="execution-queue-message"
-           role="status"
-           aria-live="polite"></p>
-    </section>
+<div class="execution-detail-page request-detail-page request-document-page">
+    <a class="back-link" href="${pageContext.request.contextPath}/execution-queue">← 쿼리 실행 대기 목록</a>
+    <article class="request-document" aria-labelledby="detail-title">
+        <header class="request-document-heading">
+            <p id="request-document-heading" class="request-document-caption">SQLFlow · 데이터 조회 기안서</p>
+            <h1 id="detail-title">요청을 불러오는 중입니다.</h1>
+        </header>
+        <c:set var="requestDetailReadOnly" value="${true}" />
+        <c:set var="requestDetailDocument" value="${true}" />
+        <%@ include file="/WEB-INF/views/fragments/request-detail-body.jspf" %>
+        <footer class="request-document-footer">
+            <p id="detail-message" class="execution-queue-message" role="status" aria-live="polite"></p>
+        </footer>
+    </article>
 </div>
+<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261113-sql-meta"></script>
 
 <script>
 (function () {
@@ -73,6 +24,18 @@
 
     const requestId = '${requestId}';
     const $id = id => document.getElementById(id);
+
+    const batchActions = document.createElement('div');
+    batchActions.id = 'batch-actions';
+    batchActions.className = 'execution-batch-actions';
+    document.querySelector('.request-sql-heading').appendChild(batchActions);
+
+    // 전체 건수는 공통 제목 안에, 대기 건수는 제목 옆 보조 문구로 표시한다.
+    const pendingCount = document.createElement('span');
+    pendingCount.id = 'execution-pending-count';
+    pendingCount.className = 'caption';
+    pendingCount.setAttribute('aria-live', 'polite');
+    document.querySelector('.request-sql-heading-main h2').after(pendingCount);
 
     let detail = null;
     let approvalHistory = [];
@@ -93,8 +56,8 @@
     const sqlStateLabel = {
         PENDING: '실행 대기',
         RUNNING: '실행 중',
-        SUCCESS: '성공',
-        FAILED: '실패'
+        SUCCESS: '실행 성공',
+        FAILED: '실행 실패'
     };
 
     const approvalTypeLabel = {
@@ -322,64 +285,16 @@
     }
 
     function renderApprovalHistory() {
-        const list = $id('approval-history');
-        const overallStatus = $id('approval-overall-status');
-
-        if (!approvalHistory.length) {
-            list.innerHTML =
-                '<li class="execution-approval-empty">'
-                + '등록된 결재 이력이 없습니다.'
-                + '</li>';
-            return;
-        }
-
-        overallStatus.textContent =
-            detail && detail.approvalStatus === 'APPROVED'
-                ? '최종 승인'
-                : approvalStatusLabel(
-                    approvalHistory[approvalHistory.length - 1].status
-                );
-
-        overallStatus.className =
-            'badge '
-            + statusKind(
-                detail && detail.approvalStatus === 'APPROVED'
-                    ? 'APPROVED'
-                    : approvalHistory[approvalHistory.length - 1].status
-            );
-
-        list.innerHTML = approvalHistory.map(function (item, index) {
-            const person = [
-                item.approverName,
-                item.deptName,
-                item.positionName
-            ].filter(Boolean).join(' · ');
-
-            const decidedAt = item.decidedAt
-                ? formatShortDateTime(item.decidedAt)
-                : '';
-
-            return '<li class="execution-approval-card'
-                + (item.status === 'APPROVED'
-                    && index === approvalHistory.length - 1
-                    ? ' is-current'
-                    : '')
-                + '">'
-                + '<span class="execution-approval-type">'
-                + esc(approvalLabel(item.approvalType))
-                + '</span>'
-                + '<strong class="execution-approval-person">'
-                + esc(person || '결재자 미지정')
-                + '</strong>'
-                + '<span class="execution-approval-status '
-                + 'status-' + esc(statusKind(item.status)) + '">'
-                + esc(approvalStatusLabel(item.status))
-                + '</span>'
-                + (decidedAt
-                    ? '<time>' + esc(decidedAt) + '</time>'
-                    : '')
-                + '</li>';
-        }).join('');
+        window.RequestDetailRenderer.renderApprovalPreview(approvalHistory.map(function (item, index) {
+            return {
+                order: item.approvalOrder || index + 1,
+                name: item.approverName,
+                deptName: item.deptName,
+                positionName: item.positionName,
+                status: item.status,
+                decidedAt: item.decidedAt
+            };
+        }));
     }
 
     function runButton(data, item) {
@@ -393,91 +308,53 @@
 
     function render(data) {
         const items = sqlItems(data);
+        const renderer = window.RequestDetailRenderer;
 
-        $id('request-title').textContent = data.title || '제목 없음';
-        $id('request-purpose').textContent =
-            data.purpose || '요청 목적이 입력되지 않았습니다.';
-        $id('request-description').textContent =
-            data.detailContent || '상세 내용이 입력되지 않았습니다.';
-
-        $id('request-info').innerHTML =
-            '<div><dt>문서번호</dt><dd>'
-            + esc(data.requestNo || '—')
-            + '</dd></div>'
-            + '<div><dt>기안 부서</dt><dd>'
-            + esc(data.deptName || '—')
-            + '</dd></div>'
-            + '<div><dt>기안자</dt><dd>'
-            + esc(data.drafterName || '—')
-            + '</dd></div>'
-            + '<div><dt>작성일</dt><dd>'
-            + esc(formatDateTime(data.submittedAt))
-            + '</dd></div>'
-            + '<div><dt>처리 상태</dt><dd>'
-            + esc(requestStatusLabel(data))
-            + '</dd></div>';
-
-        $id('sql-summary').textContent =
-            '총 ' + items.length + '건 · 대기 '
-            + items.filter(item =>
-                item.executionId == null
-                && item.executionStatus == null
-            ).length
-            + '건';
-
+        // 요청 상세와 같은 정보표·본문·결재란·SQL 표시를 재사용한다.
+        renderer.renderRequestInfo({ ...data, items });
+        pendingCount.textContent = '대기 ' + items.filter(item =>
+            item.executionId == null && item.executionStatus == null).length + '건';
+        $id('request-info').hidden = false;
         const hasExecutedSql = items.some(item =>
-            item.executionStatus === 'SUCCESS'
-            || item.executionStatus === 'FAILED'
-        );
-
-        const wholeLabel =
-            data.batchId == null && hasExecutedSql
-                ? '남은 SQL 전체 실행'
-                : '전체 실행';
-
+            item.executionStatus === 'SUCCESS' || item.executionStatus === 'FAILED');
+        const wholeLabel = data.batchId == null && hasExecutedSql ? '남은 SQL 전체 실행' : '전체 실행';
         $id('batch-actions').innerHTML =
             '<button id="run-all" class="button primary" type="button"'
-            + (canRunWhole(data) ? '' : ' disabled')
-            + '>' + esc(wholeLabel) + '</button>';
+            + (canRunWhole(data) ? '' : ' disabled') + '>' + esc(wholeLabel) + '</button>';
 
-        $id('sql-items').innerHTML = items.map(function (item, index) {
-            const rawStatus = item.executionStatus;
-            const label = rawStatus == null
-                ? '실행 대기'
-                : sqlStateLabel[rawStatus] || rawStatus;
-
-            const error = item.errorMessage
-                ? '<p class="queue-error"><strong>실패 원인:</strong> '
-                    + esc(item.errorMessage)
-                    + '</p>'
-                : '';
-
-            return '<details class="execution-sql-card"'
-                + (index === 0 ? ' open' : '')
-                + '>'
-                + '<summary class="execution-sql-summary">'
-                + '<span class="execution-sql-name">'
-                + esc(String(item.queryOrder || index + 1).padStart(2, '0'))
-                + '　'
-                + esc(item.queryTitle || 'SQL')
-                + '</span>'
-                + '<span class="execution-sql-status '
-                + 'status-' + esc(statusKind(rawStatus))
-                + '">' + esc(label) + '</span>'
-                + '</summary>'
-                + '<div class="execution-sql-body">'
-                + '<pre><code>' + esc(item.sqlText || '') + '</code></pre>'
-                + '<div class="queue-sql-footer">'
-                + error
-                + runButton(data, item)
-                + '</div>'
-                + '</div>'
-                + '</details>';
-        }).join('') || '<p class="execution-sql-empty">등록된 SQL이 없습니다.</p>';
-
+        $id('detail-items').innerHTML = renderer.renderItems(items, new Map(), { readOnly: true });
+        $id('detail-items').querySelectorAll('.request-sql-item').forEach(function (card, index) {
+            const item = items[index];
+            const label = item.executionStatus == null ? '실행 대기'
+                : sqlStateLabel[item.executionStatus] || item.executionStatus;
+            // 검증 결과와 실행 상태를 제목 오른쪽 한 그룹으로 표시한다.
+            const summary = card.querySelector('summary');
+            const states = document.createElement('span');
+            states.className = 'execution-item-states';
+            states.appendChild(summary.querySelector('.request-sql-validation-state'));
+            states.insertAdjacentHTML('beforeend',
+                '<span class="execution-state-separator" aria-hidden="true">·</span>'
+                + '<span class="execution-item-status status-' + esc(statusKind(item.executionStatus)) + '">'
+                + esc(label) + '</span>');
+            // 접힌 상태에서는 상태만 오른쪽에, 펼치면 그 옆에 실행 버튼을 표시한다.
+            const toolbar = document.createElement('span');
+            toolbar.className = 'execution-item-toolbar';
+            toolbar.appendChild(states);
+            toolbar.insertAdjacentHTML('beforeend',
+                '<span class="execution-item-actions">' + runButton(data, item) + '</span>');
+            summary.appendChild(toolbar);
+            toolbar.querySelector('.sql-run').addEventListener('click', function (event) {
+                // 실행 버튼 클릭으로 SQL 접기가 함께 동작하지 않도록 한다.
+                event.preventDefault();
+                event.stopPropagation();
+            });
+            if (item.errorMessage) {
+                card.querySelector('.request-sql-body').insertAdjacentHTML('beforeend',
+                    '<p class="queue-error" role="status"><strong>실패 원인:</strong> '
+                    + esc(item.errorMessage) + '</p>');
+            }
+        });
         renderApprovalHistory();
-
-        $id('detail-refresh').disabled = posting;
         bindActions();
     }
 
@@ -489,7 +366,7 @@
             approvalHistory = Array.isArray(history) ? history : [];
         } catch (error) {
             approvalHistory = [];
-            $id('approval-history').innerHTML =
+            $id('request-approval-list').innerHTML =
                 '<li class="execution-approval-empty">'
                 + '결재 이력을 불러오지 못했습니다.'
                 + '</li>';
@@ -534,7 +411,7 @@
             }
 
             showMessage(
-                error.message + ' 상태 새로고침으로 다시 확인하세요.',
+                error.message + ' 잠시 후 화면을 다시 열어 확인하세요.',
                 true
             );
 
@@ -573,7 +450,7 @@
                     requestError.message
                     + (refreshed
                         ? ''
-                        : ' 상태 새로고침으로 처리 상태를 확인하세요.'),
+                        : ' 잠시 후 화면을 다시 열어 처리 상태를 확인하세요.'),
                     true
                 );
             }
@@ -650,18 +527,6 @@
             };
         });
     }
-
-    $id('detail-refresh').addEventListener('click', async function () {
-        if (posting) {
-            return;
-        }
-
-        const refreshed = await load();
-
-        if (refreshed) {
-            showMessage('실행 상태를 갱신했습니다.', false);
-        }
-    });
 
     window.addEventListener('pagehide', function () {
         disposed = true;

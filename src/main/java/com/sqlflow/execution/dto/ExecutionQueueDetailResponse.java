@@ -1,5 +1,6 @@
 package com.sqlflow.execution.dto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Getter;
@@ -11,6 +12,10 @@ public class ExecutionQueueDetailResponse {
     private String requestNo;
     private String title;
     private String purpose;
+    private String requestType;
+    private String requestClass;
+    private String isUrgent;
+    private LocalDate desiredDate;
     private String detailContent;
     private String drafterName;
     private String deptName;

@@ -66,9 +66,14 @@
               href="${pageContext.request.contextPath}/css/pages/approval-line-modal.css?v=20261111-css-split">
     </c:if>
 
-    <c:if test="${page == 'execution-queue' or page == 'execution-queue-detail'}">
+    <c:if test="${page == 'execution-queue'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/execution-queue.css?v=20261113-list-search-fix">
+    </c:if>
+
+    <c:if test="${page == 'execution-queue-detail'}">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261113-sql-meta">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/execution-queue-detail.css?v=20261115-shared-document">
     </c:if>
 
     <c:if test="${page == 'notices'}">
@@ -124,7 +129,8 @@
     <c:if test="${page == 'view-detail'
                or page == 'request-detail'
                or page == 'department-request-detail'
-               or page == 'execution-result-detail'}">
+               or page == 'execution-result-detail'
+               or page == 'execution-queue-detail'}">
         <script src="${pageContext.request.contextPath}/js/vendor/sql-formatter.min.js"></script>
         <script src="${pageContext.request.contextPath}/js/sql-display.js?v=20261113-format"></script>
     </c:if>
@@ -212,7 +218,7 @@
                                    href="${pageContext.request.contextPath}/execution-queue"
                                    ${activeMenu == 'execution-queue' ? 'aria-current="page"' : ''}>
                                     <img src="${pageContext.request.contextPath}/icons/SquareTerminal.svg" alt="">
-                                    쿼리 실행 대기
+                                    쿼리 실행 대기 목록
                                 </a>
                             </c:if>
                             <c:if test="${pageContext.request.isUserInRole('DB_ADMIN') or deptName == 'DB팀'}">
