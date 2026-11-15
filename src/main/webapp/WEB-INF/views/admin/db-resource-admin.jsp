@@ -11,7 +11,7 @@
     <div id="resource-list-view">
         <section class="panel resource-list-panel">
             <div class="resource-search-block">
-                <label for="resource-search">리소스 검색</label>
+                <label for="resource-search" class="sr-only">리소스 검색</label>
 
                 <div class="resource-search-controls">
                     <input
@@ -40,7 +40,6 @@
 
             <div class="resource-list-content">
                 <div class="resource-list-heading">
-                    <h2>리소스 목록</h2>
                     <span id="resource-total" class="caption"></span>
                 </div>
 

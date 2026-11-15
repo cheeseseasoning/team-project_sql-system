@@ -43,6 +43,62 @@ public class NoticeService {
         return noticeMapper.selectNoticePage(offset, size);
     }
 
+    /** 검색어가 없으면 기존 전체 건수 조회를 재사용한다. */
+    public long countNotices(String keyword) {
+        return countNotices(keyword, "TITLE");
+    }
+
+    /** 목록과 건수에 같은 검색 유형을 적용한다. */
+    public long countNotices(String keyword, String searchType) {
+        String type = normalizeSearchType(searchType);
+        String search = normalizeKeyword(keyword);
+        return search.isEmpty() ? countNotices() : noticeMapper.countMatchingNotices(search, type);
+    }
+
+    /** 검색 조건을 적용하되 기존 페이지 번호·조회 개수 제한을 유지한다. */
+    public List<Notice> getNoticePage(int page, int size, String keyword) {
+        return getNoticePage(page, size, keyword, "TITLE");
+    }
+
+    /** 제목·작성자 이름·둘 중 하나의 부분 일치로 검색한다. */
+    public List<Notice> getNoticePage(int page, int size, String keyword, String searchType) {
+        String type = normalizeSearchType(searchType);
+        String search = normalizeKeyword(keyword);
+
+        if (search.isEmpty()) {
+            return getNoticePage(page, size);
+        }
+
+        if (page < 1 || size < 1 || size > 100) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "페이지는 1 이상, 조회 개수는 1~100이어야 합니다.");
+        }
+
+        long offset = (long) (page - 1) * size;
+        return noticeMapper.searchNoticePage(offset, size, search, type);
+    }
+
+    /** 화면을 우회한 요청도 정해진 세 가지 검색 유형만 허용한다. */
+    private String normalizeSearchType(String searchType) {
+        String type = searchType == null || searchType.isBlank() ? "TITLE" : searchType.strip();
+        if (!List.of("TITLE", "AUTHOR", "TITLE_AUTHOR").contains(type)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "올바른 검색 유형을 선택하세요.");
+        }
+        return type;
+    }
+
+    /** 공백을 정리하고 화면을 우회한 과도한 길이의 검색어도 차단한다. */
+    private String normalizeKeyword(String keyword) {
+        String search = keyword == null ? "" : keyword.strip();
+
+        if (search.length() > 120) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "검색어는 120자 이하로 입력하세요.");
+        }
+
+        return search;
+    }
+
     /** 공지 상세를 조회하고, 존재하지 않으면 404로 처리한다. */
     public Notice getNotice(Long noticeId) {
 

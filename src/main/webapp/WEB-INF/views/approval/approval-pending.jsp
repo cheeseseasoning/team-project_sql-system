@@ -9,7 +9,7 @@
     <section id="approval-request-list" class="panel">
         <form id="approval-filter" class="filter-bar">
             <label for="approval-keyword">
-                <span class="filter-label-text">요청 검색</span>
+                <span class="filter-label-text sr-only">요청 검색</span>
                 <input
                     id="approval-keyword"
                     type="search"
@@ -17,7 +17,7 @@
             </label>
 
             <label class="request-type-filter" for="approval-type">
-                <span class="filter-label-text">요청 유형</span>
+                <span class="filter-label-text sr-only">요청 유형</span>
                 <select id="approval-type">
                     <option value="">전체 유형</option>
                     <option value="SELECT">조회 요청</option>
@@ -29,7 +29,7 @@
             </label>
 
             <label for="approval-stage">
-                <span class="filter-label-text">결재 단계</span>
+                <span class="filter-label-text sr-only">결재 단계</span>
                 <select id="approval-stage">
                     <option value="">전체 단계</option>
                     <option value="APPROVER">중간 결재</option>
@@ -49,7 +49,6 @@
         </form>
 
         <div class="panel-heading request-list-heading">
-            <h2>결재 대기 목록</h2>
             <span id="approval-count" class="caption request-list-count" aria-live="polite">내 결재 대기 · 불러오는 중</span>
         </div>
 

@@ -16,7 +16,7 @@
     <section id="execution-result-list" class="panel">
         <form id="search-form" class="filter-bar results-filter">
             <label for="status-filter">
-                <span class="filter-label-text">SQL 실행 상태</span>
+                <span class="filter-label-text sr-only">SQL 실행 상태</span>
                 <select id="status-filter" name="status">
                     <option value="">전체</option>
                     <option value="SUCCEEDED">성공</option>
@@ -27,7 +27,7 @@
             </label>
 
             <label for="keyword-filter">
-                <span class="filter-label-text">요청 검색</span>
+                <span class="filter-label-text sr-only">요청 검색</span>
                 <input type="search" id="keyword-filter" name="keyword"
                        placeholder="요청번호, 요청 제목, SQL 제목, 부서명, 작성자 검색" maxlength="200">
             </label>
@@ -45,7 +45,6 @@
         <div id="error-message" role="alert" hidden></div>
 
         <div class="panel-heading request-list-heading">
-            <h2>실행 결과 목록</h2>
             <span id="total-count" class="caption request-list-count" aria-live="polite">총 0건</span>
         </div>
 

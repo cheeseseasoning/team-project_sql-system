@@ -9,12 +9,12 @@
 		<section id="my-request-list" class="panel">
 			<form id="filter-form" class="filter-bar">
 				<label>
-					<span class="filter-label-text">요청 검색</span>
+					<span class="filter-label-text sr-only">요청 검색</span>
 					<input name="keyword" id="keyword" placeholder="요청번호 또는 제목" maxlength="120">
 				</label>
 
 				<label class="request-type-filter">
-				    <span class="filter-label-text">요청 유형</span>
+				    <span class="filter-label-text sr-only">요청 유형</span>
 				    <select id="request-type" name="requestType">
 				        <option value="">전체</option>
 				        <option value="SELECT">조회</option>
@@ -23,7 +23,7 @@
 				</label>
 
 				<label>
-					<span class="filter-label-text">처리 상태</span>
+					<span class="filter-label-text sr-only">처리 상태</span>
 					<select id="status" name="status">
 						<option value="">전체</option>
 						<option value="DRAFT">초안</option>
@@ -52,7 +52,6 @@
 			</form>
 
 			<div class="panel-heading request-list-heading">
-			    <h2>내 요청 목록</h2>
 
 			    <span id="result-count"
 			          class="caption request-list-count"

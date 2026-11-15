@@ -128,7 +128,7 @@
         <script src="${pageContext.request.contextPath}/js/vendor/sql-formatter.min.js"></script>
         <script src="${pageContext.request.contextPath}/js/sql-display.js?v=20261113-format"></script>
     </c:if>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/list-titles.css?v=20261113-ellipsis">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/list-titles.css?v=20261115-compact-lists">
     <script src="${pageContext.request.contextPath}/js/list-titles.js?v=20261113-ellipsis" defer></script>
 </head>
 <body>

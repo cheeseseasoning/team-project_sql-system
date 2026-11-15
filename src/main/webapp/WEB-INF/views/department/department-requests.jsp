@@ -9,7 +9,7 @@
     <section id="department-request-list" class="panel">
         <form id="department-filter-form" class="filter-bar">
             <label class="department-filter-keyword" for="department-keyword">
-                <span class="filter-label-text">요청 검색</span>
+                <span class="filter-label-text sr-only">요청 검색</span>
                 <input id="department-keyword"
                        name="keyword"
                        maxlength="120"
@@ -17,7 +17,7 @@
             </label>
 
             <label class="request-type-filter" for="department-type">
-                <span class="filter-label-text">요청 유형</span>
+                <span class="filter-label-text sr-only">요청 유형</span>
                 <select id="department-type" name="type">
                     <option value="">전체 유형</option>
                     <option value="SELECT">조회</option>
@@ -29,7 +29,7 @@
             </label>
 
             <label for="department-status">
-                <span class="filter-label-text">처리 상태</span>
+                <span class="filter-label-text sr-only">처리 상태</span>
                 <select id="department-status" name="status">
                     <option value="">전체 상태</option>
                 </select>
@@ -46,7 +46,6 @@
         </form>
 
         <div class="panel-heading request-list-heading">
-            <h2>부서 요청 목록</h2>
             <span id="department-count" class="caption request-list-count" aria-live="polite"></span>
         </div>
 
