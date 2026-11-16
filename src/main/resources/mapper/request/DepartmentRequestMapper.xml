@@ -114,8 +114,7 @@
                END AS CURRENT_APPROVAL_TYPE,
                CASE
                    WHEN R.REQUEST_TYPE IN (
-                       'CREATE_VIEW',
-                       'CREATE_TABLE',
+                       'CREATE',
                        'INSERT',
                        'UPDATE',
                        'DELETE'
@@ -133,8 +132,7 @@
                END AS SQL_COUNT,
                CASE
                    WHEN R.REQUEST_TYPE IN (
-                       'CREATE_VIEW',
-                       'CREATE_TABLE',
+                       'CREATE',
                        'INSERT',
                        'UPDATE',
                        'DELETE'
@@ -268,8 +266,7 @@
         LEFT JOIN DEPARTMENT REGISTRAR_DEPT ON REGISTRAR_DEPT.DEPT_ID = REGISTRAR.DEPT_ID
         WHERE R.REQUEST_ID = #{requestId}
           AND R.REQUEST_TYPE IN (
-              'CREATE_VIEW',
-              'CREATE_TABLE',
+              'CREATE',
               'INSERT',
               'UPDATE',
               'DELETE'
@@ -371,8 +368,7 @@
         WHERE R.REQUEST_ID = #{requestId}
           AND C.QUERY_ID = #{queryId}
           AND R.REQUEST_TYPE IN (
-              'CREATE_VIEW',
-              'CREATE_TABLE',
+              'CREATE',
               'INSERT',
               'UPDATE',
               'DELETE'
@@ -416,8 +412,7 @@
         WHERE R.REQUEST_ID = #{requestId}
           AND C.QUERY_ID = #{queryId}
           AND R.REQUEST_TYPE IN (
-              'CREATE_VIEW',
-              'CREATE_TABLE',
+              'CREATE',
               'INSERT',
               'UPDATE',
               'DELETE'
@@ -492,8 +487,7 @@
         FROM QUERY_REQUEST R
         WHERE R.REQUEST_ID = #{requestId}
           AND R.REQUEST_TYPE IN (
-              'CREATE_VIEW',
-              'CREATE_TABLE',
+              'CREATE',
               'INSERT',
               'UPDATE',
               'DELETE'

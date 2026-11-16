@@ -15,21 +15,31 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ViewCreateDraftRequest {
+
     @NotBlank @Size(max = 200)
     private String title;
+
     @NotBlank
     private String purpose;
+
     private String detailContent;
+
     @NotBlank @Pattern(regexp = "Y|N")
     private String isUrgent = "N";
+
     private LocalDate desiredDate;
-    @NotEmpty @Size(max = 5)
+
+    @NotEmpty
+    @Size(max = 10, message = "SQL은 최대 10개까지 등록할 수 있습니다.")
     private List<@NotNull @Valid SqlEntry> items;
 
-    @Getter @Setter
+    @Getter
+    @Setter
     public static class SqlEntry {
+
         @NotBlank(message = "SQL 제목을 입력하세요.") @Size(max = 200)
         private String queryTitle;
+
         @NotBlank
         private String sqlText;
     }

@@ -35,11 +35,10 @@ public class RequestSqlValidationService {
      * 실제 SQL 실행이나 결재선 생성은 하지 않는다.
      */
     public void validate(Long requesterId, List<String> sqlTexts) {
-
-        if (sqlTexts == null || sqlTexts.isEmpty() || sqlTexts.size() > 5) {
+        if (sqlTexts == null || sqlTexts.isEmpty() || sqlTexts.size() > 10) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "제출하려면 SQL을 1개 이상, 5개 이하로 등록하세요.");
+                    "제출하려면 SQL을 1개 이상, 10개 이하로 등록하세요.");
         }
 
         for (String sqlText : sqlTexts) {
@@ -47,14 +46,11 @@ public class RequestSqlValidationService {
         }
     }
 
-    /** Validate every saved item independently so the UI can show each result. */
-    public List<RequestSqlValidationResult> validateItems(
-            Long requesterId, List<RequestItemResponse> items) {
+    /** 저장된 SQL을 각각 검사해 화면에 표시할 결과를 반환한다. */
+    public List<RequestSqlValidationResult> validateItems(Long requesterId, List<RequestItemResponse> items) {
 
-        if (items == null || items.isEmpty() || items.size() > 5) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "검증하려면 SQL을 1개 이상, 5개 이하로 등록하세요.");
+        if (items == null || items.isEmpty() || items.size() > 10) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "검증하려면 SQL을 1개 이상, 10개 이하로 등록하세요.");
         }
 
         return items.stream()
@@ -112,18 +108,16 @@ public class RequestSqlValidationService {
     }
     
     /**
-     * 제출용 검증.
+     * 제출 직전에 저장된 SQL을 다시 검사한다.
      * 하나라도 실패하면 예외를 전달하며 결과를 저장하지 않는다.
      */
     public List<RequestSqlValidationResult> validateForSubmission(
-            Long requesterId,
-            List<RequestItemResponse> items) {
+            Long requesterId, List<RequestItemResponse> items) {
 
-        if (items == null || items.isEmpty() || items.size() > 5) {
+        if (items == null || items.isEmpty() || items.size() > 10) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "제출하려면 SQL을 1개 이상, 5개 이하로 등록하세요."
-            );
+                    "제출하려면 SQL을 1개 이상, 10개 이하로 등록하세요.");
         }
 
         List<RequestSqlValidationResult> results = new ArrayList<>();
@@ -136,8 +130,7 @@ public class RequestSqlValidationService {
                     "VALID",
                     "검증을 통과했습니다.",
                     access.accessLevel(),
-                    access.resourceIds().stream().sorted().toList()
-            ));
+                    access.resourceIds().stream().sorted().toList()));
         }
 
         return results;

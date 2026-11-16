@@ -172,8 +172,7 @@
 			    };
 
 			    const changeTypes = {
-			        CREATE_VIEW: '뷰 생성',
-		        CREATE_TABLE: '테이블 생성',
+			        CREATE: 'CREATE',
 			        INSERT: '데이터 추가',
 			        UPDATE: '데이터 수정',
 			        DELETE: '데이터 삭제'

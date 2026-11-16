@@ -149,6 +149,8 @@
 </form>
 
 <script>
+	// 조회 요청 수정 시 작성할 수 있는 SQL의 최대 개수.
+	const MAX_SQL_COUNT = 10;
 	const editConfig = $('#edit-config');
 	const editRequestId = editConfig.dataset.requestId;
 	const isRedraft = editConfig.dataset.redraft === 'true';
@@ -248,10 +250,7 @@
 	        editSqls.push({ title: '', sqlText: '' });
 	    }
 
-	    activeEditSqlIndex = Math.max(
-	        0,
-	        Math.min(activeEditSqlIndex, editSqls.length - 1)
-	    );
+	    activeEditSqlIndex = Math.max(0, Math.min(activeEditSqlIndex, editSqls.length - 1));
 
 	    tabs.replaceChildren();
 	    box.replaceChildren();
@@ -259,10 +258,6 @@
 	    editSqls.forEach(function (item, index) {
 	        const tabId = 'edit-sql-tab-' + index;
 	        const panelId = 'edit-sql-panel-' + index;
-
-	        const group = document.createElement('div');
-	        group.className = 'request-sql-tab-group';
-	        group.setAttribute('role', 'presentation');
 
 	        const tab = document.createElement('button');
 	        tab.id = tabId;
@@ -276,27 +271,7 @@
 	            activateEditSqlTab(index);
 	        });
 
-	        const remove = document.createElement('button');
-	        remove.type = 'button';
-	        remove.className = 'request-sql-tab-remove';
-	        remove.textContent = '×';
-	        remove.disabled = editSqls.length <= 1;
-
-	        remove.setAttribute(
-	            'aria-label',
-	            'SQL ' + (index + 1) + ' 삭제'
-	        );
-
-	        remove.title = editSqls.length <= 1
-	            ? 'SQL 입력 칸은 최소 1개 유지됩니다.'
-	            : 'SQL 삭제';
-
-	        remove.addEventListener('click', function () {
-	            removeEditSql(index);
-	        });
-
-	        group.append(tab, remove);
-	        tabs.append(group);
+	        tabs.append(tab);
 
 	        const section = document.createElement('section');
 	        section.id = panelId;
@@ -306,7 +281,9 @@
 
 	        // 사용자 입력값은 아래에서 value로 넣는다.
 	        section.innerHTML =
-	            '<label class="request-sql-field">'
+	            '<div class="request-sql-field-heading">'
+	            + '<button type="button" class="text-button request-sql-delete">삭제</button>'
+	            + '<label class="request-sql-field">'
 	            + '<span>SQL 제목 <span class="required">*</span></span>'
 	            + '<input type="text"'
 	            + ' class="sql-title-input edit-sql-title-input"'
@@ -314,6 +291,7 @@
 	            + ' aria-required="true"'
 	            + ' placeholder="SQL 제목을 입력하세요.">'
 	            + '</label>'
+	            + '</div>'
 	            + '<label class="request-sql-field">'
 	            + '<span>SQL 원문</span>'
 	            + '<textarea class="sql-editor edit-sql-editor"'
@@ -321,55 +299,59 @@
 	            + ' spellcheck="false"'
 	            + ' placeholder="SELECT SQL을 입력하세요.">'
 	            + '</textarea>'
-				+ '</label>'
-				+ '<p class="request-sql-validation caption" hidden></p>';
+	            + '</label>'
+	            + '<p class="request-sql-validation caption" hidden></p>';
 
-	        section.querySelector('.edit-sql-title-input').value =
-	            item.title || '';
+	        const remove = section.querySelector('.request-sql-delete');
+	        remove.disabled = editSqls.length <= 1;
+	        remove.setAttribute('aria-label', 'SQL ' + (index + 1) + ' 삭제');
+	        remove.title = editSqls.length <= 1 ? 'SQL 입력 칸은 최소 1개 유지됩니다.' : 'SQL 삭제';
+	        remove.addEventListener('click', function () {
+	            removeEditSql(index);
+	        });
 
-			const editor = section.querySelector('.edit-sql-editor');
-			const validationMessage = section.querySelector('.request-sql-validation');
-			const tabLabel = 'SQL ' + (index + 1);
+	        section.querySelector('.edit-sql-title-input').value = item.title || '';
 
-			editor.value = item.sqlText || '';
+	        const editor = section.querySelector('.edit-sql-editor');
+	        const validationMessage = section.querySelector('.request-sql-validation');
+	        const tabLabel = 'SQL ' + (index + 1);
 
-			function renderValidation() {
-			    const result = editSqls[index].validation;
-			    const passed = result?.validationStatus === 'VALID';
+	        editor.value = item.sqlText || '';
 
-			    tab.textContent = tabLabel + (result ? (passed ? ' ✓' : ' !') : '');
-			    tab.setAttribute('aria-label', result
-			        ? tabLabel + (passed ? ' 검증 완료' : ' 검증 실패')
-			        : tabLabel);
+	        function renderValidation() {
+	            const result = editSqls[index].validation;
+	            const passed = result?.validationStatus === 'VALID';
 
-			    validationMessage.hidden = !result;
-			    validationMessage.classList.toggle('is-invalid', Boolean(result) && !passed);
-			    validationMessage.textContent = result
-			        ? (passed ? '검증 완료' : '검증 실패') + ' · ' + result.message
-			        : '';
-			}
+	            tab.textContent = tabLabel + (result ? (passed ? ' ✓' : ' !') : '');
+	            tab.setAttribute('aria-label', result
+	                ? tabLabel + (passed ? ' 검증 완료' : ' 검증 실패')
+	                : tabLabel);
 
-			renderValidation();
+	            validationMessage.hidden = !result;
+	            validationMessage.classList.toggle('is-invalid', Boolean(result) && !passed);
+	            validationMessage.textContent = result
+	                ? (passed ? '검증 완료' : '검증 실패') + ' · ' + result.message
+	                : '';
+	        }
 
-			editor.addEventListener('input', function () {
-			    delete editSqls[index].validation;
-			    renderValidation();
-			});
+	        renderValidation();
+
+	        editor.addEventListener('input', function () {
+	            delete editSqls[index].validation;
+	            renderValidation();
+	        });
 
 	        box.append(section);
 	    });
 
-	    $('#edit-sql-count').textContent =
-	        editSqls.length + ' / 5';
-
-	    $('#edit-add-sql').disabled =
-	        editSqls.length >= 5 || saveInProgress;
+	    $('#edit-sql-count').textContent = editSqls.length + ' / ' + MAX_SQL_COUNT;
+	    $('#edit-add-sql').disabled = editSqls.length >= MAX_SQL_COUNT || saveInProgress;
 
 	    activateEditSqlTab(activeEditSqlIndex);
 	}
 
 	$('#edit-add-sql').addEventListener('click', function () {
-	    if (saveInProgress || editSqls.length >= 5) return;
+	    if (saveInProgress || editSqls.length >= MAX_SQL_COUNT) return;
 
 	    readEditSqls();
 
@@ -379,7 +361,7 @@
 	    renderEditSqls();
 	    activateEditSqlTab(activeEditSqlIndex, true);
 	});
-
+	
 	$('#edit-sql-tabs').addEventListener('keydown', function (event) {
 	    const tab = event.target.closest('[role="tab"]');
 
@@ -404,52 +386,66 @@
 	    activateEditSqlTab(nextIndex, true);
 	});
 
-    async function loadEditDraft() {
-        try {
-            const request = await api(
-                '/requests/mine/' + encodeURIComponent(editRequestId)
-            );
+	async function loadEditDraft() {
+	    try {
+	        const request = await api(
+	            '/requests/mine/' + encodeURIComponent(editRequestId)
+	        );
 
-			const editable = isRedraft
-			    ? ['REJECTED', 'WITHDRAWN'].includes(request.requestStatus)
-			    : request.requestStatus === 'DRAFT';
+	        const editable = isRedraft
+	            ? request.canRedraft === true
+	            : request.requestStatus === 'DRAFT';
 
-			if (!editable) {
-			    const message = isRedraft
-			        ? '반려되거나 회수된 요청만 재기안할 수 있습니다.'
-			        : '초안 상태의 요청만 수정할 수 있습니다.';
+	        if (!editable || request.requestType !== 'SELECT') {
+	            const message = isRedraft
+	                ? '현재 재기안할 수 없는 조회 요청입니다. 원본 상세에서 처리 결과를 확인해 주세요.'
+	                : '수정할 수 있는 조회 초안이 아닙니다.';
 
-			    $('#edit-loading').textContent = message;
-			    notify(message, true);
-			    return;
-			}
+	            $('#edit-loading').textContent = message;
+	            notify(message, true);
+	            return;
+	        }
 
-			$('#edit-request-number').textContent =
-				(isRedraft ? '원본 요청: ' : '') + request.requestNo;
+	        let sourceItems = Array.isArray(request.items) ? request.items : [];
 
-            $('#edit-title').value = request.title;
-            $('#edit-purpose').value = request.purpose;
-			$('#edit-detail-content').value = request.detailContent || '';
-			$('#edit-is-urgent').checked = request.isUrgent === 'Y';
-			$('#edit-desired-date').value = request.desiredDate || '';
+	        if (isRedraft) {
+	            // 반려·회수는 전체 SQL, 실행 실패 재기안은 실패한 SQL만 가져온다.
+	            const redraftIds = new Set(
+	                (Array.isArray(request.redraftQueryIds) ? request.redraftQueryIds : []).map(String)
+	            );
+	            sourceItems = sourceItems.filter(item => redraftIds.has(String(item.queryId)));
 
-			editSqls = request.items.map(item => ({
-			    title: item.queryTitle || '',
-			    sqlText: item.sqlText || ''
-			}));
+	            if (sourceItems.length === 0 || sourceItems.length !== redraftIds.size) {
+	                throw new Error('재기안할 SQL을 확인하지 못했습니다. 원본 상세를 새로 열어 다시 진행해 주세요.');
+	            }
+	        }
 
-            renderEditSqls();
-			
-			$('#edit-validate-sqls').hidden = request.requestType !== 'SELECT';
+	        $('#edit-request-number').textContent =
+	            (isRedraft ? '원본 요청: ' : '') + request.requestNo;
 
-            $('#edit-loading').hidden = true;
-            $('#edit-fields').disabled = false;
-        } catch (error) {
-            $('#edit-loading').textContent =
-                '요청을 불러오지 못했습니다. 상세 화면으로 돌아가 확인하세요.';
-            notify(error.message, true);
-        }
-    }
+	        $('#edit-title').value = request.title;
+	        $('#edit-purpose').value = request.purpose;
+	        $('#edit-detail-content').value = request.detailContent || '';
+	        $('#edit-is-urgent').checked = request.isUrgent === 'Y';
+	        $('#edit-desired-date').value = request.desiredDate || '';
+
+	        // 원본 검증 결과는 복사하지 않고, 수정한 SQL을 새로 검증하도록 한다.
+	        editSqls = sourceItems.map(item => ({
+	            title: item.queryTitle || '',
+	            sqlText: item.sqlText || ''
+	        }));
+
+	        renderEditSqls();
+
+	        $('#edit-validate-sqls').hidden = false;
+	        $('#edit-loading').hidden = true;
+	        $('#edit-fields').disabled = false;
+	    } catch (error) {
+	        $('#edit-loading').textContent =
+	            '요청을 불러오지 못했습니다. 상세 화면으로 돌아가 확인하세요.';
+	        notify(error.message, true);
+	    }
+	}
 
 	$('#edit-form').addEventListener('submit', async function (event) {
 	    event.preventDefault();

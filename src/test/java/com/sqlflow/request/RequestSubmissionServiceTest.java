@@ -286,7 +286,7 @@ class RequestSubmissionServiceTest {
     @Test
     void viewDraftValidationReturnsResultsBySqlId() {
         RequestDetailResponse draft = new RequestDetailResponse();
-        draft.setRequestType("CREATE_VIEW");
+        draft.setRequestType("CREATE");
         draft.setRequestStatus("DRAFT");
 
         RequestItemResponse validItem = new RequestItemResponse();
@@ -336,7 +336,7 @@ class RequestSubmissionServiceTest {
     @Test
     void viewDraftValidationRejectsSubmittedRequest() {
         RequestDetailResponse draft = new RequestDetailResponse();
-        draft.setRequestType("CREATE_VIEW");
+        draft.setRequestType("CREATE");
         draft.setRequestStatus("PENDING_APPROVAL");
 
         when(requestMapper.selectMyRequestDetail(2L, 1L))

@@ -7,7 +7,6 @@ import org.springframework.web.server.ResponseStatusException;
 import com.sqlflow.access.service.DataAccessValidationService;
 import com.sqlflow.ai.dto.SqlGenerationRequest.SqlType;
 import com.sqlflow.execution.service.MySqlQueryMetadataValidationService;
-import com.sqlflow.request.service.CreateTableSqlValidationService;
 import com.sqlflow.request.service.DmlSqlValidationService;
 import com.sqlflow.request.service.ViewCreateSqlValidationService;
 
@@ -33,17 +32,10 @@ public class AiGeneratedSqlValidationService {
                     var metadata = queryMetadataValidationService.validate(sql);
                     accessValidationService.validate(userId, metadata.resources());
                 }
-                case CREATE_VIEW -> {
+                case CREATE -> {
                     var result = viewCreateSqlValidationService.validate(sql, userId);
                     if (result.getStatus() != com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO.Status.VALID) {
-                        return "생성된 뷰 SQL을 검증하지 못했습니다. " + result.getMessage()
-                                + " 요청을 구체화한 뒤 다시 입력해 주세요.";
-                    }
-                }
-                case CREATE_TABLE -> {
-                    var result = CreateTableSqlValidationService.validate(sql);
-                    if (result.getStatus() != com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO.Status.VALID) {
-                        return "생성된 테이블 SQL을 확인하지 못했습니다. " + result.getMessage()
+                        return "생성된 CREATE SQL의 기본 형식을 확인하지 못했습니다. " + result.getMessage()
                                 + " 요청을 구체화한 뒤 다시 입력해 주세요.";
                     }
                 }

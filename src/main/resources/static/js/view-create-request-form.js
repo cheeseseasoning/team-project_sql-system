@@ -1,16 +1,13 @@
 (() => {
     'use strict';
 
-    const MAX_SQL_COUNT = 5;
+	// 데이터 변경 요청 한 건에 작성할 수 있는 SQL의 최대 개수.
+	const MAX_SQL_COUNT = 10;
 	const TYPE = {
-	    CREATE_VIEW: {
+	    CREATE: {
 	        placeholder: 'CREATE TABLE new_table (\n    id BIGINT PRIMARY KEY\n);',
 	        saveGuide: '초안 저장 후 내 요청함에서 결재선을 지정하고 제출할 수 있습니다.'
 	    },
-        CREATE_TABLE: {
-            placeholder: 'CREATE TABLE product_archive (\n    product_id BIGINT PRIMARY KEY,\n    product_name VARCHAR(200) NOT NULL\n);',
-            saveGuide: '초안 저장 후 내 요청함에서 결재선을 지정하고 제출할 수 있습니다.'
-        },
 	    INSERT: {
 	        placeholder: "INSERT INTO demo_product (product_id, product_name)\nVALUES (1, '상품명');",
 	        saveGuide: '초안 저장 후 내 요청함에서 다시 열어 수정할 수 있습니다.'
@@ -207,11 +204,9 @@
 
         try {
 			const sqlType = changeType.value;
-			const results = sqlType === 'CREATE_VIEW'
+			const results = sqlType === 'CREATE'
 			    ? await post('/requests/view-sql/validate', { sqls })
-                : sqlType === 'CREATE_TABLE'
-                    ? await post('/requests/create-table-sql/validate', { sqls })
-			        : await post('/requests/dml-sql/validate', { sqlType, sqls });
+			    : await post('/requests/dml-sql/validate', { sqlType, sqls });
 
             if (revision === validationRevision) {
                 showValidationResults(sections, results);
@@ -250,15 +245,10 @@
         if (!validateFields([title, purpose, ...sqlFields])) return;
 
         const request = readRequest();
-        const isView = changeType.value === 'CREATE_VIEW';
-        const isTable = changeType.value === 'CREATE_TABLE';
-        const draftPath = isView
-            ? '/requests/view-create-drafts'
-            : isTable
-                ? '/requests/table-create-drafts'
-                : '/requests/dml-drafts';
+        const isCreate = changeType.value === 'CREATE';
+        const draftPath = isCreate ? '/requests/view-create-drafts' : '/requests/dml-drafts';
 
-        if (!isView) request.sqlType = changeType.value;
+        if (!isCreate) request.sqlType = changeType.value;
         saving = true;
         changeType.disabled = true;
         saveButton.disabled = true;
@@ -303,48 +293,58 @@
         }
     }
 
-    async function loadDraft() {
-        const controls = form.querySelectorAll('input, textarea, button:not([data-ai-generate])');
-        controls.forEach(control => {
-			control.disabled = true;
-			changeType.disabled = true;
-		});
-        saveButton.textContent = '초안 불러오는 중…';
+	async function loadDraft() {
+	    const controls = form.querySelectorAll('input, textarea, button:not([data-ai-generate])');
+	    controls.forEach(control => { control.disabled = true; });
+	    changeType.disabled = true;
+	    saveButton.textContent = '초안 불러오는 중…';
 
-        try {
-            const request = await api('/requests/mine/' + encodeURIComponent(requestId));
+	    try {
+	        const request = await api('/requests/mine/' + encodeURIComponent(requestId));
 
-			const allowedStatuses = redraftMode
-			    ? ['REJECTED', 'WITHDRAWN']
-			    : ['DRAFT'];
+	        const canLoad = redraftMode
+	            ? request.canRedraft === true
+	            : request.requestStatus === 'DRAFT';
 
-			if (!allowedStatuses.includes(request.requestStatus)
-			        || !Object.hasOwn(TYPE, request.requestType)) {
-			    throw new Error(redraftMode
-			        ? '반려되거나 회수된 DB 변경 요청만 재기안할 수 있습니다.'
-			        : '수정할 수 있는 DB 변경 초안이 아닙니다.');
-			}
+	        if (!canLoad || !Object.hasOwn(TYPE, request.requestType)) {
+	            throw new Error(redraftMode
+	                ? '현재 재기안할 수 없는 DB 변경 요청입니다. 원본 상세에서 처리 결과를 확인해 주세요.'
+	                : '수정할 수 있는 DB 변경 초안이 아닙니다.');
+	        }
 
-            changeType.value = request.requestType;
-            title.value = request.title || '';
-            purpose.value = request.purpose || '';
-            detail.value = request.detailContent || '';
-            urgent.checked = request.isUrgent === 'Y';
-            desiredDate.value = request.desiredDate || '';
+	        let sourceItems = Array.isArray(request.items) ? request.items : [];
 
-            controls.forEach(control => { control.disabled = false; });
-            items.replaceChildren();
+	        if (redraftMode) {
+	            // 서버가 지정한 재기안 대상만 가져오며, 원본 SQL 순서는 유지한다.
+	            const redraftIds = new Set(
+	                (Array.isArray(request.redraftQueryIds) ? request.redraftQueryIds : []).map(String)
+	            );
+	            sourceItems = sourceItems.filter(item => redraftIds.has(String(item.queryId)));
 
-            (request.items || []).forEach(item => addSql(false, item));
-            if (getSections().length === 0) addSql(false);
+	            if (sourceItems.length === 0 || sourceItems.length !== redraftIds.size) {
+	                throw new Error('재기안할 SQL을 확인하지 못했습니다. 원본 상세를 새로 열어 다시 진행해 주세요.');
+	            }
+	        }
 
-            updateTypeDisplay();
-        } catch (error) {
-            message.textContent = error.message || '뷰 생성 초안을 불러오지 못했습니다.';
-        } finally {
-            saveButton.textContent = saveLabel;
-        }
-    }
+	        changeType.value = request.requestType;
+	        title.value = request.title || '';
+	        purpose.value = request.purpose || '';
+	        detail.value = request.detailContent || '';
+	        urgent.checked = request.isUrgent === 'Y';
+	        desiredDate.value = request.desiredDate || '';
+
+	        items.replaceChildren();
+	        sourceItems.forEach(item => addSql(false, item));
+	        if (getSections().length === 0) addSql(false);
+
+	        controls.forEach(control => { control.disabled = false; });
+	        updateTypeDisplay();
+	    } catch (error) {
+	        message.textContent = error.message || 'DB 변경 요청을 불러오지 못했습니다.';
+	    } finally {
+	        saveButton.textContent = saveLabel;
+	    }
+	}
 
     items.addEventListener('click', event => {
         const button = event.target.closest('button[data-action="remove"]');

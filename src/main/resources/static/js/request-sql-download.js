@@ -4,7 +4,7 @@ window.RequestSqlDownload = Object.freeze({
         const button = document.getElementById('view-sql-download');
         if (!button) return;
 
-        const types = ['SELECT', 'CREATE_VIEW', 'CREATE_TABLE', 'INSERT', 'UPDATE', 'DELETE'];
+        const types = ['SELECT', 'CREATE', 'INSERT', 'UPDATE', 'DELETE'];
         const states = ['READY', 'RUNNING', 'RETRY_REVIEW', 'COMPLETED', 'PARTIAL_FAILED', 'FAILED'];
         button.hidden = !(types.includes(detail.requestType)
             && states.includes(detail.requestStatus) && detail.approvalStatus === 'APPROVED');

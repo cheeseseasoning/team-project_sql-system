@@ -222,7 +222,7 @@ class DepartmentRequestServiceTest {
     @Test
     void mixedCreateItemsExposeIndependentLinkRequirements() {
         var detail = new RequestDetailResponse();
-        detail.setRequestType("CREATE_VIEW");
+        detail.setRequestType("CREATE");
         var table = new RequestItemResponse();
         table.setSqlText("CREATE TABLE demo.t(id INT);");
         var view = new RequestItemResponse();

@@ -575,8 +575,7 @@ window.RequestDetailRenderer = (() => {
 
 		if (documentHeading) {
 		    const isDbChange = [
-		        'CREATE_VIEW',
-			        'CREATE_TABLE',
+		        'CREATE',
 		        'INSERT',
 		        'UPDATE',
 		        'DELETE'
@@ -597,8 +596,7 @@ window.RequestDetailRenderer = (() => {
 	    $('#dept-name').textContent = request.deptName || '-';
 	    const requestTypeNames = {
 	        SELECT: '조회 요청',
-	        CREATE_VIEW: '뷰 생성 요청',
-	        CREATE_TABLE: '테이블 생성 요청',
+	        CREATE: 'CREATE 요청',
 	        INSERT: '데이터 등록 요청',
 	        UPDATE: '데이터 수정 요청',
 	        DELETE: '데이터 삭제 요청'

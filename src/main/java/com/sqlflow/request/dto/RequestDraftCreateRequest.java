@@ -25,20 +25,17 @@ public class RequestDraftCreateRequest {
     private String detailContent;
 
     @NotBlank(message = "긴급 여부를 입력하세요.")
-    @Pattern(
-            regexp = "Y|N",
-            message = "올바른 긴급 여부를 입력하세요."
-    )
+    @Pattern(regexp = "Y|N", message = "올바른 긴급 여부를 입력하세요.")
     private String isUrgent = "N";
 
     private LocalDate desiredDate;
 
     @NotNull(message = "SQL 목록이 필요합니다.")
-    @Size(max = 5, message = "SQL은 최대 5개까지 등록할 수 있습니다.")
+    @Size(max = 10, message = "SQL은 최대 10개까지 등록할 수 있습니다.")
     private List<@NotBlank(message = "빈 SQL은 등록할 수 없습니다.") String> sqls;
 
     @NotNull(message = "SQL 제목 목록이 필요합니다.")
-    @Size(max = 5, message = "SQL 제목은 최대 5개까지 등록할 수 있습니다.")
+    @Size(max = 10, message = "SQL 제목은 최대 10개까지 등록할 수 있습니다.")
     private List<
             @NotBlank(message = "SQL 제목을 입력하세요.")
             @Size(max = 200, message = "SQL 제목은 200자 이하여야 합니다.")
@@ -50,5 +47,4 @@ public class RequestDraftCreateRequest {
                 && sqlTitles != null
                 && sqlTitles.size() == sqls.size();
     }
-
 }

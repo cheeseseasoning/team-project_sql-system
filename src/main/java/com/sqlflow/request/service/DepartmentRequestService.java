@@ -22,8 +22,7 @@ public class DepartmentRequestService {
 
     private static final Set<String> SEARCHABLE_REQUEST_TYPES = Set.of(
             "SELECT",
-            "CREATE_VIEW",
-            "CREATE_TABLE",
+            "CREATE",
             "INSERT",
             "UPDATE",
             "DELETE");
@@ -122,8 +121,7 @@ public class DepartmentRequestService {
                 : detail.getRequestType();
 
         boolean changeRequest = Set.of(
-                "CREATE_VIEW",
-                "CREATE_TABLE",
+                "CREATE",
                 "INSERT",
                 "UPDATE",
                 "DELETE")
@@ -137,7 +135,7 @@ public class DepartmentRequestService {
                         requestId,
                         actorId));
 
-        if ("CREATE_VIEW".equals(requestType)) {
+        if ("CREATE".equals(requestType)) {
             for (var item : detail.getItems()) {
                 var target = CreateSqlTargetResolver.resolve(item.getSqlText());
                 item.setViewLinkType(target.kind().name());

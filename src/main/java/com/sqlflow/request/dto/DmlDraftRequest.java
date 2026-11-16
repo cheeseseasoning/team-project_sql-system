@@ -16,7 +16,7 @@ import jakarta.validation.constraints.Size;
 public record DmlDraftRequest(
         @NotNull
         SqlType sqlType,
-		
+
         @NotBlank @Size(max = 200)
         String title,
 
@@ -30,7 +30,8 @@ public record DmlDraftRequest(
 
         LocalDate desiredDate,
 
-        @NotEmpty @Size(max = 5)
+        @NotEmpty
+        @Size(max = 10, message = "SQL은 최대 10개까지 등록할 수 있습니다.")
         List<@NotNull @Valid SqlEntry> items
 ) {
     /** SQL 항목은 배열 순서대로 저장한다. */
