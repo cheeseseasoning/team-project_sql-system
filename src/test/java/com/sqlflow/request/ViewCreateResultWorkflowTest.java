@@ -58,8 +58,9 @@ class ViewCreateResultWorkflowTest {
                 requestMapper,
                 approvalLineCreatorProvider,
                 requestSqlValidationService,
-                new ViewCreateSqlValidationService(),
-                new DmlSqlValidationService());
+                new ViewCreateSqlValidationService(new com.sqlflow.execution.service.SqlBasicValidator()),
+                org.mockito.Mockito.mock(DmlSqlValidationService.class),
+                new com.sqlflow.execution.service.SqlBasicValidator());
 
         departmentRequestService =
                 new DepartmentRequestService(departmentRequestMapper);

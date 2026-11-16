@@ -4,7 +4,7 @@
     const MAX_SQL_COUNT = 5;
 	const TYPE = {
 	    CREATE_VIEW: {
-	        placeholder: 'CREATE VIEW v_product AS\nSELECT product_id FROM demo_product;',
+	        placeholder: 'CREATE TABLE new_table (\n    id BIGINT PRIMARY KEY\n);',
 	        saveGuide: '초안 저장 후 내 요청함에서 결재선을 지정하고 제출할 수 있습니다.'
 	    },
 	    INSERT: {

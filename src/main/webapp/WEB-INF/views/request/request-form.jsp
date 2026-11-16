@@ -275,7 +275,6 @@
 
 	                    <textarea class="sql-editor"
 	                              rows="5"
-	                              maxlength="20000"
 	                              spellcheck="false"></textarea>
 	                </label>
 	            </div>
@@ -533,10 +532,6 @@
 	        if (!data || typeof data.sql !== 'string'
 	                || !data.sql.trim()) {
 	            throw Error('생성된 SQL이 없습니다.');
-	        }
-
-	        if (data.sql.length > 20000) {
-	            throw Error('생성된 SQL이 입력 가능한 길이를 초과했습니다.');
 	        }
 
 	        // 요청 성공 후에만 기존 SQL을 교체한다.

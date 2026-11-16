@@ -266,4 +266,17 @@ class MySqlQueryExecutionServiceTest {
             assertEquals(0L, files.count(), "실패한 실행의 결과 파일이 남으면 안 됩니다.");
         }
     }
+    @Test
+    void rejectsNonSelectAndMultipleStatementsBeforeDatabaseOrFileAccess() throws Exception {
+        for (String sql : java.util.List.of(
+                "INSERT INTO t VALUES (1);", "UPDATE t SET id=1;", "DELETE FROM t;",
+                "CREATE TABLE t (id INT);", "SELECT 1; DELETE FROM t;",
+                "WITH c AS (SELECT 1) DELETE FROM t;", "not valid sql")) {
+            assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> service.execute(sql));
+        }
+        verifyNoInteractions(dataSource);
+        try (var files = Files.list(resultDirectory)) {
+            assertEquals(0, files.count());
+        }
+    }
 }

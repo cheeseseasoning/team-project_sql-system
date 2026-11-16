@@ -19,5 +19,5 @@ public class ViewCreateSqlValidationRequestDTO {
 
     @NotEmpty
     @Size(max = 5)
-    private List<@NotNull @Size(max = 20000) String> sqls;
+    private List<@NotNull  String> sqls;
 }

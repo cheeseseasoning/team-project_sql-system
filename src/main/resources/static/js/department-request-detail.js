@@ -22,7 +22,10 @@
 	        }
 
 	        const hasResult = Boolean(item.changeResultStatus);
-	        const canLinkView = detail.requestType === 'CREATE_VIEW' && !hasResult;
+	        // 판별은 서버 결과를 사용하고 결과 정정에서도 같은 선택란을 제공한다.
+            const linkType = detail.requestType === 'CREATE_VIEW' ? (item.viewLinkType || 'UNKNOWN') : 'OTHER';
+            const canLinkView = linkType !== 'OTHER';
+            const manualTarget = linkType === 'UNKNOWN';
 	        const form = document.createElement('form');
 	        form.className = 'change-sql-result-form';
 	        form.innerHTML = `
@@ -35,8 +38,18 @@
 	                    <option value="CANCELLED">취소</option>
 	                </select>
 	            </label>
+	            ${manualTarget ? `
+                    <label class="change-result-full">생성 대상 확인 <span class="required" data-target-required hidden>*</span>
+                        <select name="viewLinkDecision">
+                            <option value="">생성 대상을 확인해 주세요</option>
+                            <option value="VIEW">뷰 생성 — 대상 뷰 확인</option>
+                            <option value="OTHER">뷰 이외 객체 생성</option>
+                        </select>
+                        <small class="caption">SQL에서 생성 대상을 확정하지 못했습니다. DB팀 확인 내용을 처리 메모에 입력해 주세요.</small>
+                    </label>
+                ` : ''}
 	            ${canLinkView ? `
-	                <label class="change-result-full" hidden>생성된 뷰 <span class="required">*</span>
+	                <label class="change-result-full" hidden><span data-view-picker-label>생성된 뷰</span> <span class="required">*</span>
 	                    <select name="resourceId">
 	                        <option value="">등록된 뷰를 선택하세요</option>
 	                    </select>
@@ -93,19 +106,27 @@
 
 	        function updateRequiredFields() {
 	            const status = fields.resultStatus.value;
-	            fields.resultNote.required = status !== 'COMPLETED';
-                form.querySelector('[data-note-required]').hidden = status === 'COMPLETED';
+	            const manualView = manualTarget && fields.viewLinkDecision.value === 'VIEW';
+                const needsConfirmation = manualTarget && (status === 'COMPLETED' || (hasResult && manualView));
+                fields.resultNote.required = status !== 'COMPLETED' || needsConfirmation;
+                form.querySelector('[data-note-required]').hidden = !fields.resultNote.required;
+                if (manualTarget) {
+                    fields.viewLinkDecision.required = status === 'COMPLETED';
+                    form.querySelector('[data-target-required]').hidden = !fields.viewLinkDecision.required;
+                }
                 form.querySelector('[data-executor-required]').hidden = status === 'CANCELLED';
 	            updateExecutorPicker(status === 'CANCELLED');
 	            if (canLinkView) {
-	                const showViewPicker = status === 'COMPLETED';
+	                const showViewPicker = manualTarget ? manualView && (status === 'COMPLETED' || hasResult) : status === 'COMPLETED';
 	                fields.resourceId.closest('label').hidden = !showViewPicker;
 	                fields.resourceId.disabled = !showViewPicker;
 	                fields.resourceId.required = showViewPicker;
+                    form.querySelector('[data-view-picker-label]').textContent = status === 'COMPLETED' ? '생성된 뷰' : '연결 해제 대상 뷰';
 	            }
 	        }
 
 	        fields.resultStatus.addEventListener('change', updateRequiredFields);
+            if (manualTarget) fields.viewLinkDecision.addEventListener('change', updateRequiredFields);
 	        updateRequiredFields();
 	        form.addEventListener('submit', event => {
 	            event.preventDefault();
@@ -167,7 +188,13 @@
 			                ...views.map(view => new Option(
 			                    view.schemaName + '.' + view.objectName, String(view.resourceId)))
 			            );
-			            fields.resourceId.dataset.loaded = 'true';
+			            // 대상 이름으로 후보를 좁혀 최초 등록·정정 모두 같은 뷰를 선택하기 쉽게 한다.
+                    if (!manualTarget) {
+                        const matches = views.filter(view => view.objectName === item.createdViewName
+                            && (!item.createdViewSchema || view.schemaName === item.createdViewSchema));
+                        if (matches.length === 1) fields.resourceId.value = String(matches[0].resourceId);
+                    }
+                    fields.resourceId.dataset.loaded = 'true';
 			            status.textContent = views.length ? '' : '리소스 관리에서 생성된 뷰를 먼저 등록해 주세요.';
 			        } catch (error) {
 			            viewOptions = null;
@@ -308,6 +335,7 @@
 	        body.changeType = fields.changeType.value;
 	        body.changeReason = fields.changeReason.value.trim();
 	    }
+	    if (fields.viewLinkDecision) body.viewLinkDecision = fields.viewLinkDecision.value;
 	    if (fields.resourceId && !fields.resourceId.disabled) {
 	        body.resourceId = fields.resourceId.value;
 	    }

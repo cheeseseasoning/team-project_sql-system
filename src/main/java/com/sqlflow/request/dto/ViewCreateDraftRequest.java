@@ -30,7 +30,7 @@ public class ViewCreateDraftRequest {
     public static class SqlEntry {
         @NotBlank(message = "SQL 제목을 입력하세요.") @Size(max = 200)
         private String queryTitle;
-        @NotBlank @Size(max = 20000)
+        @NotBlank
         private String sqlText;
     }
 }

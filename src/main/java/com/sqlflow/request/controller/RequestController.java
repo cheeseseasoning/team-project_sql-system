@@ -287,11 +287,12 @@ public class RequestController {
     /** 화면에서 선택한 유형을 SQL 목록 전체에 적용한다. */
     @PostMapping("/dml-sql/validate")
     public List<ValidationResult> validateDmlSqlTexts(
-            @Valid @RequestBody DmlSqlValidationRequest input) {
+            @Valid @RequestBody DmlSqlValidationRequest input,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
 
         return input.sqls().stream()
-                .map(sql -> dmlSqlValidationService.validate(
-                        input.sqlType(),
+                .map(sql -> dmlSqlValidationService.validateForReview(
+                        user.getUserId(), input.sqlType(),
                         sql))
                 .toList();
     }
@@ -299,7 +300,7 @@ public class RequestController {
     public record DmlSqlValidationRequest(
             @NotNull SqlType sqlType,
             @NotEmpty @Size(max = 5)
-            List<@NotNull @Size(max = 20000) String> sqls
+            List<@NotNull String> sqls
     ) {
     }
 
@@ -390,7 +391,7 @@ public class RequestController {
                 input.resultStatus(),
                 input.resultNote(),
                 input.executedBy(),
-                input.resourceId());
+                input.resourceId(), input.viewLinkDecision());
 
         return ResponseEntity.noContent().build();
     }
@@ -399,7 +400,8 @@ public class RequestController {
             @NotNull String resultStatus,
             @Size(max = 1000) String resultNote,
             Long executedBy,
-            Long resourceId) {
+            Long resourceId,
+            String viewLinkDecision) {
     }
 
     @PatchMapping("/department/{requestId}/change-sql/{queryId}/result")
@@ -409,7 +411,7 @@ public class RequestController {
             @Valid @RequestBody ChangeSqlResultUpdateRequest input,
             @AuthenticationPrincipal SqlFlowUserDetails user) {
 
-        departmentRequestService.changeSqlResult(
+        viewCreationLinkService.change(
                 requestId,
                 queryId,
                 user.getUserId(),
@@ -417,7 +419,7 @@ public class RequestController {
                 input.resultNote(),
                 input.executedBy(),
                 input.changeType(),
-                input.changeReason());
+                input.changeReason(), input.resourceId(), input.viewLinkDecision());
 
         return ResponseEntity.noContent().build();
     }
@@ -427,6 +429,8 @@ public class RequestController {
             @Size(max = 1000) String resultNote,
             Long executedBy,
             @NotNull String changeType,
-            @NotNull @Size(max = 1000) String changeReason) {
+            @NotNull @Size(max = 1000) String changeReason,
+            Long resourceId,
+            String viewLinkDecision) {
     }
 }

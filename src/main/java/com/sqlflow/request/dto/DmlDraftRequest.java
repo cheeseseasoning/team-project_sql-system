@@ -38,7 +38,7 @@ public record DmlDraftRequest(
             @NotBlank(message = "SQL 제목을 입력하세요.") @Size(max = 200)
             String queryTitle,
 
-            @NotBlank @Size(max = 20000)
+            @NotBlank
             String sqlText
     ) {
     }

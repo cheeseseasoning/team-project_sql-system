@@ -65,6 +65,9 @@ public class MySqlQueryExecutionService {
             throw new IllegalArgumentException("실행할 SQL이 없습니다.");
         }
 
+        // 저장 이후 SQL이 바뀌었더라도 실제 DB 연결 전에 단일 SELECT인지 다시 확인한다.
+        new SqlParserValidator().parseSelect(sqlText);
+
         long startedNanos = System.nanoTime();
 
         Files.createDirectories(resultDirectory);
