@@ -90,10 +90,28 @@ jobs:
             echo "Invalid source commit SHA length." >&2
             exit 1
           fi
-          for tool in git mvn java curl; do
+          for tool in git mvn curl apt-get update-alternatives; do
             command -v "$tool" >/dev/null || { echo "Missing required command: $tool" >&2; exit 1; }
           done
           test -f "$WAR_PATH"
+
+          JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+          if [ ! -x "$JAVA_HOME/bin/java" ]; then
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-21-jdk
+          fi
+          if [ ! -x "$JAVA_HOME/bin/java" ]; then
+            echo "Java 21 installation did not provide $JAVA_HOME/bin/java." >&2
+            exit 1
+          fi
+          update-alternatives --set java "$JAVA_HOME/bin/java"
+          if [ -x "$JAVA_HOME/bin/javac" ]; then
+            update-alternatives --set javac "$JAVA_HOME/bin/javac"
+          fi
+          export JAVA_HOME
+          export PATH="$JAVA_HOME/bin:$PATH"
+          java -version
+          mvn --version
 
           mkdir -p "$SOURCE_DIR"
           if ! git -C "$SOURCE_DIR" rev-parse --git-dir >/dev/null 2>&1; then
