@@ -114,7 +114,7 @@
               WHERE R.REQUEST_ID = DB_CHANGE_SQL.REQUEST_ID
                 AND R.DRAFTER_ID = #{drafterId}
                 AND R.REQUEST_STATUS = 'DRAFT'
-                AND R.REQUEST_TYPE IN ('CREATE_VIEW', 'CREATE_TABLE', 'INSERT', 'UPDATE', 'DELETE')
+                AND R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
           )
     </delete>
 
@@ -143,7 +143,7 @@
         FROM DB_CHANGE_SQL C
         JOIN QUERY_REQUEST R ON R.REQUEST_ID = C.REQUEST_ID
         WHERE <include refid="approvedSqlDownloadConditions"/>
-          AND R.REQUEST_TYPE IN ('CREATE_VIEW', 'CREATE_TABLE', 'INSERT', 'UPDATE', 'DELETE')
+          AND R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
         ORDER BY C.QUERY_ORDER, C.QUERY_ID
     </select>
 
@@ -173,7 +173,7 @@
 	        R.APPROVAL_STATUS,
 	        R.CREATED_AT,
 	        R.DESIRED_DATE,
-	        CASE WHEN R.REQUEST_TYPE IN ('CREATE_VIEW', 'CREATE_TABLE', 'INSERT', 'UPDATE', 'DELETE')
+	        CASE WHEN R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
 	             THEN (SELECT COUNT(*) FROM DB_CHANGE_SQL V WHERE V.REQUEST_ID = R.REQUEST_ID)
 	             ELSE (SELECT COUNT(*) FROM QUERY_ITEM I WHERE I.REQUEST_ID = R.REQUEST_ID)
 	        END AS SQL_COUNT
@@ -341,7 +341,7 @@
 	        </when>
 	        <when test='requestType == "DB_CHANGE"'>
 	            AND R.REQUEST_TYPE IN (
-	                'CREATE_VIEW', 'CREATE_TABLE', 'INSERT', 'UPDATE', 'DELETE'
+	                'CREATE', 'INSERT', 'UPDATE', 'DELETE'
 	            )
 	        </when>
 	    </choose>
@@ -376,7 +376,7 @@
 	        D.DEPT_NAME,
 	        CASE
 	            WHEN R.REQUEST_TYPE IN (
-	                'CREATE_VIEW', 'CREATE_TABLE', 'INSERT', 'UPDATE', 'DELETE'
+	                'CREATE', 'INSERT', 'UPDATE', 'DELETE'
 	            )
 	            THEN (
 	                SELECT COUNT(*)

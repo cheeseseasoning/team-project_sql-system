@@ -47,13 +47,12 @@
 			<div class="db-change-sql-header section-gap">
 				<div class="db-change-sql-type">
 					<h2>SQL 작성</h2>
-					<select id="db-change-type" aria-label="변경 유형" ${dbChangeFormMode ne 'create' ? 'disabled' : ''}>
-					    <option value="CREATE_VIEW">CREATE · 객체 생성</option>
-					    <option value="CREATE_TABLE">CREATE TABLE · 테이블 생성</option>
-					    <option value="INSERT">INSERT · 데이터 추가</option>
-					    <option value="UPDATE">UPDATE · 데이터 수정</option>
-					    <option value="DELETE">DELETE · 데이터 삭제</option>
-					</select>
+						<select id="db-change-type" aria-label="변경 유형" ${dbChangeFormMode ne 'create' ? 'disabled' : ''}>
+						    <option value="CREATE">CREATE · 객체 생성</option>
+						    <option value="INSERT">INSERT · 데이터 추가</option>
+						    <option value="UPDATE">UPDATE · 데이터 수정</option>
+						    <option value="DELETE">DELETE · 데이터 삭제</option>
+						</select>
 				</div>
 
 				<div id="view-sql-write-modes" class="db-change-write-modes" role="group" aria-label="SQL 작성 방식">

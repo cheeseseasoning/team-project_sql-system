@@ -38,7 +38,7 @@ class ViewCreationLinkServiceTest {
         results = mock(DepartmentRequestService.class);
         views = mock(MySqlViewMapper.class);
         metadata = mock(MySqlMetadataMapper.class);
-        type = "CREATE_VIEW";
+        type = "CREATE";
         sql = "CREATE VIEW demo.v AS SELECT 1;";
         otherSuccesses = List.of();
         otherSuccessNotes.clear();

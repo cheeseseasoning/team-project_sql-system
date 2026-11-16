@@ -38,7 +38,7 @@ JSP 지원을 위해 실행 가능한 WAR로 구성했습니다. 기본 포트�
 | `/notices` | notices.jsp | 공지 목록 및 상세 |
 | `/login` | login.jsp | 활성 계정 로그인 및 세션 생성 |
 
-뷰 생성 요청은 `/view-create-requests/new`에서 작성합니다. 초안은 `QUERY_REQUEST.REQUEST_TYPE='CREATE_VIEW'`와 `VIEW_CREATE_SQL`에 저장하고, 제출 후 기존 `APPROVAL` 결재선을 사용합니다. DB팀 결재자의 최종 승인 뒤 부서 기안 상세에서 `.sql` 파일을 내려받고, 외부 처리 결과를 등록할 수 있습니다. 처리 결과와 수정 이력은 요청 상세에서 요청자와 부서 구성원이 확인합니다. 배포 전에 관리 Oracle DB에 `db/manual/V004__view_create_request.sql`, `db/manual/V005__view_create_result.sql`, `db/manual/V006__view_create_result_history.sql`을 순서대로 적용해야 합니다. 뷰 생성 요청은 일반 조회 실행 대기열에 등록되지 않습니다.
+객체 생성 요청은 `/view-create-requests/new`에서 CREATE 유형으로 작성합니다. 테이블·뷰·인덱스 등의 SQL은 `QUERY_REQUEST.REQUEST_TYPE='CREATE'`와 `DB_CHANGE_SQL`에 저장하고, 기존 결재 및 DB팀 외부 실행 결과 등록 흐름을 사용합니다. AI는 사용자 요청에 맞는 CREATE 초안을 작성하며 자동 실행하지 않습니다. 실제 CREATE VIEW의 성공 결과에만 기존 뷰 연결 정책을 적용합니다.
 
 DB 변경 요청 작성 화면은 기존 디자인을 유지하며 CREATE VIEW, CREATE TABLE, INSERT, UPDATE, DELETE 초안을 기존 결재선으로 제출합니다. CREATE TABLE은 DBA가 승인 SQL을 실행한 뒤 관리자가 신규 테이블을 `DATA_RESOURCE`에 등록하고 부서 접근 정책을 설정해야 조회 가능한 객체가 됩니다. DB 변경 요청 유형을 모두 허용하도록 기존 V004 이후 스키마에 `db/manual/V010__ai_create_table_request_type.sql`을 추가로 적용합니다. AI SQL 생성 API는 로그인 세션이 필요하며 `POST /api/ai/sql/generate`를 사용합니다. 서버의 `OPENAI_API_KEY` 환경 변수와 OpenAI API 결제/네트워크 설정이 필요합니다. 기본 모델은 `gpt-5.4-mini`이고 `sqlflow.ai.openai.model` 설정으로 바꿀 수 있습니다. 현재 사용자 부서에서 허용된 테이블·뷰의 스키마(이름, 자료형, 설명만)를 전달하며 행 데이터는 전송하지 않습니다. 모호한 요청은 SQL을 반환하지 않고 확인 질문을 보여줍니다. 생성 SQL은 화면 초안일 뿐 실행하지 않으며, 사용자가 검토 후 기존 결재 흐름으로 제출합니다.
 
@@ -84,3 +84,5 @@ DB 변경 요청 작성 화면은 기존 디자인을 유지하며 CREATE VIEW, 
 
 디자인 원본: https://www.figma.com/design/rIEPy29qllAn2arsZR0GGr?node-id=11-56
 피그마 호출 한도로 인해, 이번 코드 구현은 대화에서 생성한 Figma 구성 코드와 확인된 메인 캡처 및 프로토타입 정의를 기준으로 작성했습니다. 별도의 피그마 변경분이 있다면 반영되지 않을 수 있습니다.
+
+일반 CREATE 요청 유형은 `CREATE`로 통일합니다. 이 버전 실행 전 관리 Oracle DB에 `db/manual/V012__rename_create_request_type.sql`을 적용해야 합니다. 기존 수동 마이그레이션 파일은 변경하지 않습니다.

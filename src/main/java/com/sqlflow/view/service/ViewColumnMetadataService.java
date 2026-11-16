@@ -110,7 +110,7 @@ public class ViewColumnMetadataService {
                       SELECT 1 FROM DATA_RESOURCE R
                       JOIN QUERY_REQUEST Q ON Q.REQUEST_ID = R.CREATE_REQUEST_ID
                       WHERE R.SCHEMA_NAME = ? AND R.OBJECT_NAME = ?
-                        AND Q.DEPT_ID = U.DEPT_ID AND Q.REQUEST_TYPE = 'CREATE_VIEW'
+                        AND Q.DEPT_ID = U.DEPT_ID AND Q.REQUEST_TYPE = 'CREATE'
                   )
                 """, Integer.class, userId, schema, view);
         return count != null && count > 0;

@@ -66,7 +66,7 @@ async function loadDetail() {
 		}
 
 		// 초안 수정 화면으로 이동할 주소
-		$('#draft-edit-link').href = ['CREATE_VIEW', 'CREATE_TABLE', 'INSERT', 'UPDATE', 'DELETE'].includes(request.requestType)
+		$('#draft-edit-link').href = ['CREATE', 'INSERT', 'UPDATE', 'DELETE'].includes(request.requestType)
 			? BASE + '/view-create-requests/'
 				+ encodeURIComponent(request.requestId) + '/edit'
 			: BASE + '/requests/'
@@ -179,20 +179,10 @@ async function validateSavedViewSqls() {
         $('#detail-items').innerHTML = renderDetailItems(detailItems);
 
         let results;
-        if (requestType === 'CREATE_VIEW') {
+        if (requestType === 'CREATE') {
             results = await api(
                 '/requests/' + encodeURIComponent(requestId) + '/view-sql/validate',
                 { method: 'POST', timeoutMs: 120000 }
-            );
-        } else if (requestType === 'CREATE_TABLE') {
-            const tableResults = await post('/requests/create-table-sql/validate', {
-                sqls: detailItems.map(item => item.sqlText)
-            });
-            if (!Array.isArray(tableResults) || tableResults.length !== detailItems.length) {
-                throw new Error('일부 SQL의 검사 결과를 확인하지 못했습니다. 다시 검사해 주세요.');
-            }
-            results = Object.fromEntries(
-                detailItems.map((item, index) => [item.queryId, tableResults[index]])
             );
         } else {
             const dmlResults = await post('/requests/dml-sql/validate', {
@@ -246,7 +236,7 @@ async function validateSavedSqls() {
 	    return;
 	}
 
-	if (['CREATE_VIEW', 'CREATE_TABLE', 'INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType)) {
+	if (['CREATE', 'INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType)) {
 	    await validateSavedViewSqls();
 	    return;
 	}
@@ -311,7 +301,7 @@ let requestSubmitting = false;
 
 $('#request-redraft').addEventListener('click', function () {
     const isDbChange =
-        ['CREATE_VIEW', 'CREATE_TABLE', 'INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType);
+        ['CREATE', 'INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType);
     const path = isDbChange ? '/view-create-requests/' : '/requests/';
 
     location.href = BASE + path

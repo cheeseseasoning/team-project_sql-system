@@ -52,7 +52,7 @@ public class ViewCreationLinkService {
         // 같은 요청 안의 여러 SQL 결과가 동시에 바뀌어 연결 근거를 놓치지 않도록 직렬화한다.
         String type = jdbc.queryForObject(
                 "SELECT REQUEST_TYPE FROM QUERY_REQUEST WHERE REQUEST_ID = ? FOR UPDATE", String.class, requestId);
-        if (!"CREATE_VIEW".equals(type)) {
+        if (!"CREATE".equals(type)) {
             rejectUnexpectedResource(resourceId);
             return;
         }

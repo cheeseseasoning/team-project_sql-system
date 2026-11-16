@@ -131,7 +131,7 @@ class ViewCreateResultWorkflowTest {
     @Test
     void requesterDetailReturnsCurrentResultWithItsSqlItem() {
         RequestDetailResponse request = new RequestDetailResponse();
-        request.setRequestType("CREATE_VIEW");
+        request.setRequestType("CREATE");
         RequestItemResponse item = sqlItem(1, "CREATE VIEW v_one AS SELECT 1 FROM DUAL");
         item.setChangeResultStatus("COMPLETED");
 

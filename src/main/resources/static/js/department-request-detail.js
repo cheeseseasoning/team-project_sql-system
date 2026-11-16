@@ -23,7 +23,7 @@
 
 	        const hasResult = Boolean(item.changeResultStatus);
 	        // 판별은 서버 결과를 사용하고 결과 정정에서도 같은 선택란을 제공한다.
-            const linkType = detail.requestType === 'CREATE_VIEW' ? (item.viewLinkType || 'UNKNOWN') : 'OTHER';
+            const linkType = detail.requestType === 'CREATE' ? (item.viewLinkType || 'UNKNOWN') : 'OTHER';
             const canLinkView = linkType !== 'OTHER';
             const manualTarget = linkType === 'UNKNOWN';
 	        const form = document.createElement('form');
