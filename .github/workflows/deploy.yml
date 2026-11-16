@@ -70,7 +70,9 @@ jobs:
           set -euo pipefail
 
           cat > deploy-ssm.sh <<'SCRIPT'
-          set -Eeuo pipefail
+          # AWS-RunShellScript runs commands through /bin/sh, so keep this
+          # remote script POSIX-compatible instead of using Bash-only options.
+          set -eu
           SOURCE_SHA=__SOURCE_SHA__
           REPO_URL=https://github.com/cheeseseasoning/team-project_sql-system.git
           SOURCE_DIR=/home/ubuntu/sqlflow-deploy/source
@@ -78,7 +80,16 @@ jobs:
           WAR_PATH="$APP_DIR/sqlflow.war"
           BACKUP_PATH="${WAR_PATH}.bak.$(date +%Y%m%d%H%M%S)"
 
-          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          case "$SOURCE_SHA" in
+            *[!0123456789abcdef]*|'')
+              echo "Invalid source commit SHA." >&2
+              exit 1
+              ;;
+          esac
+          if [ "${#SOURCE_SHA}" -ne 40 ]; then
+            echo "Invalid source commit SHA length." >&2
+            exit 1
+          fi
           for tool in git mvn java curl; do
             command -v "$tool" >/dev/null || { echo "Missing required command: $tool" >&2; exit 1; }
           done
