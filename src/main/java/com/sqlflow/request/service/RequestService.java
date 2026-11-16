@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.springframework.beans.factory.ObjectProvider;
@@ -347,7 +348,8 @@ public class RequestService {
 	private String createRequestNo(Long requestId) {
 		LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 
-		return "Q-" + today.toString().replace("-", "") + "-" + requestId;
+		return "Q-" + today.toString().replace("-", "") + "-"
+				+ String.format(Locale.ROOT, "%06d", requestId);
 	}
 
 	@Transactional(readOnly = true)
