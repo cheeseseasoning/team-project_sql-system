@@ -96,12 +96,12 @@ jobs:
           test -f "$WAR_PATH"
 
           JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-          if [ ! -x "$JAVA_HOME/bin/java" ]; then
+          if [ ! -x "$JAVA_HOME/bin/javac" ]; then
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-21-jdk
           fi
-          if [ ! -x "$JAVA_HOME/bin/java" ]; then
-            echo "Java 21 installation did not provide $JAVA_HOME/bin/java." >&2
+          if [ ! -x "$JAVA_HOME/bin/java" ] || [ ! -x "$JAVA_HOME/bin/javac" ]; then
+            echo "Java 21 JDK installation did not provide java and javac under $JAVA_HOME/bin." >&2
             exit 1
           fi
           update-alternatives --set java "$JAVA_HOME/bin/java"
