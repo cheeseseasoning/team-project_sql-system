@@ -1,0 +1,22 @@
+-- SQLFLOW.QUERY_REQUEST의 기존 요청번호 중 일련번호가 6자리보다 짧은 값만 보정한다.
+-- SQLFLOW 사용자 또는 SQLFLOW.QUERY_REQUEST 변경 권한이 있는 계정으로 실행한다.
+-- 일련번호가 이미 6자리인 값과 6자리 초과 값은 변경하지 않는다.
+
+-- 변경 대상 건수를 먼저 확인한다.
+SELECT COUNT(*) AS ROWS_TO_UPDATE
+FROM SQLFLOW.QUERY_REQUEST
+WHERE REGEXP_LIKE(REQUEST_NO, '^Q-[0-9]{8}-[0-9]{1,5}$');
+
+-- 예: Q-20261114-72 -> Q-20261114-000072
+UPDATE SQLFLOW.QUERY_REQUEST
+SET REQUEST_NO = SUBSTR(REQUEST_NO, 1, 11)
+                 || LPAD(SUBSTR(REQUEST_NO, 12), 6, '0')
+WHERE REGEXP_LIKE(REQUEST_NO, '^Q-[0-9]{8}-[0-9]{1,5}$');
+
+COMMIT;
+
+-- 결과 확인: 변경 대상 형식이 더 이상 남아 있지 않아야 한다.
+SELECT REQUEST_ID, REQUEST_NO
+FROM SQLFLOW.QUERY_REQUEST
+WHERE REGEXP_LIKE(REQUEST_NO, '^Q-[0-9]{8}-[0-9]{1,5}$')
+ORDER BY REQUEST_ID;
