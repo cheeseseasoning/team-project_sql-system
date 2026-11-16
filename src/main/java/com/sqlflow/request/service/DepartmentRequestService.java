@@ -23,6 +23,7 @@ public class DepartmentRequestService {
     private static final Set<String> SEARCHABLE_REQUEST_TYPES = Set.of(
             "SELECT",
             "CREATE_VIEW",
+            "CREATE_TABLE",
             "INSERT",
             "UPDATE",
             "DELETE");
@@ -122,6 +123,7 @@ public class DepartmentRequestService {
 
         boolean changeRequest = Set.of(
                 "CREATE_VIEW",
+                "CREATE_TABLE",
                 "INSERT",
                 "UPDATE",
                 "DELETE")

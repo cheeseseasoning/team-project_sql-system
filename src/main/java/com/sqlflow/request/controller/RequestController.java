@@ -26,6 +26,7 @@ import com.sqlflow.approval.service.ApprovalService;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 import com.sqlflow.request.dto.DepartmentRequestPageResponse;
 import com.sqlflow.request.dto.DmlDraftRequest;
+import com.sqlflow.request.dto.CreateTableDraftRequest;
 import com.sqlflow.request.dto.RequestDashboardResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
@@ -50,6 +51,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -69,7 +73,11 @@ public class RequestController {
         return requestService.getMyDashboard(user.getUserId());
     }
 
-    public record DraftCreateResponse(Long requestId) {
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DraftCreateResponse {
+        private Long requestId;
     }
 
     @GetMapping("/mine")
@@ -171,6 +179,24 @@ public class RequestController {
         return ResponseEntity
                 .created(URI.create("/api/requests/mine/" + requestId))
                 .body(new DraftCreateResponse(requestId));
+    }
+
+    @PostMapping("/table-create-drafts")
+    public ResponseEntity<DraftCreateResponse> createTableDraft(
+            @Valid @RequestBody CreateTableDraftRequest input,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+        Long requestId = requestService.createTableDraft(input, user.getUserId(), user.getDeptId());
+        return ResponseEntity.created(URI.create("/api/requests/mine/" + requestId))
+                .body(new DraftCreateResponse(requestId));
+    }
+
+    @PutMapping("/table-create-drafts/{requestId}")
+    public ResponseEntity<Void> updateTableDraft(
+            @PathVariable Long requestId,
+            @Valid @RequestBody CreateTableDraftRequest input,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+        requestService.updateTableDraft(requestId, input, user.getUserId());
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/dml-drafts/{requestId}")
@@ -280,8 +306,15 @@ public class RequestController {
     /** 로그인한 사용자가 작성 중인 뷰 SQL을 저장 없이 검사한다. */
     @PostMapping("/view-sql/validate")
     public List<ViewCreateSqlValidationResultDTO> validateViewSqlTexts(
+            @Valid @RequestBody ViewCreateSqlValidationRequestDTO input,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
+        return requestService.validateViewSqlTexts(user.getUserId(), input.getSqls());
+    }
+
+    @PostMapping("/create-table-sql/validate")
+    public List<ViewCreateSqlValidationResultDTO> validateCreateTableSqlTexts(
             @Valid @RequestBody ViewCreateSqlValidationRequestDTO input) {
-        return requestService.validateViewSqlTexts(input.getSqls());
+        return requestService.validateCreateTableSqlTexts(input.getSqls());
     }
 
     /** 화면에서 선택한 유형을 SQL 목록 전체에 적용한다. */
@@ -289,18 +322,24 @@ public class RequestController {
     public List<ValidationResult> validateDmlSqlTexts(
             @Valid @RequestBody DmlSqlValidationRequest input) {
 
-        return input.sqls().stream()
+        return input.getSqls().stream()
                 .map(sql -> dmlSqlValidationService.validate(
-                        input.sqlType(),
+                        input.getSqlType(),
                         sql))
                 .toList();
     }
 
-    public record DmlSqlValidationRequest(
-            @NotNull SqlType sqlType,
-            @NotEmpty @Size(max = 5)
-            List<@NotNull @Size(max = 20000) String> sqls
-    ) {
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DmlSqlValidationRequest {
+
+        @NotNull
+        private SqlType sqlType;
+
+        @NotEmpty
+        @Size(max = 5)
+        private List<@NotNull @Size(max = 20000) String> sqls;
     }
 
     /** 로그인한 작성자의 저장된 뷰 생성 SQL을 검사한다. */
@@ -387,19 +426,27 @@ public class RequestController {
                 requestId,
                 queryId,
                 user.getUserId(),
-                input.resultStatus(),
-                input.resultNote(),
-                input.executedBy(),
-                input.resourceId());
+                input.getResultStatus(),
+                input.getResultNote(),
+                input.getExecutedBy(),
+                input.getResourceId());
 
         return ResponseEntity.noContent().build();
     }
 
-    public record ChangeSqlResultRequest(
-            @NotNull String resultStatus,
-            @Size(max = 1000) String resultNote,
-            Long executedBy,
-            Long resourceId) {
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ChangeSqlResultRequest {
+
+        @NotNull
+        private String resultStatus;
+
+        @Size(max = 1000)
+        private String resultNote;
+
+        private Long executedBy;
+        private Long resourceId;
     }
 
     @PatchMapping("/department/{requestId}/change-sql/{queryId}/result")
@@ -413,20 +460,33 @@ public class RequestController {
                 requestId,
                 queryId,
                 user.getUserId(),
-                input.resultStatus(),
-                input.resultNote(),
-                input.executedBy(),
-                input.changeType(),
-                input.changeReason());
+                input.getResultStatus(),
+                input.getResultNote(),
+                input.getExecutedBy(),
+                input.getChangeType(),
+                input.getChangeReason());
 
         return ResponseEntity.noContent().build();
     }
 
-    public record ChangeSqlResultUpdateRequest(
-            @NotNull String resultStatus,
-            @Size(max = 1000) String resultNote,
-            Long executedBy,
-            @NotNull String changeType,
-            @NotNull @Size(max = 1000) String changeReason) {
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ChangeSqlResultUpdateRequest {
+
+        @NotNull
+        private String resultStatus;
+
+        @Size(max = 1000)
+        private String resultNote;
+
+        private Long executedBy;
+
+        @NotNull
+        private String changeType;
+
+        @NotNull
+        @Size(max = 1000)
+        private String changeReason;
     }
 }

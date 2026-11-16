@@ -4,7 +4,12 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.sqlflow.access.service.DataAccessValidationService;
+import com.sqlflow.execution.service.MySqlQueryMetadataValidationService;
 import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO;
 import com.sqlflow.request.dto.ViewCreateSqlValidationResultDTO.Status;
 
@@ -19,6 +24,24 @@ import net.sf.jsqlparser.statement.create.view.CreateView;
  */
 @Service
 public class ViewCreateSqlValidationService {
+
+    private final MySqlQueryMetadataValidationService metadataValidationService;
+    private final DataAccessValidationService accessValidationService;
+
+    /** Spring-managed validator with live metadata and current department policy checks. */
+    @Autowired
+    public ViewCreateSqlValidationService(
+            MySqlQueryMetadataValidationService metadataValidationService,
+            DataAccessValidationService accessValidationService) {
+        this.metadataValidationService = metadataValidationService;
+        this.accessValidationService = accessValidationService;
+    }
+
+    /** Keeps parser-only unit use available; production uses the autowired constructor. */
+    public ViewCreateSqlValidationService() {
+        this.metadataValidationService = null;
+        this.accessValidationService = null;
+    }
 
     private static final Pattern CREATE_VIEW_START = Pattern.compile("^CREATE\\s+VIEW\\b", Pattern.CASE_INSENSITIVE);
 
@@ -71,6 +94,30 @@ public class ViewCreateSqlValidationService {
         }
 
         return result(Status.VALID, "CREATE VIEW 기본 파싱을 통과했습니다. " + "실제 실행 가능 여부는 DB팀 확인이 필요합니다.");
+    }
+
+    /** Also validates the SELECT body against live objects, columns, and the requester's policy. */
+    public ViewCreateSqlValidationResultDTO validate(String sqlText, Long requesterId) {
+        ViewCreateSqlValidationResultDTO basic = validate(sqlText);
+        if (basic.getStatus() != Status.VALID) {
+            return basic;
+        }
+        if (metadataValidationService == null || accessValidationService == null) {
+            return basic;
+        }
+
+        try {
+            Statement statement = CCJSqlParserUtil.parse(sqlText.strip().replaceFirst(";\\s*$", ""));
+            CreateView createView = (CreateView) statement;
+            var metadata = metadataValidationService.validate(createView.getSelect().toString());
+            accessValidationService.validate(requesterId, metadata.resources());
+            return result(Status.VALID, "CREATE VIEW와 참조 테이블·컬럼 및 부서 조회 정책을 확인했습니다.");
+        } catch (ResponseStatusException exception) {
+            return result(Status.BLOCKED,
+                    exception.getReason() == null ? "뷰의 참조 객체·컬럼 또는 부서 조회 권한을 확인하지 못했습니다." : exception.getReason());
+        } catch (Exception exception) {
+            return result(Status.BLOCKED, "뷰의 SELECT 본문에서 참조하는 테이블·컬럼을 검증하지 못했습니다.");
+        }
     }
 
     private ViewCreateSqlValidationResultDTO result(Status status, String message) {

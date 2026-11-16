@@ -40,6 +40,8 @@ JSP 지원을 위해 실행 가능한 WAR로 구성했습니다. 기본 포트�
 
 뷰 생성 요청은 `/view-create-requests/new`에서 작성합니다. 초안은 `QUERY_REQUEST.REQUEST_TYPE='CREATE_VIEW'`와 `VIEW_CREATE_SQL`에 저장하고, 제출 후 기존 `APPROVAL` 결재선을 사용합니다. DB팀 결재자의 최종 승인 뒤 부서 기안 상세에서 `.sql` 파일을 내려받고, 외부 처리 결과를 등록할 수 있습니다. 처리 결과와 수정 이력은 요청 상세에서 요청자와 부서 구성원이 확인합니다. 배포 전에 관리 Oracle DB에 `db/manual/V004__view_create_request.sql`, `db/manual/V005__view_create_result.sql`, `db/manual/V006__view_create_result_history.sql`을 순서대로 적용해야 합니다. 뷰 생성 요청은 일반 조회 실행 대기열에 등록되지 않습니다.
 
+DB 변경 요청 작성 화면은 기존 디자인을 유지하며 CREATE VIEW, CREATE TABLE, INSERT, UPDATE, DELETE 초안을 기존 결재선으로 제출합니다. CREATE TABLE은 DBA가 승인 SQL을 실행한 뒤 관리자가 신규 테이블을 `DATA_RESOURCE`에 등록하고 부서 접근 정책을 설정해야 조회 가능한 객체가 됩니다. DB 변경 요청 유형을 모두 허용하도록 기존 V004 이후 스키마에 `db/manual/V010__ai_create_table_request_type.sql`을 추가로 적용합니다. AI SQL 생성 API는 로그인 세션이 필요하며 `POST /api/ai/sql/generate`를 사용합니다. 서버의 `OPENAI_API_KEY` 환경 변수와 OpenAI API 결제/네트워크 설정이 필요합니다. 기본 모델은 `gpt-5.4-mini`이고 `sqlflow.ai.openai.model` 설정으로 바꿀 수 있습니다. 현재 사용자 부서에서 허용된 테이블·뷰의 스키마(이름, 자료형, 설명만)를 전달하며 행 데이터는 전송하지 않습니다. 모호한 요청은 SQL을 반환하지 않고 확인 질문을 보여줍니다. 생성 SQL은 화면 초안일 뿐 실행하지 않으며, 사용자가 검토 후 기존 결재 흐름으로 제출합니다.
+
 공통 헤더·사이드바는 `WEB-INF/views/fragments/top.jspf`, 하단은 `bottom.jspf`입니다. 로그인은 Spring Security 폼 인증과 서버 세션으로 처리하며, `USERS.LOGIN_ID`, BCrypt 형식의 `PASSWORD_HASH`, `ENABLED='Y'` 계정을 사용합니다. 요청자 ID와 부서는 로그인 계정에서 가져옵니다. 로그아웃과 변경 요청에 CSRF 토큰을 적용합니다. 화면과 요청 날짜는 한국 시간 기준입니다.
 
 ## 시연 순서
@@ -56,7 +58,8 @@ JSP 지원을 위해 실행 가능한 WAR로 구성했습니다. 기본 포트�
 ## API와 실제 시스템 연동 지점
 
 - `GET /api/dashboard`, `GET /api/requests?keyword=&status=`, `GET /api/requests/{id}`
-- `POST /api/sql/generate` — 현재 매출/계약 키워드 기반 고정 SQL. 내부 LLM 호출로 교체합니다.
+- `POST /api/ai/sql/generate` — `OPENAI_API_KEY`로 GPT SQL 초안을 생성하고 허용 스키마·사용자 정책을 서버에서 확인합니다.
+- `POST /api/sql/generate` — 기존 데모용 매출/계약 키워드 기반 고정 SQL.
 - `POST /api/sql/validate` — 현재 템플릿 일치 검증. 실제 DBMS용 SQL 파서, 모든 VIEW·컬럼 검증, 조직 정책으로 교체합니다.
 - `POST /api/requests` — 요청 등록과 일반/민감 분류. 관리 DB와 실행·결재 서비스로 분리합니다.
 - `GET /api/requests/{id}/approval-candidates` — 초안 작성자의 부서장과 DB팀 결재 후보 조회.
@@ -77,7 +80,7 @@ JSP 지원을 위해 실행 가능한 WAR로 구성했습니다. 기본 포트�
 
 ## 내부망 배포
 
-런타임에 외부 API·CDN을 요청하지 않습니다. Figma의 Noto Sans KR 폰트를 `static/fonts`에 포함했으며 `OFL.txt` 라이선스도 함께 보관합니다. CSS의 `@font-face`가 내부 서버에서 글꼴을 제공합니다. 빌드 의존성과 JDK는 승인된 반입 절차로 내부망에 준비합니다. 외부 AI가 아닌 내부 LLM 연결은 별도 백엔드 작업입니다.
+런타임에 외부 폰트 API·CDN을 요청하지 않습니다. AI SQL 생성은 사용자가 기능을 호출할 때 OpenAI API를 사용하므로 서버가 외부 HTTPS에 연결되어야 합니다. Figma의 Noto Sans KR 폰트를 `static/fonts`에 포함했으며 `OFL.txt` 라이선스도 함께 보관합니다. CSS의 `@font-face`가 내부 서버에서 글꼴을 제공합니다. 빌드 의존성과 JDK는 승인된 반입 절차로 내부망에 준비합니다.
 
 디자인 원본: https://www.figma.com/design/rIEPy29qllAn2arsZR0GGr?node-id=11-56
 피그마 호출 한도로 인해, 이번 코드 구현은 대화에서 생성한 Figma 구성 코드와 확인된 메인 캡처 및 프로토타입 정의를 기준으로 작성했습니다. 별도의 피그마 변경분이 있다면 반영되지 않을 수 있습니다.
