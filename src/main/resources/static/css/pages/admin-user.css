@@ -132,21 +132,70 @@
 	margin-bottom: 12px;
 }
 
-.account-create-password-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 14px;
+.account-generated-password-dialog {
+    box-sizing: border-box;
+    width: min(520px, calc(100% - 32px));
+    padding: 0;
+    border: 1px solid #cbd9e3;
+    border-radius: 10px;
     color: #263d4c;
-    font-size: 13px;
 }
 
-.account-create-password-toggle input {
-    width: 17px;
-    height: 17px;
+.account-generated-password-dialog::backdrop {
+    background: rgb(19 35 47 / 42%);
+}
+
+.account-generated-password-content {
+    padding: 24px;
+}
+
+.account-generated-password-content h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+}
+
+.account-generated-password-content > p {
+    color: #607487;
+    line-height: 1.5;
+}
+
+.account-generated-password-content dl {
+    display: grid;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.account-generated-password-content dl > div {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+}
+
+.account-generated-password-content dt {
+    font-weight: 600;
+}
+
+.account-generated-password-content dd {
+    min-width: 0;
     margin: 0;
-    accent-color: #1e627f;
-    flex: 0 0 auto;
+    overflow-wrap: anywhere;
+}
+
+.account-generated-password-content code {
+    display: inline-block;
+    padding: 9px 11px;
+    border-radius: 5px;
+    background: #f2f6f8;
+    font-size: 14px;
+    user-select: all;
+}
+
+.account-generated-password-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 20px;
 }
 
 .account-create-roles {

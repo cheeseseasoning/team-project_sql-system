@@ -98,45 +98,8 @@
                 </label>
             </div>
 
-            <div class="account-create-grid">
-                <label class="account-create-field" for="account-password">
-                    <span class="account-create-label">
-                        초기 비밀번호 <span class="required">*</span>
-                    </span>
-                    <input
-                        id="account-password"
-                        name="initialPassword"
-                        type="password"
-                        autocomplete="new-password"
-                        minlength="8"
-                        required
-                        placeholder="초기 비밀번호 입력">
-                    <small class="caption">8자 이상 입력하세요.</small>
-                </label>
-
-                <label
-                    class="account-create-field"
-                    for="account-password-confirm">
-                    <span class="account-create-label">
-                        초기 비밀번호 확인 <span class="required">*</span>
-                    </span>
-                    <input
-                        id="account-password-confirm"
-                        type="password"
-                        autocomplete="new-password"
-                        minlength="8"
-                        required
-                        placeholder="초기 비밀번호 다시 입력">
-                </label>
-            </div>
-
-            <label class="account-create-password-toggle">
-                <input id="show-account-password" type="checkbox">
-                <span>비밀번호 표시</span>
-            </label>
-
             <p class="caption account-create-help">
-                발급한 초기 비밀번호는 사용자에게 별도로 전달하세요.
+                초기 비밀번호는 계정 생성 시 자동으로 발급되며, 생성 직후 한 번만 확인할 수 있습니다.
             </p>
             </div>
         </section>
@@ -189,14 +152,39 @@
             <button id="account-role-add-button" class="button primary" type="button" disabled>추가</button>
         </div>
     </dialog>
+
+    <dialog id="generated-password-dialog"
+            class="account-generated-password-dialog"
+            aria-labelledby="generated-password-title"
+            aria-describedby="generated-password-help">
+        <div class="account-generated-password-content">
+            <h2 id="generated-password-title">계정이 생성되었습니다</h2>
+            <p>아래 임시 비밀번호를 사용자에게 안전한 방법으로 전달하세요.</p>
+            <dl>
+                <div>
+                    <dt>아이디</dt>
+                    <dd id="generated-login-id"></dd>
+                </div>
+                <div>
+                    <dt>임시 비밀번호</dt>
+                    <dd><code id="generated-initial-password"></code></dd>
+                </div>
+            </dl>
+            <p id="generated-password-help" class="caption">
+                이 창을 닫으면 비밀번호가 화면에서 지워집니다. 다시 확인할 수 없으니 먼저 복사해 두세요.
+            </p>
+            <p id="generated-password-copy-status" class="caption" role="status" aria-live="polite"></p>
+            <div class="account-generated-password-actions">
+                <button id="copy-generated-password" class="button primary" type="button">비밀번호 복사</button>
+                <button id="close-generated-password" class="button" type="button">확인</button>
+            </div>
+        </div>
+    </dialog>
 </main>
 
 <script>
     (() => {
         const form = document.getElementById('account-form');
-        const password = document.getElementById('account-password');
-        const confirmation =
-            document.getElementById('account-password-confirm');
         const departmentSelect = document.getElementById('account-dept');
         const positionSelect = document.getElementById('account-position');
         const roleSelect = document.getElementById('account-role-select');
@@ -205,8 +193,14 @@
         const roleList = document.getElementById('account-role-list');
         const roleDialog = document.getElementById('account-create-role-dialog');
         const openRoleButton = document.getElementById('account-role-open');
-        const showPassword =
-            document.getElementById('show-account-password');
+        const generatedPasswordDialog =
+            document.getElementById('generated-password-dialog');
+        const generatedLoginId =
+            document.getElementById('generated-login-id');
+        const generatedPassword =
+            document.getElementById('generated-initial-password');
+        const generatedPasswordCopyStatus =
+            document.getElementById('generated-password-copy-status');
 
         const roleDetails = window.AccountRoles.details;
 
@@ -288,14 +282,6 @@
             openRoleButton.disabled = roleSelect.options.length <= 1;
         }
 
-        function validatePasswordConfirmation() {
-            confirmation.setCustomValidity(
-                confirmation.value !== password.value
-                    ? '초기 비밀번호가 일치하지 않습니다.'
-                    : ''
-            );
-        }
-
         async function loadOptions() {
             const options = await api('/admin/users/options');
 
@@ -324,17 +310,6 @@
 
             updateRoleOptions(availableRoleCodes);
         }
-
-        form.addEventListener('input', validatePasswordConfirmation);
-
-        confirmation.addEventListener('input', validatePasswordConfirmation);
-        password.addEventListener('input', validatePasswordConfirmation);
-
-        showPassword.addEventListener('change', () => {
-            const inputType = showPassword.checked ? 'text' : 'password';
-            password.type = inputType;
-            confirmation.type = inputType;
-        });
 
         // 모달에서는 화면의 역할 선택만 바꾸며 실제 저장은 계정 생성 시 처리한다.
         openRoleButton.addEventListener('click', () => {
@@ -382,17 +357,39 @@
         });
 
         form.addEventListener('reset', () => {
-            confirmation.setCustomValidity('');
-            password.type = 'password';
-            confirmation.type = 'password';
-
             setTimeout(() => {
                 selectedRoles = [];
-                showPassword.checked = false;
                 renderSelectedRoles();
                 updateRoleOptions(Object.keys(roleDetails));
             }, 0);
         });
+
+        document.getElementById('copy-generated-password')
+            .addEventListener('click', async event => {
+                try {
+                    await navigator.clipboard.writeText(
+                        generatedPassword.textContent
+                    );
+                    generatedPasswordCopyStatus.textContent =
+                        '임시 비밀번호를 복사했습니다.';
+                } catch (error) {
+                    generatedPasswordCopyStatus.textContent =
+                        '자동 복사에 실패했습니다. 비밀번호를 직접 선택해 복사하세요.';
+                }
+            });
+
+        function clearGeneratedPassword() {
+            generatedLoginId.textContent = '';
+            generatedPassword.textContent = '';
+            generatedPasswordCopyStatus.textContent = '';
+        }
+
+        document.getElementById('close-generated-password')
+            .addEventListener('click', () => generatedPasswordDialog.close());
+        generatedPasswordDialog.addEventListener(
+            'close',
+            clearGeneratedPassword
+        );
 
         form.addEventListener('submit', async event => {
             event.preventDefault();
@@ -403,8 +400,6 @@
 
             loginId.value = loginId.value.trim();
             userName.value = userName.value.trim();
-
-            validatePasswordConfirmation();
 
             if (!form.reportValidity()) {
                 return;
@@ -420,12 +415,13 @@
 					employeeNo: employeeNo.value.trim() || null,
                     deptId: Number(departmentSelect.value),
                     positionId: Number(positionSelect.value),
-                    initialPassword: password.value,
                     roles: [...selectedRoles]
                 });
 
                 form.reset();
-                notify(result.message + ' 아이디: ' + result.loginId);
+                generatedLoginId.textContent = result.loginId;
+                generatedPassword.textContent = result.initialPassword;
+                generatedPasswordDialog.showModal();
             });
         });
 
