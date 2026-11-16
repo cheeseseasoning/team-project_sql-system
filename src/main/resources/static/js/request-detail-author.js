@@ -95,10 +95,8 @@ async function loadDetail() {
 
 		$('#request-withdraw').hidden = !canWithdraw;
 
-		// 반려·회수된 요청은 새로운 초안으로 재작성할 수 있다.
-		$('#request-redraft').hidden =
-		    !['REJECTED', 'WITHDRAWN'].includes(request.requestStatus);
-
+		// 반려·회수와 실행 실패·취소 재기안은 서버의 공통 판단을 사용한다.
+		$('#request-redraft').hidden = request.canRedraft !== true;
 
 		detailItems = (request.items || []).map(function (item) {
 			return {

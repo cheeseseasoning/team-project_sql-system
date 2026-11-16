@@ -293,48 +293,58 @@
         }
     }
 
-    async function loadDraft() {
-        const controls = form.querySelectorAll('input, textarea, button:not([data-ai-generate])');
-        controls.forEach(control => {
-			control.disabled = true;
-			changeType.disabled = true;
-		});
-        saveButton.textContent = '초안 불러오는 중…';
+	async function loadDraft() {
+	    const controls = form.querySelectorAll('input, textarea, button:not([data-ai-generate])');
+	    controls.forEach(control => { control.disabled = true; });
+	    changeType.disabled = true;
+	    saveButton.textContent = '초안 불러오는 중…';
 
-        try {
-            const request = await api('/requests/mine/' + encodeURIComponent(requestId));
+	    try {
+	        const request = await api('/requests/mine/' + encodeURIComponent(requestId));
 
-			const allowedStatuses = redraftMode
-			    ? ['REJECTED', 'WITHDRAWN']
-			    : ['DRAFT'];
+	        const canLoad = redraftMode
+	            ? request.canRedraft === true
+	            : request.requestStatus === 'DRAFT';
 
-			if (!allowedStatuses.includes(request.requestStatus)
-			        || !Object.hasOwn(TYPE, request.requestType)) {
-			    throw new Error(redraftMode
-			        ? '반려되거나 회수된 DB 변경 요청만 재기안할 수 있습니다.'
-			        : '수정할 수 있는 DB 변경 초안이 아닙니다.');
-			}
+	        if (!canLoad || !Object.hasOwn(TYPE, request.requestType)) {
+	            throw new Error(redraftMode
+	                ? '현재 재기안할 수 없는 DB 변경 요청입니다. 원본 상세에서 처리 결과를 확인해 주세요.'
+	                : '수정할 수 있는 DB 변경 초안이 아닙니다.');
+	        }
 
-            changeType.value = request.requestType;
-            title.value = request.title || '';
-            purpose.value = request.purpose || '';
-            detail.value = request.detailContent || '';
-            urgent.checked = request.isUrgent === 'Y';
-            desiredDate.value = request.desiredDate || '';
+	        let sourceItems = Array.isArray(request.items) ? request.items : [];
 
-            controls.forEach(control => { control.disabled = false; });
-            items.replaceChildren();
+	        if (redraftMode) {
+	            // 서버가 지정한 재기안 대상만 가져오며, 원본 SQL 순서는 유지한다.
+	            const redraftIds = new Set(
+	                (Array.isArray(request.redraftQueryIds) ? request.redraftQueryIds : []).map(String)
+	            );
+	            sourceItems = sourceItems.filter(item => redraftIds.has(String(item.queryId)));
 
-            (request.items || []).forEach(item => addSql(false, item));
-            if (getSections().length === 0) addSql(false);
+	            if (sourceItems.length === 0 || sourceItems.length !== redraftIds.size) {
+	                throw new Error('재기안할 SQL을 확인하지 못했습니다. 원본 상세를 새로 열어 다시 진행해 주세요.');
+	            }
+	        }
 
-            updateTypeDisplay();
-        } catch (error) {
-            message.textContent = error.message || 'CREATE 초안을 불러오지 못했습니다.';
-        } finally {
-            saveButton.textContent = saveLabel;
-        }
-    }
+	        changeType.value = request.requestType;
+	        title.value = request.title || '';
+	        purpose.value = request.purpose || '';
+	        detail.value = request.detailContent || '';
+	        urgent.checked = request.isUrgent === 'Y';
+	        desiredDate.value = request.desiredDate || '';
+
+	        items.replaceChildren();
+	        sourceItems.forEach(item => addSql(false, item));
+	        if (getSections().length === 0) addSql(false);
+
+	        controls.forEach(control => { control.disabled = false; });
+	        updateTypeDisplay();
+	    } catch (error) {
+	        message.textContent = error.message || 'DB 변경 요청을 불러오지 못했습니다.';
+	    } finally {
+	        saveButton.textContent = saveLabel;
+	    }
+	}
 
     items.addEventListener('click', event => {
         const button = event.target.closest('button[data-action="remove"]');

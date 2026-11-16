@@ -308,6 +308,12 @@ public class RequestService {
 	            : requestMapper.selectMyRequestItems(requestId, drafterId));
 	    detail.setApprovals(requestMapper.selectMyRequestApprovals(requestId, drafterId));
 
+	    // SQL별 최신 결과를 조회한 뒤 재기안 가능 여부와 복사 대상을 판단한다.
+	    detail.setCanRedraft(canRedraftRequest(detail));
+	    detail.setRedraftQueryIds(getRedraftItems(detail).stream()
+	            .map(RequestItemResponse::getQueryId)
+	            .toList());
+
 	    return detail;
 	}
 
@@ -852,21 +858,102 @@ public class RequestService {
 	            ? null
 	            : value.strip();
 	}
+	
+	/**
+	 * 작성자 본인의 요청을 조회한 뒤 사용하는 재기안 허용 조건.
+	 * 반려·회수는 기존 정책을 유지하고, 실행 결과에 따른 재기안은 처리가 끝난 요청만 허용한다.
+	 */
+	private boolean canRedraftRequest(RequestDetailResponse request) {
+	    if (request == null) {
+	        return false;
+	    }
+
+	    String status = request.getRequestStatus();
+	    if ("REJECTED".equals(status) || "WITHDRAWN".equals(status)) {
+	        return true;
+	    }
+
+	    List<RequestItemResponse> items = request.getItems();
+	    if (!"APPROVED".equals(request.getApprovalStatus())
+	            || items == null || items.isEmpty()) {
+	        return false;
+	    }
+
+	    String requestType = request.getRequestType();
+
+	    if ("SELECT".equals(requestType)) {
+	        // 조회 요청은 전체 실행 집계가 실패 또는 일부 실패로 끝나야 한다.
+	        if (!"FAILED".equals(status) && !"PARTIAL_FAILED".equals(status)) {
+	            return false;
+	        }
+
+	        boolean allFinished = items.stream().allMatch(item ->
+	                "SUCCESS".equals(item.getLatestExecutionStatus())
+	                        || "FAILED".equals(item.getLatestExecutionStatus()));
+
+	        return allFinished && items.stream().anyMatch(item -> isFailedRedraftItem(requestType, item));
+	    }
+
+	    if (!isChangeSqlRequest(requestType) || !"READY".equals(status)) {
+	        return false;
+	    }
+
+	    // CREATE·DML은 모든 SQL의 외부 처리 결과가 등록돼야 한다.
+	    boolean allFinished = items.stream().allMatch(item ->
+	            "COMPLETED".equals(item.getChangeResultStatus())
+	                    || "FAILED".equals(item.getChangeResultStatus())
+	                    || "CANCELLED".equals(item.getChangeResultStatus()));
+
+	    return allFinished && items.stream().anyMatch(item -> isFailedRedraftItem(requestType, item));
+	}
+
+	/** 요청 유형에 맞는 실행 결과 필드로 실패·취소 여부를 확인한다. */
+	private boolean isFailedRedraftItem(String requestType, RequestItemResponse item) {
+	    if ("SELECT".equals(requestType)) {
+	        return "FAILED".equals(item.getLatestExecutionStatus());
+	    }
+
+	    return isChangeSqlRequest(requestType)
+	            && ("FAILED".equals(item.getChangeResultStatus())
+	                    || "CANCELLED".equals(item.getChangeResultStatus()));
+	}
+
+	/**
+	 * 반려·회수는 전체 SQL을, 실행 실패 재기안은 실패·취소 SQL만 가져온다.
+	 * 원본 SQL과 실행 이력은 변경하지 않는다.
+	 */
+	private List<RequestItemResponse> getRedraftItems(RequestDetailResponse request) {
+	    if (!canRedraftRequest(request) || request.getItems() == null) {
+	        return List.of();
+	    }
+
+	    String status = request.getRequestStatus();
+	    if ("REJECTED".equals(status) || "WITHDRAWN".equals(status)) {
+	        return request.getItems();
+	    }
+
+	    return request.getItems().stream()
+	            .filter(item -> isFailedRedraftItem(request.getRequestType(), item))
+	            .toList();
+	}
 
 	@Transactional(transactionManager = "managementTransactionManager")
 	public Long redraftRequest(Long sourceRequestId, RequestDraftCreateRequest input,
 	        Long actorId, Long deptId) {
 
-	    // 본인 요청을 잠그고 반려되거나 회수된 요청인지 확인한다.
+	    // 본인 요청을 잠가 상태 변경과 재기안 처리가 겹치지 않도록 한다.
 	    String status = requestMapper.selectMyRequestStatusForUpdate(sourceRequestId, actorId);
 	    if (status == null) {
 	        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청을 찾을 수 없습니다.");
 	    }
-	    if (!"REJECTED".equals(status) && !"WITHDRAWN".equals(status)) {
-	        throw new ResponseStatusException(HttpStatus.CONFLICT, "반려되거나 회수된 요청만 재기안할 수 있습니다.");
+
+	    // 화면을 연 뒤 실행 결과가 변경됐을 수 있으므로 저장 시 다시 판단한다.
+	    RequestDetailResponse source = getMyRequestDetail(sourceRequestId, actorId);
+	    if (!canRedraftRequest(source)) {
+	        throw new ResponseStatusException(HttpStatus.CONFLICT,
+	                "현재 재기안할 수 없는 요청입니다. 반려·회수되었거나, 모든 SQL 처리가 끝난 후 실패·취소 항목이 있는 요청만 재기안할 수 있습니다.");
 	    }
 
-	    RequestDetailResponse source = getMyRequestDetail(sourceRequestId, actorId);
 	    String requestType = source.getRequestType();
 	    Long newRequestId = requestMapper.selectNextRequestId();
 
@@ -887,6 +974,7 @@ public class RequestService {
 	        throw new IllegalStateException("재기안 초안 생성에 실패했습니다.");
 	    }
 
+	    // 재기안 화면에서 사용자가 확인·수정한 SQL을 기존 유형별 경로로 저장한다.
 	    if ("CREATE".equals(requestType)) {
 	        saveRedraftViewSqlItems(newRequestId, input.getSqls(), input.getSqlTitles());
 	    } else if (isDmlRequest(requestType)) {
@@ -895,7 +983,7 @@ public class RequestService {
 	        saveDraftItems(newRequestId, input.getSqls(), input.getSqlTitles());
 	    }
 
-	    // 새 결재선은 새 초안을 제출할 때 생성한다.
+	    // 원본과 실행 이력은 보존하고, 새 결재선은 새 초안을 제출할 때 생성한다.
 	    return newRequestId;
 	}
 

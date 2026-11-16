@@ -247,10 +247,10 @@
 	</select>
 
 
-	<!-- 본인 요청에 등록된 SQL 목록 -->
+	<!-- 본인 요청의 SQL과 SQL별 최신 실행 상태를 조회한다. -->
 	<select id="selectMyRequestItems"
 	        resultType="com.sqlflow.request.dto.RequestItemResponse">
-
+	
 	    SELECT
 	        I.QUERY_ID,
 	        I.QUERY_ORDER,
@@ -258,14 +258,27 @@
 	        I.SQL_TEXT,
 	        I.AUTHORING_TYPE,
 	        I.VALIDATION_STATUS,
-	        I.ITEM_CLASS
+	        I.ITEM_CLASS,
+	        E.STATUS AS LATEST_EXECUTION_STATUS
 	    FROM QUERY_ITEM I
 	    JOIN QUERY_REQUEST R
 	        ON R.REQUEST_ID = I.REQUEST_ID
+	    LEFT JOIN (
+	        SELECT
+	            QUERY_ID,
+	            STATUS,
+	            ROW_NUMBER() OVER (
+	                PARTITION BY QUERY_ID
+	                ORDER BY EXECUTION_ID DESC
+	            ) AS LATEST_RANK
+	        FROM QUERY_EXECUTION
+	    ) E
+	        ON E.QUERY_ID = I.QUERY_ID
+	       AND E.LATEST_RANK = 1
 	    WHERE R.REQUEST_ID = #{requestId}
 	      AND R.DRAFTER_ID = #{drafterId}
 	    ORDER BY I.QUERY_ORDER
-
+	
 	</select>
 
 	<!-- 본인 요청의 상태 확인 및 행 잠금 -->

@@ -130,7 +130,7 @@
 			</section>
 		</template>
 
-		<script src="${pageContext.request.contextPath}/js/view-create-request-form.js?v=20261111-db-change-redraft"
-			    defer></script>
+		<script src="${pageContext.request.contextPath}/js/view-create-request-form.js?v=20261116-result-redraft"
+			defer></script>
 
 		<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>
