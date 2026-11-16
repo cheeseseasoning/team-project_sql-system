@@ -259,10 +259,6 @@
 	        const tabId = 'edit-sql-tab-' + index;
 	        const panelId = 'edit-sql-panel-' + index;
 
-	        const group = document.createElement('div');
-	        group.className = 'request-sql-tab-group';
-	        group.setAttribute('role', 'presentation');
-
 	        const tab = document.createElement('button');
 	        tab.id = tabId;
 	        tab.type = 'button';
@@ -275,22 +271,7 @@
 	            activateEditSqlTab(index);
 	        });
 
-	        const remove = document.createElement('button');
-	        remove.type = 'button';
-	        remove.className = 'request-sql-tab-remove';
-	        remove.textContent = '×';
-	        remove.disabled = editSqls.length <= 1;
-	        remove.setAttribute('aria-label', 'SQL ' + (index + 1) + ' 삭제');
-	        remove.title = editSqls.length <= 1
-	            ? 'SQL 입력 칸은 최소 1개 유지됩니다.'
-	            : 'SQL 삭제';
-
-	        remove.addEventListener('click', function () {
-	            removeEditSql(index);
-	        });
-
-	        group.append(tab, remove);
-	        tabs.append(group);
+	        tabs.append(tab);
 
 	        const section = document.createElement('section');
 	        section.id = panelId;
@@ -300,7 +281,9 @@
 
 	        // 사용자 입력값은 아래에서 value로 넣는다.
 	        section.innerHTML =
-	            '<label class="request-sql-field">'
+	            '<div class="request-sql-field-heading">'
+	            + '<button type="button" class="text-button request-sql-delete">삭제</button>'
+	            + '<label class="request-sql-field">'
 	            + '<span>SQL 제목 <span class="required">*</span></span>'
 	            + '<input type="text"'
 	            + ' class="sql-title-input edit-sql-title-input"'
@@ -308,6 +291,7 @@
 	            + ' aria-required="true"'
 	            + ' placeholder="SQL 제목을 입력하세요.">'
 	            + '</label>'
+	            + '</div>'
 	            + '<label class="request-sql-field">'
 	            + '<span>SQL 원문</span>'
 	            + '<textarea class="sql-editor edit-sql-editor"'
@@ -317,6 +301,14 @@
 	            + '</textarea>'
 	            + '</label>'
 	            + '<p class="request-sql-validation caption" hidden></p>';
+
+	        const remove = section.querySelector('.request-sql-delete');
+	        remove.disabled = editSqls.length <= 1;
+	        remove.setAttribute('aria-label', 'SQL ' + (index + 1) + ' 삭제');
+	        remove.title = editSqls.length <= 1 ? 'SQL 입력 칸은 최소 1개 유지됩니다.' : 'SQL 삭제';
+	        remove.addEventListener('click', function () {
+	            removeEditSql(index);
+	        });
 
 	        section.querySelector('.edit-sql-title-input').value = item.title || '';
 

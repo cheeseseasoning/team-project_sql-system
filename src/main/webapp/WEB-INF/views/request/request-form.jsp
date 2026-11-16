@@ -184,11 +184,6 @@
 	    activeSqlIndex = Math.max(0, Math.min(activeSqlIndex, sqls.length - 1));
 
 	    sqls.forEach(function (item, index) {
-	        const tabGroup = document.createElement('div');
-
-	        tabGroup.className = 'request-sql-tab-group';
-	        tabGroup.setAttribute('role', 'presentation');
-
 	        const tab = document.createElement('button');
 
 	        tab.type = 'button';
@@ -202,24 +197,7 @@
 	            activateSqlTab(index);
 	        });
 
-	        const remove = document.createElement('button');
-
-	        remove.type = 'button';
-	        remove.className = 'request-sql-tab-remove';
-	        remove.textContent = '×';
-	        remove.disabled = sqls.length <= 1;
-	        remove.setAttribute('aria-label', 'SQL ' + (index + 1) + ' 삭제');
-	        remove.title = sqls.length <= 1
-	            ? 'SQL은 최소 1개를 유지해야 합니다.'
-	            : 'SQL ' + (index + 1) + ' 삭제';
-
-	        remove.addEventListener('click', function (event) {
-	            event.stopPropagation();
-	            removeSql(index);
-	        });
-
-	        tabGroup.append(tab, remove);
-	        tabs.appendChild(tabGroup);
+	        tabs.appendChild(tab);
 
 	        const section = document.createElement('section');
 
@@ -230,14 +208,17 @@
 
 	        // 사용자 입력값은 HTML 문자열에 넣지 않고 아래에서 value로 지정한다.
 	        section.innerHTML = `
-	            <label class="request-sql-field">
-	                <span>SQL 제목 <span class="required">*</span></span>
-	                <input type="text"
-	                       class="sql-title-input"
-	                       aria-required="true"
-	                       maxlength="200"
-	                       placeholder="예: 판매 중인 상품 ID·상품명 조회">
-	            </label>
+	            <div class="request-sql-field-heading">
+	                <button type="button" class="text-button request-sql-delete">삭제</button>
+	                <label class="request-sql-field">
+	                    <span>SQL 제목 <span class="required">*</span></span>
+	                    <input type="text"
+	                           class="sql-title-input"
+	                           aria-required="true"
+	                           maxlength="200"
+	                           placeholder="예: 판매 중인 상품 ID·상품명 조회">
+	                </label>
+	            </div>
 
 	            <div class="request-sql-editor-grid">
 	                <div class="request-ai-panel" hidden>
@@ -274,6 +255,15 @@
 
 	            <p class="request-sql-validation caption" hidden></p>
 	        `;
+
+	        // 탭에는 SQL 번호만 표시하고 삭제는 제목 우측에서 처리한다.
+	        const remove = section.querySelector('.request-sql-delete');
+	        remove.disabled = sqls.length <= 1;
+	        remove.setAttribute('aria-label', 'SQL ' + (index + 1) + ' 삭제');
+	        remove.title = sqls.length <= 1 ? 'SQL은 최소 1개를 유지해야 합니다.' : 'SQL 삭제';
+	        remove.addEventListener('click', function () {
+	            removeSql(index);
+	        });
 
 	        const titleInput = section.querySelector('.sql-title-input');
 	        const promptInput = section.querySelector('.sql-prompt');
