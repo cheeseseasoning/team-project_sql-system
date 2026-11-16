@@ -33,6 +33,16 @@ app.datasource.query.password=
 app.datasource.query.driver-class-name=com.mysql.cj.jdbc.Driver
 
 
+# MySQL DML EXPLAIN 검증 전용 DB (선택 설정)
+# 조회 실행은 위 reader 연결을 사용합니다. 이 연결은 DML EXPLAIN에만 사용합니다.
+# 아래 URL은 query.url과 같은 서버·DB 주소를 사용하고 계정만 분리합니다.
+# 미설정 시 DML 검증은 경고를 반환합니다. 설정 후 STS에서 앱을 재시작합니다.
+# app.datasource.validation.url=jdbc:mysql://127.0.0.1:13306/sqlflow_demo?sslMode=REQUIRED
+# app.datasource.validation.username=sql_validator
+# app.datasource.validation.password=
+# app.datasource.validation.driver-class-name=com.mysql.cj.jdbc.Driver
+
+
 # CSV 결과 저장·조회 경로
 # EC2의 아래 폴더를 SSHFS-Win-Manager로 연결합니다.
 # /home/ubuntu/sqlflow-deploy/storage/query-results

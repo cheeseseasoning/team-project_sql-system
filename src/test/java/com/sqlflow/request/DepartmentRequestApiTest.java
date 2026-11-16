@@ -226,9 +226,9 @@ class DepartmentRequestApiTest {
     
     @Test
     void dmlValidationReturnsResultForSubmittedSql() throws Exception {
-        String sql = "DELETE FROM demo_product WHERE product_id = 1";
+        String sql = "DELETE FROM demo_product WHERE product_id = 1;";
 
-        when(dmlSqlValidationService.validate(SqlType.DELETE, sql))
+        when(dmlSqlValidationService.validateForReview(1L, SqlType.DELETE, sql))
                 .thenReturn(new ValidationResult(Status.VALID, "기본 구문 검사 통과"));
 
         mockMvc.perform(post("/api/requests/dml-sql/validate")
@@ -236,12 +236,35 @@ class DepartmentRequestApiTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"sqlType":"DELETE","sqls":["DELETE FROM demo_product WHERE product_id = 1"]}
+                                {"sqlType":"DELETE","sqls":["DELETE FROM demo_product WHERE product_id = 1;"]}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("VALID"))
                 .andExpect(jsonPath("$[0].message").value("기본 구문 검사 통과"));
 
-        verify(dmlSqlValidationService).validate(SqlType.DELETE, sql);
+        verify(dmlSqlValidationService).validateForReview(1L, SqlType.DELETE, sql);
     }
+    @Test
+    void firstResultPassesResourceAndConfirmationToSharedLinkService() throws Exception {
+        mockMvc.perform(post("/api/requests/department/100/change-sql/20/result")
+                        .with(authenticatedUser()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"resultStatus":"COMPLETED","resultNote":"확인","executedBy":2,"resourceId":7,"viewLinkDecision":"VIEW"}
+                                """))
+                .andExpect(status().isNoContent());
+        verify(viewCreationLinkService).register(100L, 20L, 1L, "COMPLETED", "확인", 2L, 7L, "VIEW");
+    }
+
+    @Test
+    void correctionUsesSharedLinkServiceWithAuthenticatedActor() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/requests/department/100/change-sql/20/result")
+                        .with(authenticatedUser()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"resultStatus":"COMPLETED","resultNote":"확인","executedBy":2,"resourceId":7,"viewLinkDecision":"VIEW","changeType":"REEXECUTION","changeReason":"재실행"}
+                                """))
+                .andExpect(status().isNoContent());
+        verify(viewCreationLinkService).change(100L, 20L, 1L, "COMPLETED", "확인", 2L, "REEXECUTION", "재실행", 7L, "VIEW");
+        verifyNoInteractions(departmentRequestService);
+    }
+
 }

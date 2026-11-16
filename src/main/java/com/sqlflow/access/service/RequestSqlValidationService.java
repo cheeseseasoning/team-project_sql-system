@@ -11,7 +11,7 @@ import org.springframework.transaction.TransactionException;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.execution.service.MySqlQueryMetadataValidationService;
-import com.sqlflow.execution.service.SqlParserValidator;
+import com.sqlflow.execution.service.SqlBasicValidator;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.dto.SelectSqlValidationResult;
@@ -28,7 +28,7 @@ public class RequestSqlValidationService {
 
     private final MySqlQueryMetadataValidationService metadataValidationService;
     private final DataAccessValidationService dataAccessValidationService;
-    private final SqlParserValidator sqlParserValidator;
+    private final SqlBasicValidator basicValidator;
 
     /**
      * SQL 중 하나라도 검증에 실패하면 예외를 전달하여 제출을 차단한다.
@@ -94,9 +94,9 @@ public class RequestSqlValidationService {
 
     private DataAccessValidationService.ValidationResult validateOne(
             Long requesterId, String sqlText) {
-        // Parse before entering the MySQL-backed metadata transaction so malformed
-        // SQL can still receive a useful validation result while MySQL is unavailable.
-        sqlParserValidator.parseSelect(sqlText);
+        // DB 연결 전에 공통 형식을 확인한다. 상세 문법은 EXPLAIN에 맡긴다.
+        var basic = basicValidator.validate("SELECT", sqlText);
+        if (basic.blocked()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, basic.warning());
 
         MySqlQueryMetadataValidationService.ValidationResult metadata;
         try {

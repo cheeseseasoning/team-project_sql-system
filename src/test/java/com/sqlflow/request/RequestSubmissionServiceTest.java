@@ -57,8 +57,9 @@ class RequestSubmissionServiceTest {
                 requestMapper,
                 approvalLineCreatorProvider,
                 requestSqlValidationService,
-                new ViewCreateSqlValidationService(),
-                new DmlSqlValidationService());
+                new ViewCreateSqlValidationService(new com.sqlflow.execution.service.SqlBasicValidator()),
+                org.mockito.Mockito.mock(DmlSqlValidationService.class),
+                new com.sqlflow.execution.service.SqlBasicValidator());
     }
 
     @Test
@@ -291,12 +292,12 @@ class RequestSubmissionServiceTest {
         RequestItemResponse validItem = new RequestItemResponse();
         validItem.setQueryId(101L);
         validItem.setSqlText(
-                "CREATE VIEW v_test AS SELECT 1 AS id");
+                "CREATE VIEW v_test AS SELECT 1 AS id;");
 
         RequestItemResponse warningItem = new RequestItemResponse();
         warningItem.setQueryId(102L);
         warningItem.setSqlText(
-                "CREATE VIEW v_bad AS SELECT * FROM");
+                "CREATE PROCEDURE p() BEGIN SELECT 1;");
 
         when(requestMapper.selectMyRequestDetail(2L, 1L))
                 .thenReturn(draft);

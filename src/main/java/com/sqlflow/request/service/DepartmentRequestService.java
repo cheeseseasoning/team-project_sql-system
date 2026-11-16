@@ -137,6 +137,15 @@ public class DepartmentRequestService {
                         requestId,
                         actorId));
 
+        if ("CREATE_VIEW".equals(requestType)) {
+            for (var item : detail.getItems()) {
+                var target = CreateSqlTargetResolver.resolve(item.getSqlText());
+                item.setViewLinkType(target.kind().name());
+                item.setCreatedViewSchema(target.schema());
+                item.setCreatedViewName(target.view());
+            }
+        }
+
         detail.setApprovals(
                 departmentRequestMapper.selectVisibleRequestApprovals(
                         requestId,

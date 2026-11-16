@@ -24,7 +24,7 @@ import com.sqlflow.access.service.DataAccessValidationService;
 import com.sqlflow.access.service.RequestSqlValidationService;
 import com.sqlflow.execution.domain.QueryObjectName;
 import com.sqlflow.execution.service.MySqlQueryMetadataValidationService;
-import com.sqlflow.execution.service.SqlParserValidator;
+import com.sqlflow.execution.service.SqlBasicValidator;
 import com.sqlflow.request.dto.RequestItemResponse;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,10 +33,10 @@ class RequestSqlValidationServiceTest {
     private static final Long USER_ID = 10L;
 
     private static final String SALES_SQL =
-            "SELECT * FROM BIZ_DATA.SALES";
+            "SELECT * FROM BIZ_DATA.SALES;";
 
     private static final String CUSTOMER_SQL =
-            "SELECT * FROM BIZ_DATA.CUSTOMERS";
+            "SELECT * FROM BIZ_DATA.CUSTOMERS;";
 
     private static final QueryObjectName SALES =
             new QueryObjectName("BIZ_DATA", "SALES");
@@ -51,7 +51,7 @@ class RequestSqlValidationServiceTest {
     private DataAccessValidationService dataAccessValidationService;
 
     @Spy
-    private SqlParserValidator sqlParserValidator = new SqlParserValidator();
+    private SqlBasicValidator basicValidator = new SqlBasicValidator();
 
     @InjectMocks
     private RequestSqlValidationService service;
@@ -167,7 +167,7 @@ class RequestSqlValidationServiceTest {
     }
 
     @Test
-    void invalidSyntaxIsReportedBeforeOpeningMySqlMetadataConnection() {
+    void invalidFormatIsReportedBeforeOpeningMySqlMetadataConnection() {
         RequestItemResponse item = new RequestItemResponse();
         item.setQueryId(103L);
         item.setSqlText("sql");
@@ -175,7 +175,7 @@ class RequestSqlValidationServiceTest {
         var results = service.validateItems(USER_ID, List.of(item));
 
         assertEquals("INVALID", results.get(0).validationStatus());
-        assertEquals("SQL 구문을 분석할 수 없습니다. 문법 또는 지원 여부를 확인하세요.",
+        assertEquals("SQL의 마지막은 세미콜론(;)으로 끝나야 합니다.",
                 results.get(0).message());
         verifyNoInteractions(metadataValidationService, dataAccessValidationService);
     }
@@ -200,9 +200,6 @@ class RequestSqlValidationServiceTest {
 
         when(metadataValidationService.validate(sql))
                 .thenReturn(
-                        new MySqlQueryMetadataValidationService.ValidationResult(
-                                Set.of(target),
-                                Set.of(),
-                                false));
+                        new MySqlQueryMetadataValidationService.ValidationResult(Set.of(target)));
     }
 }

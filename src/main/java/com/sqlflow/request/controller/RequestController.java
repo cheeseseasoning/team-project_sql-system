@@ -317,13 +317,15 @@ public class RequestController {
         return requestService.validateCreateTableSqlTexts(input.getSqls());
     }
 
-    /** 화면에서 선택한 유형을 SQL 목록 전체에 적용한다. */
+    /** 로그인 사용자의 접근 권한과 EXPLAIN 결과를 함께 확인한다. */
     @PostMapping("/dml-sql/validate")
     public List<ValidationResult> validateDmlSqlTexts(
-            @Valid @RequestBody DmlSqlValidationRequest input) {
+            @Valid @RequestBody DmlSqlValidationRequest input,
+            @AuthenticationPrincipal SqlFlowUserDetails user) {
 
         return input.getSqls().stream()
-                .map(sql -> dmlSqlValidationService.validate(
+                .map(sql -> dmlSqlValidationService.validateForReview(
+                        user.getUserId(),
                         input.getSqlType(),
                         sql))
                 .toList();
@@ -337,9 +339,10 @@ public class RequestController {
         @NotNull
         private SqlType sqlType;
 
+        // SQL 개수 제한은 유지하고, 개별 SQL의 글자 수는 제한하지 않는다.
         @NotEmpty
         @Size(max = 5)
-        private List<@NotNull @Size(max = 20000) String> sqls;
+        private List<@NotNull String> sqls;
     }
 
     /** 로그인한 작성자의 저장된 뷰 생성 SQL을 검사한다. */
@@ -429,7 +432,8 @@ public class RequestController {
                 input.getResultStatus(),
                 input.getResultNote(),
                 input.getExecutedBy(),
-                input.getResourceId());
+                input.getResourceId(),
+                input.getViewLinkDecision());
 
         return ResponseEntity.noContent().build();
     }
@@ -447,46 +451,55 @@ public class RequestController {
 
         private Long executedBy;
         private Long resourceId;
+
+        // SQL 분석이 어려운 경우 DB팀이 확인한 생성 대상 종류를 전달한다.
+        private String viewLinkDecision;
     }
 
-    @PatchMapping("/department/{requestId}/change-sql/{queryId}/result")
-    public ResponseEntity<Void> changeSqlResult(
-            @PathVariable Long requestId,
-            @PathVariable Long queryId,
-            @Valid @RequestBody ChangeSqlResultUpdateRequest input,
-            @AuthenticationPrincipal SqlFlowUserDetails user) {
-
-        departmentRequestService.changeSqlResult(
-                requestId,
-                queryId,
-                user.getUserId(),
-                input.getResultStatus(),
-                input.getResultNote(),
-                input.getExecutedBy(),
-                input.getChangeType(),
-                input.getChangeReason());
-
-        return ResponseEntity.noContent().build();
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class ChangeSqlResultUpdateRequest {
-
-        @NotNull
-        private String resultStatus;
-
-        @Size(max = 1000)
-        private String resultNote;
-
-        private Long executedBy;
-
-        @NotNull
-        private String changeType;
-
-        @NotNull
-        @Size(max = 1000)
-        private String changeReason;
-    }
+	@PatchMapping("/department/{requestId}/change-sql/{queryId}/result")
+	public ResponseEntity<Void> changeSqlResult(
+	        @PathVariable Long requestId,
+	        @PathVariable Long queryId,
+	        @Valid @RequestBody ChangeSqlResultUpdateRequest input,
+	        @AuthenticationPrincipal SqlFlowUserDetails user) {
+	
+	    viewCreationLinkService.change(
+	            requestId,
+	            queryId,
+	            user.getUserId(),
+	            input.getResultStatus(),
+	            input.getResultNote(),
+	            input.getExecutedBy(),
+	            input.getChangeType(),
+	            input.getChangeReason(),
+	            input.getResourceId(),
+	            input.getViewLinkDecision());
+	
+	    return ResponseEntity.noContent().build();
+	}
+	
+	@Data
+	@NoArgsConstructor
+	@AllArgsConstructor
+	public static class ChangeSqlResultUpdateRequest {
+	
+	    @NotNull
+	    private String resultStatus;
+	
+	    @Size(max = 1000)
+	    private String resultNote;
+	
+	    private Long executedBy;
+	
+	    @NotNull
+	    private String changeType;
+	
+	    @NotNull
+	    @Size(max = 1000)
+	    private String changeReason;
+	
+	    // 결과 변경 시 연결하거나 해제할 뷰와 수동 확인 내용을 전달한다.
+	    private Long resourceId;
+	    private String viewLinkDecision;
+	}
 }

@@ -48,11 +48,11 @@
 				<div class="db-change-sql-type">
 					<h2>SQL 작성</h2>
 					<select id="db-change-type" aria-label="변경 유형" ${dbChangeFormMode ne 'create' ? 'disabled' : ''}>
-						<option value="CREATE_VIEW">CREATE VIEW · 뷰 생성</option>
-						<option value="CREATE_TABLE">CREATE TABLE · 테이블 생성</option>
-						<option value="INSERT">INSERT · 데이터 추가</option>
-						<option value="UPDATE">UPDATE · 데이터 수정</option>
-						<option value="DELETE">DELETE · 데이터 삭제</option>
+					    <option value="CREATE_VIEW">CREATE · 객체 생성</option>
+					    <option value="CREATE_TABLE">CREATE TABLE · 테이블 생성</option>
+					    <option value="INSERT">INSERT · 데이터 추가</option>
+					    <option value="UPDATE">UPDATE · 데이터 수정</option>
+					    <option value="DELETE">DELETE · 데이터 삭제</option>
 					</select>
 				</div>
 
@@ -125,7 +125,7 @@
 						<span class="db-change-direct-label">SQL 구문</span>
 						<span class="db-change-ai-label">생성된 SQL</span>
 						<span class="required">*</span>
-						<textarea class="sql-editor" rows="8" required maxlength="20000" spellcheck="false"></textarea>
+						<textarea class="sql-editor" rows="8" required  spellcheck="false"></textarea>
 					</label>
 				</div>
 			</section>

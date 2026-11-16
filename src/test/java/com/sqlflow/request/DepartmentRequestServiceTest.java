@@ -219,4 +219,25 @@ class DepartmentRequestServiceTest {
                 Arguments.of("", "", 1, 0),
                 Arguments.of("", "", 1, 51));
     }
+    @Test
+    void mixedCreateItemsExposeIndependentLinkRequirements() {
+        var detail = new RequestDetailResponse();
+        detail.setRequestType("CREATE_VIEW");
+        var table = new RequestItemResponse();
+        table.setSqlText("CREATE TABLE demo.t(id INT);");
+        var view = new RequestItemResponse();
+        view.setSqlText("CREATE OR REPLACE VIEW demo.v AS SELECT 1;");
+        var unknown = new RequestItemResponse();
+        unknown.setSqlText("CREATE UNKNOWN x;");
+        when(mapper.selectVisibleRequestDetail(100L, 1L)).thenReturn(detail);
+        when(mapper.selectVisibleViewSqlItems(100L, 1L)).thenReturn(List.of(table, view, unknown));
+        when(mapper.selectVisibleRequestApprovals(100L, 1L)).thenReturn(List.of());
+        var response = service.getRequestDetail(100L, 1L);
+        assertEquals("OTHER", response.getItems().get(0).getViewLinkType());
+        assertEquals("VIEW", response.getItems().get(1).getViewLinkType());
+        assertEquals("demo", response.getItems().get(1).getCreatedViewSchema());
+        assertEquals("v", response.getItems().get(1).getCreatedViewName());
+        assertEquals("UNKNOWN", response.getItems().get(2).getViewLinkType());
+    }
+
 }

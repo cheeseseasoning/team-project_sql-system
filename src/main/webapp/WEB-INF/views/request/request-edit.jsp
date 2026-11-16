@@ -318,7 +318,6 @@
 	            + '<span>SQL 원문</span>'
 	            + '<textarea class="sql-editor edit-sql-editor"'
 	            + ' rows="6"'
-	            + ' maxlength="20000"'
 	            + ' spellcheck="false"'
 	            + ' placeholder="SELECT SQL을 입력하세요.">'
 	            + '</textarea>'

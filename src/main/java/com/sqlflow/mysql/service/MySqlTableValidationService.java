@@ -15,6 +15,8 @@ import com.sqlflow.mysql.mapper.MySqlMetadataMapper;
 
 import lombok.RequiredArgsConstructor;
 import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.util.TablesNamesFinder;
 
 /**
  * SQL에 적힌 테이블·뷰 이름을 MySQL의 실제 조회 대상으로 연결한다.
@@ -46,15 +48,25 @@ public class MySqlTableValidationService {
             throw badRequest("분석된 SELECT 정보가 없습니다.");
         }
 
+        return resolve(tableExtractor.extractTables(select));
+    }
+
+    /** DML의 변경 대상과 읽기 참조 대상을 함께 추출한다. */
+    @Transactional(transactionManager = "queryTransactionManager", readOnly = true)
+    public Map<String, QueryObjectName> validateStatementTables(Statement statement) {
+        return resolve(new TablesNamesFinder<Void>().getTables(statement));
+    }
+
+    private Map<String, QueryObjectName> resolve(java.util.Collection<String> names) {
         String currentDatabase = metadataMapper.selectCurrentDatabase();
 
         if (currentDatabase == null || currentDatabase.isBlank()) {
-            throw new IllegalStateException("MySQL의 기본 데이터베이스를 확인할 수 없습니다.");
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "MySQL의 기본 데이터베이스를 확인할 수 없습니다.");
         }
 
         Map<String, QueryObjectName> result = new LinkedHashMap<>();
 
-        for (String extractedName : tableExtractor.extractTables(select)) {
+        for (String extractedName : names) {
             var matcher = OBJECT_NAME.matcher(extractedName);
 
             if (!matcher.matches()) {

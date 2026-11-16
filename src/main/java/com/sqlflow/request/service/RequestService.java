@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.access.service.RequestSqlValidationService;
+import com.sqlflow.execution.service.SqlBasicValidator;
 import com.sqlflow.request.domain.QueryItem;
 import com.sqlflow.request.domain.QueryRequest;
 import com.sqlflow.request.dto.DmlDraftRequest;
@@ -48,6 +49,7 @@ public class RequestService {
     private final ViewCreateSqlValidationService viewCreateSqlValidationService;
 
     private final DmlSqlValidationService dmlSqlValidationService;
+    private final SqlBasicValidator basicValidator;
 
 	@Transactional
 	public Long createDraft(RequestDraftCreateRequest input) {
@@ -317,22 +319,21 @@ public class RequestService {
 		saveViewSqlItems(requestId, input);
 	}
 
-	private void validateViewSqlItems(ViewCreateDraftRequest input, Long requesterId) {
-		if (input.getItems() == null || input.getItems().isEmpty() || input.getItems().size() > 5) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "뷰 생성 SQL은 1개 이상, 5개 이하로 입력하세요.");
-		}
-		for (ViewCreateDraftRequest.SqlEntry item : input.getItems()) {
-			String sql = item.getSqlText() == null ? "" : item.getSqlText().strip();
-			if (!sql.matches("(?is)^CREATE\\s+(?:OR\\s+REPLACE\\s+)?VIEW\\b.*")
-					|| sql.substring(0, sql.length() - (sql.endsWith(";") ? 1 : 0)).contains(";")) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "각 SQL은 CREATE VIEW 문 하나만 입력할 수 있습니다.");
-			}
-			var result = viewCreateSqlValidationService.validate(sql, requesterId);
-			if (result.getStatus() == Status.BLOCKED) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, result.getMessage());
-			}
-		}
-	}
+    private void validateViewSqlItems(ViewCreateDraftRequest input, Long requesterId) {
+        if (input.getItems() == null || input.getItems().isEmpty() || input.getItems().size() > 5) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "CREATE SQL은 1개 이상, 5개 이하로 입력하세요.");
+        }
+
+        for (ViewCreateDraftRequest.SqlEntry item : input.getItems()) {
+            var result = viewCreateSqlValidationService.validate(item.getSqlText(), requesterId);
+
+            if (result.getStatus() == Status.BLOCKED) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, result.getMessage());
+            }
+        }
+    }
 
 	private void saveViewSqlItems(Long requestId, ViewCreateDraftRequest input) {
 		for (int i = 0; i < input.getItems().size(); i++) {
@@ -605,73 +606,72 @@ public class RequestService {
 	    }
 	}
 
-	// 제출할 본인 초안을 조회하고 내용 검사
-	// 반드시 제출 처리의 @Transactional 메서드 안에서 호출
-	private RequestDetailResponse loadDraftForSubmission(Long requestId, Long drafterId) {
+    // 제출할 본인 초안을 조회한다.
+    // 반드시 제출 처리의 @Transactional 메소드 안에서 호출한다.
+    private RequestDetailResponse loadDraftForSubmission(Long requestId, Long drafterId) {
 
-		// 수정·삭제·중복 제출과 동시에 처리되지 않도록 행 잠금
-		String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
+        // 수정·삭제·중복 제출과 동시에 처리되지 않도록 행을 잠근다.
+        String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
 
-		if (status == null) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
-		}
-
-		if (!"DRAFT".equals(status)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 요청만 제출할 수 있습니다.");
-		}
-
-		RequestDetailResponse request = requestMapper.selectMyRequestDetail(requestId, drafterId);
-
-		if (request == null) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
-		}
-
-		String title = request.getTitle();
-
-		if (title == null || title.isBlank()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청 제목을 입력하세요.");
-		}
-
-		if (title.length() > 200) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청 제목은 200자 이하여야 합니다.");
-		}
-
-		String purpose = request.getPurpose();
-
-		if (purpose == null || purpose.isBlank()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "조회 목적을 입력하세요.");
-		}
-
-		List<RequestItemResponse> items = isChangeSqlRequest(request.getRequestType())
-				? requestMapper.selectMyViewSqlItems(requestId, drafterId)
-				: requestMapper.selectMyRequestItems(requestId, drafterId);
-
-		if (items.isEmpty() || items.size() > 5) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "제출하려면 SQL을 1개 이상, 5개 이하로 등록하세요.");
-		}
-
-		for (RequestItemResponse item : items) {
-			if (item.getSqlText() == null || item.getSqlText().isBlank()) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "빈 SQL 항목은 제출할 수 없습니다.");
-			}
-		}
-
-		request.setItems(items);
-		if ("CREATE_VIEW".equals(request.getRequestType())) {
-			if (items.isEmpty() || items.size() > 5 || items.stream().anyMatch(item -> item.getSqlText() == null
-					|| !item.getSqlText().matches("(?is)^\\s*CREATE\\s+(?:OR\\s+REPLACE\\s+)?VIEW\\b.*"))) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CREATE VIEW SQL을 1개 이상, 5개 이하로 등록하세요.");
-			}
-			return request;
-		}
-		if ("CREATE_TABLE".equals(request.getRequestType())
-                && items.stream().anyMatch(item -> item.getSqlText() == null
-                        || !item.getSqlText().matches("(?is)^\\s*CREATE\\s+TABLE\\b.*"))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CREATE TABLE SQL을 1개 이상, 5개 이하로 등록하세요.");
+        if (status == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
         }
 
-		return request;
-	}
+        if (!"DRAFT".equals(status)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 요청만 제출할 수 있습니다.");
+        }
+
+        RequestDetailResponse request = requestMapper.selectMyRequestDetail(requestId, drafterId);
+
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
+        }
+
+        String title = request.getTitle();
+
+        if (title == null || title.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청 제목을 입력하세요.");
+        }
+
+        if (title.length() > 200) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청 제목은 200자 이하여야 합니다.");
+        }
+
+        String purpose = request.getPurpose();
+
+        if (purpose == null || purpose.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "조회 목적을 입력하세요.");
+        }
+
+        List<RequestItemResponse> items = isChangeSqlRequest(request.getRequestType())
+                ? requestMapper.selectMyViewSqlItems(requestId, drafterId)
+                : requestMapper.selectMyRequestItems(requestId, drafterId);
+
+        if (items.isEmpty() || items.size() > 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "제출하려면 SQL을 1개 이상, 5개 이하로 등록하세요.");
+        }
+
+        for (RequestItemResponse item : items) {
+            if (item.getSqlText() == null || item.getSqlText().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "빈 SQL 항목은 제출할 수 없습니다.");
+            }
+        }
+
+        request.setItems(items);
+
+        // 팀원이 추가한 CREATE TABLE 전용 요청의 유형 검사는 유지한다.
+        if ("CREATE_TABLE".equals(request.getRequestType())
+                && items.stream().anyMatch(item -> item.getSqlText() == null
+                        || !item.getSqlText().matches("(?is)^\\s*CREATE\\s+TABLE\\b.*"))) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "CREATE TABLE SQL을 1개 이상, 5개 이하로 등록하세요.");
+        }
+
+        // CREATE_VIEW는 기존 저장 유형명이다.
+        // 이 경로의 CREATE 기본 검사는 submitRequest()에서 다시 수행한다.
+        return request;
+    }
 
 	@Transactional(
 	        transactionManager = "managementTransactionManager",
@@ -738,7 +738,7 @@ public class RequestService {
 
 	        for (RequestItemResponse item : draft.getItems()) {
 	            var result =
-	                    dmlSqlValidationService.validate(sqlType, item.getSqlText());
+	                    dmlSqlValidationService.validateForReview(actorId, sqlType, item.getSqlText());
 
 	            // WARNING은 결재 검토 대상으로 제출할 수 있다.
 	            if (result.status() == DmlSqlValidationService.Status.BLOCKED) {
@@ -917,6 +917,8 @@ public class RequestService {
 	    }
 
 	    for (int index = 0; index < sqls.size(); index++) {
+            var basic = basicValidator.validate("SELECT", sqls.get(index));
+            if (basic.blocked()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, basic.warning());
 	        String title = sqlTitles.get(index);
 
 	        if (title == null || title.isBlank()) {
@@ -1016,8 +1018,8 @@ public class RequestService {
 	    for (int i = 0; i < sqls.size(); i++) {
 	        String sql = sqls.get(i);
 	        String title = titles == null ? null : titles.get(i);
-	        if (sql == null || sql.isBlank() || sql.length() > 20000) {
-	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "변경 SQL은 1~20000자로 입력하세요.");
+	        if (sql == null || sql.isBlank()) {
+	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "변경 SQL을 입력하세요.");
 	        }
 	        if (title != null && title.strip().length() > 200) {
 	            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "SQL 제목은 200자 이하여야 합니다.");
@@ -1069,14 +1071,9 @@ public class RequestService {
 
         for (int i = 0; i < sqls.size(); i++) {
             String sql = sqls.get(i) == null ? "" : sqls.get(i).strip();
-            String withoutTrailingSemicolon = sql.endsWith(";")
-                    ? sql.substring(0, sql.length() - 1)
-                    : sql;
-            if (!sql.matches("(?is)^CREATE\\s+(?:OR\\s+REPLACE\\s+)?VIEW\\b.*")
-                    || withoutTrailingSemicolon.contains(";")) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "각 SQL은 CREATE VIEW 문 하나만 입력할 수 있습니다.");
+            var result = viewCreateSqlValidationService.validate(sql);
+            if (result.getStatus() == Status.BLOCKED) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, result.getMessage());
             }
 
             String title = sqlTitles == null ? null : sqlTitles.get(i);
