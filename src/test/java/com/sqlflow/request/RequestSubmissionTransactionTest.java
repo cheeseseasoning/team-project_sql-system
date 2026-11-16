@@ -20,6 +20,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.sqlflow.access.service.RequestSqlValidationService;
 import com.sqlflow.approval.service.ApprovalService;
+import com.sqlflow.request.dto.ApprovalTargetRequest;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestSqlValidationResult;
 import com.sqlflow.request.dto.RequestSubmitRequest;
@@ -78,6 +79,13 @@ class RequestSubmissionTransactionTest {
         // 2. 결재 기능을 테스트용 동작으로 대체
         // DB를 변경한 다음 실패하도록 구성
         doAnswer(invocation -> {
+            // 현재 제출 경로에서 변환된 개인 결재 대상까지 확인한 뒤 실패를 발생시킨다.
+            List<ApprovalTargetRequest> targets = invocation.getArgument(2);
+            assertEquals(1, targets.size());
+            assertEquals("USER", targets.getFirst().getTargetType());
+            assertEquals(20L, targets.getFirst().getApproverId());
+            assertNull(targets.getFirst().getApproverDeptId());
+
             Long targetRequestId = invocation.getArgument(0);
 
             jdbcTemplate.update(
@@ -91,7 +99,7 @@ class RequestSubmissionTransactionTest {
 
             throw new IllegalStateException("테스트용 결재 처리 실패");
         }).when(approvalService)
-          .createApprovalLine(requestId, 1L, List.of(20L));
+          .createApprovalLineWithTargets(eq(requestId), eq(1L), anyList());
 
         RequestSubmitRequest input = new RequestSubmitRequest();
         input.setApproverIds(List.of(20L));

@@ -9,6 +9,7 @@ import com.sqlflow.approval.domain.ApprovalActionContext;
 import com.sqlflow.approval.domain.ApprovalRequestContext;
 import com.sqlflow.approval.domain.PendingApproval;
 import com.sqlflow.approval.dto.ApprovalCandidateResponse;
+import com.sqlflow.approval.dto.ApprovalDepartmentCandidateResponse;
 import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.approval.dto.PendingApprovalResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
@@ -47,10 +48,25 @@ public interface ApprovalMapper {
     List<ApprovalCandidateResponse> searchActiveCandidates(
             @Param("keyword") String keyword,
             @Param("excludedUserId") Long excludedUserId);
+    
+    /** 부서 결재 후보와 기안자를 제외한 현재 결재 가능 인원을 조회한다. */
+    List<ApprovalDepartmentCandidateResponse> searchDepartmentCandidates(
+            @Param("keyword") String keyword,
+            @Param("excludedUserId") Long excludedUserId);
 
     int insertApproval(
             @Param("requestId") Long requestId,
             @Param("approverId") Long approverId,
+            @Param("approvalOrder") int approvalOrder,
+            @Param("approvalType") String approvalType,
+            @Param("status") String status);
+    
+    /** 개인 또는 부서를 담당 대상으로 지정한 결재 단계 한 건을 저장한다. */
+    int insertApprovalTarget(
+            @Param("requestId") Long requestId,
+            @Param("targetType") String targetType,
+            @Param("approverId") Long approverId,
+            @Param("approverDeptId") Long approverDeptId,
             @Param("approvalOrder") int approvalOrder,
             @Param("approvalType") String approvalType,
             @Param("status") String status);

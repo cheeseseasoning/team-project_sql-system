@@ -5,6 +5,19 @@
 
 <mapper namespace="com.sqlflow.request.mapper.DepartmentRequestMapper">
 
+	<!-- 외부 결과 등록·변경은 역할과 관계없이 현재 활성 DB팀 사용자에게 허용한다. -->
+	<sql id="activeDbTeamResultActor">
+	    EXISTS (
+	        SELECT 1
+	        FROM USERS RESULT_ACTOR
+	        JOIN DEPARTMENT RESULT_DEPT
+	          ON RESULT_DEPT.DEPT_ID = RESULT_ACTOR.DEPT_ID
+	        WHERE RESULT_ACTOR.USER_ID = #{actorId}
+	          AND RESULT_ACTOR.ENABLED = 'Y'
+	          AND RESULT_DEPT.DEPT_NAME = 'DB팀'
+	    )
+	</sql>
+
     <sql id="requestFrom">
         FROM QUERY_REQUEST R
         JOIN USERS DRAFTER
@@ -14,39 +27,43 @@
     </sql>
 
     <!--
-        제출된 기안만 공유한다.
-        활성 사용자에게 자기 부서 기안을 허용한다.
-        DB팀 소속이며 DB_APPROVER 또는 DB_ADMIN이면 전체 부서를 허용한다.
-    -->
-    <sql id="visibilityConditions">
-        R.SUBMITTED_AT IS NOT NULL
-        AND R.REQUEST_STATUS &lt;&gt; 'DRAFT'
-        AND EXISTS (
-            SELECT 1
-            FROM USERS ACTOR
-            JOIN DEPARTMENT ACTOR_DEPT
-              ON ACTOR_DEPT.DEPT_ID = ACTOR.DEPT_ID
-            WHERE ACTOR.USER_ID = #{actorId}
-              AND ACTOR.ENABLED = 'Y'
-              AND (
-                  R.DEPT_ID = ACTOR.DEPT_ID
-                  OR (
-                      ACTOR_DEPT.DEPT_NAME = 'DB팀'
-                      AND EXISTS (
-                          SELECT 1
-                          FROM USER_ROLE UR
-                          JOIN ROLE RL
-                            ON RL.ROLE_ID = UR.ROLE_ID
-                          WHERE UR.USER_ID = ACTOR.USER_ID
-                            AND RL.ROLE_CODE IN (
-                                'DB_APPROVER',
-                                'DB_ADMIN'
-                            )
-                      )
-                  )
-              )
-        )
-    </sql>
+	    활성 사용자에게 자기 부서의 제출된 기안을 공개한다.
+	    기존 DB팀 역할 사용자의 조회 범위는 유지한다.
+	    역할 없는 DB팀 사용자에게도 외부 결과를 관리할 수 있는 승인된 변경 요청을 공개한다.
+	-->
+	<sql id="visibilityConditions">
+	    R.SUBMITTED_AT IS NOT NULL
+	    AND R.REQUEST_STATUS &lt;&gt; 'DRAFT'
+	    AND EXISTS (
+	        SELECT 1
+	        FROM USERS ACTOR
+	        JOIN DEPARTMENT ACTOR_DEPT
+	          ON ACTOR_DEPT.DEPT_ID = ACTOR.DEPT_ID
+	        WHERE ACTOR.USER_ID = #{actorId}
+	          AND ACTOR.ENABLED = 'Y'
+	          AND (
+	              R.DEPT_ID = ACTOR.DEPT_ID
+	              OR (
+	                  ACTOR_DEPT.DEPT_NAME = 'DB팀'
+	                  AND (
+	                      EXISTS (
+	                          SELECT 1
+	                          FROM USER_ROLE UR
+	                          JOIN ROLE RL
+	                            ON RL.ROLE_ID = UR.ROLE_ID
+	                          WHERE UR.USER_ID = ACTOR.USER_ID
+	                            AND RL.ROLE_CODE IN ('DB_APPROVER', 'DB_ADMIN')
+	                      )
+	                      OR (
+	                          R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
+	                          AND R.REQUEST_STATUS = 'READY'
+	                          AND R.APPROVAL_STATUS = 'APPROVED'
+	                      )
+	                  )
+	              )
+	          )
+	    )
+	</sql>
 
     <sql id="searchConditions">
         <if test="keyword != null and keyword != ''">
@@ -297,11 +314,16 @@
         SELECT A.APPROVAL_ID,
                A.APPROVAL_ORDER,
                A.APPROVAL_TYPE,
+               A.TARGET_TYPE,
+               A.APPROVER_DEPT_ID,
+               TARGET_DEPT.DEPT_NAME AS APPROVER_DEPT_NAME,
                A.STATUS,
                A.APPROVER_ID,
                APPROVER.USER_NAME AS APPROVER_NAME,
-               APPROVER_DEPT.DEPT_NAME,
-               P.POSITION_NAME
+               CASE WHEN A.TARGET_TYPE = 'DEPARTMENT' THEN TARGET_DEPT.DEPT_NAME
+                    ELSE APPROVER_DEPT.DEPT_NAME END AS DEPT_NAME,
+               P.POSITION_NAME,
+               A.DECIDED_AT
         <include refid="requestFrom"/>
         JOIN APPROVAL A
           ON A.REQUEST_ID = R.REQUEST_ID
@@ -309,6 +331,8 @@
           ON APPROVER.USER_ID = A.APPROVER_ID
         LEFT JOIN DEPARTMENT APPROVER_DEPT
           ON APPROVER_DEPT.DEPT_ID = APPROVER.DEPT_ID
+        LEFT JOIN DEPARTMENT TARGET_DEPT
+          ON TARGET_DEPT.DEPT_ID = A.APPROVER_DEPT_ID
         LEFT JOIN POSITION P
           ON P.POSITION_ID = APPROVER.POSITION_ID
         WHERE R.REQUEST_ID = #{requestId}
@@ -327,9 +351,13 @@
             resultType="com.sqlflow.approval.dto.ApprovalHistoryResponse">
         SELECT A.APPROVAL_ORDER,
                A.APPROVAL_TYPE,
+               A.TARGET_TYPE,
+               A.APPROVER_DEPT_ID,
+               TARGET_DEPT.DEPT_NAME AS APPROVER_DEPT_NAME,
                A.APPROVER_ID,
                APPROVER.USER_NAME AS APPROVER_NAME,
-               APPROVER_DEPT.DEPT_NAME,
+               CASE WHEN A.TARGET_TYPE = 'DEPARTMENT' THEN TARGET_DEPT.DEPT_NAME
+                    ELSE APPROVER_DEPT.DEPT_NAME END AS DEPT_NAME,
                P.POSITION_NAME,
                A.STATUS,
                A.COMMENT_TEXT,
@@ -342,6 +370,8 @@
           ON APPROVER.USER_ID = A.APPROVER_ID
         LEFT JOIN DEPARTMENT APPROVER_DEPT
           ON APPROVER_DEPT.DEPT_ID = APPROVER.DEPT_ID
+        LEFT JOIN DEPARTMENT TARGET_DEPT
+          ON TARGET_DEPT.DEPT_ID = A.APPROVER_DEPT_ID
         LEFT JOIN POSITION P
           ON P.POSITION_ID = APPROVER.POSITION_ID
         WHERE R.REQUEST_ID = #{requestId}
@@ -350,91 +380,56 @@
     </select>
 
     <insert id="insertChangeSqlResult">
-        INSERT INTO DB_CHANGE_SQL_RESULT (
-            QUERY_ID,
-            RESULT_STATUS,
-            RESULT_NOTE,
-            EXECUTED_BY,
-            REGISTERED_BY
-        )
-        SELECT C.QUERY_ID,
-               #{resultStatus},
-               #{resultNote, jdbcType=VARCHAR},
-               #{executedBy, jdbcType=NUMERIC},
-               #{actorId}
-        FROM DB_CHANGE_SQL C
-        JOIN QUERY_REQUEST R
-          ON R.REQUEST_ID = C.REQUEST_ID
-        WHERE R.REQUEST_ID = #{requestId}
-          AND C.QUERY_ID = #{queryId}
-          AND R.REQUEST_TYPE IN (
-              'CREATE',
-              'INSERT',
-              'UPDATE',
-              'DELETE'
-          )
-          AND R.REQUEST_STATUS = 'READY'
-          AND R.APPROVAL_STATUS = 'APPROVED'
-          AND EXISTS (
-              SELECT 1
-              FROM USERS U
-              JOIN DEPARTMENT D
-                ON D.DEPT_ID = U.DEPT_ID
-              JOIN USER_ROLE UR
-                ON UR.USER_ID = U.USER_ID
-              JOIN ROLE RL
-                ON RL.ROLE_ID = UR.ROLE_ID
-              WHERE U.USER_ID = #{actorId}
-                AND U.ENABLED = 'Y'
-                AND D.DEPT_NAME = 'DB팀'
-                AND RL.ROLE_CODE IN ('DB_APPROVER', 'DB_ADMIN')
-          )
-          AND (
-              #{executedBy, jdbcType=NUMERIC} IS NULL
-              OR EXISTS (
-                  SELECT 1
-                  FROM USERS E
-                  JOIN DEPARTMENT D
-                    ON D.DEPT_ID = E.DEPT_ID
-                  WHERE E.USER_ID = #{executedBy, jdbcType=NUMERIC}
-                    AND D.DEPT_NAME = 'DB팀'
-              )
-          )
-    </insert>
+	    INSERT INTO DB_CHANGE_SQL_RESULT (
+	        QUERY_ID,
+	        RESULT_STATUS,
+	        RESULT_NOTE,
+	        EXECUTED_BY,
+	        REGISTERED_BY
+	    )
+	    SELECT
+	        C.QUERY_ID,
+	        #{resultStatus},
+	        #{resultNote, jdbcType=VARCHAR},
+	        #{executedBy, jdbcType=NUMERIC},
+	        #{actorId}
+	    FROM DB_CHANGE_SQL C
+	    JOIN QUERY_REQUEST R
+	      ON R.REQUEST_ID = C.REQUEST_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND C.QUERY_ID = #{queryId}
+	      AND R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
+	      AND R.REQUEST_STATUS = 'READY'
+	      AND R.APPROVAL_STATUS = 'APPROVED'
+	      AND <include refid="activeDbTeamResultActor"/>
+	      AND (
+	          #{executedBy, jdbcType=NUMERIC} IS NULL
+	          OR EXISTS (
+	              SELECT 1
+	              FROM USERS E
+	              JOIN DEPARTMENT D
+	                ON D.DEPT_ID = E.DEPT_ID
+	              WHERE E.USER_ID = #{executedBy, jdbcType=NUMERIC}
+	                AND D.DEPT_NAME = 'DB팀'
+	          )
+	      )
+	</insert>
 
     <select id="lockChangeSqlResult" resultType="string">
-        SELECT CR.RESULT_STATUS
-        FROM DB_CHANGE_SQL_RESULT CR
-        JOIN DB_CHANGE_SQL C
-          ON C.QUERY_ID = CR.QUERY_ID
-        JOIN QUERY_REQUEST R
-          ON R.REQUEST_ID = C.REQUEST_ID
-        WHERE R.REQUEST_ID = #{requestId}
-          AND C.QUERY_ID = #{queryId}
-          AND R.REQUEST_TYPE IN (
-              'CREATE',
-              'INSERT',
-              'UPDATE',
-              'DELETE'
-          )
-          AND R.REQUEST_STATUS = 'READY'
-          AND R.APPROVAL_STATUS = 'APPROVED'
-          AND EXISTS (
-              SELECT 1
-              FROM USERS U
-              JOIN DEPARTMENT D
-                ON D.DEPT_ID = U.DEPT_ID
-              JOIN USER_ROLE UR
-                ON UR.USER_ID = U.USER_ID
-              JOIN ROLE RL
-                ON RL.ROLE_ID = UR.ROLE_ID
-              WHERE U.USER_ID = #{actorId}
-                AND U.ENABLED = 'Y'
-                AND D.DEPT_NAME = 'DB팀'
-                AND RL.ROLE_CODE IN ('DB_APPROVER', 'DB_ADMIN')
-          )
-        FOR UPDATE OF CR.RESULT_STATUS
-    </select>
+	    SELECT CR.RESULT_STATUS
+	    FROM DB_CHANGE_SQL_RESULT CR
+	    JOIN DB_CHANGE_SQL C
+	      ON C.QUERY_ID = CR.QUERY_ID
+	    JOIN QUERY_REQUEST R
+	      ON R.REQUEST_ID = C.REQUEST_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND C.QUERY_ID = #{queryId}
+	      AND R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
+	      AND R.REQUEST_STATUS = 'READY'
+	      AND R.APPROVAL_STATUS = 'APPROVED'
+	      AND <include refid="activeDbTeamResultActor"/>
+	    FOR UPDATE OF CR.RESULT_STATUS
+	</select>
 
     <insert id="insertChangeSqlResultHistory">
         INSERT INTO DB_CHANGE_SQL_RESULT_HISTORY (
@@ -483,31 +478,13 @@
     </update>
 
     <select id="canManageChangeSqlResult" resultType="int">
-        SELECT COUNT(*)
-        FROM QUERY_REQUEST R
-        WHERE R.REQUEST_ID = #{requestId}
-          AND R.REQUEST_TYPE IN (
-              'CREATE',
-              'INSERT',
-              'UPDATE',
-              'DELETE'
-          )
-          AND R.REQUEST_STATUS = 'READY'
-          AND R.APPROVAL_STATUS = 'APPROVED'
-          AND EXISTS (
-              SELECT 1
-              FROM USERS U
-              JOIN DEPARTMENT D
-                ON D.DEPT_ID = U.DEPT_ID
-              JOIN USER_ROLE UR
-                ON UR.USER_ID = U.USER_ID
-              JOIN ROLE RL
-                ON RL.ROLE_ID = UR.ROLE_ID
-              WHERE U.USER_ID = #{actorId}
-                AND U.ENABLED = 'Y'
-                AND D.DEPT_NAME = 'DB팀'
-                AND RL.ROLE_CODE IN ('DB_APPROVER', 'DB_ADMIN')
-          )
-    </select>
+	    SELECT COUNT(*)
+	    FROM QUERY_REQUEST R
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
+	      AND R.REQUEST_STATUS = 'READY'
+	      AND R.APPROVAL_STATUS = 'APPROVED'
+	      AND <include refid="activeDbTeamResultActor"/>
+	</select>
 
 </mapper>

@@ -270,6 +270,12 @@ window.RequestDetailRenderer = (() => {
 	        + '</details>';
 	}
 
+    // 부서 결재가 미처리 상태여도 담당 대상을 사용자 누락으로 표시하지 않는다.
+    function approvalPersonName(approval) {
+        return approval.approverName || approval.name
+            || (approval.targetType === 'DEPARTMENT' ? '-' : '사용자 정보 없음');
+    }
+
 	function renderHistory(items) {
 	    if (!Array.isArray(items) || items.length === 0) {
 	        return '<p class="approval-history-empty">'
@@ -303,7 +309,7 @@ window.RequestDetailRenderer = (() => {
 	                statusLabels[item.status] || '상태 확인 필요';
 
 	            const person = [
-	                item.approverName || '사용자 정보 없음',
+	                approvalPersonName(item),
 	                item.positionName
 	            ].filter(Boolean).join(' ');
 
@@ -410,7 +416,7 @@ window.RequestDetailRenderer = (() => {
                 + '</span>'
                 + '<div>'
                 + '<strong>' + esc(row.role) + '</strong>'
-                + '<p>' + esc(row.name || '사용자 정보 없음') + '</p>'
+                + '<p>' + esc(approvalPersonName(row)) + '</p>'
                 + '<span>' + esc(organization || '—') + '</span>'
                 + (
                     statusText
@@ -499,7 +505,7 @@ window.RequestDetailRenderer = (() => {
 	            }[row.status] || 'is-draft';
 
 	            const personLabel = [
-	                row.name || '사용자 정보 없음',
+	                approvalPersonName(row),
 	                row.positionName
 	            ].filter(Boolean).join(' ');
 
@@ -677,6 +683,9 @@ window.RequestDetailRenderer = (() => {
 	                || approval.approvalType
 	                || '결재자',
 	            name: approval.approverName,
+	            targetType: approval.targetType,
+	            approverDeptId: approval.approverDeptId,
+	            approverDeptName: approval.approverDeptName,
 	            deptName: approval.deptName,
 	            positionName: approval.positionName,
 	            status: approval.status,

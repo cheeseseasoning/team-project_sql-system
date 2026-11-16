@@ -15,4 +15,9 @@ public class ApprovalCandidateResponse {
 	private String userName;
 	private String deptName;
 	private String positionName;
+	private Long deptId;
+
+	public ApprovalCandidateResponse(Long userId, String userName, String deptName, String positionName) {
+		this(userId, userName, deptName, positionName, null);
+	}
 }

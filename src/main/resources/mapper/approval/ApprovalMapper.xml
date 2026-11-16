@@ -9,6 +9,9 @@
                type="com.sqlflow.approval.dto.ApprovalHistoryResponse">
         <result property="approvalOrder" column="APPROVAL_ORDER"/>
         <result property="approvalType" column="APPROVAL_TYPE"/>
+        <result property="targetType" column="TARGET_TYPE"/>
+        <result property="approverDeptId" column="APPROVER_DEPT_ID"/>
+        <result property="approverDeptName" column="APPROVER_DEPT_NAME"/>
         <result property="approverId" column="APPROVER_ID"/>
         <result property="approverName" column="APPROVER_NAME"/>
         <result property="deptName" column="DEPT_NAME"/>
@@ -19,7 +22,7 @@
         <result property="decidedAt" column="DECIDED_AT"/>
     </resultMap>
 
-    <!-- 요청 작성자 또는 결재선에 포함된 사용자만 이력을 조회할 수 있습니다. -->
+    <!-- 작성자·지정 개인·실제 처리자 또는 지정 부서의 현재 활성 구성원에게 이력을 공개한다. -->
     <select id="canViewApprovalHistory" resultType="int">
         SELECT COUNT(*)
         FROM QUERY_REQUEST Q
@@ -32,157 +35,217 @@
                   WHERE A.REQUEST_ID = Q.REQUEST_ID
                     AND A.APPROVER_ID = #{actorId}
               )
+              OR EXISTS (
+                  SELECT 1
+                  FROM APPROVAL A
+                  JOIN USERS ACTOR ON ACTOR.USER_ID = #{actorId}
+                  WHERE A.REQUEST_ID = Q.REQUEST_ID
+                    AND A.TARGET_TYPE = 'DEPARTMENT'
+                    AND A.APPROVER_DEPT_ID = ACTOR.DEPT_ID
+                    AND ACTOR.ENABLED = 'Y'
+              )
           )
     </select>
 
-    <!-- 승인·반려·대기·취소 상태를 포함한 결재선 전체 이력 -->
+    <!-- 미처리 부서 결재도 남기고 담당 부서와 실제 처리자를 분리해 반환한다. -->
     <select id="selectApprovalHistory"
             resultMap="approvalHistoryResponseMap">
         SELECT A.APPROVAL_ORDER,
                A.APPROVAL_TYPE,
+               A.TARGET_TYPE,
+               A.APPROVER_DEPT_ID,
+               TARGET_DEPT.DEPT_NAME AS APPROVER_DEPT_NAME,
                A.APPROVER_ID,
                U.USER_NAME AS APPROVER_NAME,
-               D.DEPT_NAME,
+               CASE WHEN A.TARGET_TYPE = 'DEPARTMENT' THEN TARGET_DEPT.DEPT_NAME
+                    ELSE D.DEPT_NAME END AS DEPT_NAME,
                P.POSITION_NAME,
                A.STATUS,
                A.COMMENT_TEXT,
                A.CREATED_AT,
                A.DECIDED_AT
         FROM APPROVAL A
-        JOIN USERS U ON U.USER_ID = A.APPROVER_ID
+        LEFT JOIN USERS U ON U.USER_ID = A.APPROVER_ID
         LEFT JOIN DEPARTMENT D ON D.DEPT_ID = U.DEPT_ID
+        LEFT JOIN DEPARTMENT TARGET_DEPT ON TARGET_DEPT.DEPT_ID = A.APPROVER_DEPT_ID
         LEFT JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
         WHERE A.REQUEST_ID = #{requestId}
-        ORDER BY A.APPROVAL_ORDER
+        ORDER BY A.APPROVAL_ORDER, A.APPROVAL_ID
     </select>
 
-    <!-- 현재 결재 대기 항목과 사용자 자격을 매 요청마다 재검증 -->
-    <sql id="pendingApprovalEligibility">
-        AND A.APPROVER_ID = #{approverId}
-        AND A.STATUS = 'PENDING'
-        AND U.ENABLED = 'Y'
-        AND EXISTS (
-            SELECT 1
-            FROM QUERY_REQUEST Q
-            WHERE Q.REQUEST_ID = A.REQUEST_ID
-              AND Q.REQUEST_STATUS = 'PENDING_APPROVAL'
-              AND Q.APPROVAL_STATUS = 'PENDING'
-              AND (
-                  A.APPROVAL_TYPE = 'DIRECTOR'
-                  OR Q.DRAFTER_ID &lt;&gt; U.USER_ID
-              )
-        )
-        AND (
-            A.APPROVAL_TYPE IN ('APPROVER', 'INTERMEDIATE')
-            OR (
-                A.APPROVAL_TYPE = 'DIRECTOR'
-                AND EXISTS (
-                    SELECT 1
-                    FROM QUERY_REQUEST Q
-                    JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
-                    WHERE Q.REQUEST_ID = A.REQUEST_ID
-                      AND Q.DEPT_ID = U.DEPT_ID
-                      AND P.POSITION_CODE = 'DIRECTOR'
-                )
-            )
-            OR (
-                A.APPROVAL_TYPE = 'DB_EXECUTION'
-                AND EXISTS (
-                    SELECT 1
-                    FROM DEPARTMENT D
-                    WHERE D.DEPT_ID = U.DEPT_ID
-                      AND D.DEPT_NAME = 'DB팀'
-                )
-                AND EXISTS (
-                    SELECT 1
-                    FROM USER_ROLE UR
-                    JOIN ROLE R ON R.ROLE_ID = UR.ROLE_ID
-                    WHERE UR.USER_ID = U.USER_ID
-                      AND R.ROLE_CODE = 'DB_APPROVER'
-                )
-            )
-        )
-    </sql>
+    <!-- 개인 지정은 해당 사용자, 부서 지정은 현재 소속 구성원에게 결재를 허용한다. -->
+	<sql id="pendingApprovalEligibility">
+	    AND U.USER_ID = #{approverId}
+	    AND U.ENABLED = 'Y'
+	    AND A.STATUS = 'PENDING'
+	    AND (
+	        (
+	            A.TARGET_TYPE = 'USER'
+	            AND A.APPROVER_ID = U.USER_ID
+	        )
+	        OR
+	        (
+	            A.TARGET_TYPE = 'DEPARTMENT'
+	            AND A.APPROVER_DEPT_ID = U.DEPT_ID
+	            AND A.APPROVER_ID IS NULL
+	        )
+	    )
+	    AND EXISTS (
+	        SELECT 1
+	        FROM QUERY_REQUEST Q
+	        WHERE Q.REQUEST_ID = A.REQUEST_ID
+	          AND Q.REQUEST_STATUS = 'PENDING_APPROVAL'
+	          AND Q.APPROVAL_STATUS = 'PENDING'
+	          AND (
+	              Q.DRAFTER_ID &lt;&gt; U.USER_ID
+	              OR (
+	                  A.TARGET_TYPE = 'USER'
+	                  AND A.APPROVAL_TYPE = 'DIRECTOR'
+	              )
+	          )
+	    )
+	    AND (
+	        A.APPROVAL_TYPE IN ('APPROVER', 'INTERMEDIATE')
+	        OR (
+	            A.APPROVAL_TYPE = 'DIRECTOR'
+	            AND EXISTS (
+	                SELECT 1
+	                FROM QUERY_REQUEST Q
+	                JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
+	                WHERE Q.REQUEST_ID = A.REQUEST_ID
+	                  AND Q.DEPT_ID = U.DEPT_ID
+	                  AND P.POSITION_CODE = 'DIRECTOR'
+	            )
+	        )
+	        OR (
+	            A.APPROVAL_TYPE = 'DB_EXECUTION'
+	            AND EXISTS (
+	                SELECT 1
+	                FROM DEPARTMENT D
+	                WHERE D.DEPT_ID = U.DEPT_ID
+	                  AND D.DEPT_NAME = 'DB팀'
+	            )
+	            AND EXISTS (
+	                SELECT 1
+	                FROM USER_ROLE UR
+	                JOIN ROLE R ON R.ROLE_ID = UR.ROLE_ID
+	                WHERE UR.USER_ID = U.USER_ID
+	                  AND R.ROLE_CODE = 'DB_APPROVER'
+	            )
+	        )
+	    )
+	</sql>
 
     <select id="selectPendingApprovals"
-            resultType="com.sqlflow.approval.dto.PendingApprovalResponse">
-        SELECT R.REQUEST_ID,
-               R.REQUEST_NO,
-               R.REQUEST_TYPE,
-               R.TITLE,
-               R.PURPOSE,
-               DU.USER_NAME AS DRAFTER_NAME,
-               D.DEPT_NAME,
-               R.SUBMITTED_AT,
-               A.APPROVAL_ORDER,
-               A.APPROVAL_TYPE
-        FROM APPROVAL A
-        JOIN USERS U ON U.USER_ID = A.APPROVER_ID
-        JOIN QUERY_REQUEST R ON R.REQUEST_ID = A.REQUEST_ID
-        JOIN USERS DU ON DU.USER_ID = R.DRAFTER_ID
-        JOIN DEPARTMENT D ON D.DEPT_ID = R.DEPT_ID
-        WHERE 1 = 1
-        <include refid="pendingApprovalEligibility"/>
-        ORDER BY R.SUBMITTED_AT DESC NULLS LAST,
-        		 R.REQUEST_ID DESC
-    </select>
+	        resultType="com.sqlflow.approval.dto.PendingApprovalResponse">
+	
+	    SELECT
+	        R.REQUEST_ID,
+	        R.REQUEST_NO,
+	        R.REQUEST_TYPE,
+	        R.TITLE,
+	        R.PURPOSE,
+	        DU.USER_NAME AS DRAFTER_NAME,
+	        D.DEPT_NAME,
+	        R.SUBMITTED_AT,
+	        A.APPROVAL_ORDER,
+	        A.APPROVAL_TYPE
+	    FROM APPROVAL A
+	    JOIN USERS U
+	        ON U.USER_ID = #{approverId}
+	    JOIN QUERY_REQUEST R
+	        ON R.REQUEST_ID = A.REQUEST_ID
+	    JOIN USERS DU
+	        ON DU.USER_ID = R.DRAFTER_ID
+	    JOIN DEPARTMENT D
+	        ON D.DEPT_ID = R.DEPT_ID
+	    WHERE 1 = 1
+	    <include refid="pendingApprovalEligibility"/>
+	    ORDER BY R.SUBMITTED_AT DESC NULLS LAST, R.REQUEST_ID DESC
+	
+	</select>
 
     <select id="selectPendingApprovalDetail"
-            resultType="com.sqlflow.request.dto.RequestDetailResponse">
-        SELECT R.REQUEST_ID,
-               R.REQUEST_NO,
-               R.REQUEST_TYPE,
-               R.TITLE,
-               R.PURPOSE,
-               R.DETAIL_CONTENT,
-               R.IS_URGENT,
-               R.DESIRED_DATE,
-               DU.USER_NAME AS DRAFTER_NAME,
-               D.DEPT_NAME,
-               R.REQUEST_CLASS,
-               R.REQUEST_STATUS,
-               R.APPROVAL_STATUS,
-               R.CREATED_AT,
-               R.SUBMITTED_AT
-        FROM QUERY_REQUEST R
-        JOIN USERS DU ON DU.USER_ID = R.DRAFTER_ID
-        JOIN DEPARTMENT D ON D.DEPT_ID = R.DEPT_ID
-        WHERE R.REQUEST_ID = #{requestId}
-          AND EXISTS (
-              SELECT 1
-              FROM APPROVAL A
-              JOIN USERS U ON U.USER_ID = A.APPROVER_ID
-              WHERE A.REQUEST_ID = R.REQUEST_ID
-              <include refid="pendingApprovalEligibility"/>
-          )
-    </select>
+	        resultType="com.sqlflow.request.dto.RequestDetailResponse">
+	
+	    SELECT
+	        R.REQUEST_ID,
+	        R.REQUEST_NO,
+	        R.REQUEST_TYPE,
+	        R.TITLE,
+	        R.PURPOSE,
+	        R.DETAIL_CONTENT,
+	        R.IS_URGENT,
+	        R.DESIRED_DATE,
+	        DU.USER_NAME AS DRAFTER_NAME,
+	        D.DEPT_NAME,
+	        R.REQUEST_CLASS,
+	        R.REQUEST_STATUS,
+	        R.APPROVAL_STATUS,
+	        R.CREATED_AT,
+	        R.SUBMITTED_AT
+	    FROM QUERY_REQUEST R
+	    JOIN USERS DU ON DU.USER_ID = R.DRAFTER_ID
+	    JOIN DEPARTMENT D ON D.DEPT_ID = R.DEPT_ID
+	    WHERE R.REQUEST_ID = #{requestId}
+	      AND EXISTS (
+	          SELECT 1
+	          FROM APPROVAL A
+	          JOIN USERS U ON U.USER_ID = #{approverId}
+	          WHERE A.REQUEST_ID = R.REQUEST_ID
+	          <include refid="pendingApprovalEligibility"/>
+	      )
+	
+	</select>
 
     <select id="selectPendingApprovalItems"
-            resultType="com.sqlflow.request.dto.RequestItemResponse">
-        SELECT I.QUERY_ID, I.QUERY_ORDER, I.QUERY_TITLE, I.SQL_TEXT,
-               I.AUTHORING_TYPE, I.VALIDATION_STATUS, I.ITEM_CLASS
-        FROM QUERY_ITEM I JOIN QUERY_REQUEST R ON R.REQUEST_ID = I.REQUEST_ID
-        WHERE I.REQUEST_ID = #{requestId} AND R.REQUEST_TYPE = 'SELECT'
-          AND EXISTS (
-              SELECT 1
-              FROM APPROVAL A
-              JOIN USERS U ON U.USER_ID = A.APPROVER_ID
-              WHERE A.REQUEST_ID = I.REQUEST_ID
-              <include refid="pendingApprovalEligibility"/>
-          )
-        UNION ALL
-        SELECT V.QUERY_ID, V.QUERY_ORDER, V.SQL_TITLE AS QUERY_TITLE,
-               V.SQL_CONTENT AS SQL_TEXT, NULL AS AUTHORING_TYPE,
-               NULL AS VALIDATION_STATUS, NULL AS ITEM_CLASS
-        FROM DB_CHANGE_SQL V JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
-        WHERE V.REQUEST_ID = #{requestId} AND R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
-          AND EXISTS (
-              SELECT 1 FROM APPROVAL A JOIN USERS U ON U.USER_ID = A.APPROVER_ID
-              WHERE A.REQUEST_ID = V.REQUEST_ID
-              <include refid="pendingApprovalEligibility"/>
-          )
-        ORDER BY QUERY_ORDER, QUERY_ID
-    </select>
+	        resultType="com.sqlflow.request.dto.RequestItemResponse">
+	
+	    SELECT
+	        I.QUERY_ID,
+	        I.QUERY_ORDER,
+	        I.QUERY_TITLE,
+	        I.SQL_TEXT,
+	        I.AUTHORING_TYPE,
+	        I.VALIDATION_STATUS,
+	        I.ITEM_CLASS
+	    FROM QUERY_ITEM I
+	    JOIN QUERY_REQUEST R ON R.REQUEST_ID = I.REQUEST_ID
+	    WHERE I.REQUEST_ID = #{requestId}
+	      AND R.REQUEST_TYPE = 'SELECT'
+	      AND EXISTS (
+	          SELECT 1
+	          FROM APPROVAL A
+	          JOIN USERS U ON U.USER_ID = #{approverId}
+	          WHERE A.REQUEST_ID = I.REQUEST_ID
+	          <include refid="pendingApprovalEligibility"/>
+	      )
+	
+	    UNION ALL
+	
+	    SELECT
+	        V.QUERY_ID,
+	        V.QUERY_ORDER,
+	        V.SQL_TITLE AS QUERY_TITLE,
+	        V.SQL_CONTENT AS SQL_TEXT,
+	        NULL AS AUTHORING_TYPE,
+	        NULL AS VALIDATION_STATUS,
+	        NULL AS ITEM_CLASS
+	    FROM DB_CHANGE_SQL V
+	    JOIN QUERY_REQUEST R ON R.REQUEST_ID = V.REQUEST_ID
+	    WHERE V.REQUEST_ID = #{requestId}
+	      AND R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
+	      AND EXISTS (
+	          SELECT 1
+	          FROM APPROVAL A
+	          JOIN USERS U ON U.USER_ID = #{approverId}
+	          WHERE A.REQUEST_ID = V.REQUEST_ID
+	          <include refid="pendingApprovalEligibility"/>
+	      )
+	
+	    ORDER BY QUERY_ORDER, QUERY_ID
+	
+	</select>
 
     <select id="selectRequestContext"
             resultType="com.sqlflow.approval.domain.ApprovalRequestContext">
@@ -230,6 +293,7 @@
     <select id="searchActiveCandidates"
 	        resultType="com.sqlflow.approval.dto.ApprovalCandidateResponse">
 	    SELECT U.USER_ID,
+	           U.DEPT_ID,
 	           U.USER_NAME,
 	           D.DEPT_NAME,
 	           P.POSITION_NAME
@@ -253,6 +317,31 @@
 	             U.USER_NAME ASC,
 	             U.USER_ID ASC
 	</select>
+	
+	<!-- 모든 부서를 공동 결재 후보로 조회하고, 기안자를 제외한 활성 구성원 수를 반환한다. -->
+	<select id="searchDepartmentCandidates"
+	        resultType="com.sqlflow.approval.dto.ApprovalDepartmentCandidateResponse">
+	
+	    SELECT
+	        D.DEPT_ID,
+	        D.DEPT_NAME,
+	        COUNT(U.USER_ID) AS ELIGIBLE_USER_COUNT
+	    FROM DEPARTMENT D
+	    LEFT JOIN USERS U
+	        ON U.DEPT_ID = D.DEPT_ID
+	       AND U.ENABLED = 'Y'
+	       AND U.USER_ID &lt;&gt; #{excludedUserId}
+	
+	    <where>
+	        <if test="keyword != null and keyword != ''">
+	            LOWER(D.DEPT_NAME) LIKE '%' || LOWER(#{keyword}) || '%'
+	        </if>
+	    </where>
+	
+	    GROUP BY D.DEPT_ID, D.DEPT_NAME
+	    ORDER BY D.DEPT_NAME, D.DEPT_ID
+	
+	</select>
 
     <insert id="insertApproval">
         INSERT INTO APPROVAL (
@@ -273,6 +362,32 @@
             SYSTIMESTAMP
         )
     </insert>
+    
+    <!-- 개인·부서 지정은 구분해서 저장하고, 실제 처리자는 승인·반려 시 기록한다. -->
+	<!-- 부서 결재의 실제 처리자는 승인·반려 시 APPROVER_ID에 기록한다. -->
+	<insert id="insertApprovalTarget">
+	    INSERT INTO APPROVAL (
+	        APPROVAL_ID,
+	        REQUEST_ID,
+	        TARGET_TYPE,
+	        APPROVER_ID,
+	        APPROVER_DEPT_ID,
+	        APPROVAL_ORDER,
+	        APPROVAL_TYPE,
+	        STATUS,
+	        CREATED_AT
+	    ) VALUES (
+	        SEQ_APPROVAL.NEXTVAL,
+	        #{requestId},
+	        #{targetType},
+	        #{approverId, jdbcType=NUMERIC},
+	        #{approverDeptId, jdbcType=NUMERIC},
+	        #{approvalOrder},
+	        #{approvalType},
+	        #{status},
+	        SYSTIMESTAMP
+	    )
+	</insert>
 
     <!-- 요청 행을 먼저 잠가 같은 요청의 결재 처리를 직렬화 -->
     <select id="selectApprovalRequestForUpdate"
@@ -286,70 +401,35 @@
         FOR UPDATE
     </select>
 
-    <!-- 현재 로그인 사용자가 처리할 수 있는 결재 단계만 잠금 조회 -->
-    <select id="selectPendingApprovalForUpdate"
-            resultType="com.sqlflow.approval.domain.PendingApproval">
-        SELECT A.APPROVAL_ID,
-               A.APPROVAL_ORDER,
-               A.APPROVAL_TYPE
-        FROM APPROVAL A
-        JOIN USERS U ON U.USER_ID = A.APPROVER_ID
-        WHERE A.REQUEST_ID = #{requestId}
-          AND A.APPROVER_ID = #{approverId}
-          AND A.STATUS = 'PENDING'
-          AND U.ENABLED = 'Y'
-          AND EXISTS (
-              SELECT 1
-              FROM QUERY_REQUEST Q
-              WHERE Q.REQUEST_ID = A.REQUEST_ID
-                AND Q.REQUEST_STATUS = 'PENDING_APPROVAL'
-                AND Q.APPROVAL_STATUS = 'PENDING'
-                AND (
-                    A.APPROVAL_TYPE = 'DIRECTOR'
-                    OR Q.DRAFTER_ID &lt;&gt; U.USER_ID
-                )
-          )
-          AND (
-              A.APPROVAL_TYPE IN ('APPROVER', 'INTERMEDIATE')
-              OR (
-                  A.APPROVAL_TYPE = 'DIRECTOR'
-                  AND EXISTS (
-                      SELECT 1
-                      FROM QUERY_REQUEST Q
-                      JOIN POSITION P ON P.POSITION_ID = U.POSITION_ID
-                      WHERE Q.REQUEST_ID = A.REQUEST_ID
-                        AND Q.DEPT_ID = U.DEPT_ID
-                        AND P.POSITION_CODE = 'DIRECTOR'
-                  )
-              )
-              OR (
-                  A.APPROVAL_TYPE = 'DB_EXECUTION'
-                  AND EXISTS (
-                      SELECT 1
-                      FROM DEPARTMENT D
-                      WHERE D.DEPT_ID = U.DEPT_ID
-                        AND D.DEPT_NAME = 'DB팀'
-                  )
-                  AND EXISTS (
-                      SELECT 1
-                      FROM USER_ROLE UR
-                      JOIN ROLE R ON R.ROLE_ID = UR.ROLE_ID
-                      WHERE UR.USER_ID = U.USER_ID
-                        AND R.ROLE_CODE = 'DB_APPROVER'
-                  )
-              )
-          )
-        FOR UPDATE OF A.APPROVAL_ID
-    </select>
+    <!-- 요청 행을 먼저 잠근 뒤, 현재 사용자가 처리할 수 있는 결재 행을 잠근다. -->
+	<select id="selectPendingApprovalForUpdate"
+	        resultType="com.sqlflow.approval.domain.PendingApproval">
+	
+	    SELECT
+	        A.APPROVAL_ID,
+	        A.APPROVAL_ORDER,
+	        A.APPROVAL_TYPE
+	    FROM APPROVAL A
+	    JOIN USERS U ON U.USER_ID = #{approverId}
+	    WHERE A.REQUEST_ID = #{requestId}
+	    <include refid="pendingApprovalEligibility"/>
+	    FOR UPDATE OF A.APPROVAL_ID
+	
+	</select>
 
     <update id="approvePendingApproval">
-        UPDATE APPROVAL
-        SET STATUS = 'APPROVED',
-            DECIDED_AT = SYSTIMESTAMP
-        WHERE APPROVAL_ID = #{approvalId}
-          AND APPROVER_ID = #{approverId}
-          AND STATUS = 'PENDING'
-    </update>
+	    UPDATE APPROVAL A
+	    SET STATUS = 'APPROVED',
+	        APPROVER_ID = #{approverId},
+	        DECIDED_AT = SYSTIMESTAMP
+	    WHERE A.APPROVAL_ID = #{approvalId}
+	      AND EXISTS (
+	          SELECT 1
+	          FROM USERS U
+	          WHERE U.USER_ID = #{approverId}
+	          <include refid="pendingApprovalEligibility"/>
+	      )
+	</update>
 
     <!-- 현재 순서상 가장 빠른 대기 결재자 한 명만 활성화 -->
     <update id="activateNextApproval">
@@ -385,14 +465,19 @@
 	</update>
 
     <update id="rejectPendingApproval">
-        UPDATE APPROVAL
-        SET STATUS = 'REJECTED',
-            COMMENT_TEXT = #{commentText},
-            DECIDED_AT = SYSTIMESTAMP
-        WHERE APPROVAL_ID = #{approvalId}
-          AND APPROVER_ID = #{approverId}
-          AND STATUS = 'PENDING'
-    </update>
+	    UPDATE APPROVAL A
+	    SET STATUS = 'REJECTED',
+	        APPROVER_ID = #{approverId},
+	        COMMENT_TEXT = #{commentText},
+	        DECIDED_AT = SYSTIMESTAMP
+	    WHERE A.APPROVAL_ID = #{approvalId}
+	      AND EXISTS (
+	          SELECT 1
+	          FROM USERS U
+	          WHERE U.USER_ID = #{approverId}
+	          <include refid="pendingApprovalEligibility"/>
+	      )
+	</update>
 
     <update id="cancelWaitingApprovals">
         UPDATE APPROVAL

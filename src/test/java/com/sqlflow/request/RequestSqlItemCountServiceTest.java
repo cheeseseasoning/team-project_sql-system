@@ -13,6 +13,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
@@ -33,6 +35,7 @@ class RequestSqlItemCountServiceTest {
     @Mock ApprovalLineCreator approval;
     @Mock RequestSqlValidationService selectValidation;
     @Mock DmlSqlValidationService dmlValidation;
+    @Captor private ArgumentCaptor<List<ApprovalTargetRequest>> approvalTargetsCaptor;
     private RequestService service;
 
     @BeforeEach void setUp() {
@@ -72,7 +75,7 @@ class RequestSqlItemCountServiceTest {
         when(mapper.submitDraft(2L, 1L)).thenReturn(1);
         var submit = new RequestSubmitRequest(); submit.setApproverIds(List.of(3L, 4L));
         service.submitRequest(2L, submit, 1L);
-        verify(approval).createApprovalLine(2L, 1L, submit.getApproverIds());
+        verifyApprovalTargets(submit.getApproverIds());
 
         when(mapper.selectMyRequestStatusForUpdate(9L, 1L)).thenReturn("REJECTED");
         when(mapper.selectMyRequestDetail(9L, 1L)).thenReturn(detail("CREATE", "REJECTED"));
@@ -184,7 +187,7 @@ class RequestSqlItemCountServiceTest {
                     .thenReturn(new DmlSqlValidationService.ValidationResult(DmlSqlValidationService.Status.VALID, "통과"));
         }
         service.submitRequest(2L, input, 1L);
-        verify(approval).createApprovalLine(2L, 1L, input.getApproverIds());
+        verifyApprovalTargets(input.getApproverIds());
         verify(mapper).submitDraft(2L, 1L);
         if (isDml(type)) verify(dmlValidation, times(10)).validateForReview(eq(1L), eq(DmlSqlValidationService.SqlType.valueOf(type)), anyString());
     }
@@ -219,6 +222,14 @@ class RequestSqlItemCountServiceTest {
     static Stream<Arguments> redraftCases() {
         return Stream.of("CREATE", "INSERT", "UPDATE", "DELETE")
                 .flatMap(type -> IntStream.of(10, 11).mapToObj(count -> Arguments.of(type, count)));
+    }
+
+    private void verifyApprovalTargets(List<Long> expectedIds) {
+        verify(approval).createApprovalLineWithTargets(eq(2L), eq(1L), approvalTargetsCaptor.capture());
+        var targets = approvalTargetsCaptor.getValue();
+        assertEquals(expectedIds, targets.stream().map(ApprovalTargetRequest::getApproverId).toList());
+        assertTrue(targets.stream().allMatch(target -> "USER".equals(target.getTargetType())
+                && target.getApproverDeptId() == null));
     }
 
     private void verifyStoredOrder() {

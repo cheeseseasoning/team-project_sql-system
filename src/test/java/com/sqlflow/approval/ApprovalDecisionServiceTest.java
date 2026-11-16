@@ -14,6 +14,7 @@ import com.sqlflow.approval.domain.ApprovalActionContext;
 import com.sqlflow.approval.domain.ApprovalRequestContext;
 import com.sqlflow.approval.domain.PendingApproval;
 import com.sqlflow.approval.dto.ApprovalCandidateResponse;
+import com.sqlflow.approval.dto.ApprovalDepartmentCandidateResponse;
 import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.approval.dto.PendingApprovalResponse;
 import com.sqlflow.approval.mapper.ApprovalMapper;
@@ -235,6 +236,18 @@ class ApprovalDecisionServiceTest {
         @Override
         public List<ApprovalCandidateResponse> selectDbApprovers(Long departmentApproverId) {
             return List.of();
+        }
+
+        @Override
+        public List<ApprovalDepartmentCandidateResponse> searchDepartmentCandidates(String keyword, Long excludedUserId) {
+            return List.of();
+        }
+
+        @Override
+        public int insertApprovalTarget(Long requestId, String targetType, Long approverId, Long approverDeptId,
+                int approvalOrder, String approvalType, String status) {
+            // 이 대역은 승인·반려만 검증한다. 결재선 저장이 섞이면 명시적으로 실패시킨다.
+            throw new UnsupportedOperationException("결재선 저장은 별도 서비스 테스트에서 검증합니다.");
         }
 
         @Override

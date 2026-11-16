@@ -31,7 +31,7 @@
 
 </div>
 
-<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261113-sql-meta"></script>
+<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261116-department-labels"></script>
 <script src="${pageContext.request.contextPath}/js/department-request-detail.js?v=20261113-sql-download"></script>
 
 <%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

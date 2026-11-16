@@ -24,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.approval.domain.ApprovalRequestContext;
 import com.sqlflow.approval.dto.ApprovalCandidateResponse;
+import com.sqlflow.approval.dto.ApprovalDepartmentCandidateResponse;
 import com.sqlflow.approval.dto.PendingApprovalResponse;
 import com.sqlflow.approval.mapper.ApprovalMapper;
 import com.sqlflow.approval.service.ApprovalService;
@@ -227,6 +228,56 @@ class ApprovalServiceTest {
                 .selectDepartmentApprovers(anyLong());
         verify(approvalMapper, never())
                 .selectDbApprovers(anyLong());
+    }
+
+    @Test
+    void candidatesIncludeAllDepartmentsAndZeroEligibleCounts() {
+        stubOwnedDraft();
+        var active = departmentCandidate(5L, "영업팀", 2);
+        var empty = departmentCandidate(6L, "개발팀", 0);
+        when(approvalMapper.searchDepartmentCandidates(null, ACTOR_ID)).thenReturn(List.of(active, empty));
+
+        var result = approvalService.getApprovalCandidates(REQUEST_ID, ACTOR_ID, "");
+
+        assertEquals(List.of(active, empty), result.getDepartments());
+        assertEquals(0, result.getDepartments().get(1).getEligibleUserCount());
+    }
+
+    @Test
+    void employeeNameSearchKeepsMatchingDepartmentWithFullEligibleCount() {
+        stubOwnedDraft();
+        var employee = new ApprovalCandidateResponse(10L, "김대리", "영업팀", "대리", 5L);
+        var department = departmentCandidate(5L, "영업팀", 4);
+        when(approvalMapper.searchActiveCandidates("김", ACTOR_ID)).thenReturn(List.of(employee));
+        when(approvalMapper.searchDepartmentCandidates(null, ACTOR_ID))
+                .thenReturn(List.of(department, departmentCandidate(6L, "개발팀", 2)));
+
+        var result = approvalService.getApprovalCandidates(REQUEST_ID, ACTOR_ID, "김");
+
+        assertEquals(List.of(employee), result.getCandidates());
+        assertEquals(List.of(department), result.getDepartments());
+        assertEquals(4, result.getDepartments().get(0).getEligibleUserCount());
+    }
+
+    @Test
+    void departmentNameSearchWorksWithoutIndividualMatches() {
+        stubOwnedDraft();
+        var department = departmentCandidate(5L, "영업팀", 0);
+        when(approvalMapper.searchDepartmentCandidates(null, ACTOR_ID))
+                .thenReturn(List.of(department, departmentCandidate(6L, "개발팀", 2)));
+
+        var result = approvalService.getApprovalCandidates(REQUEST_ID, ACTOR_ID, "영업");
+
+        assertEquals(List.of(), result.getCandidates());
+        assertEquals(List.of(department), result.getDepartments());
+    }
+
+    private ApprovalDepartmentCandidateResponse departmentCandidate(Long id, String name, int count) {
+        var department = new ApprovalDepartmentCandidateResponse();
+        department.setDeptId(id);
+        department.setDeptName(name);
+        department.setEligibleUserCount(count);
+        return department;
     }
 
     @Test

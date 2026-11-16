@@ -185,8 +185,13 @@
                 .map(function (approval) {
                     const status = String(approval.status || '').toUpperCase();
                     const isCurrent = status === 'PENDING';
-                    const typeName = approvalTypeNames[approval.approvalType]
-                        || '결재';
+                    const isDepartment = approval.targetType === 'DEPARTMENT';
+                    const typeName = isDepartment ? '부서 결재'
+                        : approvalTypeNames[approval.approvalType] || '결재';
+                    const personName = isDepartment
+                        ? [approval.approverDeptName || approval.deptName || '부서 정보 없음', approval.approverName]
+                            .filter(Boolean).join(' · ')
+                        : approval.approverName || '-';
                     const statusName = approvalStatusNames[status]
                         || approval.status
                         || '결재 대기';
@@ -195,7 +200,7 @@
                         + (isCurrent ? ' is-current' : '') + '">'
                         + '<strong>' + esc(typeName) + '</strong>'
                         + '<span class="approval-step-name">'
-                        + esc(approval.approverName || '-')
+                        + esc(personName)
                         + '</span>'
                         + '<span>' + esc(statusName) + '</span>'
                         + '</article>';

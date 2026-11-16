@@ -1,8 +1,10 @@
 package com.sqlflow.request;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -15,6 +17,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.access.service.RequestSqlValidationService;
+import com.sqlflow.request.dto.ApprovalTargetRequest;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestSubmitRequest;
@@ -48,6 +53,9 @@ class RequestSubmissionServiceTest {
     
     @Mock
     private RequestSqlValidationService requestSqlValidationService;
+
+    @Captor
+    private ArgumentCaptor<List<ApprovalTargetRequest>> approvalTargetsCaptor;
 
     private RequestService requestService;
 
@@ -123,9 +131,61 @@ class RequestSubmissionServiceTest {
                 .updateRequestClass(2L, 1L, "GENERAL");
 
         order.verify(approvalLineCreator)
-                .createApprovalLine(2L, 1L, List.of(20L));
+                .createApprovalLineWithTargets(eq(2L), eq(1L), approvalTargetsCaptor.capture());
+
+        // 기존 개인 ID 입력도 USER 대상으로 변환되고, 결재 순서는 유지돼야 한다.
+        var targets = approvalTargetsCaptor.getValue();
+        assertEquals(1, targets.size());
+        assertEquals("USER", targets.getFirst().getTargetType());
+        assertEquals(20L, targets.getFirst().getApproverId());
+        assertNull(targets.getFirst().getApproverDeptId());
 
         order.verify(requestMapper).submitDraft(2L, 1L);
+    }
+
+    @Test
+    void submissionPreservesMixedIndividualAndDepartmentTargets() {
+        RequestDetailResponse draft = new RequestDetailResponse();
+        draft.setRequestId(2L);
+        draft.setTitle("개인·부서 혼합 결재 요청");
+        draft.setPurpose("결재 대상과 순서 보존 확인");
+        draft.setRequestType("CREATE");
+        draft.setRequestStatus("DRAFT");
+
+        RequestItemResponse item = new RequestItemResponse();
+        item.setQueryId(101L);
+        item.setQueryOrder(1);
+        item.setSqlText("CREATE TABLE product (id BIGINT PRIMARY KEY);");
+
+        when(requestMapper.selectMyRequestStatusForUpdate(2L, 1L)).thenReturn("DRAFT");
+        when(requestMapper.selectMyRequestDetail(2L, 1L)).thenReturn(draft);
+        when(requestMapper.selectMyViewSqlItems(2L, 1L)).thenReturn(List.of(item));
+        when(approvalLineCreatorProvider.getIfAvailable()).thenReturn(approvalLineCreator);
+        when(requestMapper.submitDraft(2L, 1L)).thenReturn(1);
+
+        ApprovalTargetRequest department = new ApprovalTargetRequest();
+        department.setTargetType("DEPARTMENT");
+        department.setApproverDeptId(5L);
+
+        RequestSubmitRequest input = new RequestSubmitRequest();
+        input.setApprovalTargets(List.of(ApprovalTargetRequest.forUser(20L), department));
+        requestService.submitRequest(2L, input, 1L);
+
+        InOrder order = inOrder(approvalLineCreator, requestMapper);
+        order.verify(approvalLineCreator)
+                .createApprovalLineWithTargets(eq(2L), eq(1L), approvalTargetsCaptor.capture());
+        order.verify(requestMapper).submitDraft(2L, 1L);
+
+        var targets = approvalTargetsCaptor.getValue();
+        assertEquals(2, targets.size());
+        assertEquals("USER", targets.get(0).getTargetType());
+        assertEquals(20L, targets.get(0).getApproverId());
+        assertNull(targets.get(0).getApproverDeptId());
+        assertEquals("DEPARTMENT", targets.get(1).getTargetType());
+        assertNull(targets.get(1).getApproverId());
+        assertEquals(5L, targets.get(1).getApproverDeptId());
+        verify(approvalLineCreator, never()).createApprovalLine(any(), any(), any());
+        verifyNoInteractions(requestSqlValidationService);
     }
 
     @Test
@@ -140,7 +200,7 @@ class RequestSubmissionServiceTest {
         assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
 
         verify(approvalLineCreator, never())
-        		.createApprovalLine(any(), any(), any());
+                .createApprovalLineWithTargets(any(), any(), any());
 
         verify(requestMapper, never()).submitDraft(any(), any());
     }

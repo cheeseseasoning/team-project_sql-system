@@ -12,6 +12,9 @@ public class RequestApprovalResponse {
     private Long approvalId;
     private Integer approvalOrder;
     private String approvalType;
+    private String targetType;
+    private Long approverDeptId;
+    private String approverDeptName;
     private String status;
 
     private Long approverId;

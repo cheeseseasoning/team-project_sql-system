@@ -63,7 +63,7 @@
 
     <c:if test="${page == 'request-detail' or page == 'db-resource-admin'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/approval-line-modal.css?v=20261111-css-split">
+              href="${pageContext.request.contextPath}/css/pages/approval-line-modal.css?v=20261116-department-checkbox">
     </c:if>
 
     <c:if test="${page == 'execution-queue'}">
