@@ -111,6 +111,7 @@ jobs:
           export JAVA_HOME
           export PATH="$JAVA_HOME/bin:$PATH"
           java -version
+          "$JAVA_HOME/bin/javac" -version
           mvn --version
 
           mkdir -p "$SOURCE_DIR"
@@ -124,7 +125,11 @@ jobs:
 
           cd "$SOURCE_DIR"
           export MAVEN_OPTS="-Xms128m -Xmx1024m -XX:MaxMetaspaceSize=256m"
-          mvn --batch-mode --no-transfer-progress -Dmaven.test.skip=true clean package
+          mvn --batch-mode --no-transfer-progress \
+            -Dmaven.test.skip=true \
+            -Dmaven.compiler.fork=true \
+            "-Dmaven.compiler.executable=$JAVA_HOME/bin/javac" \
+            clean package
           test -s "$SOURCE_DIR/target/sqlflow-0.0.1-SNAPSHOT.war"
 
           cp "$WAR_PATH" "$BACKUP_PATH"
