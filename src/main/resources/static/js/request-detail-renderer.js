@@ -576,6 +576,7 @@ window.RequestDetailRenderer = (() => {
 		if (documentHeading) {
 		    const isDbChange = [
 		        'CREATE_VIEW',
+			        'CREATE_TABLE',
 		        'INSERT',
 		        'UPDATE',
 		        'DELETE'
@@ -594,9 +595,15 @@ window.RequestDetailRenderer = (() => {
 
 	    $('#drafter-name').textContent = request.drafterName || '-';
 	    $('#dept-name').textContent = request.deptName || '-';
-	    $('#request-type').textContent = request.requestType === 'CREATE_VIEW'
-	        ? '뷰 생성 요청'
-	        : '조회 요청';
+	    const requestTypeNames = {
+	        SELECT: '조회 요청',
+	        CREATE_VIEW: '뷰 생성 요청',
+	        CREATE_TABLE: '테이블 생성 요청',
+	        INSERT: '데이터 등록 요청',
+	        UPDATE: '데이터 수정 요청',
+	        DELETE: '데이터 삭제 요청'
+	    };
+	    $('#request-type').textContent = requestTypeNames[request.requestType] || request.requestType || '요청';
 	    $('#request-purpose').textContent = request.purpose || '-';
 
 	    const isUrgent = request.isUrgent === 'Y';

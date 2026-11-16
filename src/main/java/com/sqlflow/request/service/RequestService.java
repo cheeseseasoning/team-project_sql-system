@@ -17,6 +17,7 @@ import com.sqlflow.execution.service.SqlBasicValidator;
 import com.sqlflow.request.domain.QueryItem;
 import com.sqlflow.request.domain.QueryRequest;
 import com.sqlflow.request.dto.DmlDraftRequest;
+import com.sqlflow.request.dto.CreateTableDraftRequest;
 import com.sqlflow.request.dto.RequestDashboardResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
@@ -92,7 +93,7 @@ public class RequestService {
 
 	@Transactional(transactionManager = "managementTransactionManager")
 	public Long createViewDraft(ViewCreateDraftRequest input, Long drafterId, Long deptId) {
-		validateViewSqlItems(input);
+		validateViewSqlItems(input, drafterId);
 		Long requestId = requestMapper.selectNextRequestId();
 		QueryRequest request = new QueryRequest();
 		request.setRequestId(requestId);
@@ -109,6 +110,85 @@ public class RequestService {
 		saveViewSqlItems(requestId, input);
 		return requestId;
 	}
+
+    @Transactional(transactionManager = "managementTransactionManager")
+    public Long createTableDraft(CreateTableDraftRequest input, Long drafterId, Long deptId) {
+        validateCreateTableItems(input.getItems());
+        Long requestId = requestMapper.selectNextRequestId();
+        QueryRequest request = new QueryRequest();
+        request.setRequestId(requestId);
+        request.setRequestNo(createRequestNo(requestId));
+        request.setRequestType("CREATE_TABLE");
+        request.setDrafterId(drafterId);
+        request.setDeptId(deptId);
+        request.setTitle(input.getTitle().strip());
+        request.setPurpose(input.getPurpose().strip());
+        request.setDetailContent(normalizeOptionalText(input.getDetailContent()));
+        request.setIsUrgent(input.getIsUrgent());
+        request.setDesiredDate(input.getDesiredDate());
+        if (requestMapper.insertRequest(request) != 1) {
+            throw new IllegalStateException("테이블 생성 초안을 저장하지 못했습니다.");
+        }
+        saveCreateTableSqlItems(requestId, input.getItems());
+        return requestId;
+    }
+
+    @Transactional(transactionManager = "managementTransactionManager", rollbackFor = Exception.class)
+    public void updateTableDraft(Long requestId, CreateTableDraftRequest input, Long drafterId) {
+        String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
+        if (status == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청을 찾을 수 없습니다.");
+        }
+        RequestDetailResponse existing = requestMapper.selectMyRequestDetail(requestId, drafterId);
+        if (!"DRAFT".equals(status) || existing == null || !"CREATE_TABLE".equals(existing.getRequestType())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "수정할 수 있는 테이블 생성 초안이 아닙니다.");
+        }
+        validateCreateTableItems(input.getItems());
+        QueryRequest request = new QueryRequest();
+        request.setRequestId(requestId);
+        request.setDrafterId(drafterId);
+        request.setTitle(input.getTitle().strip());
+        request.setPurpose(input.getPurpose().strip());
+        request.setDetailContent(normalizeOptionalText(input.getDetailContent()));
+        request.setIsUrgent(input.getIsUrgent());
+        request.setDesiredDate(input.getDesiredDate());
+        if (requestMapper.updateDraft(request) != 1) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "요청 상태가 변경되어 수정할 수 없습니다.");
+        }
+        requestMapper.deleteDraftChangeSql(requestId, drafterId);
+        saveCreateTableSqlItems(requestId, input.getItems());
+    }
+
+    private void validateCreateTableItems(List<CreateTableDraftRequest.SqlEntry> items) {
+        if (items == null || items.isEmpty() || items.size() > 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CREATE TABLE SQL은 1개 이상, 5개 이하로 입력하세요.");
+        }
+        for (int index = 0; index < items.size(); index++) {
+            var result = CreateTableSqlValidationService.validate(items.get(index).getSqlText());
+            if (result.getStatus() == Status.BLOCKED) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "SQL " + (index + 1) + " · " + result.getMessage());
+            }
+        }
+    }
+
+    private void saveCreateTableSqlItems(Long requestId, List<CreateTableDraftRequest.SqlEntry> items) {
+        for (int index = 0; index < items.size(); index++) {
+            var item = items.get(index);
+            String title = item.getQueryTitle() == null || item.getQueryTitle().isBlank()
+                    ? "테이블 생성 SQL " + (index + 1) : item.getQueryTitle().strip();
+            if (requestMapper.insertViewSql(requestId, index + 1, title, item.getSqlText().strip()) != 1) {
+                throw new IllegalStateException("테이블 생성 SQL을 저장하지 못했습니다.");
+            }
+        }
+    }
+
+    public List<ViewCreateSqlValidationResultDTO> validateCreateTableSqlTexts(List<String> sqls) {
+        if (sqls == null || sqls.isEmpty() || sqls.size() > 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "검사할 SQL을 1개 이상, 5개 이하로 입력하세요.");
+        }
+        return sqls.stream().map(CreateTableSqlValidationService::validate).toList();
+    }
 
     /** 선택한 변경 유형과 SQL을 저장해 초안을 다시 열 때 복원할 수 있게 한다. */
     @Transactional(transactionManager = "managementTransactionManager")
@@ -206,9 +286,13 @@ public class RequestService {
         return "INSERT".equals(type) || "UPDATE".equals(type) || "DELETE".equals(type);
     }
 
+    private boolean isChangeSqlRequest(String type) {
+        return "CREATE_VIEW".equals(type) || "CREATE_TABLE".equals(type) || isDmlRequest(type);
+    }
+
 	@Transactional(transactionManager = "managementTransactionManager", rollbackFor = Exception.class)
 	public void updateViewDraft(Long requestId, ViewCreateDraftRequest input, Long drafterId) {
-		validateViewSqlItems(input);
+		validateViewSqlItems(input, drafterId);
 		String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
 		if (status == null) {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "요청을 찾을 수 없습니다.");
@@ -235,12 +319,16 @@ public class RequestService {
 		saveViewSqlItems(requestId, input);
 	}
 
-	private void validateViewSqlItems(ViewCreateDraftRequest input) {
-		if (input.getItems() == null || input.getItems().isEmpty() || input.getItems().size() > 5) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "뷰 생성 SQL은 1개 이상, 5개 이하로 입력하세요.");
-		}
+    private void validateViewSqlItems(ViewCreateDraftRequest input, Long requesterId) {
+        if (input.getItems() == null || input.getItems().isEmpty() || input.getItems().size() > 5) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "CREATE SQL은 1개 이상, 5개 이하로 입력하세요.");
+        }
+
         for (ViewCreateDraftRequest.SqlEntry item : input.getItems()) {
-            var result = viewCreateSqlValidationService.validate(item.getSqlText());
+            var result = viewCreateSqlValidationService.validate(item.getSqlText(), requesterId);
+
             if (result.getStatus() == Status.BLOCKED) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, result.getMessage());
             }
@@ -293,7 +381,7 @@ public class RequestService {
 	    }
 
 	    String requestType = detail.getRequestType();
-	    boolean changeRequest = "CREATE_VIEW".equals(requestType) || isDmlRequest(requestType);
+	    boolean changeRequest = isChangeSqlRequest(requestType);
 
 	    detail.setItems(changeRequest
 	            ? requestMapper.selectMyViewSqlItems(requestId, drafterId)
@@ -348,6 +436,7 @@ public class RequestService {
      * 요청을 저장하거나 실제 SQL을 실행하지 않는다.
      */
     public List<ViewCreateSqlValidationResultDTO> validateViewSqlTexts(
+            Long requesterId,
             List<String> sqls) {
 
         if (sqls == null || sqls.isEmpty() || sqls.size() > 5) {
@@ -355,7 +444,7 @@ public class RequestService {
         }
 
         return sqls.stream()
-                .map(viewCreateSqlValidationService::validate)
+                .map(sql -> viewCreateSqlValidationService.validate(sql, requesterId))
                 .toList();
     }
 
@@ -400,7 +489,7 @@ public class RequestService {
         Map<Long, ViewCreateSqlValidationResultDTO> results = new LinkedHashMap<>();
 
         for (RequestItemResponse item : items) {
-            results.put(item.getQueryId(), viewCreateSqlValidationService.validate(item.getSqlText()));
+            results.put(item.getQueryId(), viewCreateSqlValidationService.validate(item.getSqlText(), actorId));
         }
 
         return results;
@@ -416,9 +505,8 @@ public class RequestService {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 SQL만 검증할 수 있습니다.");
 		}
 		RequestDetailResponse request = requestMapper.selectMyRequestDetail(requestId, drafterId);
-		if (request != null && ("CREATE_VIEW".equals(request.getRequestType())
-                || isDmlRequest(request.getRequestType()))) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "뷰 생성 요청은 일반 조회 SQL 검증 대상이 아닙니다.");
+		if (request != null && isChangeSqlRequest(request.getRequestType())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "DB 변경 요청은 일반 조회 SQL 검증 대상이 아닙니다.");
 		}
 
 		List<RequestItemResponse> items = requestMapper.selectMyRequestItems(requestId, drafterId);
@@ -460,8 +548,7 @@ public class RequestService {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 요청만 수정할 수 있습니다.");
 		}
 		RequestDetailResponse draftType = requestMapper.selectMyRequestDetail(requestId, drafterId);
-		if (draftType != null && ("CREATE_VIEW".equals(draftType.getRequestType())
-                || isDmlRequest(draftType.getRequestType()))) {
+		if (draftType != null && isChangeSqlRequest(draftType.getRequestType())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "DB 변경 요청은 DB 변경 화면에서 수정해야 합니다.");
 		}
 
@@ -519,61 +606,72 @@ public class RequestService {
 	    }
 	}
 
-	// 제출할 본인 초안을 조회하고 내용 검사
-	// 반드시 제출 처리의 @Transactional 메서드 안에서 호출
-	private RequestDetailResponse loadDraftForSubmission(Long requestId, Long drafterId) {
+    // 제출할 본인 초안을 조회한다.
+    // 반드시 제출 처리의 @Transactional 메소드 안에서 호출한다.
+    private RequestDetailResponse loadDraftForSubmission(Long requestId, Long drafterId) {
 
-		// 수정·삭제·중복 제출과 동시에 처리되지 않도록 행 잠금
-		String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
+        // 수정·삭제·중복 제출과 동시에 처리되지 않도록 행을 잠근다.
+        String status = requestMapper.selectMyRequestStatusForUpdate(requestId, drafterId);
 
-		if (status == null) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
-		}
+        if (status == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
+        }
 
-		if (!"DRAFT".equals(status)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 요청만 제출할 수 있습니다.");
-		}
+        if (!"DRAFT".equals(status)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "초안 상태의 요청만 제출할 수 있습니다.");
+        }
 
-		RequestDetailResponse request = requestMapper.selectMyRequestDetail(requestId, drafterId);
+        RequestDetailResponse request = requestMapper.selectMyRequestDetail(requestId, drafterId);
 
-		if (request == null) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
-		}
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "조회 요청을 찾을 수 없습니다.");
+        }
 
-		String title = request.getTitle();
+        String title = request.getTitle();
 
-		if (title == null || title.isBlank()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청 제목을 입력하세요.");
-		}
+        if (title == null || title.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청 제목을 입력하세요.");
+        }
 
-		if (title.length() > 200) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청 제목은 200자 이하여야 합니다.");
-		}
+        if (title.length() > 200) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청 제목은 200자 이하여야 합니다.");
+        }
 
-		String purpose = request.getPurpose();
+        String purpose = request.getPurpose();
 
-		if (purpose == null || purpose.isBlank()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "조회 목적을 입력하세요.");
-		}
+        if (purpose == null || purpose.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "조회 목적을 입력하세요.");
+        }
 
-		List<RequestItemResponse> items = ("CREATE_VIEW".equals(request.getRequestType()) || isDmlRequest(request.getRequestType()))
-				? requestMapper.selectMyViewSqlItems(requestId, drafterId)
-				: requestMapper.selectMyRequestItems(requestId, drafterId);
+        List<RequestItemResponse> items = isChangeSqlRequest(request.getRequestType())
+                ? requestMapper.selectMyViewSqlItems(requestId, drafterId)
+                : requestMapper.selectMyRequestItems(requestId, drafterId);
 
-		if (items.isEmpty() || items.size() > 5) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "제출하려면 SQL을 1개 이상, 5개 이하로 등록하세요.");
-		}
+        if (items.isEmpty() || items.size() > 5) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "제출하려면 SQL을 1개 이상, 5개 이하로 등록하세요.");
+        }
 
-		for (RequestItemResponse item : items) {
-			if (item.getSqlText() == null || item.getSqlText().isBlank()) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "빈 SQL 항목은 제출할 수 없습니다.");
-			}
-		}
+        for (RequestItemResponse item : items) {
+            if (item.getSqlText() == null || item.getSqlText().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "빈 SQL 항목은 제출할 수 없습니다.");
+            }
+        }
 
-		request.setItems(items);
+        request.setItems(items);
 
-		return request;
-	}
+        // 팀원이 추가한 CREATE TABLE 전용 요청의 유형 검사는 유지한다.
+        if ("CREATE_TABLE".equals(request.getRequestType())
+                && items.stream().anyMatch(item -> item.getSqlText() == null
+                        || !item.getSqlText().matches("(?is)^\\s*CREATE\\s+TABLE\\b.*"))) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "CREATE TABLE SQL을 1개 이상, 5개 이하로 등록하세요.");
+        }
+
+        // CREATE_VIEW는 기존 저장 유형명이다.
+        // 이 경로의 CREATE 기본 검사는 submitRequest()에서 다시 수행한다.
+        return request;
+    }
 
 	@Transactional(
 	        transactionManager = "managementTransactionManager",
@@ -617,13 +715,21 @@ public class RequestService {
 	    if ("CREATE_VIEW".equals(requestType)) {
 	        for (RequestItemResponse item : draft.getItems()) {
 	            var result =
-	                    viewCreateSqlValidationService.validate(item.getSqlText());
+	                    viewCreateSqlValidationService.validate(item.getSqlText(), actorId);
 
 	            if (result.getStatus() == Status.BLOCKED) {
 	                throw new ResponseStatusException(
 	                        HttpStatus.BAD_REQUEST,
 	                        "SQL " + item.getQueryOrder()
 	                                + " · " + result.getMessage());
+	            }
+	        }
+	    } else if ("CREATE_TABLE".equals(requestType)) {
+	        for (RequestItemResponse item : draft.getItems()) {
+	            var result = CreateTableSqlValidationService.validate(item.getSqlText());
+	            if (result.getStatus() == Status.BLOCKED) {
+	                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+	                        "SQL " + item.getQueryOrder() + " · " + result.getMessage());
 	            }
 	        }
 	    } else if (isDmlRequest(requestType)) {
@@ -885,6 +991,8 @@ public class RequestService {
 
 	    if ("CREATE_VIEW".equals(requestType)) {
 	        saveRedraftViewSqlItems(newRequestId, input.getSqls(), input.getSqlTitles());
+	    } else if ("CREATE_TABLE".equals(requestType)) {
+	        saveRedraftCreateTableSqlItems(newRequestId, input.getSqls(), input.getSqlTitles());
 	    } else if (isDmlRequest(requestType)) {
 	        saveRedraftDmlSqlItems(newRequestId, requestType, input);
 	    } else {
@@ -927,6 +1035,24 @@ public class RequestService {
 	    validateDmlDraftItems(dmlDraft);
 	    saveDmlSqlItems(requestId, dmlDraft);
 	}
+
+    private void saveRedraftCreateTableSqlItems(
+            Long requestId,
+            List<String> sqls,
+            List<String> titles) {
+        if (sqls == null || sqls.isEmpty() || sqls.size() > 5
+                || (titles != null && titles.size() != sqls.size())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "테이블 생성 SQL 목록을 확인하세요.");
+        }
+        List<CreateTableDraftRequest.SqlEntry> items = new java.util.ArrayList<>();
+        for (int index = 0; index < sqls.size(); index++) {
+            String sql = sqls.get(index);
+            String title = titles == null ? null : titles.get(index);
+            items.add(new CreateTableDraftRequest.SqlEntry(title, sql));
+        }
+        validateCreateTableItems(items);
+        saveCreateTableSqlItems(requestId, items);
+    }
 
     private void saveRedraftViewSqlItems(
             Long requestId,

@@ -7,6 +7,10 @@
 	        placeholder: 'CREATE TABLE new_table (\n    id BIGINT PRIMARY KEY\n);',
 	        saveGuide: '초안 저장 후 내 요청함에서 결재선을 지정하고 제출할 수 있습니다.'
 	    },
+        CREATE_TABLE: {
+            placeholder: 'CREATE TABLE product_archive (\n    product_id BIGINT PRIMARY KEY,\n    product_name VARCHAR(200) NOT NULL\n);',
+            saveGuide: '초안 저장 후 내 요청함에서 결재선을 지정하고 제출할 수 있습니다.'
+        },
 	    INSERT: {
 	        placeholder: "INSERT INTO demo_product (product_id, product_name)\nVALUES (1, '상품명');",
 	        saveGuide: '초안 저장 후 내 요청함에서 다시 열어 수정할 수 있습니다.'
@@ -205,7 +209,9 @@
 			const sqlType = changeType.value;
 			const results = sqlType === 'CREATE_VIEW'
 			    ? await post('/requests/view-sql/validate', { sqls })
-			    : await post('/requests/dml-sql/validate', { sqlType, sqls });
+                : sqlType === 'CREATE_TABLE'
+                    ? await post('/requests/create-table-sql/validate', { sqls })
+			        : await post('/requests/dml-sql/validate', { sqlType, sqls });
 
             if (revision === validationRevision) {
                 showValidationResults(sections, results);
@@ -245,7 +251,12 @@
 
         const request = readRequest();
         const isView = changeType.value === 'CREATE_VIEW';
-        const draftPath = isView ? '/requests/view-create-drafts' : '/requests/dml-drafts';
+        const isTable = changeType.value === 'CREATE_TABLE';
+        const draftPath = isView
+            ? '/requests/view-create-drafts'
+            : isTable
+                ? '/requests/table-create-drafts'
+                : '/requests/dml-drafts';
 
         if (!isView) request.sqlType = changeType.value;
         saving = true;
@@ -372,6 +383,51 @@
         form.dataset.writeMode = selected.dataset.writeMode;
         for (const button of writeModes.querySelectorAll('button[data-write-mode]')) {
             button.setAttribute('aria-pressed', String(button === selected));
+        }
+    });
+
+    items.addEventListener('click', async event => {
+        const button = event.target.closest('button[data-ai-generate]');
+        if (!button || button.disabled || saving) return;
+
+        const section = button.closest('.sql-item');
+        const promptField = section?.querySelector('.db-change-ai-prompt textarea');
+        const editor = section?.querySelector('.sql-editor');
+        const status = section?.querySelector('[data-ai-status]');
+        const prompt = promptField?.value.trim();
+
+        if (!prompt) {
+            promptField?.focus();
+            message.textContent = '자연어 요청을 입력하세요.';
+            return;
+        }
+        if (editor.value.trim() && !window.confirm('기존 SQL을 새로 생성한 SQL로 바꾸시겠습니까?')) return;
+
+        button.disabled = true;
+        button.textContent = '생성 중…';
+        if (status) status.textContent = '허용된 스키마를 확인하고 SQL을 생성하고 있습니다.';
+        message.textContent = '';
+        try {
+            const result = await post('/ai/sql/generate', {
+                sqlType: changeType.value,
+                prompt
+            });
+            if (result?.needsClarification) {
+                if (status) status.textContent = result.explanation || '요청 내용을 더 구체적으로 입력하세요.';
+                return;
+            }
+            if (typeof result?.sql !== 'string' || !result.sql.trim() || result.sql.length > 20000) {
+                throw new Error('생성된 SQL을 확인할 수 없습니다.');
+            }
+            editor.value = result.sql;
+            invalidateValidation();
+            if (status) status.textContent = result.explanation || '생성된 SQL을 검토하고 SQL 검증을 실행하세요.';
+            editor.focus();
+        } catch (error) {
+            if (status) status.textContent = error.message || 'SQL 생성을 완료하지 못했습니다.';
+        } finally {
+            button.disabled = false;
+            button.textContent = 'SQL 초안 생성 →';
         }
     });
 

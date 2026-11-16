@@ -22,6 +22,7 @@
                     <option value="">전체 유형</option>
                     <option value="SELECT">조회 요청</option>
                     <option value="CREATE_VIEW">뷰 생성 요청</option>
+                    <option value="CREATE_TABLE">테이블 생성 요청</option>
                     <option value="INSERT">데이터 등록</option>
                     <option value="UPDATE">데이터 수정</option>
                     <option value="DELETE">데이터 삭제</option>
@@ -103,6 +104,7 @@
     const typeNames = {
         SELECT: '조회',
         CREATE_VIEW: '뷰 생성',
+        CREATE_TABLE: '테이블 생성',
         INSERT: '데이터 등록',
         UPDATE: '데이터 수정',
         DELETE: '데이터 삭제'

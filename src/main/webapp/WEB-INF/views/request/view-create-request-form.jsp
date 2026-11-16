@@ -48,10 +48,11 @@
 				<div class="db-change-sql-type">
 					<h2>SQL 작성</h2>
 					<select id="db-change-type" aria-label="변경 유형" ${dbChangeFormMode ne 'create' ? 'disabled' : ''}>
-						<option value="CREATE_VIEW">CREATE · 객체 생성</option>
-						<option value="INSERT">INSERT · 데이터 추가</option>
-						<option value="UPDATE">UPDATE · 데이터 수정</option>
-						<option value="DELETE">DELETE · 데이터 삭제</option>
+					    <option value="CREATE_VIEW">CREATE · 객체 생성</option>
+					    <option value="CREATE_TABLE">CREATE TABLE · 테이블 생성</option>
+					    <option value="INSERT">INSERT · 데이터 추가</option>
+					    <option value="UPDATE">UPDATE · 데이터 수정</option>
+					    <option value="DELETE">DELETE · 데이터 삭제</option>
 					</select>
 				</div>
 
@@ -116,8 +117,8 @@
 							<textarea rows="6" placeholder="어떤 변경이 필요한지 설명해 주세요."></textarea>
 						</label>
 						<div class="db-change-ai-actions">
-							<span class="caption">AI 생성 연결 예정</span>
-							<button type="button" class="button primary" data-ai-generate disabled>SQL 초안 생성 →</button>
+							<span class="caption" data-ai-status>자연어 요청을 입력해 SQL 초안을 생성하세요.</span>
+							<button type="button" class="button primary" data-ai-generate>SQL 초안 생성 →</button>
 						</div>
 					</div>
 					<label>
