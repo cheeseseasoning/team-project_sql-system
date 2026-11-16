@@ -1,6 +1,6 @@
 package com.sqlflow.auth.service;
 
-import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +20,14 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class AdminUserService {
+
+    private static final SecureRandom PASSWORD_RANDOM = new SecureRandom();
+    private static final String PASSWORD_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    private static final String PASSWORD_LOWER = "abcdefghijkmnopqrstuvwxyz";
+    private static final String PASSWORD_DIGITS = "23456789";
+    private static final String PASSWORD_SYMBOLS = "!@#$%*-_";
+    private static final String PASSWORD_CHARACTERS =
+            PASSWORD_UPPER + PASSWORD_LOWER + PASSWORD_DIGITS + PASSWORD_SYMBOLS;
 	
 	private static final String DUPLICATE_LOGIN_ID_MESSAGE = 
 			"로그인 ID가 이미 사용 중입니다. 다른 ID를 입력해 주세요.";
@@ -63,7 +71,6 @@ public class AdminUserService {
         }
         
         String userName = trim(request.getUserName());
-        String password = request.getInitialPassword();
 
         if (loginId == null || !loginId.matches("[A-Za-z0-9._-]{3,50}")) {
             throw badRequest("아이디는 영문·숫자·마침표·밑줄·하이픈으로 3~50자 입력하세요.");
@@ -79,12 +86,6 @@ public class AdminUserService {
                 || userAccountMapper.countPosition(request.getPositionId()) == 0) {
             throw badRequest("유효한 직급을 선택하세요.");
         }
-        if (password == null
-                || password.length() < 8
-                || password.getBytes(StandardCharsets.UTF_8).length > 72) {
-            throw badRequest("비밀번호는 8자 이상이어야 하며 UTF-8 기준 72바이트 이하여야 합니다.");
-        }
-
         List<String> roleCodes = request.getRoles() == null
                 ? List.of()
                 : request.getRoles().stream()
@@ -116,7 +117,8 @@ public class AdminUserService {
         }
 
         Long userId = userAccountMapper.nextUserId();
-        String passwordHash = passwordEncoder.encode(password);
+        String initialPassword = generateInitialPassword();
+        String passwordHash = passwordEncoder.encode(initialPassword);
         
         try {
         	
@@ -150,7 +152,33 @@ public class AdminUserService {
                 "userId", userId,
                 "loginId", loginId,
                 "userName", userName,
+                "initialPassword", initialPassword,
                 "message", "계정이 생성되었습니다.");
+    }
+
+    private String generateInitialPassword() {
+        char[] password = new char[20];
+        password[0] = randomCharacter(PASSWORD_UPPER);
+        password[1] = randomCharacter(PASSWORD_LOWER);
+        password[2] = randomCharacter(PASSWORD_DIGITS);
+        password[3] = randomCharacter(PASSWORD_SYMBOLS);
+
+        for (int index = 4; index < password.length; index++) {
+            password[index] = randomCharacter(PASSWORD_CHARACTERS);
+        }
+
+        for (int index = password.length - 1; index > 0; index--) {
+            int swapIndex = PASSWORD_RANDOM.nextInt(index + 1);
+            char current = password[index];
+            password[index] = password[swapIndex];
+            password[swapIndex] = current;
+        }
+
+        return new String(password);
+    }
+
+    private char randomCharacter(String characters) {
+        return characters.charAt(PASSWORD_RANDOM.nextInt(characters.length()));
     }
     
     private void requireActiveSystemAdmin(String loginId) {

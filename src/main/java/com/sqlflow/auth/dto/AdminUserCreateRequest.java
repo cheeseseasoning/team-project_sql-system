@@ -14,6 +14,5 @@ public class AdminUserCreateRequest {
 	private String employeeNo;
 	private Long deptId;
 	private Long positionId;
-	private String initialPassword;
 	private List<String> roles;
 }
