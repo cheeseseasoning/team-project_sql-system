@@ -2,6 +2,7 @@ package com.sqlflow.approval.service;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ import com.sqlflow.approval.dto.ApprovalCandidatesResponse;
 import com.sqlflow.approval.dto.ApprovalHistoryResponse;
 import com.sqlflow.approval.dto.PendingApprovalResponse;
 import com.sqlflow.approval.mapper.ApprovalMapper;
+import com.sqlflow.request.dto.ApprovalTargetRequest;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.service.ApprovalLineCreator;
 
@@ -207,10 +209,23 @@ public class ApprovalService implements ApprovalLineCreator {
                         ? null
                         : keyword.trim();
 
-        return new ApprovalCandidatesResponse(
-                approvalMapper.searchActiveCandidates(
-                        normalizedKeyword,
-                        actorId));
+        List<ApprovalCandidateResponse> candidates =
+                approvalMapper.searchActiveCandidates(normalizedKeyword, actorId);
+
+        // 이름 검색으로 직원 일부만 조회돼도 부서의 결재 가능 인원은 전체 기준을 유지한다.
+        Set<Long> matchingDepartmentIds = new HashSet<>();
+        for (ApprovalCandidateResponse candidate : candidates) {
+            matchingDepartmentIds.add(candidate.getDeptId());
+        }
+
+        String searchWord = normalizedKeyword == null ? "" : normalizedKeyword.toLowerCase(Locale.ROOT);
+        var departments = approvalMapper.searchDepartmentCandidates(null, actorId).stream()
+                .filter(department -> searchWord.isEmpty()
+                        || department.getDeptName().toLowerCase(Locale.ROOT).contains(searchWord)
+                        || matchingDepartmentIds.contains(department.getDeptId()))
+                .toList();
+
+        return new ApprovalCandidatesResponse(candidates, departments);
     }
     
     @Transactional(readOnly = true)
@@ -292,6 +307,111 @@ public class ApprovalService implements ApprovalLineCreator {
             if (inserted != 1) {
                 throw new IllegalStateException(
                         "결재선 저장에 실패했습니다.");
+            }
+        }
+    }
+    
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void createApprovalLineWithTargets(Long requestId, Long actorId, List<ApprovalTargetRequest> targets) {
+
+        requireOwnedDraft(requestId, actorId);
+
+        if (targets == null || targets.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "결재 대상을 1개 이상 지정하세요.");
+        }
+
+        Set<Long> userIds = new HashSet<>();
+        Set<Long> departmentIds = new HashSet<>();
+
+        // 저장 전에 전체 결재선의 형식·본인 지정·대상 중복을 검사한다.
+        for (ApprovalTargetRequest target : targets) {
+            if (target == null || !target.isTargetValid()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "개인 또는 부서 결재 대상을 올바르게 지정하세요.");
+            }
+
+            if ("USER".equals(target.getTargetType())) {
+                Long userId = target.getApproverId();
+
+                if (userId <= 0) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "올바른 결재자를 선택하세요.");
+                }
+
+                if (userId.equals(actorId)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "본인을 결재자로 지정할 수 없습니다.");
+                }
+
+                if (!userIds.add(userId)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "동일한 결재자를 중복 지정할 수 없습니다.");
+                }
+            } else {
+                Long deptId = target.getApproverDeptId();
+
+                if (deptId <= 0) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "올바른 담당 부서를 선택하세요.");
+                }
+
+                if (!departmentIds.add(deptId)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "동일한 부서를 중복 지정할 수 없습니다.");
+                }
+            }
+        }
+
+        if (!userIds.isEmpty()) {
+            Set<Long> activeUserIds = new HashSet<>();
+
+            // 기존 개인 결재 후보 조회를 재사용한다.
+            for (ApprovalCandidateResponse candidate :
+                    approvalMapper.searchActiveCandidates(null, actorId)) {
+                activeUserIds.add(candidate.getUserId());
+            }
+
+            if (!activeUserIds.containsAll(userIds)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "선택한 결재자 중 사용할 수 없는 계정이 있습니다. 결재선을 다시 확인하세요.");
+            }
+        }
+
+        if (!departmentIds.isEmpty()) {
+            Set<Long> availableDepartmentIds = new HashSet<>();
+
+            // 모든 부서를 대상으로 기안자 외 활성 구성원이 있는지 확인한다.
+            for (var department : approvalMapper.searchDepartmentCandidates(null, actorId)) {
+                Integer count = department.getEligibleUserCount();
+
+                if (count != null && count > 0) {
+                    availableDepartmentIds.add(department.getDeptId());
+                }
+            }
+
+            if (!availableDepartmentIds.containsAll(departmentIds)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "선택한 부서가 없거나 기안자 외 결재 가능한 활성 사용자가 없습니다. 결재선을 다시 확인하세요.");
+            }
+        }
+
+        // 모든 검증이 끝난 뒤 선택 순서대로 개인·부서 결재 단계를 저장한다.
+        for (int index = 0; index < targets.size(); index++) {
+            ApprovalTargetRequest target = targets.get(index);
+
+            int inserted = approvalMapper.insertApprovalTarget(
+                    requestId,
+                    target.getTargetType(),
+                    target.getApproverId(),
+                    target.getApproverDeptId(),
+                    index + 1,
+                    "APPROVER",
+                    index == 0 ? "PENDING" : "WAITING");
+
+            if (inserted != 1) {
+                throw new IllegalStateException("결재선 저장에 실패했습니다.");
             }
         }
     }

@@ -6,6 +6,9 @@ public class ApprovalHistoryResponse {
 
     private Integer approvalOrder;
     private String approvalType;
+    private String targetType;
+    private Long approverDeptId;
+    private String approverDeptName;
     private Long approverId;
     private String approverName;
     private String deptName;
@@ -32,6 +35,30 @@ public class ApprovalHistoryResponse {
 
     public void setApprovalType(String approvalType) {
         this.approvalType = approvalType;
+    }
+
+    public String getTargetType() {
+        return targetType;
+    }
+
+    public void setTargetType(String targetType) {
+        this.targetType = targetType;
+    }
+
+    public Long getApproverDeptId() {
+        return approverDeptId;
+    }
+
+    public void setApproverDeptId(Long approverDeptId) {
+        this.approverDeptId = approverDeptId;
+    }
+
+    public String getApproverDeptName() {
+        return approverDeptName;
+    }
+
+    public void setApproverDeptName(String approverDeptName) {
+        this.approverDeptName = approverDeptName;
     }
 
     public Long getApproverId() {

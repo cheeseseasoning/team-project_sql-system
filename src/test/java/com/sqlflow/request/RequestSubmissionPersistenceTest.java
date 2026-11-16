@@ -20,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.sqlflow.access.service.RequestSqlValidationService;
 import com.sqlflow.approval.service.ApprovalService;
+import com.sqlflow.request.dto.ApprovalTargetRequest;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
 import com.sqlflow.request.dto.RequestItemResponse;
 import com.sqlflow.request.dto.RequestSqlValidationResult;
@@ -124,6 +125,13 @@ class RequestSubmissionPersistenceTest {
         Map<String, Object> before = snapshot();
 
         doAnswer(invocation -> {
+            // 현재 제출 경로에서 변환된 개인 결재 대상까지 확인한 뒤 실패를 발생시킨다.
+            List<ApprovalTargetRequest> targets = invocation.getArgument(2);
+            assertEquals(1, targets.size());
+            assertEquals("USER", targets.getFirst().getTargetType());
+            assertEquals(20L, targets.getFirst().getApproverId());
+            assertNull(targets.getFirst().getApproverDeptId());
+
             // 결재 단계에 도달하기 전에 저장이 수행됐는지 확인
             assertEquals("SENSITIVE", requestClass());
             assertItem(queryIds.get(0), "GENERAL");
@@ -138,8 +146,8 @@ class RequestSubmissionPersistenceTest {
                     """, requestId);
 
             throw new IllegalStateException("테스트용 결재 실패");
-        }).when(approvalService).createApprovalLine(
-                requestId, USER_ID, List.of(20L)
+        }).when(approvalService).createApprovalLineWithTargets(
+                eq(requestId), eq(USER_ID), anyList()
         );
 
         IllegalStateException error = assertThrows(

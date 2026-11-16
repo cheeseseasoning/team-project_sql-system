@@ -319,6 +319,7 @@ let approvalLineLoading = false;
 let approvalLineReady = false;
 
 let approvalLineVisibleCandidates = [];
+let approvalLineVisibleDepartments = [];
 let approvalLineApprovers = [];
 
 // 모달에서 편집 중인 목록과 적용된 목록은 별도로 보관한다.
@@ -327,8 +328,42 @@ let appliedApprovalLine = null;
 const approvalLineCheckedCandidateIds = new Set();
 const approvalLineCheckedSelectedIds = new Set();
 
-function approvalLineUserId(user) {
-    return String(user.userId);
+// 개인 ID와 부서 ID가 같아도 서로 다른 결재 대상으로 구분한다.
+function approvalLineTargetId(target) {
+    return target.targetType === 'DEPARTMENT'
+        ? 'DEPARTMENT:' + target.deptId
+        : 'USER:' + target.userId;
+}
+
+function getApprovalLineGroups() {
+    const groups = new Map();
+
+    approvalLineVisibleDepartments.forEach(department => {
+        groups.set(String(department.deptId), {
+            key: String(department.deptId),
+            name: department.deptName,
+            department,
+            users: []
+        });
+    });
+
+    approvalLineVisibleCandidates.forEach(user => {
+        const key = user.deptId == null ? 'name:' + user.deptName : String(user.deptId);
+        if (!groups.has(key)) {
+            groups.set(key, { key, name: user.deptName || '부서 정보 없음', department: null, users: [] });
+        }
+        groups.get(key).users.push(user);
+    });
+
+    return Array.from(groups.values());
+}
+
+function getApprovalLinePayload(targets) {
+    return targets.map(target => ({
+        targetType: target.targetType === 'DEPARTMENT' ? 'DEPARTMENT' : 'USER',
+        approverId: target.targetType === 'DEPARTMENT' ? null : Number(target.userId),
+        approverDeptId: target.targetType === 'DEPARTMENT' ? Number(target.deptId) : null
+    }));
 }
 
 function copyApprovalLine(users) {
@@ -346,27 +381,35 @@ function showApprovalLineCandidateMessage(message) {
         + '</p>';
 }
 
-function getApprovalLineValidationMessage(users) {
-    if (!Array.isArray(users) || users.length === 0) {
-        return '결재자를 1명 이상 지정하세요.';
+function getApprovalLineValidationMessage(targets) {
+    if (!Array.isArray(targets) || targets.length === 0) {
+        return '개인 또는 부서 결재 대상을 1개 이상 지정하세요.';
     }
 
-    const ids = users.map(user => Number(user.userId));
-
-    if (ids.some(id => !Number.isSafeInteger(id) || id <= 0)) {
-        return '결재자 정보를 다시 확인해 주세요.';
-    }
-
-    if (new Set(ids).size !== ids.length) {
-        return '동일한 결재자를 중복 지정할 수 없습니다.';
+    const ids = new Set();
+    for (const target of targets) {
+        if (!target || !['USER', 'DEPARTMENT'].includes(target.targetType || 'USER')) {
+            return '결재 대상 정보를 다시 확인해 주세요.';
+        }
+        const isDepartment = target.targetType === 'DEPARTMENT';
+        const id = Number(isDepartment ? target.deptId : target.userId);
+        if (!Number.isSafeInteger(id) || id <= 0) {
+            return '결재 대상 정보를 다시 확인해 주세요.';
+        }
+        if (isDepartment && !(Number(target.eligibleUserCount) > 0)) {
+            return '기안자 외 결재 가능한 활성 사용자가 없는 부서는 지정할 수 없습니다.';
+        }
+        const key = approvalLineTargetId(target);
+        if (ids.has(key)) return '동일한 개인 또는 부서를 중복 지정할 수 없습니다.';
+        ids.add(key);
     }
 
     return '';
 }
 
-function isApprovalLineUserAssigned(user) {
+function isApprovalLineTargetAssigned(user) {
     return approvalLineApprovers.some(
-        item => approvalLineUserId(item) === approvalLineUserId(user)
+        item => approvalLineTargetId(item) === approvalLineTargetId(user)
     );
 }
 
@@ -390,119 +433,81 @@ function updateApprovalLineControls() {
 }
 
 function renderApprovalLineCandidates() {
-    if (approvalLineVisibleCandidates.length === 0) {
-        showApprovalLineCandidateMessage(
-            '검색 조건에 맞는 직원이 없습니다.'
-        );
+    const groups = getApprovalLineGroups();
+    if (groups.length === 0) {
+        showApprovalLineCandidateMessage('검색 조건에 맞는 직원 또는 부서가 없습니다.');
         return;
     }
 
-    // 추가·삭제로 다시 그릴 때 부서 펼침 상태를 유지한다.
-    const openStates = new Map(
-        Array.from(
-            approvalLineCandidateBody.querySelectorAll(
-                '.approval-line-department'
-            )
-        ).map(element => [
-            element.dataset.department,
-            element.open
-        ])
-    );
+    const openStates = new Map(Array.from(
+        approvalLineCandidateBody.querySelectorAll('.approval-line-department')
+    ).map(element => [element.dataset.department, element.open]));
+    const hasKeyword = Boolean($('#approval-line-keyword').value.trim());
 
-    const groups = new Map();
+    approvalLineCandidateBody.innerHTML = groups.map(group => {
+        const isOpen = openStates.has(group.key) ? openStates.get(group.key) : hasKeyword;
+        const department = group.department;
+        let heading = '<span>' + esc(group.name) + '</span>';
+        let countLabel = '검색 결과 ' + group.users.length + '명';
 
-    // 서버에서 정렬한 순서를 그대로 유지한다.
-    approvalLineVisibleCandidates.forEach(function (user) {
-        const department = user.deptName || '부서 정보 없음';
-
-        if (!groups.has(department)) {
-            groups.set(department, []);
+        if (department) {
+            const key = approvalLineTargetId(department);
+            const assigned = isApprovalLineTargetAssigned(department);
+            const available = Number(department.eligibleUserCount) > 0;
+            const checked = assigned || approvalLineCheckedCandidateIds.has(key);
+            const disabled = assigned || !available;
+            const hint = available ? '부서 공동 결재로 선택' : '기안자 외 결재 가능한 활성 사용자가 없습니다.';
+            heading = '<label class="approval-line-department-select'
+                + (checked ? ' is-selected' : '') + (disabled ? ' is-assigned' : '')
+                + '" title="' + esc(hint) + '">'
+                + '<input type="checkbox" class="approval-line-candidate-check approval-line-department-check"'
+                + ' value="' + esc(key) + '"'
+                + ' aria-label="' + esc(group.name + ' 부서 공동 결재 선택') + '"'
+                + (checked ? ' checked' : '') + (disabled ? ' disabled' : '') + '>'
+                + '<span>' + esc(group.name) + '</span></label>';
+            countLabel = Number(department.eligibleUserCount || 0) + '명';
         }
 
-        groups.get(department).push(user);
-    });
+        const employees = group.users.map(user => {
+            const key = approvalLineTargetId(user);
+            const assigned = isApprovalLineTargetAssigned(user);
+            const checked = assigned || approvalLineCheckedCandidateIds.has(key);
+            return '<li><label class="approval-line-candidate-item'
+                + (checked ? ' is-selected' : '') + (assigned ? ' is-assigned' : '') + '">'
+                + '<input type="checkbox" class="approval-line-candidate-check" value="' + esc(key) + '"'
+                + (checked ? ' checked' : '') + (assigned ? ' disabled' : '') + '>'
+                + '<span class="approval-line-employee-name">' + esc(user.userName) + '</span>'
+                + '<span class="approval-line-employee-position">' + esc(user.positionName || '') + '</span>'
+                + '</label></li>';
+        }).join('');
 
-    const hasKeyword = Boolean(
-        $('#approval-line-keyword').value.trim()
-    );
-
-    approvalLineCandidateBody.innerHTML =
-        Array.from(groups.entries()).map(
-            function ([department, users], groupIndex) {
-				const isOpen = openStates.has(department)
-					? openStates.get(department)
-					: hasKeyword;
-
-                const employees = users.map(function (user) {
-                    const userId = approvalLineUserId(user);
-                    const assigned = isApprovalLineUserAssigned(user);
-
-                    const checked =
-                        assigned
-                        || approvalLineCheckedCandidateIds.has(userId);
-
-                    const className =
-                        'approval-line-candidate-item'
-                        + (checked ? ' is-selected' : '')
-                        + (assigned ? ' is-assigned' : '');
-
-                    return '<li>'
-                        + '<label class="' + className + '">'
-                        + '<input type="checkbox"'
-                        + ' class="approval-line-candidate-check"'
-                        + ' value="' + esc(userId) + '"'
-                        + (checked ? ' checked' : '')
-                        + (assigned ? ' disabled' : '')
-                        + '>'
-                        + '<span class="approval-line-employee-name">'
-                        + esc(user.userName)
-                        + '</span>'
-                        + '<span class="approval-line-employee-position">'
-                        + esc(user.positionName || '')
-                        + '</span>'
-                        + '</label>'
-                        + '</li>';
-                }).join('');
-
-                return '<details class="approval-line-department"'
-                    + ' data-department="' + esc(department) + '"'
-                    + (isOpen ? ' open' : '')
-                    + '>'
-                    + '<summary>'
-                    + '<span>' + esc(department) + '</span>'
-                    + '<span class="approval-line-department-count">'
-                    + users.length + '명'
-                    + '</span>'
-                    + '</summary>'
-                    + '<ul class="approval-line-employees">'
-                    + employees
-                    + '</ul>'
-                    + '</details>';
-            }
-        ).join('');
+        return '<details class="approval-line-department" data-department="' + esc(group.key) + '"'
+            + (isOpen ? ' open' : '') + '><summary>' + heading
+            + '<span class="approval-line-department-count">' + esc(countLabel) + '</span></summary>'
+            + '<ul class="approval-line-employees">' + employees + '</ul></details>';
+    }).join('');
 }
 function renderApprovalLineSelected() {
     $('#approval-line-selected-count').textContent =
-        approvalLineApprovers.length + '명';
+        approvalLineApprovers.length + '개';
 
     if (approvalLineApprovers.length === 0) {
         approvalLineSelectedBody.innerHTML =
             '<li class="approval-line-empty">'
-            + '결재자를 추가해 주세요.'
+            + '개인 또는 부서를 추가해 주세요.'
             + '</li>';
         return;
     }
 
     approvalLineSelectedBody.innerHTML =
         approvalLineApprovers.map(function (user, index) {
-            const userId = approvalLineUserId(user);
+            const userId = approvalLineTargetId(user);
             const checked =
                 approvalLineCheckedSelectedIds.has(userId);
 
-            const person = [
-                user.userName,
-                user.positionName
-            ].filter(Boolean).join(' ');
+            const isDepartment = user.targetType === 'DEPARTMENT';
+            const person = isDepartment ? user.deptName
+                : [user.userName, user.positionName].filter(Boolean).join(' ');
 
             const actions = [
                 {
@@ -544,7 +549,7 @@ function renderApprovalLineSelected() {
                 + (index + 1) + '. ' + esc(person)
                 + '</strong>'
                 + '<span class="approval-line-selected-department">'
-                + esc(user.deptName || '—')
+                + esc(isDepartment ? '부서 공동 결재' : (user.deptName || '—') + ' · 개인')
                 + '</span>'
                 + '</span>'
                 + '</label>'
@@ -567,7 +572,10 @@ function renderAppliedApprovalLine() {
         role: index === appliedApprovalLine.length - 1
             ? '최종 결재자'
             : '결재자',
-        name: user.userName,
+        targetType: user.targetType || 'USER',
+        name: user.targetType === 'DEPARTMENT' ? '-' : user.userName,
+        approverDeptId: user.targetType === 'DEPARTMENT' ? user.deptId : null,
+        approverDeptName: user.targetType === 'DEPARTMENT' ? user.deptName : null,
         deptName: user.deptName,
         positionName: user.positionName,
         status: null
@@ -577,7 +585,7 @@ function renderAppliedApprovalLine() {
 
     $('#request-approval-badge').textContent = '제출 전';
     $('#approval-preview-help').textContent =
-        '결재선이 적용됐습니다. 제출 시 서버가 결재자 자격을 다시 확인합니다.';
+        '결재선이 적용됐습니다. 제출 시 서버가 개인·부서 결재 자격을 다시 확인합니다.';
 }
 
 function renderRequestApprovalLine(request) {
@@ -596,13 +604,14 @@ async function loadApprovalLineCandidates() {
     approvalLineLoading = true;
     approvalLineReady = false;
     approvalLineVisibleCandidates = [];
+    approvalLineVisibleDepartments = [];
     approvalLineCheckedCandidateIds.clear();
 	approvalLineCheckedSelectedIds.clear();
 
     renderApprovalLineSelected();
     updateApprovalLineControls();
     showApprovalLineMessage('');
-    showApprovalLineCandidateMessage('결재자를 불러오는 중입니다.');
+    showApprovalLineCandidateMessage('직원·부서를 불러오는 중입니다.');
     approvalLineCandidateBody.setAttribute('aria-busy', 'true');
 
     try {
@@ -617,11 +626,12 @@ async function loadApprovalLineCandidates() {
             return;
         }
 
-        if (!Array.isArray(data.candidates)) {
-            throw Error('결재자 후보 응답을 확인할 수 없습니다.');
+        if (!Array.isArray(data.candidates) || !Array.isArray(data.departments)) {
+            throw Error('직원·부서 후보 응답을 확인할 수 없습니다.');
         }
 
-        approvalLineVisibleCandidates = data.candidates;
+        approvalLineVisibleCandidates = data.candidates.map(user => ({ ...user, targetType: 'USER' }));
+        approvalLineVisibleDepartments = data.departments.map(department => ({ ...department, targetType: 'DEPARTMENT' }));
         approvalLineReady = true;
     } catch (error) {
         if (!approvalLineDialog.open
@@ -629,7 +639,7 @@ async function loadApprovalLineCandidates() {
             return;
         }
 
-        showApprovalLineCandidateMessage('결재자를 불러오지 못했습니다.');
+        showApprovalLineCandidateMessage('직원·부서를 불러오지 못했습니다.');
         showApprovalLineMessage(error.message);
     } finally {
         if (approvalLineDialog.open
@@ -658,6 +668,7 @@ approvalLineOpenButton.addEventListener('click', function () {
         : [];
 
     approvalLineVisibleCandidates = [];
+    approvalLineVisibleDepartments = [];
     approvalLineCheckedCandidateIds.clear();
     approvalLineReady = false;
 
@@ -700,7 +711,7 @@ approvalLineCandidateBody.addEventListener('change', function (event) {
         approvalLineCheckedCandidateIds.delete(checkbox.value);
     }
 
-	checkbox.closest('.approval-line-candidate-item')
+	checkbox.closest('.approval-line-candidate-item, .approval-line-department-select')
 		.classList.toggle(
 		    'is-selected',
 		    checkbox.checked
@@ -714,18 +725,22 @@ $('#approval-line-add').addEventListener('click', function () {
 
     let added = 0;
 
-    // 여러 명을 선택하면 검색 결과의 표시 순서대로 추가한다.
-    approvalLineVisibleCandidates.forEach(user => {
-        if (approvalLineCheckedCandidateIds.has(approvalLineUserId(user))
-                && !isApprovalLineUserAssigned(user)) {
-            approvalLineApprovers.push({ ...user });
+    // 화면의 부서 → 직원 순서대로 추가한다. 부서 선택은 직원 전체 선택이 아니다.
+    const visibleTargets = getApprovalLineGroups().flatMap(group =>
+        group.department ? [group.department, ...group.users] : group.users
+    );
+    visibleTargets.forEach(target => {
+        if (approvalLineCheckedCandidateIds.has(approvalLineTargetId(target))
+                && !isApprovalLineTargetAssigned(target)
+                && !getApprovalLineValidationMessage([target])) {
+            approvalLineApprovers.push({ ...target });
             added++;
         }
     });
 
     approvalLineCheckedCandidateIds.clear();
     refreshApprovalLineEditor();
-    showApprovalLineMessage(added + '명을 추가했습니다.');
+    showApprovalLineMessage(added + '개 결재 대상을 추가했습니다.');
 });
 
 approvalLineSelectedBody.addEventListener('change', function (event) {
@@ -790,7 +805,7 @@ $('#approval-line-remove').addEventListener('click', function () {
 
     approvalLineApprovers = approvalLineApprovers.filter(
         user => !approvalLineCheckedSelectedIds.has(
-            approvalLineUserId(user)
+            approvalLineTargetId(user)
         )
     );
 
@@ -800,7 +815,7 @@ $('#approval-line-remove').addEventListener('click', function () {
     approvalLineCheckedSelectedIds.clear();
 
     refreshApprovalLineEditor();
-    showApprovalLineMessage(removedCount + '명을 제외했습니다.');
+    showApprovalLineMessage(removedCount + '개 결재 대상을 제외했습니다.');
 });
 
 $('#approval-line-apply').addEventListener('click', function () {
@@ -827,6 +842,7 @@ approvalLineDialog.addEventListener('close', function () {
     approvalLineLoading = false;
     approvalLineReady = false;
     approvalLineVisibleCandidates = [];
+    approvalLineVisibleDepartments = [];
     approvalLineCheckedCandidateIds.clear();
 	approvalLineCheckedSelectedIds.clear();
 
@@ -884,8 +900,7 @@ $('#request-submit-open').addEventListener('click', function () {
         return;
     }
 
-    const approverIds =
-        appliedApprovalLine.map(user => Number(user.userId));
+    const approvalTargets = getApprovalLinePayload(appliedApprovalLine);
 
     requestSubmitting = true;
 
@@ -893,7 +908,7 @@ $('#request-submit-open').addEventListener('click', function () {
         try {
             await post(
                 '/requests/' + encodeURIComponent(requestId) + '/submit',
-                { approverIds }
+                { approvalTargets }
             );
 
             location.reload();

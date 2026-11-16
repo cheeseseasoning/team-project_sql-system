@@ -602,13 +602,14 @@ public class RequestService {
 	        RequestSubmitRequest input,
 	        Long actorId) {
 
-	    if (input == null
-	            || input.getApproverIds() == null
-	            || input.getApproverIds().isEmpty()) {
+	    if (input == null || !input.isApprovalLineValid()) {
 	        throw new ResponseStatusException(
 	                HttpStatus.BAD_REQUEST,
-	                "결재자를 1명 이상 지정하세요.");
+	                "결재선을 올바르게 지정하세요.");
 	    }
+
+	    // 기존 개인 ID 목록도 개인·부서 공통 형식으로 변환한다.
+	    var targets = input.resolveApprovalTargets();
 
 	    RequestDetailResponse draft =
 	            loadDraftForSubmission(requestId, actorId);
@@ -697,11 +698,8 @@ public class RequestService {
 	        }
 	    }
 
-	    // 요청자가 지정한 순서로 결재선을 생성한다.
-	    approvalLineCreator.createApprovalLine(
-	            requestId,
-	            actorId,
-	            input.getApproverIds());
+	    // 개인·부서를 검증하고 사용자가 지정한 순서대로 결재선을 생성한다.
+	    approvalLineCreator.createApprovalLineWithTargets(requestId, actorId, targets);
 
 	    // 결재선 생성과 제출 상태 변경은 같은 트랜잭션에서 처리한다.
 	    if (requestMapper.submitDraft(requestId, actorId) != 1) {

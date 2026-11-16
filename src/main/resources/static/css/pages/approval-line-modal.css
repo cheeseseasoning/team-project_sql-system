@@ -663,6 +663,25 @@
     content: "−";
 }
 
+/* 부서 선택 체크박스는 펼침 버튼과 독립된 공동 결재 대상이다. */
+#approval-line-dialog .approval-line-department-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+#approval-line-dialog .approval-line-department-select.is-selected {
+    color: var(--accent);
+}
+
+#approval-line-dialog .approval-line-department-select.is-assigned {
+    color: var(--muted);
+    cursor: default;
+}
+
 #approval-line-dialog .approval-line-department-count {
     color: var(--muted);
     font-size: 11px;

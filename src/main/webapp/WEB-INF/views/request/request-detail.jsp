@@ -104,8 +104,8 @@
 				<h2 id="approval-line-dialog-title">결재선 설정</h2>
 
 				<p id="approval-line-dialog-description">
-				    결재자를 선택하고 순서를 지정하세요.
-				    마지막 결재자가 승인하면 최종 승인됩니다.
+				    개인 또는 부서를 선택하고 순서를 지정하세요.
+				    부서 지정은 구성원 중 한 명이 처리하며, 마지막 단계가 승인되면 최종 승인됩니다.
 				</p>
 			</header>
 
@@ -113,7 +113,7 @@
 			    <fieldset id="approval-line-search-fields"
 			              class="approval-line-search-fields"
 			              disabled>
-			        <legend class="sr-only">직원 검색</legend>
+			        <legend class="sr-only">직원·부서 검색</legend>
 
 			        <div class="approval-line-search">
 			            <label for="approval-line-keyword" class="sr-only">
@@ -134,20 +134,20 @@
 			    </fieldset>
 
 			    <div class="approval-line-candidate-area">
-			        <h3 class="approval-line-list-heading">직원 목록</h3>
+			        <h3 class="approval-line-list-heading">직원·부서 목록</h3>
 
 			        <div class="approval-line-table-scroll">
 			            <div id="approval-line-candidates"
 			                 class="approval-line-departments">
 			                <p class="approval-line-empty" role="status">
-			                    직원을 불러오는 중입니다.
+			                    직원·부서를 불러오는 중입니다.
 			                </p>
 			            </div>
 			        </div>
 			    </div>
 
 			    <div class="approval-line-transfer-actions"
-			         aria-label="결재자 추가 및 제외">
+			         aria-label="결재 대상 추가 및 제외">
 			        <button id="approval-line-add"
 			                type="button"
 			                class="button primary"
@@ -164,19 +164,19 @@
 			    </div>
 
 			    <section class="approval-line-current-area"
-			             aria-label="선택한 결재자">
+			             aria-label="선택한 결재 대상">
 			        <h3 class="approval-line-list-heading">
-			            <span>선택한 결재자</span>
+			            <span>선택한 결재 대상</span>
 			            <span id="approval-line-selected-count"
 			                  class="approval-line-selected-count"
-			                  aria-live="polite">0명</span>
+			                  aria-live="polite">0개</span>
 			        </h3>
 
 			        <div class="approval-line-current-scroll">
 			            <ol id="approval-line-selected"
 			                class="approval-line-selected-list">
 			                <li class="approval-line-empty">
-			                    결재자를 추가해 주세요.
+			                    개인 또는 부서를 추가해 주세요.
 			                </li>
 			            </ol>
 			        </div>
@@ -204,7 +204,7 @@
 			</footer>
 		</dialog>
 
-		<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261113-sql-meta"></script>
-		<script src="${pageContext.request.contextPath}/js/request-detail-author.js?v=20261116-result-redraft"></script>
+		<script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261116-department-labels"></script>
+		<script src="${pageContext.request.contextPath}/js/request-detail-author.js?v=20261116-department-labels"></script>
 
 		<%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>
