@@ -21,8 +21,7 @@ public class SqlGenerationRequest {
 
     public enum SqlType {
         SELECT,
-        CREATE_VIEW,
-        CREATE_TABLE,
+        CREATE,
         INSERT,
         UPDATE,
         DELETE

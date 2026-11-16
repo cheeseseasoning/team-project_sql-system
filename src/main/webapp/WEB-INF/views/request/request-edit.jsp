@@ -386,52 +386,66 @@
 	    activateEditSqlTab(nextIndex, true);
 	});
 
-    async function loadEditDraft() {
-        try {
-            const request = await api(
-                '/requests/mine/' + encodeURIComponent(editRequestId)
-            );
+	async function loadEditDraft() {
+	    try {
+	        const request = await api(
+	            '/requests/mine/' + encodeURIComponent(editRequestId)
+	        );
 
-			const editable = isRedraft
-			    ? ['REJECTED', 'WITHDRAWN'].includes(request.requestStatus)
-			    : request.requestStatus === 'DRAFT';
+	        const editable = isRedraft
+	            ? request.canRedraft === true
+	            : request.requestStatus === 'DRAFT';
 
-			if (!editable) {
-			    const message = isRedraft
-			        ? '반려되거나 회수된 요청만 재기안할 수 있습니다.'
-			        : '초안 상태의 요청만 수정할 수 있습니다.';
+	        if (!editable || request.requestType !== 'SELECT') {
+	            const message = isRedraft
+	                ? '현재 재기안할 수 없는 조회 요청입니다. 원본 상세에서 처리 결과를 확인해 주세요.'
+	                : '수정할 수 있는 조회 초안이 아닙니다.';
 
-			    $('#edit-loading').textContent = message;
-			    notify(message, true);
-			    return;
-			}
+	            $('#edit-loading').textContent = message;
+	            notify(message, true);
+	            return;
+	        }
 
-			$('#edit-request-number').textContent =
-				(isRedraft ? '원본 요청: ' : '') + request.requestNo;
+	        let sourceItems = Array.isArray(request.items) ? request.items : [];
 
-            $('#edit-title').value = request.title;
-            $('#edit-purpose').value = request.purpose;
-			$('#edit-detail-content').value = request.detailContent || '';
-			$('#edit-is-urgent').checked = request.isUrgent === 'Y';
-			$('#edit-desired-date').value = request.desiredDate || '';
+	        if (isRedraft) {
+	            // 반려·회수는 전체 SQL, 실행 실패 재기안은 실패한 SQL만 가져온다.
+	            const redraftIds = new Set(
+	                (Array.isArray(request.redraftQueryIds) ? request.redraftQueryIds : []).map(String)
+	            );
+	            sourceItems = sourceItems.filter(item => redraftIds.has(String(item.queryId)));
 
-			editSqls = request.items.map(item => ({
-			    title: item.queryTitle || '',
-			    sqlText: item.sqlText || ''
-			}));
+	            if (sourceItems.length === 0 || sourceItems.length !== redraftIds.size) {
+	                throw new Error('재기안할 SQL을 확인하지 못했습니다. 원본 상세를 새로 열어 다시 진행해 주세요.');
+	            }
+	        }
 
-            renderEditSqls();
-			
-			$('#edit-validate-sqls').hidden = request.requestType !== 'SELECT';
+	        $('#edit-request-number').textContent =
+	            (isRedraft ? '원본 요청: ' : '') + request.requestNo;
 
-            $('#edit-loading').hidden = true;
-            $('#edit-fields').disabled = false;
-        } catch (error) {
-            $('#edit-loading').textContent =
-                '요청을 불러오지 못했습니다. 상세 화면으로 돌아가 확인하세요.';
-            notify(error.message, true);
-        }
-    }
+	        $('#edit-title').value = request.title;
+	        $('#edit-purpose').value = request.purpose;
+	        $('#edit-detail-content').value = request.detailContent || '';
+	        $('#edit-is-urgent').checked = request.isUrgent === 'Y';
+	        $('#edit-desired-date').value = request.desiredDate || '';
+
+	        // 원본 검증 결과는 복사하지 않고, 수정한 SQL을 새로 검증하도록 한다.
+	        editSqls = sourceItems.map(item => ({
+	            title: item.queryTitle || '',
+	            sqlText: item.sqlText || ''
+	        }));
+
+	        renderEditSqls();
+
+	        $('#edit-validate-sqls').hidden = false;
+	        $('#edit-loading').hidden = true;
+	        $('#edit-fields').disabled = false;
+	    } catch (error) {
+	        $('#edit-loading').textContent =
+	            '요청을 불러오지 못했습니다. 상세 화면으로 돌아가 확인하세요.';
+	        notify(error.message, true);
+	    }
+	}
 
 	$('#edit-form').addEventListener('submit', async function (event) {
 	    event.preventDefault();

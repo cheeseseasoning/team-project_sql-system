@@ -26,7 +26,6 @@ import com.sqlflow.approval.service.ApprovalService;
 import com.sqlflow.auth.security.SqlFlowUserDetails;
 import com.sqlflow.request.dto.DepartmentRequestPageResponse;
 import com.sqlflow.request.dto.DmlDraftRequest;
-import com.sqlflow.request.dto.CreateTableDraftRequest;
 import com.sqlflow.request.dto.RequestDashboardResponse;
 import com.sqlflow.request.dto.RequestDetailResponse;
 import com.sqlflow.request.dto.RequestDraftCreateRequest;
@@ -181,24 +180,6 @@ public class RequestController {
                 .body(new DraftCreateResponse(requestId));
     }
 
-    @PostMapping("/table-create-drafts")
-    public ResponseEntity<DraftCreateResponse> createTableDraft(
-            @Valid @RequestBody CreateTableDraftRequest input,
-            @AuthenticationPrincipal SqlFlowUserDetails user) {
-        Long requestId = requestService.createTableDraft(input, user.getUserId(), user.getDeptId());
-        return ResponseEntity.created(URI.create("/api/requests/mine/" + requestId))
-                .body(new DraftCreateResponse(requestId));
-    }
-
-    @PutMapping("/table-create-drafts/{requestId}")
-    public ResponseEntity<Void> updateTableDraft(
-            @PathVariable Long requestId,
-            @Valid @RequestBody CreateTableDraftRequest input,
-            @AuthenticationPrincipal SqlFlowUserDetails user) {
-        requestService.updateTableDraft(requestId, input, user.getUserId());
-        return ResponseEntity.noContent().build();
-    }
-
     @PutMapping("/dml-drafts/{requestId}")
     public ResponseEntity<Void> updateDmlDraft(
             @PathVariable Long requestId,
@@ -309,12 +290,6 @@ public class RequestController {
             @Valid @RequestBody ViewCreateSqlValidationRequestDTO input,
             @AuthenticationPrincipal SqlFlowUserDetails user) {
         return requestService.validateViewSqlTexts(user.getUserId(), input.getSqls());
-    }
-
-    @PostMapping("/create-table-sql/validate")
-    public List<ViewCreateSqlValidationResultDTO> validateCreateTableSqlTexts(
-            @Valid @RequestBody ViewCreateSqlValidationRequestDTO input) {
-        return requestService.validateCreateTableSqlTexts(input.getSqls());
     }
 
     /** 로그인 사용자의 접근 권한과 EXPLAIN 결과를 함께 확인한다. */

@@ -41,8 +41,55 @@ class RequestSqlItemCountServiceTest {
                 new ViewCreateSqlValidationService(basic), dmlValidation, basic);
     }
 
+    /** 테이블·뷰·인덱스 모두 CREATE 하나로 작성·수정·제출·재기안할 수 있어야 한다. */
     @ParameterizedTest
-    @CsvSource({"CREATE_VIEW,10", "CREATE_VIEW,11", "CREATE_TABLE,10", "CREATE_TABLE,11"})
+    @ValueSource(strings = {
+            "CREATE TABLE product (id BIGINT PRIMARY KEY);",
+            "CREATE VIEW product_view AS SELECT id FROM product;",
+            "CREATE INDEX idx_product_id ON product (id);"
+    })
+    void preservesCreateObjectWorkflowsWithOneStoredType(String sql) {
+        var input = new ViewCreateDraftRequest();
+        input.setTitle("객체 생성"); input.setPurpose("통합 경로 확인");
+        var entry = new ViewCreateDraftRequest.SqlEntry();
+        entry.setQueryTitle("객체 생성 SQL"); entry.setSqlText(sql);
+        input.setItems(List.of(entry));
+
+        when(mapper.selectNextRequestId()).thenReturn(2L);
+        when(mapper.insertRequest(any(QueryRequest.class))).thenReturn(1);
+        when(mapper.insertViewSql(eq(2L), eq(1), anyString(), eq(sql))).thenReturn(1);
+        assertEquals(2L, service.createViewDraft(input, 1L, 1L));
+
+        when(mapper.selectMyRequestStatusForUpdate(2L, 1L)).thenReturn("DRAFT");
+        when(mapper.selectMyRequestDetail(2L, 1L)).thenReturn(detail("CREATE", "DRAFT"));
+        when(mapper.updateDraft(any(QueryRequest.class))).thenReturn(1);
+        service.updateViewDraft(2L, input, 1L);
+
+        var item = new RequestItemResponse();
+        item.setQueryId(101L); item.setQueryOrder(1); item.setSqlText(sql); item.setQueryTitle("객체 생성 SQL");
+        when(mapper.selectMyViewSqlItems(2L, 1L)).thenReturn(List.of(item));
+        when(approvalProvider.getIfAvailable()).thenReturn(approval);
+        when(mapper.submitDraft(2L, 1L)).thenReturn(1);
+        var submit = new RequestSubmitRequest(); submit.setApproverIds(List.of(3L, 4L));
+        service.submitRequest(2L, submit, 1L);
+        verify(approval).createApprovalLine(2L, 1L, submit.getApproverIds());
+
+        when(mapper.selectMyRequestStatusForUpdate(9L, 1L)).thenReturn("REJECTED");
+        when(mapper.selectMyRequestDetail(9L, 1L)).thenReturn(detail("CREATE", "REJECTED"));
+        var redraft = new RequestDraftCreateRequest();
+        redraft.setTitle("객체 생성 재기안"); redraft.setPurpose("통합 경로 확인");
+        redraft.setSqls(List.of(sql)); redraft.setSqlTitles(List.of("객체 생성 SQL"));
+        assertEquals(2L, service.redraftRequest(9L, redraft, 1L, 1L));
+
+        var requests = org.mockito.ArgumentCaptor.forClass(QueryRequest.class);
+        verify(mapper, times(2)).insertRequest(requests.capture());
+        assertTrue(requests.getAllValues().stream().allMatch(request -> "CREATE".equals(request.getRequestType())));
+        verify(mapper, times(3)).insertViewSql(2L, 1, "객체 생성 SQL", sql);
+        verifyNoInteractions(selectValidation, dmlValidation);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"CREATE,10", "CREATE,11"})
     void validatesTenCreateTextsAndRejectsEleven(String type, int count) {
         if (count == 11) {
             assertBadRequest(() -> validateTexts(type, count));
@@ -55,14 +102,13 @@ class RequestSqlItemCountServiceTest {
     }
 
     private List<ViewCreateSqlValidationResultDTO> validateTexts(String type, int count) {
-        return type.equals("CREATE_VIEW") ? service.validateViewSqlTexts(1L, sqls(type, count))
-                : service.validateCreateTableSqlTexts(sqls(type, count));
+        return service.validateViewSqlTexts(1L, sqls(type, count));
     }
 
     @ParameterizedTest(name = "{0} {1}: {2}개")
     @MethodSource("createCases")
     void createsOrUpdatesTenItemsAndRejectsEleven(String type, boolean update, int count) {
-        if (update && (count == 10 || type.equals("CREATE_TABLE"))) {
+        if (update && count == 10) {
             when(mapper.selectMyRequestStatusForUpdate(2L, 1L)).thenReturn("DRAFT");
             when(mapper.selectMyRequestDetail(2L, 1L)).thenReturn(detail(type, "DRAFT"));
         }
@@ -75,19 +121,12 @@ class RequestSqlItemCountServiceTest {
             when(mapper.insertViewSql(eq(2L), anyInt(), anyString(), anyString())).thenReturn(1);
         }
         Runnable action = () -> {
-            if (type.equals("CREATE_VIEW")) {
-                var input = new ViewCreateDraftRequest(); input.setTitle("개수 검사"); input.setPurpose("경계값");
-                input.setItems(IntStream.range(0, count).mapToObj(i -> {
-                    var item = new ViewCreateDraftRequest.SqlEntry(); item.setQueryTitle("SQL " + (i + 1));
-                    item.setSqlText(sqls(type, count).get(i)); return item;
-                }).toList());
-                if (update) service.updateViewDraft(2L, input, 1L); else service.createViewDraft(input, 1L, 1L);
-            } else {
-                var input = new CreateTableDraftRequest(); input.setTitle("개수 검사"); input.setPurpose("경계값"); input.setIsUrgent("N");
-                input.setItems(IntStream.range(0, count).mapToObj(i ->
-                        new CreateTableDraftRequest.SqlEntry("SQL " + (i + 1), sqls(type, count).get(i))).toList());
-                if (update) service.updateTableDraft(2L, input, 1L); else service.createTableDraft(input, 1L, 1L);
-            }
+            var input = new ViewCreateDraftRequest(); input.setTitle("개수 검사"); input.setPurpose("경계값");
+            input.setItems(IntStream.range(0, count).mapToObj(i -> {
+                var item = new ViewCreateDraftRequest.SqlEntry(); item.setQueryTitle("SQL " + (i + 1));
+                item.setSqlText(sqls(type, count).get(i)); return item;
+            }).toList());
+            if (update) service.updateViewDraft(2L, input, 1L); else service.createViewDraft(input, 1L, 1L);
         };
         if (count == 11) {
             assertBadRequest(action);
@@ -100,15 +139,15 @@ class RequestSqlItemCountServiceTest {
     }
 
     static Stream<Arguments> createCases() {
-        return Stream.of("CREATE_VIEW", "CREATE_TABLE").flatMap(type -> Stream.of(false, true)
+        return Stream.of("CREATE").flatMap(type -> Stream.of(false, true)
                 .flatMap(update -> IntStream.of(10, 11).mapToObj(count -> Arguments.of(type, update, count))));
     }
 
     @ParameterizedTest
     @ValueSource(ints = {10, 11})
     void validatesEverySavedCreateItemAndRejectsEleven(int count) {
-        when(mapper.selectMyRequestDetail(2L, 1L)).thenReturn(detail("CREATE_VIEW", "DRAFT"));
-        when(mapper.selectMyViewSqlItems(2L, 1L)).thenReturn(items("CREATE_VIEW", count));
+        when(mapper.selectMyRequestDetail(2L, 1L)).thenReturn(detail("CREATE", "DRAFT"));
+        when(mapper.selectMyViewSqlItems(2L, 1L)).thenReturn(items("CREATE", count));
         if (count == 11) assertBadRequest(() -> service.validateViewDraftSql(2L, 1L));
         else {
             var result = service.validateViewDraftSql(2L, 1L);
@@ -151,7 +190,7 @@ class RequestSqlItemCountServiceTest {
     }
 
     static Stream<Arguments> submissionCases() {
-        return Stream.of("SELECT", "CREATE_VIEW", "CREATE_TABLE", "INSERT", "UPDATE", "DELETE")
+        return Stream.of("SELECT", "CREATE", "INSERT", "UPDATE", "DELETE")
                 .flatMap(type -> IntStream.of(10, 11).mapToObj(count -> Arguments.of(type, count)));
     }
 
@@ -178,7 +217,7 @@ class RequestSqlItemCountServiceTest {
     }
 
     static Stream<Arguments> redraftCases() {
-        return Stream.of("CREATE_VIEW", "CREATE_TABLE", "INSERT", "UPDATE", "DELETE")
+        return Stream.of("CREATE", "INSERT", "UPDATE", "DELETE")
                 .flatMap(type -> IntStream.of(10, 11).mapToObj(count -> Arguments.of(type, count)));
     }
 
@@ -208,7 +247,7 @@ class RequestSqlItemCountServiceTest {
     private List<String> sqls(String type, int count) {
         return IntStream.rangeClosed(1, count).mapToObj(i -> switch (type) {
             case "SELECT" -> "SELECT id FROM t;";
-            case "CREATE_VIEW", "CREATE_TABLE" -> "CREATE TABLE t" + i + " (id INT);";
+            case "CREATE" -> "CREATE TABLE t" + i + " (id INT);";
             case "INSERT" -> "INSERT INTO t VALUES (" + i + ");";
             case "UPDATE" -> "UPDATE t SET id=" + i + " WHERE id=0;";
             case "DELETE" -> "DELETE FROM t WHERE id=" + i + ";";

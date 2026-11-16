@@ -45,7 +45,7 @@ class SqlItemCountDtoTest {
 
     static Stream<Arguments> requests() {
         return Stream.of("SELECT_VALIDATE", "SELECT_CREATE", "SELECT_UPDATE", "CREATE_VALIDATE",
-                "CREATE_DRAFT", "TABLE_DRAFT", "DML_DRAFT", "DML_VALIDATE")
+                "CREATE_DRAFT", "DML_DRAFT", "DML_VALIDATE")
                 .flatMap(type -> IntStream.of(10, 11).mapToObj(count -> Arguments.of(type, count)));
     }
 
@@ -77,13 +77,6 @@ class SqlItemCountDtoTest {
                     item.setQueryTitle("SQL " + i); item.setSqlText("CREATE TABLE t" + i + " (id INT);");
                     return item;
                 }).toList());
-                return dto;
-            }
-            case "TABLE_DRAFT": {
-                var dto = new CreateTableDraftRequest();
-                dto.setTitle("테이블 개수 확인"); dto.setPurpose("경계값 검사"); dto.setIsUrgent("N");
-                dto.setItems(IntStream.rangeClosed(1, count).mapToObj(i ->
-                        new CreateTableDraftRequest.SqlEntry("SQL " + i, "CREATE TABLE t" + i + " (id INT);")).toList());
                 return dto;
             }
             case "DML_DRAFT": return new DmlDraftRequest(SqlType.INSERT, "변경 개수 확인", "경계값 검사", null, "N", null,
