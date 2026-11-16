@@ -39,14 +39,15 @@
           AND TABLE_TYPE IN ('BASE TABLE', 'VIEW')
     </select>
 
-    <!-- 컬럼은 실제 선언 순서로 반환한다. -->
+	<!-- 실제 선언 순서대로 컬럼 구조와 COMMENT를 조회한다. -->
     <select id="selectColumns"
             resultType="com.sqlflow.mysql.domain.MySqlColumnMetadata">
         SELECT TABLE_SCHEMA AS DATABASE_NAME,
                TABLE_NAME,
                COLUMN_NAME,
                DATA_TYPE,
-               ORDINAL_POSITION
+               ORDINAL_POSITION,
+               COLUMN_COMMENT
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE CAST(TABLE_SCHEMA AS BINARY)
                   = CAST(#{databaseName} AS BINARY)

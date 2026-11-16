@@ -16,4 +16,7 @@ public class MySqlColumnMetadata {
     private String columnName;
     private String dataType;
     private Integer ordinalPosition;
+
+    // MySQL COMMENT 원문이며, AI 전달 단계에서 논리명과 설명으로 나눈다.
+    private String columnComment;
 }
