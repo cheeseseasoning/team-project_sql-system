@@ -115,6 +115,7 @@
                CASE
                    WHEN R.REQUEST_TYPE IN (
                        'CREATE_VIEW',
+                       'CREATE_TABLE',
                        'INSERT',
                        'UPDATE',
                        'DELETE'
@@ -133,6 +134,7 @@
                CASE
                    WHEN R.REQUEST_TYPE IN (
                        'CREATE_VIEW',
+                       'CREATE_TABLE',
                        'INSERT',
                        'UPDATE',
                        'DELETE'
@@ -267,6 +269,7 @@
         WHERE R.REQUEST_ID = #{requestId}
           AND R.REQUEST_TYPE IN (
               'CREATE_VIEW',
+              'CREATE_TABLE',
               'INSERT',
               'UPDATE',
               'DELETE'
@@ -369,6 +372,7 @@
           AND C.QUERY_ID = #{queryId}
           AND R.REQUEST_TYPE IN (
               'CREATE_VIEW',
+              'CREATE_TABLE',
               'INSERT',
               'UPDATE',
               'DELETE'
@@ -413,6 +417,7 @@
           AND C.QUERY_ID = #{queryId}
           AND R.REQUEST_TYPE IN (
               'CREATE_VIEW',
+              'CREATE_TABLE',
               'INSERT',
               'UPDATE',
               'DELETE'
@@ -488,6 +493,7 @@
         WHERE R.REQUEST_ID = #{requestId}
           AND R.REQUEST_TYPE IN (
               'CREATE_VIEW',
+              'CREATE_TABLE',
               'INSERT',
               'UPDATE',
               'DELETE'

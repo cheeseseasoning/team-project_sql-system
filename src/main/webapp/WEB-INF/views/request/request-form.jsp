@@ -528,7 +528,14 @@
 
 	        button.textContent = '생성 중…';
 
-	        const data = await post('/sql/generate', { prompt });
+	        const data = await post('/ai/sql/generate', {
+                sqlType: 'SELECT',
+                prompt
+            });
+
+            if (data?.needsClarification) {
+                throw Error(data.explanation || '요청 조건을 더 구체적으로 입력하세요.');
+            }
 
 	        if (!data || typeof data.sql !== 'string'
 	                || !data.sql.trim()) {

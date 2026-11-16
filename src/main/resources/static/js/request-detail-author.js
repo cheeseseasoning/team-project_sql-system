@@ -66,7 +66,7 @@ async function loadDetail() {
 		}
 
 		// 초안 수정 화면으로 이동할 주소
-		$('#draft-edit-link').href = ['CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE'].includes(request.requestType)
+		$('#draft-edit-link').href = ['CREATE_VIEW', 'CREATE_TABLE', 'INSERT', 'UPDATE', 'DELETE'].includes(request.requestType)
 			? BASE + '/view-create-requests/'
 				+ encodeURIComponent(request.requestId) + '/edit'
 			: BASE + '/requests/'
@@ -184,6 +184,16 @@ async function validateSavedViewSqls() {
                 '/requests/' + encodeURIComponent(requestId) + '/view-sql/validate',
                 { method: 'POST', timeoutMs: 120000 }
             );
+        } else if (requestType === 'CREATE_TABLE') {
+            const tableResults = await post('/requests/create-table-sql/validate', {
+                sqls: detailItems.map(item => item.sqlText)
+            });
+            if (!Array.isArray(tableResults) || tableResults.length !== detailItems.length) {
+                throw new Error('일부 SQL의 검사 결과를 확인하지 못했습니다. 다시 검사해 주세요.');
+            }
+            results = Object.fromEntries(
+                detailItems.map((item, index) => [item.queryId, tableResults[index]])
+            );
         } else {
             const dmlResults = await post('/requests/dml-sql/validate', {
                 sqlType: requestType,
@@ -236,7 +246,7 @@ async function validateSavedSqls() {
 	    return;
 	}
 
-	if (['CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType)) {
+	if (['CREATE_VIEW', 'CREATE_TABLE', 'INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType)) {
 	    await validateSavedViewSqls();
 	    return;
 	}
@@ -301,7 +311,7 @@ let requestSubmitting = false;
 
 $('#request-redraft').addEventListener('click', function () {
     const isDbChange =
-        ['CREATE_VIEW', 'INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType);
+        ['CREATE_VIEW', 'CREATE_TABLE', 'INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType);
     const path = isDbChange ? '/view-create-requests/' : '/requests/';
 
     location.href = BASE + path
@@ -859,7 +869,7 @@ $('#request-submit-open').addEventListener('click', function () {
     );
 
     // DML 경고는 제출할 수 있지만, 미검사·차단 항목은 제출하지 못한다.
-    if (currentRequestType !== 'CREATE_VIEW' && hasUnsubmittableSql) {
+    if (hasUnsubmittableSql) {
         if (detailItems.some(item =>
             ['INVALID', 'BLOCKED'].includes(item.validationStatus))) {
             window.alert(
@@ -900,12 +910,10 @@ $('#request-submit-open').addEventListener('click', function () {
 
             location.reload();
         } catch (error) {
-            if (currentRequestType !== 'CREATE_VIEW') {
-                try {
-                    await validateSavedSqls();
-                } catch (validationError) {
-                    // 최초 제출 오류를 아래에서 표시한다.
-                }
+            try {
+                await validateSavedSqls();
+            } catch (validationError) {
+                // 최초 제출 오류를 아래에서 표시한다.
             }
 
             notify(error.message, true);
