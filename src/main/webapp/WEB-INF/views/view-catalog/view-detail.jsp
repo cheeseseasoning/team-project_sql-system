@@ -65,7 +65,7 @@
 
         <section class="panel view-panel">
             <div class="panel-heading">
-                <h2>부서별 접근 정책</h2>
+                <h2 id="view-policy-title">내 부서 접근 정책</h2>
                 <span id="view-policy-count" class="caption"></span>
             </div>
 
@@ -73,8 +73,8 @@
 
             <div class="table-scroll view-table-scroll">
                 <table class="view-policy-table">
-                    <caption class="sr-only">
-                        현재 사용자에게 공개된 부서별 접근 정책
+                    <caption id="view-policy-caption" class="sr-only">
+                        내 부서 접근 정책
                     </caption>
 
                     <thead>
@@ -317,6 +317,11 @@
         const body = $('#view-policy-rows');
         const notice = $('#view-policy-notice');
         const groups = new Map();
+
+        // 정책 공개 범위와 같은 현재 부서 기준으로 서버가 정한 제목을 사용한다.
+        const policyTitle = detail.policyTitle || '내 부서 접근 정책';
+        $('#view-policy-title').textContent = policyTitle;
+        $('#view-policy-caption').textContent = policyTitle;
 
         detail.departmentPolicies.forEach(function (policy) {
             const key = String(policy.deptId);

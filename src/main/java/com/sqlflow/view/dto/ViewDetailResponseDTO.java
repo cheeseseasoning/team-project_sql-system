@@ -19,6 +19,7 @@ public record ViewDetailResponseDTO(
         String enabled,
         List<ViewDepartmentPolicyInfoDTO> departmentPolicies,
         List<MySqlViewColumnDTO> columns,
-        String createStatement
+        String createStatement,
+        String policyTitle
 ) {
 }

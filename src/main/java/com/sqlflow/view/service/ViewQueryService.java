@@ -156,7 +156,8 @@ public class ViewQueryService {
                 resource == null ? null : resource.getEnabled(),
                 List.copyOf(policies),
                 List.copyOf(columns),
-                definition.getCreateStatement());
+                definition.getCreateStatement(),
+                "DB팀".equals(viewer.getDeptName()) ? "부서별 접근 정책" : "내 부서 접근 정책");
     }
     
     /**
