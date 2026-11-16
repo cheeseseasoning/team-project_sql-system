@@ -11,7 +11,7 @@
             <label for="view-department" class="views-department-field">
                 <span class="sr-only">부서</span>
                 <select id="view-department" name="deptId" disabled>
-                    <option value="">전체 부서</option>
+                    <option value="">전체 뷰</option>
                 </select>
             </label>
 
@@ -43,8 +43,8 @@
         </form>
 
         <p class="caption views-filter-description">
-            전체 부서는 실제 존재하는 모든 뷰를 표시합니다.
-            부서를 선택하면 해당 부서에서 접근 가능한 뷰만 표시합니다.
+            전체 뷰는 실제 존재하는 모든 뷰를 표시합니다.
+            부서 선택은 해당 부서의 허용 정책 기준이며, 실제 데이터 조회에는 본인 계정의 권한이 적용됩니다.
         </p>
 
         <div class="views-list-summary">
@@ -172,7 +172,7 @@
 
     /**
      * URL에 저장된 검색 조건을 복원한다.
-     * 존재하지 않는 부서 ID를 전체 부서로 조용히 바꾸지 않는다.
+     * 존재하지 않는 부서 ID를 전체 뷰로 조용히 바꾸지 않는다.
      */
     function restoreFiltersFromUrl() {
         const params = new URLSearchParams(window.location.search);
@@ -205,14 +205,14 @@
         const allOption = document.createElement('option');
 
         allOption.value = '';
-        allOption.textContent = '전체 부서';
+        allOption.textContent = '전체 뷰';
         fragment.appendChild(allOption);
 
         departments.forEach(function (department) {
             const option = document.createElement('option');
 
             option.value = String(department.deptId);
-            option.textContent = department.deptName;
+            option.textContent = department.deptName + ' 허용 뷰';
             fragment.appendChild(option);
         });
 

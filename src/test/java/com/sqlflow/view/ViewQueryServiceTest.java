@@ -67,6 +67,7 @@ class ViewQueryServiceTest {
         ViewDetailResponseDTO result = detail();
 
         assertEquals(List.of(1L), visibleDepartmentIds(result));
+        assertEquals("내 부서 접근 정책", result.policyTitle());
         assertEquals("BLOCK", result.departmentPolicies().get(0).getExportPolicy());
 
         assertTrue(result.registered());
@@ -87,6 +88,7 @@ class ViewQueryServiceTest {
         ViewDetailResponseDTO result = detail();
 
         assertEquals(List.of(1L, 2L, 3L), visibleDepartmentIds(result));
+        assertEquals("부서별 접근 정책", result.policyTitle());
 
         // DB팀 정책이 없어도 해당 부서는 미등록 상태로 표시한다.
         ViewDepartmentPolicyInfoDTO dbPolicy = result.departmentPolicies().get(1);
@@ -106,6 +108,7 @@ class ViewQueryServiceTest {
         ViewDetailResponseDTO result = detail();
 
         assertEquals(List.of(1L), visibleDepartmentIds(result));
+        assertEquals("내 부서 접근 정책", result.policyTitle());
         assertEquals("개발팀", viewer.getDeptName());
     }
 
@@ -120,6 +123,7 @@ class ViewQueryServiceTest {
         assertNull(result.resourceId());
         assertNull(result.resourceName());
         assertEquals(List.of(1L), visibleDepartmentIds(result));
+        assertEquals("내 부서 접근 정책", result.policyTitle());
         assertNull(result.departmentPolicies().get(0).getPolicyId());
 
         assertEquals(DDL, result.createStatement());
@@ -135,6 +139,7 @@ class ViewQueryServiceTest {
 
         assertFalse(result.registered());
         assertEquals(List.of(1L, 2L, 3L), visibleDepartmentIds(result));
+        assertEquals("부서별 접근 정책", result.policyTitle());
 
         assertTrue(result.departmentPolicies().stream()
                 .allMatch(policy -> policy.getPolicyId() == null));
