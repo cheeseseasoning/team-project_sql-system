@@ -1,7 +1,8 @@
 (() => {
     'use strict';
 
-    const MAX_SQL_COUNT = 5;
+	// 데이터 변경 요청 한 건에 작성할 수 있는 SQL의 최대 개수.
+	const MAX_SQL_COUNT = 10;
 	const TYPE = {
 	    CREATE_VIEW: {
 	        placeholder: 'CREATE TABLE new_table (\n    id BIGINT PRIMARY KEY\n);',

@@ -136,6 +136,9 @@
 </form>
 
 <script>
+	// 조회 요청 한 건에 작성할 수 있는 SQL의 최대 개수.
+	const MAX_SQL_COUNT = 10;	
+
     let mode = $('#form-config').dataset.mode === 'ai'
         ? 'ai'
         : 'direct';
@@ -178,52 +181,45 @@
 	    tabs.replaceChildren();
 	    box.replaceChildren();
 
-	    activeSqlIndex = Math.max(
-	        0,
-	        Math.min(activeSqlIndex, sqls.length - 1)
-	    );
+	    activeSqlIndex = Math.max(0, Math.min(activeSqlIndex, sqls.length - 1));
 
 	    sqls.forEach(function (item, index) {
-			const tabGroup = document.createElement('div');
-			tabGroup.className = 'request-sql-tab-group';
-			tabGroup.setAttribute('role', 'presentation');
+	        const tabGroup = document.createElement('div');
 
-			const tab = document.createElement('button');
+	        tabGroup.className = 'request-sql-tab-group';
+	        tabGroup.setAttribute('role', 'presentation');
 
-			tab.type = 'button';
-			tab.id = 'sql-tab-' + index;
-			tab.className = 'request-sql-tab';
-			tab.textContent = 'SQL ' + (index + 1);
-			tab.setAttribute('role', 'tab');
-			tab.setAttribute('aria-controls', 'sql-panel-' + index);
+	        const tab = document.createElement('button');
 
-			tab.addEventListener('click', function () {
-			    activateSqlTab(index);
-			});
+	        tab.type = 'button';
+	        tab.id = 'sql-tab-' + index;
+	        tab.className = 'request-sql-tab';
+	        tab.textContent = 'SQL ' + (index + 1);
+	        tab.setAttribute('role', 'tab');
+	        tab.setAttribute('aria-controls', 'sql-panel-' + index);
 
-			const remove = document.createElement('button');
+	        tab.addEventListener('click', function () {
+	            activateSqlTab(index);
+	        });
 
-			remove.type = 'button';
-			remove.className = 'request-sql-tab-remove';
-			remove.textContent = '×';
-			remove.disabled = sqls.length <= 1;
+	        const remove = document.createElement('button');
 
-			remove.setAttribute(
-			    'aria-label',
-			    'SQL ' + (index + 1) + ' 삭제'
-			);
+	        remove.type = 'button';
+	        remove.className = 'request-sql-tab-remove';
+	        remove.textContent = '×';
+	        remove.disabled = sqls.length <= 1;
+	        remove.setAttribute('aria-label', 'SQL ' + (index + 1) + ' 삭제');
+	        remove.title = sqls.length <= 1
+	            ? 'SQL은 최소 1개를 유지해야 합니다.'
+	            : 'SQL ' + (index + 1) + ' 삭제';
 
-			remove.title = sqls.length <= 1
-			    ? 'SQL은 최소 1개를 유지해야 합니다.'
-			    : 'SQL ' + (index + 1) + ' 삭제';
+	        remove.addEventListener('click', function (event) {
+	            event.stopPropagation();
+	            removeSql(index);
+	        });
 
-			remove.addEventListener('click', function (event) {
-			    event.stopPropagation();
-			    removeSql(index);
-			});
-
-			tabGroup.append(tab, remove);
-			tabs.appendChild(tabGroup);
+	        tabGroup.append(tab, remove);
+	        tabs.appendChild(tabGroup);
 
 	        const section = document.createElement('section');
 
@@ -238,7 +234,7 @@
 	                <span>SQL 제목 <span class="required">*</span></span>
 	                <input type="text"
 	                       class="sql-title-input"
-						   aria-required="true"
+	                       aria-required="true"
 	                       maxlength="200"
 	                       placeholder="예: 판매 중인 상품 ID·상품명 조회">
 	            </label>
@@ -254,8 +250,7 @@
 	                    </label>
 
 	                    <div class="request-ai-generate-actions">
-	                        <button type="button"
-	                                class="button primary sql-generate">
+	                        <button type="button" class="button primary sql-generate">
 	                            SQL 초안 생성 →
 	                        </button>
 	                    </div>
@@ -267,9 +262,7 @@
 
 	                <label class="request-sql-field request-sql-output">
 	                    <span class="request-sql-output-heading">
-	                        <span class="request-sql-editor-label">
-	                            SQL 원문
-	                        </span>
+	                        <span class="request-sql-editor-label">SQL 원문</span>
 	                        <span class="request-ai-status"></span>
 	                    </span>
 
@@ -278,18 +271,14 @@
 	                              spellcheck="false"></textarea>
 	                </label>
 	            </div>
-				
-				<p class="request-sql-validation caption" hidden></p>
+
+	            <p class="request-sql-validation caption" hidden></p>
 	        `;
 
-	        const titleInput =
-	            section.querySelector('.sql-title-input');
-	        const promptInput =
-	            section.querySelector('.sql-prompt');
-	        const editor =
-	            section.querySelector('.sql-editor');
-	        const status =
-	            section.querySelector('.request-ai-status');
+	        const titleInput = section.querySelector('.sql-title-input');
+	        const promptInput = section.querySelector('.sql-prompt');
+	        const editor = section.querySelector('.sql-editor');
+	        const status = section.querySelector('.request-ai-status');
 
 	        titleInput.value = item.title;
 	        promptInput.value = item.prompt || '';
@@ -299,64 +288,61 @@
 	            "SELECT product_id, product_name\nFROM sqlflow_demo.v_active_product_catalog;";
 
 	        function updateStatus() {
-	            status.textContent = editor.value.trim()
-	                ? '검토 필요'
-	                : '생성 대기';
+	            status.textContent = editor.value.trim() ? '검토 필요' : '생성 대기';
 	        }
 
 	        updateStatus();
-			
-			const validationMessage = section.querySelector('.request-sql-validation');
-			const tabLabel = 'SQL ' + (index + 1);
 
-			function renderValidation() {
-			    const result = sqls[index].validation;
-			    const passed = result?.validationStatus === 'VALID';
+	        const validationMessage = section.querySelector('.request-sql-validation');
+	        const tabLabel = 'SQL ' + (index + 1);
 
-			    tab.textContent = tabLabel + (result ? (passed ? ' ✓' : ' !') : '');
+	        function renderValidation() {
+	            const result = sqls[index].validation;
+	            const passed = result?.validationStatus === 'VALID';
 
-			    if (result) {
-			        tab.setAttribute(
-			            'aria-label',
-			            tabLabel + (passed ? ' 검증 완료' : ' 검증 실패')
-			        );
-			    } else {
-			        tab.removeAttribute('aria-label');
-			    }
+	            tab.textContent = tabLabel + (result ? (passed ? ' ✓' : ' !') : '');
 
-			    validationMessage.hidden = !result;
-			    validationMessage.classList.toggle('is-invalid', Boolean(result) && !passed);
-			    validationMessage.textContent = result
-			        ? (passed ? '검증 완료' : '검증 실패') + ' · ' + result.message
-			        : '';
-			}
+	            if (result) {
+	                tab.setAttribute(
+	                    'aria-label',
+	                    tabLabel + (passed ? ' 검증 완료' : ' 검증 실패')
+	                );
+	            } else {
+	                tab.removeAttribute('aria-label');
+	            }
 
-			renderValidation();
+	            validationMessage.hidden = !result;
+	            validationMessage.classList.toggle('is-invalid', Boolean(result) && !passed);
+	            validationMessage.textContent = result
+	                ? (passed ? '검증 완료' : '검증 실패') + ' · ' + result.message
+	                : '';
+	        }
 
-			editor.addEventListener('input', function () {
-			    delete sqls[index].validation;
-			    updateStatus();
-			    renderValidation();
-			});
+	        renderValidation();
+
+	        editor.addEventListener('input', function () {
+	            delete sqls[index].validation;
+	            updateStatus();
+	            renderValidation();
+	        });
 
 	        section.querySelector('.request-ai-explanation').textContent =
 	            item.explanation || '';
 
-	        section.querySelector('.sql-generate')
-	            .addEventListener('click', function () {
-	                generateSql(index, this);
+	        section.querySelector('.sql-generate').addEventListener('click', function () {
+	            generateSql(index, this);
 	        });
 
 	        box.appendChild(section);
 	    });
 
-	    $('#sql-count').textContent = sqls.length + ' / 5';
-	    $('#add-sql').disabled = sqls.length >= 5;
+	    $('#sql-count').textContent = sqls.length + ' / ' + MAX_SQL_COUNT;
+	    $('#add-sql').disabled = sqls.length >= MAX_SQL_COUNT;
 
 	    activateSqlTab(activeSqlIndex);
 	    setMode(mode);
 	}
-
+	
 	function removeSql(index) {
 	    if (formBusy || sqls.length <= 1) {
 	        return;
@@ -462,17 +448,17 @@
         });
 
 	$('#add-sql').addEventListener('click', function () {
-	    readSqls();
+		readSqls();
 
-	    if (sqls.length >= 5) {
-	        return;
-	    }
+		if (sqls.length >= MAX_SQL_COUNT) {
+			return;
+		}
 
-	    sqls.push({ title: '', sqlText: '' });
-	    activeSqlIndex = sqls.length - 1;
+		sqls.push({ title: '', sqlText: '' });
+		activeSqlIndex = sqls.length - 1;
 
-	    renderSqls();
-	    activateSqlTab(activeSqlIndex, true);
+		renderSqls();
+		activateSqlTab(activeSqlIndex, true);
 	});
 
 	$('#sql-tabs').addEventListener('keydown', function (event) {

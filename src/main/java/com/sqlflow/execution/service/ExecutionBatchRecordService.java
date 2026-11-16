@@ -455,12 +455,9 @@ public class ExecutionBatchRecordService {
 
     /** 최초 실행은 요청의 SQL마다 대기 이력이 정확히 하나씩 있어야 한다. */
     private void validatePendingExecutions(Long requestId, List<QueryExecution> executions) {
-
         List<Long> queryIds = batchMapper.selectQueryIdsByRequestId(requestId);
 
-        if (queryIds.isEmpty()
-                || queryIds.size() > 5
-                || executions.size() != queryIds.size()) {
+        if (queryIds.isEmpty() || queryIds.size() > 10 || executions.size() != queryIds.size()) {
             throw conflict("요청 SQL과 실행 이력의 개수가 일치하지 않습니다.");
         }
 

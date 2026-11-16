@@ -18,6 +18,6 @@ import lombok.Setter;
 public class ViewCreateSqlValidationRequestDTO {
 
     @NotEmpty
-    @Size(max = 5)
-    private List<@NotNull  String> sqls;
+    @Size(max = 10, message = "SQL은 최대 10개까지 검증할 수 있습니다.")
+    private List<@NotNull String> sqls;
 }

@@ -149,6 +149,8 @@
 </form>
 
 <script>
+	// 조회 요청 수정 시 작성할 수 있는 SQL의 최대 개수.
+	const MAX_SQL_COUNT = 10;
 	const editConfig = $('#edit-config');
 	const editRequestId = editConfig.dataset.requestId;
 	const isRedraft = editConfig.dataset.redraft === 'true';
@@ -248,10 +250,7 @@
 	        editSqls.push({ title: '', sqlText: '' });
 	    }
 
-	    activeEditSqlIndex = Math.max(
-	        0,
-	        Math.min(activeEditSqlIndex, editSqls.length - 1)
-	    );
+	    activeEditSqlIndex = Math.max(0, Math.min(activeEditSqlIndex, editSqls.length - 1));
 
 	    tabs.replaceChildren();
 	    box.replaceChildren();
@@ -281,12 +280,7 @@
 	        remove.className = 'request-sql-tab-remove';
 	        remove.textContent = '×';
 	        remove.disabled = editSqls.length <= 1;
-
-	        remove.setAttribute(
-	            'aria-label',
-	            'SQL ' + (index + 1) + ' 삭제'
-	        );
-
+	        remove.setAttribute('aria-label', 'SQL ' + (index + 1) + ' 삭제');
 	        remove.title = editSqls.length <= 1
 	            ? 'SQL 입력 칸은 최소 1개 유지됩니다.'
 	            : 'SQL 삭제';
@@ -321,55 +315,51 @@
 	            + ' spellcheck="false"'
 	            + ' placeholder="SELECT SQL을 입력하세요.">'
 	            + '</textarea>'
-				+ '</label>'
-				+ '<p class="request-sql-validation caption" hidden></p>';
+	            + '</label>'
+	            + '<p class="request-sql-validation caption" hidden></p>';
 
-	        section.querySelector('.edit-sql-title-input').value =
-	            item.title || '';
+	        section.querySelector('.edit-sql-title-input').value = item.title || '';
 
-			const editor = section.querySelector('.edit-sql-editor');
-			const validationMessage = section.querySelector('.request-sql-validation');
-			const tabLabel = 'SQL ' + (index + 1);
+	        const editor = section.querySelector('.edit-sql-editor');
+	        const validationMessage = section.querySelector('.request-sql-validation');
+	        const tabLabel = 'SQL ' + (index + 1);
 
-			editor.value = item.sqlText || '';
+	        editor.value = item.sqlText || '';
 
-			function renderValidation() {
-			    const result = editSqls[index].validation;
-			    const passed = result?.validationStatus === 'VALID';
+	        function renderValidation() {
+	            const result = editSqls[index].validation;
+	            const passed = result?.validationStatus === 'VALID';
 
-			    tab.textContent = tabLabel + (result ? (passed ? ' ✓' : ' !') : '');
-			    tab.setAttribute('aria-label', result
-			        ? tabLabel + (passed ? ' 검증 완료' : ' 검증 실패')
-			        : tabLabel);
+	            tab.textContent = tabLabel + (result ? (passed ? ' ✓' : ' !') : '');
+	            tab.setAttribute('aria-label', result
+	                ? tabLabel + (passed ? ' 검증 완료' : ' 검증 실패')
+	                : tabLabel);
 
-			    validationMessage.hidden = !result;
-			    validationMessage.classList.toggle('is-invalid', Boolean(result) && !passed);
-			    validationMessage.textContent = result
-			        ? (passed ? '검증 완료' : '검증 실패') + ' · ' + result.message
-			        : '';
-			}
+	            validationMessage.hidden = !result;
+	            validationMessage.classList.toggle('is-invalid', Boolean(result) && !passed);
+	            validationMessage.textContent = result
+	                ? (passed ? '검증 완료' : '검증 실패') + ' · ' + result.message
+	                : '';
+	        }
 
-			renderValidation();
+	        renderValidation();
 
-			editor.addEventListener('input', function () {
-			    delete editSqls[index].validation;
-			    renderValidation();
-			});
+	        editor.addEventListener('input', function () {
+	            delete editSqls[index].validation;
+	            renderValidation();
+	        });
 
 	        box.append(section);
 	    });
 
-	    $('#edit-sql-count').textContent =
-	        editSqls.length + ' / 5';
-
-	    $('#edit-add-sql').disabled =
-	        editSqls.length >= 5 || saveInProgress;
+	    $('#edit-sql-count').textContent = editSqls.length + ' / ' + MAX_SQL_COUNT;
+	    $('#edit-add-sql').disabled = editSqls.length >= MAX_SQL_COUNT || saveInProgress;
 
 	    activateEditSqlTab(activeEditSqlIndex);
 	}
 
 	$('#edit-add-sql').addEventListener('click', function () {
-	    if (saveInProgress || editSqls.length >= 5) return;
+	    if (saveInProgress || editSqls.length >= MAX_SQL_COUNT) return;
 
 	    readEditSqls();
 
@@ -379,7 +369,7 @@
 	    renderEditSqls();
 	    activateEditSqlTab(activeEditSqlIndex, true);
 	});
-
+	
 	$('#edit-sql-tabs').addEventListener('keydown', function (event) {
 	    const tab = event.target.closest('[role="tab"]');
 

@@ -34,7 +34,7 @@ public class CreateTableDraftRequest {
     private LocalDate desiredDate;
 
     @NotEmpty
-    @Size(max = 5)
+    @Size(max = 10, message = "SQL은 최대 10개까지 등록할 수 있습니다.")
     private List<@NotNull @Valid SqlEntry> items;
 
     @Data
