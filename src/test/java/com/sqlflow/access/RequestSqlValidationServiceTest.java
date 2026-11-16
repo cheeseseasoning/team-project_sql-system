@@ -202,4 +202,34 @@ class RequestSqlValidationServiceTest {
                 .thenReturn(
                         new MySqlQueryMetadataValidationService.ValidationResult(Set.of(target)));
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"validate,10", "validate,11", "items,10", "items,11", "submission,10", "submission,11"})
+    void checksTenSqlsAndRejectsElevenBeforeDatabaseValidation(String path, int count) {
+        var items = java.util.stream.IntStream.rangeClosed(1, count).mapToObj(index -> {
+            var item = new RequestItemResponse();
+            item.setQueryId((long) index); item.setSqlText(SALES_SQL); return item;
+        }).toList();
+        if (count == 10) {
+            prepareMetadata(SALES_SQL, SALES);
+            when(dataAccessValidationService.validate(USER_ID, Set.of(SALES)))
+                    .thenReturn(new DataAccessValidationService.ValidationResult("GENERAL", Set.of(1L)));
+        }
+        Runnable action = () -> {
+            switch (path) {
+                case "validate" -> service.validate(USER_ID, items.stream().map(RequestItemResponse::getSqlText).toList());
+                case "items" -> assertEquals(10, service.validateItems(USER_ID, items).size());
+                case "submission" -> assertEquals(10, service.validateForSubmission(USER_ID, items).size());
+                default -> throw new IllegalArgumentException(path);
+            }
+        };
+        if (count == 10) {
+            action.run();
+            org.mockito.Mockito.verify(metadataValidationService, org.mockito.Mockito.times(10)).validate(SALES_SQL);
+            org.mockito.Mockito.verify(dataAccessValidationService, org.mockito.Mockito.times(10)).validate(USER_ID, Set.of(SALES));
+        } else {
+            var error = assertThrows(ResponseStatusException.class, action::run);
+            assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
+            verifyNoInteractions(metadataValidationService, dataAccessValidationService);
+        }
+    }
 }

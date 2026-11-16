@@ -318,4 +318,26 @@ class ExecutionBatchRecordServiceTest {
 
         return execution;
     }
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {10, 11})
+    void startsTenPendingSqlsInOrderAndRejectsEleven(int count) {
+        when(mapper.isActiveDbApprover(ACTOR_ID)).thenReturn(true);
+        when(mapper.selectBatch(BATCH_ID)).thenReturn(batch);
+        when(mapper.selectRequestContextForUpdate(REQUEST_ID)).thenReturn(request);
+        var executions = java.util.stream.IntStream.range(0, count)
+                .mapToObj(index -> execution(501L + index, 301L + index, "PENDING")).toList();
+        when(mapper.selectExecutions(BATCH_ID)).thenReturn(executions);
+        when(mapper.selectQueryIdsByRequestId(REQUEST_ID)).thenReturn(executions.stream().map(QueryExecution::getQueryId).toList());
+        if (count == 10) {
+            when(mapper.markBatchRunning(BATCH_ID, ACTOR_ID)).thenReturn(1);
+            when(mapper.updateRequestStatus(REQUEST_ID, "READY", "RUNNING")).thenReturn(1);
+            var result = service.start(BATCH_ID, ACTOR_ID);
+            assertEquals(executions.stream().map(QueryExecution::getExecutionId).toList(), result.executionIds());
+        } else {
+            var error = assertThrows(ResponseStatusException.class, () -> service.start(BATCH_ID, ACTOR_ID));
+            assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
+            verify(mapper, never()).markBatchRunning(anyLong(), anyLong());
+            verify(mapper, never()).updateRequestStatus(anyLong(), anyString(), anyString());
+        }
+    }
 }
