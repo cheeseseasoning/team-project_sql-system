@@ -129,7 +129,7 @@
 
     <c:if test="${page == 'approval-pending' or page == 'approval-detail'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/approval.css">
+              href="${pageContext.request.contextPath}/css/pages/approval.css?v=20261118-detail-document-parity">
     </c:if>
     <c:if test="${page == 'view-detail'
                or page == 'request-detail'

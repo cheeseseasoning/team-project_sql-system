@@ -534,20 +534,32 @@
 }
 
 .approval-document-page .approval-reject {
-    display: block;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
     margin-top: 24px;
     padding: 16px 0 0;
     border-top: 1px solid var(--line);
 }
 
 .approval-document-page .approval-reject label {
+    flex: 0 0 100%;
     color: var(--text);
     font-size: 15px;
     font-weight: 600;
 }
 
+.approval-document-page .approval-reject textarea {
+    flex: 1 1 100%;
+    min-height: 72px;
+    resize: vertical;
+}
+
 .approval-document-page .approval-detail-actions {
-    margin-top: 12px;
+    width: 100%;
+    margin-top: 2px;
 }
 
 @media (max-width: 1100px) {
