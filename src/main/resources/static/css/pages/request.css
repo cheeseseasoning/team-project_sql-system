@@ -602,6 +602,10 @@
     padding-bottom: 4px;
 }
 
+#view-create-request-form .form-footer .db-change-form-actions {
+    gap: 8px;
+}
+
 #view-create-request-form #view-add-sql {
     min-height: 32px;
     padding: 4px 10px;
