@@ -31,20 +31,34 @@
                         </colgroup>
                         <tbody>
                             <tr>
-                                <th>문서번호</th>
-                                <td id="approval-request-no" colspan="3">불러오는 중</td>
+                                <th scope="row">요청번호</th>
+                                <td id="approval-request-no">불러오는 중</td>
+                                <th scope="row">문서 상태</th>
+                                <td id="approval-request-status">불러오는 중</td>
                             </tr>
                             <tr>
-                                <th>기안 부서</th>
-                                <td id="approval-department"></td>
-                                <th>기안자</th>
+                                <th scope="row">기안자</th>
                                 <td id="approval-drafter"></td>
+                                <th scope="row">기안 부서</th>
+                                <td id="approval-department"></td>
                             </tr>
                             <tr>
-                                <th>작성일</th>
+                                <th scope="row">제출 시각</th>
                                 <td id="approval-created-at"></td>
-                                <th>처리 희망일</th>
+                                <th scope="row">처리 희망일</th>
                                 <td id="approval-desired-date"></td>
+                            </tr>
+                            <tr>
+                                <th scope="row">요청 유형</th>
+                                <td id="approval-request-type"></td>
+                                <th scope="row">조회 유형</th>
+                                <td id="approval-request-class"></td>
+                            </tr>
+                            <tr>
+                                <th scope="row">결재 상태</th>
+                                <td id="approval-status"></td>
+                                <th scope="row">긴급 여부</th>
+                                <td id="approval-urgency"></td>
                             </tr>
                         </tbody>
                     </table>
@@ -53,21 +67,23 @@
                 <aside class="panel request-approval-panel" aria-labelledby="approval-line-title">
                     <div class="panel-heading">
                         <h2 id="approval-line-title">결재란</h2>
-                        <div class="approval-line-controls">
+                        <div id="approval-line-navigation" class="approval-card-navigation" hidden>
                             <button id="approval-line-prev"
                                     type="button"
+                                    class="button"
                                     aria-label="이전 결재자"
                                     disabled>◀</button>
-                            <span id="approval-line-range">0 / 0</span>
+                            <span id="approval-line-range" class="approval-card-range">0 / 0</span>
                             <button id="approval-line-next"
                                     type="button"
+                                    class="button"
                                     aria-label="다음 결재자"
                                     disabled>▶</button>
                         </div>
                     </div>
-                    <div id="approval-line" class="approval-line">
-                        <p class="caption">결재선을 불러오는 중입니다.</p>
-                    </div>
+                    <ol id="approval-line" class="request-approval-cards">
+                        <li class="approval-card-empty">결재선을 불러오는 중입니다.</li>
+                    </ol>
                 </aside>
             </div>
         </section>
@@ -117,7 +133,7 @@
         'use strict';
 
         const requestId = $('#approval-config').dataset.requestId;
-        const PAGE_SIZE = 3;
+        const PAGE_SIZE = 4;
         let approvalHistory = [];
         let approvalPage = 0;
 
@@ -133,7 +149,34 @@
             WAITING: '결재 대기',
             APPROVED: '승인',
             REJECTED: '반려',
-            CANCELED: '취소'
+            CANCELED: '취소',
+            CANCELLED: '취소'
+        };
+
+        const requestStatusNames = {
+            PENDING_APPROVAL: '결재 대기',
+            READY: '실행 대기',
+            RUNNING: '실행 중',
+            COMPLETED: '실행 완료',
+            PARTIAL_FAILED: '일부 실패',
+            FAILED: '실패',
+            REJECTED: '반려',
+            WITHDRAWN: '회수',
+            DRAFT: '작성 중'
+        };
+
+        const requestTypeNames = {
+            SELECT: '조회 요청',
+            DB_CHANGE: '변경 요청',
+            CREATE: '변경 요청',
+            INSERT: '변경 요청',
+            UPDATE: '변경 요청',
+            DELETE: '변경 요청'
+        };
+
+        const requestClassNames = {
+            GENERAL: '일반 조회',
+            SENSITIVE: '민감 조회'
         };
 
         function formatDateTime(value) {
@@ -182,37 +225,73 @@
 
             $('#approval-line-prev').disabled = approvalPage === 0;
             $('#approval-line-next').disabled = approvalPage >= totalPages - 1;
+            $('#approval-line-navigation').hidden =
+                approvalHistory.length <= PAGE_SIZE;
 
             if (!visibleApprovals.length) {
-                $('#approval-line').innerHTML =
-                    '<p class="caption">등록된 결재선이 없습니다.</p>';
+                $('#approval-line').innerHTML = Array.from(
+                    { length: PAGE_SIZE },
+                    function () {
+                        return '<li class="approval-card approval-card-placeholder"'
+                            + ' aria-label="결재자 미지정">'
+                            + '<div class="approval-card-step" aria-hidden="true">&nbsp;</div>'
+                            + '<div class="approval-card-person" aria-hidden="true"></div>'
+                            + '<div class="approval-card-date" aria-hidden="true">&nbsp;</div>'
+                            + '</li>';
+                    }
+                ).join('');
                 return;
             }
 
-            $('#approval-line').innerHTML = visibleApprovals
-                .map(function (approval) {
+            const cards = visibleApprovals.map(function (approval, index) {
+                    const absoluteIndex = startIndex + index;
                     const status = String(approval.status || '').toUpperCase();
-                    const isCurrent = status === 'PENDING';
                     const isDepartment = approval.targetType === 'DEPARTMENT';
                     const typeName = isDepartment ? '부서 결재'
                         : approvalTypeNames[approval.approvalType] || '결재';
+                    const stepName = absoluteIndex === approvalHistory.length - 1
+                        ? '최종 결재'
+                        : (approval.approvalOrder || absoluteIndex + 1) + '차 결재';
                     const personName = isDepartment
-                        ? [approval.approverDeptName || approval.deptName || '부서 정보 없음', approval.approverName]
-                            .filter(Boolean).join(' · ')
+                        ? approval.approverName
+                            || approval.approverDeptName
+                            || approval.deptName
+                            || '부서 정보 없음'
                         : approval.approverName || '-';
                     const statusName = approvalStatusNames[status]
                         || approval.status
                         || '결재 대기';
 
-                    return '<article class="approval-step'
-                        + (isCurrent ? ' is-current' : '') + '">'
-                        + '<strong>' + esc(typeName) + '</strong>'
-                        + '<span class="approval-step-name">'
-                        + esc(personName)
-                        + '</span>'
-                        + '<span>' + esc(statusName) + '</span>'
-                        + '</article>';
-                }).join('');
+                    const statusClass = status === 'APPROVED' ? 'is-approved'
+                        : status === 'REJECTED' ? 'is-rejected' : 'is-pending';
+                    const department = isDepartment ? typeName
+                        : [approval.deptName, approval.positionName]
+                            .filter(Boolean).join(' · ');
+                    const actionDate = approval.decidedAt
+                        ? formatDateTime(approval.decidedAt)
+                        : '';
+
+                    return '<li><article class="approval-card ' + statusClass + '">'
+                        + '<div class="approval-card-step">'
+                        + esc(stepName) + '</div>'
+                        + '<div class="approval-card-person">'
+                        + '<strong>' + esc(personName) + '</strong>'
+                        + (department ? '<span class="approval-card-department">'
+                            + esc(department) + '</span>' : '')
+                        + '<span class="approval-card-status">'
+                        + esc(statusName) + '</span></div>'
+                        + '<div class="approval-card-date">'
+                        + esc(actionDate || '—') + '</div>'
+                        + '</article></li>';
+                });
+
+            while (cards.length < PAGE_SIZE) {
+                cards.push('<li class="approval-card approval-card-placeholder"'
+                    + ' aria-hidden="true"><div class="approval-card-step">&nbsp;</div>'
+                    + '<div class="approval-card-person"></div>'
+                    + '<div class="approval-card-date">&nbsp;</div></li>');
+            }
+            $('#approval-line').innerHTML = cards.join('');
         }
 
         function renderSqlItems(items) {
@@ -256,14 +335,29 @@
 
                 $('#approval-request-no').textContent =
                     request.requestNo || '-';
+                $('#approval-request-status').textContent =
+                    requestStatusNames[request.requestStatus]
+                    || request.requestStatus || '-';
                 $('#approval-department').textContent =
                     request.deptName || '-';
                 $('#approval-drafter').textContent =
                     request.drafterName || '-';
                 $('#approval-created-at').textContent =
-                    formatDateTime(request.createdAt);
+                    formatDateTime(request.submittedAt || request.createdAt);
                 $('#approval-desired-date').textContent =
                     request.desiredDate || '-';
+                $('#approval-request-type').textContent =
+                    requestTypeNames[request.requestType]
+                    || request.requestType || '-';
+                $('#approval-request-class').textContent =
+                    requestClassNames[request.requestClass]
+                    || request.requestClass || '-';
+                $('#approval-status').textContent =
+                    approvalStatusNames[request.approvalStatus]
+                    || request.approvalStatus || '-';
+                $('#approval-urgency').textContent =
+                    request.isUrgent === 'Y' || request.isUrgent === true
+                        ? '긴급' : '일반';
                 $('#approval-title').textContent =
                     request.title || '제목 없음';
                 $('#approval-purpose').textContent =
