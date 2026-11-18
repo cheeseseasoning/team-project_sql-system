@@ -717,7 +717,7 @@ html {
 }
 
 .sidebar > hr + nav {
-    margin-top: 24px;
+    margin-top: 6px;
 }
 
 /* 조회·변경 요청 편집 화면은 유지하고 나머지 화면 시작점만 4px 올린다. */
