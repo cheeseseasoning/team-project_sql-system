@@ -50,6 +50,12 @@
     line-height: 1.5;
 }
 
+.request-editor :is(input:not([type="checkbox"]), select, textarea) {
+    color: var(--text);
+    font-family: inherit;
+    font-weight: 400;
+}
+
 .request-editor .request-input-field > input {
     height: 34px;
 }
