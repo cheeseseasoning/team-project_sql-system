@@ -8,6 +8,7 @@ html {
 }
 
 .app-shell {
+    --shell-header-height: 68px;
     display: grid;
     grid-template-columns: 210px minmax(0, 1fr);
     min-height: 100vh;
@@ -25,12 +26,12 @@ html {
    ================================================== */
 
 .sidebar {
-    padding: 14px 16px 20px;
+    padding: 0 16px 20px;
     background: var(--rail);
     border-right: 1px solid var(--line);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0;
 }
 
 .brand {
@@ -44,7 +45,8 @@ html {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 64px;
+    flex: 0 0 var(--shell-header-height);
+    height: var(--shell-header-height);
     text-align: center;
 }
 
@@ -162,7 +164,7 @@ html {
    ================================================== */
 
 .header {
-    min-height: 68px;
+    min-height: var(--shell-header-height);
     flex-shrink: 0;
     background: var(--bg);
     border-bottom: 1px solid var(--line);
@@ -422,9 +424,13 @@ html {
    ================================================== */
 
 @media (max-width: 1100px) {
+    .app-shell {
+        --shell-header-height: 90px;
+    }
+
     .header {
         height: auto;
-        min-height: 68px;
+        min-height: var(--shell-header-height);
         padding: 10px 24px;
         flex-wrap: wrap;
         gap: 12px;
@@ -457,7 +463,7 @@ html {
     }
 
     .sidebar {
-        padding: 20px 10px;
+        padding: 0 10px 20px;
     }
 
     .nav-item {
@@ -498,6 +504,15 @@ html {
         border-bottom: 1px solid var(--line);
         gap: 14px;
         padding: 16px;
+    }
+
+    .sidebar > .brand {
+        flex-basis: auto;
+        height: auto;
+    }
+
+    .sidebar > hr + nav {
+        margin-top: 0;
     }
 
     .brand {
@@ -692,7 +707,18 @@ html {
 
 /* 하위 링크와 구분되도록 독립 메뉴도 그룹 제목과 같은 굵기로 표시한다. */
 .sidebar nav > .nav-item { font-weight: 600; }
-.sidebar > hr { margin-block: 12px; }
+.sidebar > hr {
+    width: 100%;
+    height: 1px;
+    flex: 0 0 1px;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+}
+
+.sidebar > hr + nav {
+    margin-top: 24px;
+}
 
 /* 조회·변경 요청 편집 화면은 유지하고 나머지 화면 시작점만 4px 올린다. */
 .main:not(:has(.request-editor, #view-create-request-form)) { padding-top: 20px; }
@@ -701,4 +727,5 @@ html {
 }
 @media (max-width: 560px) {
     .main:not(:has(.request-editor, #view-create-request-form)) { padding-top: 12px; }
+    .sidebar > hr + nav { margin-top: 0; }
 }
