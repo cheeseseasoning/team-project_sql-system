@@ -412,6 +412,161 @@
     margin-top: 12px;
 }
 
+/* 받은 결재 상세는 요청 상세와 같은 문서 흐름과 간격을 사용한다. */
+.approval-document-page .approval-detail-card {
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-top: 2px solid var(--accent);
+    border-radius: 4px;
+    background: #fff;
+}
+
+.approval-document-page .approval-detail-breadcrumb {
+    margin-bottom: 12px;
+}
+
+.approval-document-page .request-document-heading h1 {
+    margin: 0;
+    color: var(--text);
+    font-size: 24px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.approval-document-page .approval-detail-top {
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.approval-document-page .request-detail-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 32px;
+    margin-bottom: 20px;
+}
+
+.approval-document-page .request-information-summary,
+.approval-document-page .request-approval-panel {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.approval-document-page .approval-line-heading {
+    margin: 0;
+}
+
+.approval-document-page .approval-line-heading h3,
+.approval-document-page #approval-line-title {
+    margin: 0;
+    font-size: 15px;
+}
+
+.approval-document-page .approval-line-controls button {
+    width: 30px;
+    height: 30px;
+}
+
+.approval-document-page .approval-line {
+    border-radius: 4px;
+}
+
+.approval-document-page .request-content-section {
+    margin: 24px 0 0;
+    padding: 0;
+    border: 0;
+}
+
+.approval-document-page .request-content-section h2,
+.approval-document-page .request-sql-heading h2 {
+    position: relative;
+    margin: 0;
+    padding-left: 12px;
+    font-size: 15px;
+}
+
+.approval-document-page .request-content-section h2::before,
+.approval-document-page .request-sql-heading h2::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 3px;
+    height: 14px;
+    border-radius: 1px;
+    background: var(--accent);
+    transform: translateY(-50%);
+}
+
+.approval-document-page .request-content-section .notice-body {
+    margin: 10px 0 0;
+    padding-left: 12px;
+    font-size: 14px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.approval-document-page .request-sql-panel {
+    margin-top: 24px;
+}
+
+.approval-document-page .request-sql-heading {
+    margin-bottom: 8px;
+}
+
+.approval-document-page .approval-sql-list {
+    margin-left: 12px;
+    border: 1px solid var(--line);
+}
+
+.approval-document-page .approval-sql-item summary {
+    font-size: 14px;
+}
+
+.approval-document-page .approval-sql-item pre {
+    font-size: 14px;
+    line-height: 1.75;
+}
+
+.approval-document-page .approval-reject {
+    display: block;
+    margin-top: 24px;
+    padding: 16px 0 0;
+    border-top: 1px solid var(--line);
+}
+
+.approval-document-page .approval-reject label {
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.approval-document-page .approval-detail-actions {
+    margin-top: 12px;
+}
+
+@media (max-width: 1100px) {
+    .approval-document-page .request-detail-layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px;
+    }
+}
+
+@media (max-width: 600px) {
+    .approval-document-page .approval-detail-card {
+        padding: 16px;
+    }
+
+    .approval-document-page .request-document-heading h1 {
+        font-size: 21px;
+    }
+}
+
 @media (max-width: 900px) {
     .approval-page .approval-filter {
         grid-template-columns: 1fr 1fr;

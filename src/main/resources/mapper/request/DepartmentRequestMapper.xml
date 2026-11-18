@@ -163,19 +163,27 @@
                                   THEN 'PENDING'
                                   WHEN COUNT(
                                       CASE
-                                          WHEN CR.RESULT_STATUS = 'FAILED'
+                                          WHEN CR.RESULT_STATUS IS NULL
+                                            OR CR.RESULT_STATUS NOT IN (
+                                                'COMPLETED',
+                                                'FAILED',
+                                                'CANCELLED'
+                                            )
                                           THEN 1
                                       END
                                   ) &gt; 0
-                                  THEN 'FAILED'
-                                  WHEN COUNT(
-                                      CASE
-                                          WHEN CR.RESULT_STATUS = 'COMPLETED'
-                                          THEN 1
-                                      END
-                                  ) = COUNT(*)
+                                  THEN 'PENDING'
+                                  WHEN COUNT(CASE
+                                      WHEN CR.RESULT_STATUS = 'COMPLETED'
+                                      THEN 1
+                                  END) = COUNT(*)
                                   THEN 'COMPLETED'
-                                  ELSE NULL
+                                  WHEN COUNT(CASE
+                                      WHEN CR.RESULT_STATUS = 'COMPLETED'
+                                      THEN 1
+                                  END) = 0
+                                  THEN 'FAILED'
+                                  ELSE 'PARTIAL_FAILED'
                               END
                        FROM DB_CHANGE_SQL C
                        LEFT JOIN DB_CHANGE_SQL_RESULT CR

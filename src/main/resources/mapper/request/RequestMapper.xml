@@ -188,7 +188,43 @@
 	    </if>
 
 	    <if test="status != null and status != ''">
-	        AND R.REQUEST_STATUS = #{status}
+	        AND (
+	            R.REQUEST_STATUS = #{status}
+	            OR (
+	                #{status} IN ('COMPLETED', 'FAILED', 'PARTIAL_FAILED')
+	                AND R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
+	                AND R.REQUEST_STATUS = 'READY'
+	                AND R.APPROVAL_STATUS = 'APPROVED'
+	                AND EXISTS (
+	                    SELECT C.REQUEST_ID
+	                    FROM DB_CHANGE_SQL C
+	                    LEFT JOIN DB_CHANGE_SQL_RESULT CR
+	                      ON CR.QUERY_ID = C.QUERY_ID
+	                    WHERE C.REQUEST_ID = R.REQUEST_ID
+	                    GROUP BY C.REQUEST_ID
+	                    HAVING CASE
+	                               WHEN COUNT(*) = 0
+	                                 OR COUNT(CR.QUERY_ID) &lt; COUNT(*)
+	                               THEN 'PENDING'
+	                               WHEN COUNT(CASE
+	                                   WHEN CR.RESULT_STATUS IS NULL
+	                                     OR CR.RESULT_STATUS NOT IN (
+	                                         'COMPLETED', 'FAILED', 'CANCELLED'
+	                                     )
+	                                   THEN 1
+	                               END) &gt; 0
+	                               THEN 'PENDING'
+	                               WHEN COUNT(CASE WHEN CR.RESULT_STATUS = 'COMPLETED'
+	                                               THEN 1 END) = COUNT(*)
+	                               THEN 'COMPLETED'
+	                               WHEN COUNT(CASE WHEN CR.RESULT_STATUS = 'COMPLETED'
+	                                               THEN 1 END) = 0
+	                               THEN 'FAILED'
+	                               ELSE 'PARTIAL_FAILED'
+	                           END = #{status}
+	                )
+	            )
+	        )
 	    </if>
 
 	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
@@ -360,7 +396,43 @@
 	    </choose>
 
 	    <if test="status != null and status != ''">
-	        AND R.REQUEST_STATUS = #{status}
+	        AND (
+	            R.REQUEST_STATUS = #{status}
+	            OR (
+	                #{status} IN ('COMPLETED', 'FAILED', 'PARTIAL_FAILED')
+	                AND R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
+	                AND R.REQUEST_STATUS = 'READY'
+	                AND R.APPROVAL_STATUS = 'APPROVED'
+	                AND EXISTS (
+	                    SELECT C.REQUEST_ID
+	                    FROM DB_CHANGE_SQL C
+	                    LEFT JOIN DB_CHANGE_SQL_RESULT CR
+	                      ON CR.QUERY_ID = C.QUERY_ID
+	                    WHERE C.REQUEST_ID = R.REQUEST_ID
+	                    GROUP BY C.REQUEST_ID
+	                    HAVING CASE
+	                               WHEN COUNT(*) = 0
+	                                 OR COUNT(CR.QUERY_ID) &lt; COUNT(*)
+	                               THEN 'PENDING'
+	                               WHEN COUNT(CASE
+	                                   WHEN CR.RESULT_STATUS IS NULL
+	                                     OR CR.RESULT_STATUS NOT IN (
+	                                         'COMPLETED', 'FAILED', 'CANCELLED'
+	                                     )
+	                                   THEN 1
+	                               END) &gt; 0
+	                               THEN 'PENDING'
+	                               WHEN COUNT(CASE WHEN CR.RESULT_STATUS = 'COMPLETED'
+	                                               THEN 1 END) = COUNT(*)
+	                               THEN 'COMPLETED'
+	                               WHEN COUNT(CASE WHEN CR.RESULT_STATUS = 'COMPLETED'
+	                                               THEN 1 END) = 0
+	                               THEN 'FAILED'
+	                               ELSE 'PARTIAL_FAILED'
+	                           END = #{status}
+	                )
+	            )
+	        )
 	    </if>
 	</sql>
 
@@ -387,6 +459,38 @@
 	        R.DESIRED_DATE,
 	        U.USER_NAME AS DRAFTER_NAME,
 	        D.DEPT_NAME,
+	        CASE
+	            WHEN R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
+	             AND R.REQUEST_STATUS = 'READY'
+	             AND R.APPROVAL_STATUS = 'APPROVED'
+	            THEN (
+	                SELECT CASE
+	                           WHEN COUNT(*) = 0
+	                             OR COUNT(CR.QUERY_ID) &lt; COUNT(*)
+	                           THEN 'PENDING'
+	                           WHEN COUNT(CASE
+	                               WHEN CR.RESULT_STATUS IS NULL
+	                                 OR CR.RESULT_STATUS NOT IN (
+	                                     'COMPLETED', 'FAILED', 'CANCELLED'
+	                                 )
+	                               THEN 1
+	                           END) &gt; 0
+	                           THEN 'PENDING'
+	                           WHEN COUNT(CASE WHEN CR.RESULT_STATUS = 'COMPLETED'
+	                                           THEN 1 END) = COUNT(*)
+	                           THEN 'COMPLETED'
+	                           WHEN COUNT(CASE WHEN CR.RESULT_STATUS = 'COMPLETED'
+	                                           THEN 1 END) = 0
+	                           THEN 'FAILED'
+	                           ELSE 'PARTIAL_FAILED'
+	                       END
+	                FROM DB_CHANGE_SQL C
+	                LEFT JOIN DB_CHANGE_SQL_RESULT CR
+	                  ON CR.QUERY_ID = C.QUERY_ID
+	                WHERE C.REQUEST_ID = R.REQUEST_ID
+	            )
+	            ELSE NULL
+	        END AS VIEW_RESULT_STATUS,
 	        CASE
 	            WHEN R.REQUEST_TYPE IN (
 	                'CREATE', 'INSERT', 'UPDATE', 'DELETE'

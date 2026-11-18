@@ -77,6 +77,7 @@ async function loadDetail() {
 			request.requestStatus !== 'DRAFT';
 		$('#draft-edit-link').hidden = false;
 
+		$('#approval-line-open').hidden = request.requestStatus !== 'DRAFT';
 		$('#approval-line-open').disabled = request.requestStatus !== 'DRAFT';
 
 		// 회수 가능 여부는 화면 표시용이며 서버에서 다시 검사한다.

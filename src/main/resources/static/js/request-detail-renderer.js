@@ -588,13 +588,14 @@ window.RequestDetailRenderer = (() => {
 		    ].includes(request.requestType);
 
 			documentHeading.textContent = isDbChange
-				? 'SQLFlow · DB 변경 기안서'
-				: 'SQLFlow · 데이터 조회 기안서';
+				? 'Q-Pass · DB 변경 기안서'
+				: 'Q-Pass · 데이터 조회 기안서';
 		}
 
+	    const displayStatus = requestStatusForDisplay(request);
 	    $('#detail-state').innerHTML = badge(
-	        statusNames[request.requestStatus]
-	        || request.requestStatus
+	        statusNames[displayStatus]
+	        || displayStatus
 	        || '-'
 	    );
 
@@ -641,6 +642,34 @@ window.RequestDetailRenderer = (() => {
 
 		$('#sql-count').textContent =
 			(Array.isArray(request.items) ? request.items.length : 0) + '건';
+	}
+
+	// External DB-change results are tracked per SQL while REQUEST_STATUS remains READY
+	// for correction/redraft workflows. Show their aggregate as the request's visible state.
+	function requestStatusForDisplay(request) {
+	    const changeTypes = ['CREATE', 'INSERT', 'UPDATE', 'DELETE'];
+	    if (!changeTypes.includes(request.requestType)
+	            || request.requestStatus !== 'READY'
+	            || request.approvalStatus !== 'APPROVED'
+	            || !Array.isArray(request.items)
+	            || request.items.length === 0) {
+	        return request.requestStatus;
+	    }
+
+	    const statuses = request.items.map(item => item.changeResultStatus);
+	    const terminalStatuses = ['COMPLETED', 'FAILED', 'CANCELLED'];
+	    if (!statuses.every(status => terminalStatuses.includes(status))) {
+	        return request.requestStatus;
+	    }
+
+	    const successCount = statuses.filter(status => status === 'COMPLETED').length;
+	    if (successCount === statuses.length) {
+	        return 'COMPLETED';
+	    }
+	    if (successCount === 0) {
+	        return 'FAILED';
+	    }
+	    return 'PARTIAL_FAILED';
 	}
 
 	function renderSavedApprovalLine(request) {

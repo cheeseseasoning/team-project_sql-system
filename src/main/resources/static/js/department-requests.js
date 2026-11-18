@@ -82,14 +82,19 @@
             className: 'is-pending'
         },
         COMPLETED: {
-            label: '결과 완료',
+            label: '실행 완료',
             tone: 'success',
             className: 'is-completed'
         },
         FAILED: {
-            label: '결과 실패',
+            label: '실패',
             tone: 'error',
             className: 'is-failed'
+        },
+        PARTIAL_FAILED: {
+            label: '일부 실패',
+            tone: 'warning',
+            className: 'is-partial-failed'
         }
     };
 
