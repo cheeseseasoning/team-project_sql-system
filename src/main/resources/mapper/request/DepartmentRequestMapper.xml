@@ -86,7 +86,21 @@
         </if>
 
         <if test="status != null and status != ''">
-            AND R.REQUEST_STATUS = #{status}
+            <choose>
+                <when test="status == 'IN_PROGRESS'">
+                    AND R.REQUEST_STATUS IN (
+                        'READY', 'RUNNING', 'RETRY_REVIEW'
+                    )
+                </when>
+                <when test="status == 'CLOSED_OR_FAILED'">
+                    AND R.REQUEST_STATUS IN (
+                        'PARTIAL_FAILED', 'FAILED', 'REJECTED', 'WITHDRAWN'
+                    )
+                </when>
+                <otherwise>
+                    AND R.REQUEST_STATUS = #{status}
+                </otherwise>
+            </choose>
         </if>
     </sql>
 

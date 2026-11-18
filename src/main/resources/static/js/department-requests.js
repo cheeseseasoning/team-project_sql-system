@@ -52,6 +52,13 @@
         }
     };
 
+    const statusFilterOptions = [
+        { value: 'PENDING_APPROVAL', label: '결재 대기' },
+        { value: 'IN_PROGRESS', label: '처리 중', statuses: ['READY', 'RUNNING', 'RETRY_REVIEW'] },
+        { value: 'COMPLETED', label: '실행 완료' },
+        { value: 'CLOSED_OR_FAILED', label: '실패·반려·회수', statuses: ['PARTIAL_FAILED', 'FAILED', 'REJECTED', 'WITHDRAWN'] }
+    ];
+
     const approvalStageConfig = {
         APPROVER: {
             label: '부서 결재 중',
@@ -161,8 +168,8 @@
     const count = $('#department-count');
     const pagination = $('#department-pagination');
 
-    Object.entries(statusConfig).forEach(([value, config]) => {
-        statusSelect.add(new Option(config.label, value));
+    statusFilterOptions.forEach(option => {
+        statusSelect.add(new Option(option.label, option.value));
     });
 
     const initialParams = new URLSearchParams(location.search);
@@ -175,9 +182,11 @@
         : '';
 
     const initialStatus = initialParams.get('status') || '';
-    statusSelect.value = Object.hasOwn(statusConfig, initialStatus)
-        ? initialStatus
-        : '';
+    const normalizedStatus = statusFilterOptions.find(option =>
+        option.value === initialStatus
+        || option.statuses?.includes(initialStatus)
+    )?.value || '';
+    statusSelect.value = normalizedStatus;
 
     let filters = {
         keyword: keywordInput.value.trim(),

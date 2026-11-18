@@ -50,7 +50,7 @@ public class DepartmentRequestService {
         String searchType = type == null ? "" : type.strip();
         String searchStatus = status == null ? "" : status.strip();
 
-        RequestSearchValidator.validateSearch(
+        RequestSearchValidator.validateDepartmentSearch(
                 searchKeyword,
                 searchStatus);
         validateRequestType(searchType);
