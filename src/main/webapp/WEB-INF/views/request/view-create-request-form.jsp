@@ -35,13 +35,13 @@
 			<label for="view-request-purpose">
 				변경 목적 <span class="required">*</span>
 			</label>
-			<textarea id="view-request-purpose" name="purpose" rows="2" required
+			<textarea id="view-request-purpose" name="purpose" rows="1" required
 				placeholder="예: 상품 재고 정정을 위해 대상 상품의 수량을 수정합니다."></textarea>
 
 			<label for="view-request-detail">
 				상세 내용 <span class="caption db-change-optional-label">· 선택</span>
 			</label>
-			<textarea id="view-request-detail" name="detailContent" rows="3"
+			<textarea id="view-request-detail" name="detailContent" rows="2"
 				placeholder="예: 대상 상품 ID와 변경할 수량을 적고, 처리 시 주의사항을 입력하세요."></textarea>
 
 			<div class="db-change-sql-header section-gap">
