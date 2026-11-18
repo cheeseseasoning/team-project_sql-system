@@ -19,6 +19,10 @@ public final class RequestSearchValidator {
             "REJECTED",
             "WITHDRAWN");
 
+    private static final Set<String> DEPARTMENT_STATUS_FILTERS = Set.of(
+            "IN_PROGRESS",
+            "CLOSED_OR_FAILED");
+
     private static final Set<String> SEARCHABLE_TYPES = Set.of(
             "SELECT",
             "DB_CHANGE");
@@ -34,6 +38,18 @@ public final class RequestSearchValidator {
         }
 
         if (!status.isEmpty() && !SEARCHABLE_STATUSES.contains(status)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "올바르지 않은 요청 상태입니다.");
+        }
+    }
+
+    public static void validateDepartmentSearch(String keyword, String status) {
+        validateSearch(keyword, "");
+
+        if (!status.isEmpty()
+                && !SEARCHABLE_STATUSES.contains(status)
+                && !DEPARTMENT_STATUS_FILTERS.contains(status)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "올바르지 않은 요청 상태입니다.");
