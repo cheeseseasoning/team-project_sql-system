@@ -190,6 +190,10 @@
 
 
             </div>
+
+            <p class="resource-role-note" id="resource-readonly-note" hidden>
+                조회 전용: 정책과 접근 부서를 변경하려면 DB 운영 관리 권한이 필요합니다.
+            </p>
         </section>
 
         <section class="panel view-panel resource-detail-panel resource-department-panel">
@@ -223,7 +227,7 @@
                     <thead>
                         <tr>
                             <th scope="col">부서명</th>
-                            <th scope="col" class="numeric">활성 SQLFlow 계정</th>
+                            <th scope="col" class="numeric">활성 Q-Pass 계정</th>
                             <th scope="col" aria-label="작업"></th>
                         </tr>
                     </thead>
@@ -234,9 +238,6 @@
 
         </section>
 
-        <p class="resource-role-note" id="resource-readonly-note" hidden>
-            조회 전용: 정책과 접근 부서를 변경하려면 DB 운영 관리 권한이 필요합니다.
-        </p>
     </div>
 </div>
 

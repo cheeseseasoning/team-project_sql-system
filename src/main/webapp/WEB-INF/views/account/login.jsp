@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>로그인 | SQLFlow</title>
+    <title>로그인 | Q-Pass</title>
 	
 	<link rel="stylesheet"
 	      href="${pageContext.request.contextPath}/css/sqlflow.css">
@@ -20,7 +20,7 @@
     <main class="panel login-panel" aria-labelledby="login-title">
         <header class="login-heading">
             <div class="login-title-row">
-                <a class="brand" href="${pageContext.request.contextPath}/login">SQLFlow</a>
+                <a class="brand" href="${pageContext.request.contextPath}/login">Q-Pass</a>
                 <h1 id="login-title">로그인</h1>
             </div>
             <p class="muted">등록된 사내 계정으로 로그인하세요.</p>

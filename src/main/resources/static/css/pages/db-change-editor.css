@@ -2,7 +2,8 @@
 #view-create-request-form .db-change-request-top { grid-template-columns: minmax(0, 1fr) 206px 82px; gap: 24px; margin-bottom: 12px; }
 #view-create-request-form :is(.db-change-request-top label, label[for="view-request-purpose"], label[for="view-request-detail"], .db-change-sql-field-heading label, .db-change-sql-workspace label) { font-size: 12px; font-weight: 600; }
 #view-create-request-form .db-change-request-top input:not([type="checkbox"]) { height: 34px; padding: 7px 10px; border-radius: 4px; font-size: 12px; line-height: 1.5; margin-top: 6px; }
-#view-create-request-form .db-change-urgent { min-height: 34px; font-size: 12px; }
+#view-create-request-form .db-change-urgent { min-height: 34px; font-size: 12px; font-weight: 400; }
+#view-create-request-form .db-change-optional-label { font-weight: 400; }
 #view-create-request-form .db-change-urgent input { width: 14px; height: 14px; }
 #view-create-request-form :is(#view-request-purpose, #view-request-detail) { padding: 7px 10px; border-radius: 4px; font-size: 12px; line-height: 1.5; margin: 6px 0 12px; }
 #view-create-request-form #view-request-purpose { height: 36px; min-height: 36px; }

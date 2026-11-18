@@ -16,7 +16,7 @@
     <article class="request-document" aria-labelledby="detail-title">
         <header class="request-document-heading">
             <p id="request-document-heading" class="request-document-caption">
-                SQLFlow · 데이터 조회 기안서
+                Q-Pass · 데이터 조회 기안서
             </p>
             <h1 id="detail-title">기안을 불러오는 중입니다.</h1>
         </header>

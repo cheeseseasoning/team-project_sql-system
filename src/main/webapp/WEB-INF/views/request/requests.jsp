@@ -149,6 +149,10 @@
 			            label: '실행 완료',
 			            className: 'is-completed'
 			        },
+			        PENDING: {
+			            label: '외부 처리 대기',
+			            className: 'is-pending'
+			        },
 			        PARTIAL_FAILED: {
 			            label: '일부 실패',
 			            className: 'is-partial-failed'
@@ -187,8 +191,12 @@
 			                ? '민감 조회'
 			                : '조회';
 
-			        const status = statuses[request.requestStatus] || {
-			            label: request.requestStatus || '상태 확인 필요',
+			        const statusCode = changeType && request.viewResultStatus
+			            ? request.viewResultStatus
+			            : request.requestStatus;
+
+			        const status = statuses[statusCode] || {
+			            label: statusCode || '상태 확인 필요',
 			            className: 'is-draft'
 			        };
 

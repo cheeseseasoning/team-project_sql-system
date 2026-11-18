@@ -34,6 +34,11 @@
     font-weight: 600;
 }
 
+.request-editor .request-optional-label {
+    color: var(--muted);
+    font-weight: 400;
+}
+
 .request-editor .request-input-field > input,
 .request-editor .request-input-field > textarea {
     width: 100%;
@@ -80,7 +85,7 @@
 
 .request-editor .request-urgent-check:has(input:checked) {
     color: var(--error);
-    font-weight: 600;
+    font-weight: 400;
 }
 
 .request-editor .request-urgent-check:has(input:disabled) {
@@ -290,6 +295,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+}
+
+.request-editor .request-sql-label-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .request-editor .request-ai-status {

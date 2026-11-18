@@ -588,8 +588,8 @@ window.RequestDetailRenderer = (() => {
 		    ].includes(request.requestType);
 
 			documentHeading.textContent = isDbChange
-				? 'SQLFlow · DB 변경 기안서'
-				: 'SQLFlow · 데이터 조회 기안서';
+				? 'Q-Pass · DB 변경 기안서'
+				: 'Q-Pass · 데이터 조회 기안서';
 		}
 
 	    const displayStatus = requestStatusForDisplay(request);

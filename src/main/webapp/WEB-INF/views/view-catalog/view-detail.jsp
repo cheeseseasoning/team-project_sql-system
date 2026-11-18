@@ -523,7 +523,7 @@
 	    // 화면 표시용으로 정렬하며, 실패하면 원문을 표시한다.
 	    $('#view-create-statement').textContent = formatCreateStatement(detail.createStatement);
 
-	    document.title = detail.objectName + ' | SQLFlow';
+	    document.title = detail.objectName + ' | Q-Pass';
 	}
 
     async function loadDetail() {

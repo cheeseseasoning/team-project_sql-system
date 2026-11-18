@@ -33,7 +33,7 @@
 		        </label>
 
 		        <label for="desired-date" class="request-input-field">
-		            <span>처리 희망일 · 선택</span>
+	            <span>처리 희망일 <span class="request-optional-label">· 선택</span></span>
 
 		            <input id="desired-date"
 		                   type="date"
@@ -60,7 +60,7 @@
 		    </label>
 
 		    <label for="detail-content" class="request-input-field">
-		        <span>상세 내용 · 선택</span>
+		        <span>상세 내용 <span class="request-optional-label">· 선택</span></span>
 
 		        <textarea id="detail-content"
 		                  rows="2"
@@ -84,7 +84,7 @@
 		            </button>
 
 		            <button type="button" data-mode="ai">
-		                AI 작성 · 시연
+	                AI로 작성
 		            </button>
 		        </div>
 		    </div>
@@ -114,8 +114,7 @@
 
 		<div class="form-footer">
 		    <span class="caption">
-		        빈 SQL 입력 칸은 제외됩니다.
-		        저장 후 상세 화면에서 제출할 수 있습니다.
+		        SQL을 검증한 뒤 초안으로 저장하세요. 저장한 요청은 상세 화면에서 결재선을 지정해 제출할 수 있습니다.
 		    </span>
 
 		    <div class="request-save-actions">
@@ -243,7 +242,10 @@
 
 	                <label class="request-sql-field request-sql-output">
 	                    <span class="request-sql-output-heading">
-	                        <span class="request-sql-editor-label">SQL 원문</span>
+	                        <span class="request-sql-label-group">
+	                            <span class="request-sql-editor-label">SQL 원문</span>
+	                            <span class="required">*</span>
+	                        </span>
 	                        <span class="request-ai-status"></span>
 	                    </span>
 

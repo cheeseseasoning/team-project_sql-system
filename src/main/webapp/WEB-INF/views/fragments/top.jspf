@@ -9,7 +9,7 @@
     <meta name="csrf-token" content="${_csrf.token}">
     <meta name="csrf-header" content="${_csrf.headerName}">
 
-    <title><c:out value="${pageTitle}"/> | SQLFlow</title>
+    <title><c:out value="${pageTitle}"/> | Q-Pass</title>
 
     <link rel="stylesheet"
           href="${pageContext.request.contextPath}/css/sqlflow.css">
@@ -52,6 +52,11 @@
 
     <c:if test="${page == 'request-detail' or page == 'department-request-detail'}">
         <script src="${pageContext.request.contextPath}/js/request-sql-download.js?v=20261113-all-sql"></script>
+        <link rel="stylesheet"
+              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261113-sql-meta">
+    </c:if>
+
+    <c:if test="${page == 'approval-detail'}">
         <link rel="stylesheet"
               href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261113-sql-meta">
     </c:if>
@@ -140,7 +145,7 @@
 <body>
     <div class="app-shell">
         <aside class="sidebar">
-            <a class="brand" href="${pageContext.request.contextPath}/">SQLFlow</a>
+            <a class="brand" href="${pageContext.request.contextPath}/">Q-Pass</a>
             <hr>
 
             <nav aria-label="업무 메뉴">
@@ -261,7 +266,7 @@
         <div class="workspace">
             <header class="header">
                 <nav class="breadcrumb" aria-label="현재 위치">
-				    <a href="${pageContext.request.contextPath}/">SQLFlow</a>
+				    <a href="${pageContext.request.contextPath}/">Q-Pass</a>
 				
 				    <c:if test="${not empty breadcrumbGroup}">
 				        <span aria-hidden="true">›</span>
@@ -293,13 +298,6 @@
                                placeholder="내 요청번호·제목 검색">
                         <button type="submit" class="sr-only">검색</button>
                     </form>
-
-                    <button id="help-button"
-                            class="help-link"
-                            type="button"
-                            popovertarget="help-popover">
-                        도움말
-                    </button>
 
                     <div class="header-user">
                         <span class="avatar small">

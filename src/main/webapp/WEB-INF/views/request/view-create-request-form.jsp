@@ -22,7 +22,7 @@
 				</label>
 
 				<label>
-					처리 희망일 <span class="caption">· 선택</span>
+					처리 희망일 <span class="caption db-change-optional-label">· 선택</span>
 					<input id="view-request-date" name="desiredDate" type="date">
 				</label>
 
@@ -36,13 +36,13 @@
 				변경 목적 <span class="required">*</span>
 			</label>
 			<textarea id="view-request-purpose" name="purpose" rows="2" required
-				placeholder="변경이 필요한 이유와 사용 목적을 입력하세요."></textarea>
+				placeholder="예: 상품 재고 정정을 위해 대상 상품의 수량을 수정합니다."></textarea>
 
 			<label for="view-request-detail">
-				상세 내용 <span class="caption">· 선택</span>
+				상세 내용 <span class="caption db-change-optional-label">· 선택</span>
 			</label>
 			<textarea id="view-request-detail" name="detailContent" rows="3"
-				placeholder="변경 대상, 요청 배경과 처리 시 주의사항을 입력하세요."></textarea>
+				placeholder="예: 대상 상품 ID와 변경할 수량을 적고, 처리 시 주의사항을 입력하세요."></textarea>
 
 			<div class="db-change-sql-header section-gap">
 				<div class="db-change-sql-type">
@@ -121,9 +121,8 @@
 						</div>
 					</div>
 					<label>
-						<span class="db-change-direct-label">SQL 구문</span>
-						<span class="db-change-ai-label">생성된 SQL</span>
-						<span class="required">*</span>
+						<span class="db-change-direct-label">SQL 원문 <span class="required">*</span></span>
+						<span class="db-change-ai-label">생성된 SQL <span class="required">*</span></span>
 						<textarea class="sql-editor" rows="8" required  spellcheck="false"></textarea>
 					</label>
 				</div>

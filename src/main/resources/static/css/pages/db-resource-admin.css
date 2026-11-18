@@ -88,7 +88,7 @@
 #resource-detail-view .resource-add-dept select { flex: 1; min-width: 0; margin: 0; min-height: 34px; padding: 5px 10px; }
 #resource-detail-view .resource-section-footer { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 #resource-detail-view #dept-save-state { margin-right: auto; }
-#resource-detail-view .resource-role-note { margin: 0; color: var(--muted); font-size: 12px; }
+#resource-detail-view .resource-role-note { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 @media (max-width: 650px) {
     #resource-detail-view .resource-policy-fields { grid-template-columns: minmax(0, 1fr); }
     #resource-detail-view .resource-policy-save { justify-content: flex-end; }

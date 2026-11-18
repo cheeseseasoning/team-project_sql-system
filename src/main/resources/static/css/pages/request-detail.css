@@ -1137,6 +1137,18 @@
     margin-left: auto;
 }
 
+.request-document-page .request-approval-panel > .panel-heading {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+}
+
+.request-document-page #approval-line-open {
+    margin-left: auto;
+    min-height: 32px;
+    padding: 5px 12px;
+    font-size: 12px;
+}
+
 /* 기안 정보표 */
 .request-detail-page .request-info-table {
     width: 100%;

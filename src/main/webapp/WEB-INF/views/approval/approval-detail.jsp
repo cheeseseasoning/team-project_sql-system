@@ -5,85 +5,93 @@
      data-request-id="<c:out value='${requestId}'/>"
      hidden></div>
 
-<main class="approval-page">
-    <a class="caption approval-detail-breadcrumb"
+<main class="approval-page request-detail-page request-document-page approval-document-page">
+    <a class="back-link approval-detail-breadcrumb"
        href="${pageContext.request.contextPath}/approvals/pending">
         받은 결재 › 기안서 상세
     </a>
 
-    <section class="approval-detail-card">
-        <h1 class="approval-detail-title">기안서</h1>
+    <article class="request-document approval-detail-card">
+        <header class="request-document-heading">
+            <p class="request-document-caption">Q-Pass · 받은 결재</p>
+            <h1 id="approval-title">기안서를 불러오는 중입니다.</h1>
+        </header>
 
-        <div class="approval-detail-top">
-            <table class="approval-meta-table">
-                <tbody>
-                    <tr>
-                        <th>문서번호</th>
-                        <td id="approval-request-no">불러오는 중</td>
-                    </tr>
-                    <tr>
-                        <th>기안 부서</th>
-                        <td id="approval-department"></td>
-                    </tr>
-                    <tr>
-                        <th>기안자</th>
-                        <td id="approval-drafter"></td>
-                    </tr>
-                    <tr>
-                        <th>작성일</th>
-                        <td id="approval-created-at"></td>
-                    </tr>
-                    <tr>
-                        <th>처리 희망일</th>
-                        <td id="approval-desired-date"></td>
-                    </tr>
-                </tbody>
-            </table>
+        <section class="panel request-info-panel approval-detail-top">
+            <div class="request-detail-layout">
+                <div class="request-information-summary">
+                    <h2 class="request-information-heading">요청 정보</h2>
+                    <table class="request-info-table">
+                        <caption class="sr-only">요청 정보</caption>
+                        <colgroup>
+                            <col class="request-info-label-column">
+                            <col class="request-info-value-column">
+                            <col class="request-info-label-column">
+                            <col class="request-info-value-column">
+                        </colgroup>
+                        <tbody>
+                            <tr>
+                                <th>문서번호</th>
+                                <td id="approval-request-no" colspan="3">불러오는 중</td>
+                            </tr>
+                            <tr>
+                                <th>기안 부서</th>
+                                <td id="approval-department"></td>
+                                <th>기안자</th>
+                                <td id="approval-drafter"></td>
+                            </tr>
+                            <tr>
+                                <th>작성일</th>
+                                <td id="approval-created-at"></td>
+                                <th>처리 희망일</th>
+                                <td id="approval-desired-date"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-            <section aria-labelledby="approval-line-title">
-                <div class="approval-line-heading">
-                    <h3 id="approval-line-title">결재란</h3>
-                    <div class="approval-line-controls">
-                        <button id="approval-line-prev"
-                                type="button"
-                                aria-label="이전 결재자"
-                                disabled>◀</button>
-                        <span id="approval-line-range">0 / 0</span>
-                        <button id="approval-line-next"
-                                type="button"
-                                aria-label="다음 결재자"
-                                disabled>▶</button>
+                <aside class="panel request-approval-panel" aria-labelledby="approval-line-title">
+                    <div class="panel-heading">
+                        <h2 id="approval-line-title">결재란</h2>
+                        <div class="approval-line-controls">
+                            <button id="approval-line-prev"
+                                    type="button"
+                                    aria-label="이전 결재자"
+                                    disabled>◀</button>
+                            <span id="approval-line-range">0 / 0</span>
+                            <button id="approval-line-next"
+                                    type="button"
+                                    aria-label="다음 결재자"
+                                    disabled>▶</button>
+                        </div>
                     </div>
-                </div>
-                <div id="approval-line" class="approval-line">
-                    <p class="caption">결재선을 불러오는 중입니다.</p>
-                </div>
-            </section>
-        </div>
-
-        <div class="approval-title-bar">
-            <span>제목</span>
-            <strong id="approval-title"></strong>
-        </div>
-
-        <section class="approval-section">
-            <h3>1. 요청 목적</h3>
-            <p id="approval-purpose"></p>
+                    <div id="approval-line" class="approval-line">
+                        <p class="caption">결재선을 불러오는 중입니다.</p>
+                    </div>
+                </aside>
+            </div>
         </section>
 
-        <section class="approval-section">
-            <h3>2. 상세 내용</h3>
-            <p id="approval-description"></p>
+        <section class="request-content-section approval-section">
+            <h2>요청 목적</h2>
+            <p id="approval-purpose" class="notice-body"></p>
         </section>
 
-        <section class="approval-section">
-            <h3 id="approval-sql-heading">3. 제출된 SQL</h3>
-            <div id="approval-sql-list" class="approval-sql-list">
+        <section class="request-content-section approval-section">
+            <h2>상세 내용</h2>
+            <p id="approval-description" class="notice-body"></p>
+        </section>
+
+        <section class="panel section-gap request-sql-panel approval-section">
+            <div class="panel-heading request-sql-heading">
+                <h2 id="approval-sql-heading">첨부 SQL</h2>
+            </div>
+            <div id="approval-sql-list" class="approval-sql-list request-sql-list">
                 <p class="caption">SQL을 불러오는 중입니다.</p>
             </div>
         </section>
 
-        <section class="approval-reject">
+        <footer class="request-document-footer approval-reject">
             <label for="approval-reject-comment">반려 의견</label>
             <textarea id="approval-reject-comment"
                       rows="2"
@@ -100,8 +108,8 @@
                         class="button primary"
                         disabled>승인</button>
             </div>
-        </section>
-    </section>
+        </footer>
+    </article>
 </main>
 
 <script>
@@ -209,14 +217,14 @@
 
         function renderSqlItems(items) {
             if (!items || items.length === 0) {
-                $('#approval-sql-heading').textContent = '3. 제출된 SQL · 0건';
+                $('#approval-sql-heading').textContent = '첨부 SQL · 0건';
                 $('#approval-sql-list').innerHTML =
                     '<p class="approval-empty">등록된 SQL이 없습니다.</p>';
                 return;
             }
 
             $('#approval-sql-heading').textContent =
-                '3. 제출된 SQL · ' + items.length + '건';
+                '첨부 SQL · ' + items.length + '건';
 
             $('#approval-sql-list').innerHTML = items
                 .map(function (item, index) {

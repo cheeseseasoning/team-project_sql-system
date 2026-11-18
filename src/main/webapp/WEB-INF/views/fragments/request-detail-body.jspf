@@ -77,6 +77,19 @@
 
 			    <span id="request-approval-badge" hidden></span>
 
+			    <c:if test="${not requestDetailReadOnly}">
+			        <button id="approval-line-open"
+			                type="button"
+			                class="button"
+			                aria-haspopup="dialog"
+			                aria-controls="approval-line-dialog"
+			                aria-describedby="approval-preview-help"
+			                disabled
+			                hidden>
+			            결재선 지정
+			        </button>
+			    </c:if>
+
 			    <c:if test="${not requestDetailReadOnly or requestDetailDocument}">
 			        <div id="approval-card-navigation"
 			             class="approval-card-navigation"

@@ -18,7 +18,7 @@
 				<header class="request-document-heading">
 				    <p id="request-document-heading"
 				       class="request-document-caption">
-				        SQLFlow · 데이터 조회 기안서
+				        Q-Pass · 데이터 조회 기안서
 				    </p>
 
 				    <h1 id="detail-title">
@@ -54,16 +54,6 @@
 				                        SQL 검증
 				                    </button>
 				                </span>
-
-				                <button id="approval-line-open"
-				                        type="button"
-				                        class="button"
-				                        aria-haspopup="dialog"
-				                        aria-controls="approval-line-dialog"
-				                        aria-describedby="approval-preview-help"
-				                        disabled>
-				                    결재선 지정
-				                </button>
 
 				                <button id="request-submit-open"
 				                        type="button"
