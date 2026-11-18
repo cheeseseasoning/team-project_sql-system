@@ -1759,6 +1759,16 @@
     font-size: 12px;
 }
 
+/* 결재 날짜가 두 줄로 표시되어도 모든 결재 칸의 하단 경계를 맞춘다. */
+.request-detail-page.request-document-page .approval-card-date {
+    box-sizing: border-box;
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.45;
+}
+
 .request-detail-page.request-document-page .approval-card-step,
 .request-detail-page.request-document-page .approval-card-date {
     padding: 5px 6px;
