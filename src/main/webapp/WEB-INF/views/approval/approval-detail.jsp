@@ -8,7 +8,7 @@
 <main class="approval-page request-detail-page request-document-page approval-document-page">
     <a class="back-link approval-detail-breadcrumb"
        href="${pageContext.request.contextPath}/approvals/pending">
-        받은 결재 › 기안서 상세
+        ← 받은 결재
     </a>
 
     <article class="request-document approval-detail-card">
@@ -98,7 +98,7 @@
                       maxlength="2000"
                       placeholder="반려 사유를 입력하세요."></textarea>
 
-            <div class="approval-detail-actions">
+            <div class="request-document-actions approval-detail-actions">
                 <button id="reject-request"
                         type="button"
                         class="button"
@@ -231,13 +231,17 @@
                     const order = item.queryOrder || index + 1;
                     const title = item.queryTitle || '제목 없음';
 
-                    return '<details class="approval-sql-item"'
+                    return '<article class="request-sql-item approval-sql-item">'
+                        + '<details class="request-sql-accordion"'
                         + (index === 0 ? ' open' : '') + '>'
-                        + '<summary>SQL ' + esc(String(order).padStart(2, '0'))
-                        + ' · ' + esc(title) + '</summary>'
-                        + '<pre><code>' + esc(item.sqlText || '')
-                        + '</code></pre>'
-                        + '</details>';
+                        + '<summary><span class="request-sql-summary-title">'
+                        + 'SQL ' + esc(String(order).padStart(2, '0'))
+                        + ' · ' + esc(title)
+                        + '</span><span class="request-sql-validation-state is-valid">'
+                        + '검증 완료</span></summary>'
+                        + '<div class="request-sql-body"><pre><code>'
+                        + esc(item.sqlText || '')
+                        + '</code></pre></div></details></article>';
                 }).join('');
         }
 
