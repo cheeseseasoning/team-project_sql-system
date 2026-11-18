@@ -42,7 +42,7 @@
     </c:if>
 
     <c:if test="${page == 'view-create-request-form'}">
-        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/db-change-editor.css?v=20261118-form-layout-parity">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/db-change-editor.css?v=20261118-form-layout-parity-inline-labels">
     </c:if>
 
     <c:if test="${page == 'request-form' or page == 'request-edit'}">

@@ -6,7 +6,7 @@
 		     data-form-mode="${dbChangeFormMode}"
 		     hidden></div>
 		
-		<div class="page-heading panel-aligned-heading">
+		<div class="page-heading">
 		    <h1><c:out value="${pageTitle}"/></h1>
 		    <span class="badge">
 		        ${dbChangeFormMode eq 'redraft' ? '재기안'
