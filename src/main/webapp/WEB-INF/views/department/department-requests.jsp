@@ -87,6 +87,6 @@
     </section>
 </div>
 
-<script src="${pageContext.request.contextPath}/js/department-requests.js?v=20261113-total-count"></script>
+<script src="${pageContext.request.contextPath}/js/department-requests.js?v=20261118-page-size-parity"></script>
 
 <%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>
