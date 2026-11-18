@@ -40,6 +40,14 @@ html {
     color: var(--accent);
 }
 
+.sidebar > .brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 64px;
+    text-align: center;
+}
+
 .brand-sub {
     font-size: 11px;
     color: var(--muted);
