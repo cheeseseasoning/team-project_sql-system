@@ -53,12 +53,12 @@
     <c:if test="${page == 'request-detail' or page == 'department-request-detail'}">
         <script src="${pageContext.request.contextPath}/js/request-sql-download.js?v=20261113-all-sql"></script>
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261113-sql-meta">
+              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261119-shared-document-layout">
     </c:if>
 
     <c:if test="${page == 'approval-detail'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261113-sql-meta">
+              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261119-shared-document-layout">
     </c:if>
 
     <c:if test="${page == 'request-detail' or page == 'department-request-detail'}">
@@ -77,7 +77,7 @@
     </c:if>
 
     <c:if test="${page == 'execution-queue-detail'}">
-        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261113-sql-meta">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261119-shared-document-layout">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/execution-queue-detail.css?v=20261115-shared-document">
     </c:if>
 
@@ -129,7 +129,7 @@
 
     <c:if test="${page == 'approval-pending' or page == 'approval-detail'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/approval.css?v=20261119-detail-position-parity-2">
+              href="${pageContext.request.contextPath}/css/pages/approval.css?v=20261119-shared-document-layout">
     </c:if>
     <c:if test="${page == 'view-detail'
                or page == 'request-detail'

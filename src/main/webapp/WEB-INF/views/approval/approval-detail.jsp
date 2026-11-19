@@ -6,18 +6,18 @@
      hidden></div>
 
 <main class="approval-page request-detail-page request-document-page approval-document-page">
-    <a class="back-link approval-detail-breadcrumb"
+    <a class="back-link"
        href="${pageContext.request.contextPath}/approvals/pending">
         ← 받은 결재
     </a>
 
-    <article class="request-document approval-detail-card">
+    <article class="request-document">
         <header class="request-document-heading">
             <p class="request-document-caption">Q-Pass · 받은 결재</p>
-            <h1 id="approval-title">기안서를 불러오는 중입니다.</h1>
+            <h1 id="approval-title" class="request-document-title">기안서를 불러오는 중입니다.</h1>
         </header>
 
-        <section class="panel request-info-panel approval-detail-top">
+        <section class="panel request-info-panel">
             <div class="request-detail-layout">
                 <div class="request-information-summary">
                     <h2 class="request-information-heading">요청 정보</h2>
@@ -88,21 +88,25 @@
             </div>
         </section>
 
-        <section class="request-content-section approval-section">
-            <h2>요청 목적</h2>
-            <p id="approval-purpose" class="notice-body"></p>
-        </section>
+        <div class="request-body-layout">
+            <div class="request-body-content">
+                <section class="request-content-section">
+                    <h2>요청 목적</h2>
+                    <p id="approval-purpose" class="notice-body"></p>
+                </section>
 
-        <section class="request-content-section approval-section">
-            <h2>상세 내용</h2>
-            <p id="approval-description" class="notice-body"></p>
-        </section>
+                <section class="request-content-section">
+                    <h2>상세 내용</h2>
+                    <p id="approval-description" class="notice-body"></p>
+                </section>
+            </div>
+        </div>
 
-        <section class="panel section-gap request-sql-panel approval-section">
+        <section class="panel section-gap request-sql-panel">
             <div class="panel-heading request-sql-heading">
                 <h2 id="approval-sql-heading">첨부 SQL</h2>
             </div>
-            <div id="approval-sql-list" class="approval-sql-list request-sql-list">
+            <div id="approval-sql-list" class="request-sql-list">
                 <p class="caption">SQL을 불러오는 중입니다.</p>
             </div>
         </section>
@@ -310,7 +314,7 @@
                     const order = item.queryOrder || index + 1;
                     const title = item.queryTitle || '제목 없음';
 
-                    return '<article class="request-sql-item approval-sql-item">'
+                    return '<article class="request-sql-item">'
                         + '<details class="request-sql-accordion"'
                         + (index === 0 ? ' open' : '') + '>'
                         + '<summary><span class="request-sql-summary-title">'
