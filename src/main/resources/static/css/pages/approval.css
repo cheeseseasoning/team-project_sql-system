@@ -414,7 +414,7 @@
 
 /* 받은 결재 상세는 요청 상세와 같은 문서 흐름과 간격을 사용한다. */
 .approval-document-page .approval-detail-card {
-    padding: 24px;
+    padding: 20px;
     border: 1px solid var(--line);
     border-top: 2px solid var(--accent);
     border-radius: 4px;
@@ -424,6 +424,7 @@
 /* 내 요청함 상세와 같은 breadcrumb-to-document 간격을 유지한다. */
 .approval-document-page {
     gap: 0;
+    margin: 8px auto 0;
 }
 
 .approval-document-page .approval-detail-breadcrumb {
