@@ -21,7 +21,7 @@
 				        Q-Pass · 데이터 조회 기안서
 				    </p>
 
-				    <h1 id="detail-title">
+				    <h1 id="detail-title" class="request-document-title">
 				        요청을 불러오는 중입니다.
 				    </h1>
 				</header>

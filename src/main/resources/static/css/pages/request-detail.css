@@ -453,7 +453,8 @@
     font-size: 12px;
 }
 
-.request-document-page #detail-title {
+.request-document-page #detail-title,
+.request-document-page .request-document-title {
     margin: 0;
     color: var(--text);
     font-size: 24px;
@@ -507,7 +508,8 @@
         padding: 16px;
     }
 
-	.request-document-page #detail-title {
+	.request-document-page #detail-title,
+	.request-document-page .request-document-title {
 	    font-size: 21px;
 	}
 
@@ -521,7 +523,7 @@
 }
 
 /* 기안서 상단 정보·결재란 */
-.request-document-page #request-info {
+.request-document-page .request-info-panel {
     margin: 0;
     padding: 0;
     border: 0;
@@ -859,8 +861,10 @@
 }
 
 /* 여러 SQL을 하나의 테두리 안에 배치 */
-.request-document-page #detail-items {
+.request-document-page #detail-items,
+.request-document-page .request-sql-list {
     border: 1px solid var(--line);
+    margin-left: 12px;
 }
 
 .request-document-page .request-sql-item {
@@ -1246,6 +1250,14 @@
 }
 
 .request-document-page #request-approval-title {
+    flex-shrink: 0;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.request-document-page #approval-line-title {
     flex-shrink: 0;
     margin: 0;
     font-size: 13px;
@@ -1696,13 +1708,10 @@
     margin-bottom: 8px;
 }
 
-.request-detail-page.request-document-page #detail-items {
-    margin-left: 12px;
-}
-
 /* 두 요청 상세의 글자와 셀 여백을 함께 조정해 문서 배치를 유지한다. */
 .request-detail-page.request-document-page .request-information-heading,
 .request-detail-page.request-document-page #request-approval-title,
+.request-detail-page.request-document-page #approval-line-title,
 .request-detail-page.request-document-page .request-content-section > h2,
 .request-detail-page.request-document-page .request-sql-heading h2 {
     font-size: 15px;
