@@ -342,6 +342,7 @@
 
 /* 공유 문서 CSS를 쓰되 approval-page의 flex 간격은 끈다. */
 .approval-document-page {
+    display: block;
     gap: 0;
 }
 
