@@ -1148,8 +1148,9 @@
 
 .request-document-page #approval-line-open {
     margin-left: auto;
-    min-height: 32px;
-    padding: 5px 12px;
+    height: 28px;
+    min-height: 28px;
+    padding: 3px 10px;
     font-size: 12px;
 }
 
