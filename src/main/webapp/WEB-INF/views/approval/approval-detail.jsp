@@ -5,7 +5,7 @@
      data-request-id="<c:out value='${requestId}'/>"
      hidden></div>
 
-<main class="approval-page request-detail-page request-document-page approval-document-page">
+<div class="approval-page request-detail-page request-document-page approval-document-page">
     <a class="back-link"
        href="${pageContext.request.contextPath}/approvals/pending">
         ← 받은 결재
@@ -130,7 +130,7 @@
             </div>
         </footer>
     </article>
-</main>
+</div>
 
 <script>
     (function () {
