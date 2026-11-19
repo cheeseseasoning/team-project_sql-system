@@ -421,6 +421,11 @@
     background: #fff;
 }
 
+/* 내 요청함 상세와 같은 breadcrumb-to-document 간격을 유지한다. */
+.approval-document-page {
+    gap: 0;
+}
+
 .approval-document-page .approval-detail-breadcrumb {
     margin-bottom: 12px;
 }
