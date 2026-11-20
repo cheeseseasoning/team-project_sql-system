@@ -55,12 +55,13 @@ html {
     height: var(--shell-header-height);
     margin-inline: -16px;
     padding: 3px 13px;
-    background: #fff;
+    background: transparent;
     text-align: center;
 }
 
 .sidebar > .brand img {
     max-width: 176px;
+    mix-blend-mode: multiply;
 }
 
 .brand-sub {
