@@ -28,6 +28,7 @@ public class DepartmentRequestService {
             "DELETE");
 
     private final DepartmentRequestMapper departmentRequestMapper;
+    private final RequestService requestService;
 
     @Transactional(
             transactionManager = "managementTransactionManager",
@@ -154,6 +155,13 @@ public class DepartmentRequestService {
                 changeRequest
                         && departmentRequestMapper
                                 .canManageChangeSqlResult(requestId, actorId) == 1);
+
+        if (departmentRequestMapper.isRequestDrafter(requestId, actorId) == 1) {
+            RequestDetailResponse authorDetail =
+                    requestService.getMyRequestDetail(requestId, actorId);
+            detail.setCanRedraft(authorDetail.isCanRedraft());
+            detail.setRedraftQueryIds(authorDetail.getRedraftQueryIds());
+        }
 
         return detail;
     }

@@ -188,9 +188,54 @@
 	    </if>
 
 	    <if test="status != null and status != ''">
-	        AND (
-	            R.REQUEST_STATUS = #{status}
-	            OR (
+	        <choose>
+	            <when test='status == "IN_PROGRESS"'>
+	                AND R.REQUEST_STATUS IN ('READY', 'RUNNING', 'RETRY_REVIEW')
+	            </when>
+	            <when test='status == "CLOSED_OR_FAILED"'>
+	                AND (
+	                    R.REQUEST_STATUS IN (
+	                        'FAILED', 'PARTIAL_FAILED', 'REJECTED', 'WITHDRAWN'
+	                    )
+	                    OR (
+	                        R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
+	                        AND R.REQUEST_STATUS = 'READY'
+	                        AND R.APPROVAL_STATUS = 'APPROVED'
+	                        AND EXISTS (
+	                            SELECT C.REQUEST_ID
+	                            FROM DB_CHANGE_SQL C
+	                            LEFT JOIN DB_CHANGE_SQL_RESULT CR
+	                              ON CR.QUERY_ID = C.QUERY_ID
+	                            WHERE C.REQUEST_ID = R.REQUEST_ID
+	                            GROUP BY C.REQUEST_ID
+	                            HAVING CASE
+	                                       WHEN COUNT(*) = 0
+	                                         OR COUNT(CR.QUERY_ID) &lt; COUNT(*)
+	                                       THEN 'PENDING'
+	                                       WHEN COUNT(CASE
+	                                           WHEN CR.RESULT_STATUS IS NULL
+	                                             OR CR.RESULT_STATUS NOT IN (
+	                                                 'COMPLETED', 'FAILED', 'CANCELLED'
+	                                             )
+	                                           THEN 1
+	                                       END) &gt; 0
+	                                       THEN 'PENDING'
+	                                       WHEN COUNT(CASE WHEN CR.RESULT_STATUS = 'COMPLETED'
+	                                                       THEN 1 END) = COUNT(*)
+	                                       THEN 'COMPLETED'
+	                                       WHEN COUNT(CASE WHEN CR.RESULT_STATUS = 'COMPLETED'
+	                                                       THEN 1 END) = 0
+	                                       THEN 'FAILED'
+	                                       ELSE 'PARTIAL_FAILED'
+	                                   END IN ('FAILED', 'PARTIAL_FAILED')
+	                        )
+	                    )
+	                )
+	            </when>
+	            <otherwise>
+	                AND (
+	                    R.REQUEST_STATUS = #{status}
+	                    OR (
 	                #{status} IN ('COMPLETED', 'FAILED', 'PARTIAL_FAILED')
 	                AND R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
 	                AND R.REQUEST_STATUS = 'READY'
@@ -223,8 +268,10 @@
 	                               ELSE 'PARTIAL_FAILED'
 	                           END = #{status}
 	                )
-	            )
-	        )
+	                    )
+	                )
+	            </otherwise>
+	        </choose>
 	    </if>
 
 	    ORDER BY R.CREATED_AT DESC, R.REQUEST_ID DESC
@@ -396,9 +443,54 @@
 	    </choose>
 
 	    <if test="status != null and status != ''">
-	        AND (
-	            R.REQUEST_STATUS = #{status}
-	            OR (
+	        <choose>
+	            <when test='status == "IN_PROGRESS"'>
+	                AND R.REQUEST_STATUS IN ('READY', 'RUNNING', 'RETRY_REVIEW')
+	            </when>
+	            <when test='status == "CLOSED_OR_FAILED"'>
+	                AND (
+	                    R.REQUEST_STATUS IN (
+	                        'FAILED', 'PARTIAL_FAILED', 'REJECTED', 'WITHDRAWN'
+	                    )
+	                    OR (
+	                        R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
+	                        AND R.REQUEST_STATUS = 'READY'
+	                        AND R.APPROVAL_STATUS = 'APPROVED'
+	                        AND EXISTS (
+	                            SELECT C.REQUEST_ID
+	                            FROM DB_CHANGE_SQL C
+	                            LEFT JOIN DB_CHANGE_SQL_RESULT CR
+	                              ON CR.QUERY_ID = C.QUERY_ID
+	                            WHERE C.REQUEST_ID = R.REQUEST_ID
+	                            GROUP BY C.REQUEST_ID
+	                            HAVING CASE
+	                                       WHEN COUNT(*) = 0
+	                                         OR COUNT(CR.QUERY_ID) &lt; COUNT(*)
+	                                       THEN 'PENDING'
+	                                       WHEN COUNT(CASE
+	                                           WHEN CR.RESULT_STATUS IS NULL
+	                                             OR CR.RESULT_STATUS NOT IN (
+	                                                 'COMPLETED', 'FAILED', 'CANCELLED'
+	                                             )
+	                                           THEN 1
+	                                       END) &gt; 0
+	                                       THEN 'PENDING'
+	                                       WHEN COUNT(CASE WHEN CR.RESULT_STATUS = 'COMPLETED'
+	                                                       THEN 1 END) = COUNT(*)
+	                                       THEN 'COMPLETED'
+	                                       WHEN COUNT(CASE WHEN CR.RESULT_STATUS = 'COMPLETED'
+	                                                       THEN 1 END) = 0
+	                                       THEN 'FAILED'
+	                                       ELSE 'PARTIAL_FAILED'
+	                                   END IN ('FAILED', 'PARTIAL_FAILED')
+	                        )
+	                    )
+	                )
+	            </when>
+	            <otherwise>
+	                AND (
+	                    R.REQUEST_STATUS = #{status}
+	                    OR (
 	                #{status} IN ('COMPLETED', 'FAILED', 'PARTIAL_FAILED')
 	                AND R.REQUEST_TYPE IN ('CREATE', 'INSERT', 'UPDATE', 'DELETE')
 	                AND R.REQUEST_STATUS = 'READY'
@@ -431,8 +523,10 @@
 	                               ELSE 'PARTIAL_FAILED'
 	                           END = #{status}
 	                )
-	            )
-	        )
+	                    )
+	                )
+	            </otherwise>
+	        </choose>
 	    </if>
 	</sql>
 

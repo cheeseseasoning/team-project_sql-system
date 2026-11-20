@@ -20,17 +20,12 @@
 				<label>
 					<span class="filter-label-text sr-only">처리 상태</span>
 					<select id="status" name="status">
-						<option value="">전체</option>
+						<option value="">전체 상태</option>
 						<option value="DRAFT">초안</option>
 						<option value="PENDING_APPROVAL">결재 대기</option>
-						<option value="READY">실행 대기</option>
-						<option value="RUNNING">실행 중</option>
-						<option value="RETRY_REVIEW">재실행 검토</option>
+						<option value="IN_PROGRESS">처리 중</option>
 						<option value="COMPLETED">실행 완료</option>
-						<option value="PARTIAL_FAILED">일부 실패</option>
-						<option value="FAILED">실패</option>
-						<option value="REJECTED">반려</option>
-						<option value="WITHDRAWN">회수</option>
+						<option value="CLOSED_OR_FAILED">실패·반려·회수</option>
 					</select>
 				</label>
 
@@ -444,11 +439,18 @@
 			$('#keyword').value = initialParams.get('keyword') || '';
 
 			const initialStatus = initialParams.get('status') || '';
+			const normalizedInitialStatus = [
+				'DRAFT', 'PENDING_APPROVAL', 'IN_PROGRESS', 'COMPLETED',
+				'CLOSED_OR_FAILED'
+			].includes(initialStatus)
+				? initialStatus
+				: ['READY', 'RUNNING', 'RETRY_REVIEW'].includes(initialStatus)
+					? 'IN_PROGRESS'
+					: ['PARTIAL_FAILED', 'FAILED', 'REJECTED', 'WITHDRAWN'].includes(initialStatus)
+						? 'CLOSED_OR_FAILED'
+						: '';
 
-			if (Array.from($('#status').options)
-				.some(option => option.value === initialStatus)) {
-				$('#status').value = initialStatus;
-			}
+			$('#status').value = normalizedInitialStatus;
 
 			activeFilters = {
 				keyword: $('#keyword').value.trim(),

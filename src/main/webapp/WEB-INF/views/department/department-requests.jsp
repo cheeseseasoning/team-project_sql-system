@@ -13,7 +13,7 @@
                 <select id="department-type" name="type">
                     <option value="">전체 유형</option>
                     <option value="SELECT">조회</option>
-                    <option value="CREATE">CREATE</option>
+                    <option value="CREATE">데이터 생성</option>
                     <option value="INSERT">데이터 등록</option>
                     <option value="UPDATE">데이터 수정</option>
                     <option value="DELETE">데이터 삭제</option>

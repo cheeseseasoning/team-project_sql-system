@@ -27,11 +27,24 @@
             <c:set var="requestDetailDocument" value="${true}" />
             <%@ include file="/WEB-INF/views/fragments/request-detail-body.jspf" %>
         </div>
+
+        <footer id="department-request-footer"
+                class="request-document-footer"
+                hidden>
+            <div class="request-document-actions">
+                <button id="department-request-redraft"
+                        type="button"
+                        class="button primary"
+                        hidden>
+                    재기안
+                </button>
+            </div>
+        </footer>
     </article>
 
 </div>
 
 <script src="${pageContext.request.contextPath}/js/request-detail-renderer.js?v=20261116-department-labels"></script>
-<script src="${pageContext.request.contextPath}/js/department-request-detail.js?v=20261113-sql-download"></script>
+<script src="${pageContext.request.contextPath}/js/department-request-detail.js?v=20261120-redraft-button"></script>
 
 <%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

@@ -17,7 +17,9 @@ public final class RequestSearchValidator {
             "PARTIAL_FAILED",
             "FAILED",
             "REJECTED",
-            "WITHDRAWN");
+            "WITHDRAWN",
+            "IN_PROGRESS",
+            "CLOSED_OR_FAILED");
 
     private static final Set<String> DEPARTMENT_STATUS_FILTERS = Set.of(
             "IN_PROGRESS",

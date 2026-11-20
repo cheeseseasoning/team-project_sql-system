@@ -242,6 +242,13 @@
           AND <include refid="visibilityConditions"/>
     </select>
 
+    <select id="isRequestDrafter" resultType="int">
+        SELECT COUNT(*)
+        FROM QUERY_REQUEST R
+        WHERE R.REQUEST_ID = #{requestId}
+          AND R.DRAFTER_ID = #{actorId}
+    </select>
+
     <select id="selectVisibleRequestItems"
             resultType="com.sqlflow.request.dto.RequestItemResponse">
         SELECT I.QUERY_ID,

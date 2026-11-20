@@ -367,10 +367,26 @@
 }
 
 .approval-document-page .approval-reject label {
+    position: relative;
     flex: 0 0 100%;
+    margin: 0;
+    padding-left: 12px;
     color: var(--text);
     font-size: 15px;
     font-weight: 600;
+    line-height: 1.5;
+    text-align: left;
+}
+
+.approval-document-page .approval-reject label::before {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 0;
+    width: 4px;
+    border-radius: 2px;
+    background: #198754;
+    content: "";
 }
 
 .approval-document-page .approval-reject textarea {

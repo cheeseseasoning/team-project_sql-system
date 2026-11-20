@@ -4,6 +4,20 @@
     const requestId =
         $('#department-detail-config').dataset.requestId;
 
+    let currentRequestType = 'SELECT';
+    const redraftButton = $('#department-request-redraft');
+    const redraftFooter = $('#department-request-footer');
+
+    redraftButton.addEventListener('click', function () {
+        const isDbChange =
+            ['CREATE', 'INSERT', 'UPDATE', 'DELETE'].includes(currentRequestType);
+        const path = isDbChange ? '/view-create-requests/' : '/requests/';
+
+        location.href = BASE + path
+            + encodeURIComponent(requestId)
+            + '/redraft';
+    });
+
     $('#department-back').href =
         BASE + '/department-requests' + location.search;
 
@@ -371,8 +385,13 @@
                 { cache: 'no-store' }
             );
 
+            currentRequestType = detail.requestType || 'SELECT';
+
             RequestDetailRenderer.renderRequestInfo(detail);
             RequestDetailRenderer.renderSavedApprovalLine(detail);
+
+            redraftButton.hidden = detail.canRedraft !== true;
+            redraftFooter.hidden = detail.canRedraft !== true;
 
             $('#detail-items').innerHTML =
                 RequestDetailRenderer.renderItems(
