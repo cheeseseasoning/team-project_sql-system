@@ -8,20 +8,12 @@
 
     <section id="approval-request-list" class="panel">
         <form id="approval-filter" class="filter-bar">
-            <label for="approval-keyword">
-                <span class="filter-label-text sr-only">요청 검색</span>
-                <input
-                    id="approval-keyword"
-                    type="search"
-                    placeholder="요청번호 또는 제목">
-            </label>
-
             <label class="request-type-filter" for="approval-type">
                 <span class="filter-label-text sr-only">요청 유형</span>
                 <select id="approval-type">
                     <option value="">전체 유형</option>
                     <option value="SELECT">조회 요청</option>
-                    <option value="CREATE">CREATE 요청</option>
+                    <option value="CREATE">데이터 생성</option>
                     <option value="INSERT">데이터 등록</option>
                     <option value="UPDATE">데이터 수정</option>
                     <option value="DELETE">데이터 삭제</option>
@@ -36,6 +28,14 @@
                     <option value="DIRECTOR">부서장 결재</option>
                     <option value="DB_EXECUTION">DB팀 결재</option>
                 </select>
+            </label>
+
+            <label for="approval-keyword">
+                <span class="filter-label-text sr-only">요청 검색</span>
+                <input
+                    id="approval-keyword"
+                    type="search"
+                    placeholder="요청번호 또는 제목">
             </label>
 
             <button type="submit" class="button primary">검색</button>

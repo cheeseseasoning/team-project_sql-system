@@ -32,6 +32,10 @@ public interface DepartmentRequestMapper {
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);
 
+    int isRequestDrafter(
+            @Param("requestId") Long requestId,
+            @Param("actorId") Long actorId);
+
     List<RequestItemResponse> selectVisibleRequestItems(
             @Param("requestId") Long requestId,
             @Param("actorId") Long actorId);
