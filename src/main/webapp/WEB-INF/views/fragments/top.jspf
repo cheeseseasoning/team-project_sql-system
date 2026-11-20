@@ -14,7 +14,7 @@
     <link rel="stylesheet"
           href="${pageContext.request.contextPath}/css/sqlflow.css">
     <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/layout.css?v=20261118-sidebar-top-align-refine">
+              href="${pageContext.request.contextPath}/css/layout.css?v=20261120-qpass-image-logo">
 
     <c:if test="${page == 'home'}">
         <link rel="stylesheet"
@@ -145,7 +145,10 @@
 <body>
     <div class="app-shell">
         <aside class="sidebar">
-            <a class="brand" href="${pageContext.request.contextPath}/">Q-Pass</a>
+            <a class="brand" href="${pageContext.request.contextPath}/" aria-label="Q-Pass 홈">
+                <img src="${pageContext.request.contextPath}/images/qpass-logo.png"
+                     alt="Q-Pass QueryPass">
+            </a>
             <hr>
 
             <nav aria-label="업무 메뉴">

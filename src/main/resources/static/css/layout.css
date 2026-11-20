@@ -41,13 +41,26 @@ html {
     color: var(--accent);
 }
 
+.brand img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
 .sidebar > .brand {
     display: flex;
     align-items: center;
     justify-content: center;
     flex: 0 0 var(--shell-header-height);
     height: var(--shell-header-height);
+    margin-inline: -16px;
+    padding: 3px 13px;
+    background: #fff;
     text-align: center;
+}
+
+.sidebar > .brand img {
+    max-width: 176px;
 }
 
 .brand-sub {

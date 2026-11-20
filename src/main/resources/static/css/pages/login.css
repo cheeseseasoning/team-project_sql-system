@@ -29,8 +29,12 @@ body.login-page {
 }
 
 .login-panel .brand {
-    font-size: 25px;
-    line-height: 1.2;
+    flex: 0 0 172px;
+    background: #fff;
+}
+
+.login-panel .brand img {
+    max-width: 100%;
 }
 
 .login-panel h1 {

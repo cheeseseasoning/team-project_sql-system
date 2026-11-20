@@ -167,11 +167,13 @@
                 </div>
                 <div>
                     <dt>임시 비밀번호</dt>
-                    <dd><code id="generated-initial-password"></code></dd>
+                    <dd><code id="generated-initial-password"
+                              tabindex="0"
+                              title="클릭하면 임시 비밀번호 전체가 선택됩니다."></code></dd>
                 </div>
             </dl>
             <p id="generated-password-help" class="caption">
-                이 창을 닫으면 비밀번호가 화면에서 지워집니다. 다시 확인할 수 없으니 먼저 복사해 두세요.
+                비밀번호를 클릭하면 전체 선택됩니다. 복사 버튼을 눌러 복사하세요. 복사에 실패하면 선택된 상태에서 Ctrl+C를 누르세요. 이 창을 닫으면 비밀번호가 화면에서 지워집니다.
             </p>
             <p id="generated-password-copy-status" class="caption" role="status" aria-live="polite"></p>
             <div class="account-generated-password-actions">
@@ -364,18 +366,54 @@
             }, 0);
         });
 
+        function selectGeneratedPassword() {
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(generatedPassword);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+
+        generatedPassword.addEventListener(
+            'click',
+            selectGeneratedPassword
+        );
+        generatedPassword.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                selectGeneratedPassword();
+            }
+        });
+
         document.getElementById('copy-generated-password')
-            .addEventListener('click', async event => {
-                try {
-                    await navigator.clipboard.writeText(
-                        generatedPassword.textContent
-                    );
-                    generatedPasswordCopyStatus.textContent =
-                        '임시 비밀번호를 복사했습니다.';
-                } catch (error) {
-                    generatedPasswordCopyStatus.textContent =
-                        '자동 복사에 실패했습니다. 비밀번호를 직접 선택해 복사하세요.';
+            .addEventListener('click', async () => {
+                selectGeneratedPassword();
+
+                let copied = false;
+
+                if (navigator.clipboard?.writeText) {
+                    try {
+                        await navigator.clipboard.writeText(
+                            generatedPassword.textContent
+                        );
+                        copied = true;
+                    } catch (error) {
+                        // HTTP나 브라우저 권한으로 Clipboard API가 막히면 선택 복사를 시도한다.
+                    }
                 }
+
+                if (!copied) {
+                    try {
+                        copied = document.execCommand('copy');
+                    } catch (error) {
+                        copied = false;
+                    }
+                }
+
+                generatedPasswordCopyStatus.textContent = copied
+                    ? '임시 비밀번호를 복사했습니다.'
+                    : '자동 복사에 실패했습니다. 선택된 비밀번호에서 Ctrl+C를 누르세요.';
+                selectGeneratedPassword();
             });
 
         function clearGeneratedPassword() {
