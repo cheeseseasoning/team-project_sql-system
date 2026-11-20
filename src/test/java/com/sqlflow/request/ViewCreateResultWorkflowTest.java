@@ -63,7 +63,7 @@ class ViewCreateResultWorkflowTest {
                 new com.sqlflow.execution.service.SqlBasicValidator());
 
         departmentRequestService =
-                new DepartmentRequestService(departmentRequestMapper);
+                new DepartmentRequestService(departmentRequestMapper, requestService);
     }
 
     @Test
