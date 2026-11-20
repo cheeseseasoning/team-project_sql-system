@@ -356,11 +356,7 @@
 }
 
 .approval-document-page .approval-reject {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px 16px;
+    display: block;
     margin-top: 24px;
     padding: 16px 0 0;
     border-top: 1px solid var(--line);
@@ -368,7 +364,7 @@
 
 .approval-document-page .approval-reject label {
     position: relative;
-    flex: 0 0 100%;
+    display: block;
     margin: 0;
     padding-left: 12px;
     color: var(--text);
@@ -390,14 +386,19 @@
 }
 
 .approval-document-page .approval-reject textarea {
-    flex: 1 1 100%;
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
     min-height: 72px;
+    margin-top: 12px;
     resize: vertical;
 }
 
 .approval-document-page .approval-detail-actions {
+    display: flex;
     width: 100%;
-    margin-top: 2px;
+    justify-content: flex-end;
+    margin-top: 12px;
 }
 
 @media (max-width: 900px) {

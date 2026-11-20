@@ -129,7 +129,7 @@
 
     <c:if test="${page == 'approval-pending' or page == 'approval-detail'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/approval.css?v=20261120-rejection-heading">
+              href="${pageContext.request.contextPath}/css/pages/approval.css?v=20261120-rejection-left-aligned">
     </c:if>
     <c:if test="${page == 'view-detail'
                or page == 'request-detail'
