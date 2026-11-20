@@ -11,7 +11,7 @@
 	      href="${pageContext.request.contextPath}/css/sqlflow.css">
 
 	<link rel="stylesheet"
-	      href="${pageContext.request.contextPath}/css/layout.css?v=20261120-qpass-logo-no-bg">
+	      href="${pageContext.request.contextPath}/css/layout.css?v=20261120-qpass-logo-alignment">
 
 	<link rel="stylesheet"
 	      href="${pageContext.request.contextPath}/css/pages/login.css?v=20261120-qpass-image-logo">
