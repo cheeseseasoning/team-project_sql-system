@@ -5,6 +5,11 @@
     const PAGE_BLOCK_SIZE = 10;
 
     const statusConfig = {
+        DRAFT: {
+            label: '초안',
+            tone: 'neutral',
+            className: 'is-draft'
+        },
         PENDING_APPROVAL: {
             label: '결재 대기',
             tone: 'warning',
@@ -53,6 +58,7 @@
     };
 
     const statusFilterOptions = [
+        { value: 'DRAFT', label: '초안' },
         { value: 'PENDING_APPROVAL', label: '결재 대기' },
         { value: 'IN_PROGRESS', label: '처리 중', statuses: ['READY', 'RUNNING', 'RETRY_REVIEW'] },
         { value: 'COMPLETED', label: '실행 완료' },

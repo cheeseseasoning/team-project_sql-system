@@ -188,6 +188,7 @@
     border-radius: 5px;
     background: #f2f6f8;
     font-size: 14px;
+    cursor: pointer;
     user-select: all;
 }
 

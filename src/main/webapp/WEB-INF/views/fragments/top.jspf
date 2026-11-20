@@ -14,7 +14,7 @@
     <link rel="stylesheet"
           href="${pageContext.request.contextPath}/css/sqlflow.css">
     <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/layout.css?v=20261118-sidebar-top-align-refine">
+              href="${pageContext.request.contextPath}/css/layout.css?v=20261120-qpass-image-logo">
 
     <c:if test="${page == 'home'}">
         <link rel="stylesheet"
@@ -53,12 +53,12 @@
     <c:if test="${page == 'request-detail' or page == 'department-request-detail'}">
         <script src="${pageContext.request.contextPath}/js/request-sql-download.js?v=20261113-all-sql"></script>
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261119-shared-document-layout">
+              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261119-approval-grid-top-alignment">
     </c:if>
 
     <c:if test="${page == 'approval-detail'}">
         <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261119-shared-document-layout">
+              href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261119-approval-grid-top-alignment">
     </c:if>
 
     <c:if test="${page == 'request-detail' or page == 'department-request-detail'}">
@@ -77,7 +77,7 @@
     </c:if>
 
     <c:if test="${page == 'execution-queue-detail'}">
-        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261119-shared-document-layout">
+        <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/request-detail.css?v=20261119-approval-grid-top-alignment">
         <link rel="stylesheet" href="${pageContext.request.contextPath}/css/pages/execution-queue-detail.css?v=20261115-shared-document">
     </c:if>
 
@@ -145,7 +145,10 @@
 <body>
     <div class="app-shell">
         <aside class="sidebar">
-            <a class="brand" href="${pageContext.request.contextPath}/">Q-Pass</a>
+            <a class="brand" href="${pageContext.request.contextPath}/" aria-label="Q-Pass 홈">
+                <img src="${pageContext.request.contextPath}/images/qpass-logo.png"
+                     alt="Q-Pass QueryPass">
+            </a>
             <hr>
 
             <nav aria-label="업무 메뉴">

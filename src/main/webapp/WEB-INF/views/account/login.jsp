@@ -11,16 +11,19 @@
 	      href="${pageContext.request.contextPath}/css/sqlflow.css">
 
 	<link rel="stylesheet"
-	      href="${pageContext.request.contextPath}/css/layout.css">
+	      href="${pageContext.request.contextPath}/css/layout.css?v=20261120-qpass-image-logo">
 
 	<link rel="stylesheet"
-	      href="${pageContext.request.contextPath}/css/pages/login.css?v=20261113-compact">
+	      href="${pageContext.request.contextPath}/css/pages/login.css?v=20261120-qpass-image-logo">
 </head>
 <body class="login-page">
     <main class="panel login-panel" aria-labelledby="login-title">
         <header class="login-heading">
             <div class="login-title-row">
-                <a class="brand" href="${pageContext.request.contextPath}/login">Q-Pass</a>
+                <a class="brand" href="${pageContext.request.contextPath}/login" aria-label="Q-Pass">
+                    <img src="${pageContext.request.contextPath}/images/qpass-logo.png"
+                         alt="Q-Pass QueryPass">
+                </a>
                 <h1 id="login-title">로그인</h1>
             </div>
             <p class="muted">등록된 사내 계정으로 로그인하세요.</p>

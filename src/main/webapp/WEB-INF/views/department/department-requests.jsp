@@ -8,14 +8,6 @@
 
     <section id="department-request-list" class="panel">
         <form id="department-filter-form" class="filter-bar">
-            <label class="department-filter-keyword" for="department-keyword">
-                <span class="filter-label-text sr-only">요청 검색</span>
-                <input id="department-keyword"
-                       name="keyword"
-                       maxlength="120"
-                       placeholder="요청번호 또는 제목">
-            </label>
-
             <label class="request-type-filter" for="department-type">
                 <span class="filter-label-text sr-only">요청 유형</span>
                 <select id="department-type" name="type">
@@ -33,6 +25,14 @@
                 <select id="department-status" name="status">
                     <option value="">전체 상태</option>
                 </select>
+            </label>
+
+            <label class="department-filter-keyword" for="department-keyword">
+                <span class="filter-label-text sr-only">요청 검색</span>
+                <input id="department-keyword"
+                       name="keyword"
+                       maxlength="120"
+                       placeholder="요청번호 또는 제목">
             </label>
 
             <button type="submit" class="button primary">검색</button>
@@ -87,6 +87,6 @@
     </section>
 </div>
 
-<script src="${pageContext.request.contextPath}/js/department-requests.js?v=20261118-status-filter-groups"></script>
+<script src="${pageContext.request.contextPath}/js/department-requests.js?v=20261120-draft-status-filter"></script>
 
 <%@ include file="/WEB-INF/views/fragments/bottom.jspf" %>

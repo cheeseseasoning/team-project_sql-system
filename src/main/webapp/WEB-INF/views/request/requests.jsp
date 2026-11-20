@@ -8,11 +8,6 @@
 		
 		<section id="my-request-list" class="panel">
 			<form id="filter-form" class="filter-bar">
-				<label>
-					<span class="filter-label-text sr-only">요청 검색</span>
-					<input name="keyword" id="keyword" placeholder="요청번호 또는 제목" maxlength="120">
-				</label>
-
 				<label class="request-type-filter">
 				    <span class="filter-label-text sr-only">요청 유형</span>
 				    <select id="request-type" name="requestType">
@@ -37,6 +32,11 @@
 						<option value="REJECTED">반려</option>
 						<option value="WITHDRAWN">회수</option>
 					</select>
+				</label>
+
+				<label>
+					<span class="filter-label-text sr-only">요청 검색</span>
+					<input name="keyword" id="keyword" placeholder="요청번호 또는 제목" maxlength="120">
 				</label>
 
 				<button class="button primary" type="submit">검색</button>
