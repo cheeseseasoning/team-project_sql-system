@@ -14,7 +14,7 @@
     <link rel="stylesheet"
           href="${pageContext.request.contextPath}/css/sqlflow.css">
     <link rel="stylesheet"
-              href="${pageContext.request.contextPath}/css/layout.css?v=20261120-qpass-image-logo">
+              href="${pageContext.request.contextPath}/css/layout.css?v=20261120-qpass-logo-no-bg">
 
     <c:if test="${page == 'home'}">
         <link rel="stylesheet"
