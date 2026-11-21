@@ -56,7 +56,7 @@
             parameterType="com.sqlflow.execution.domain.QueryExecution">
         UPDATE QUERY_EXECUTION
         SET STATUS = #{status},
-            FINISHED_AT = SYSTIMESTAMP,
+            FINISHED_AT = CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP),
             DURATION_MS = #{durationMs, jdbcType=NUMERIC},
             ERROR_CODE = #{errorCode, jdbcType=VARCHAR},
             ERROR_MESSAGE = #{errorMessage, jdbcType=CLOB}
