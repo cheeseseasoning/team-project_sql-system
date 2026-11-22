@@ -62,7 +62,8 @@ public class SecurityConfig {
             .formLogin(form -> form
                 .loginPage("/login")
                 .loginProcessingUrl("/login")
-                .defaultSuccessUrl("/", false)
+                // 정적 파일 요청이 저장된 주소로 남아 있어도 로그인 후 홈으로 이동한다.
+                .defaultSuccessUrl("/", true)
                 .failureUrl("/login?error")
                 .permitAll()
             )
